@@ -168,14 +168,14 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
     [InlineData(nameof(KnownResourceStates.Finished))]
     [RequiresDocker]
-    public async Task WaitForBehaviorStopOnDependencyFailure(string status)
+    public async Task WaitForBehaviorStopOnResourceUnavailable(string status)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
-                           .WaitFor(dependency, WaitBehavior.StopOnDependencyFailure);
+                           .WaitFor(dependency, WaitBehavior.StopOnResourceUnavailable);
 
         using var app = builder.Build();
 
@@ -194,6 +194,83 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
 
         await startTask;
+    }
+
+   [Fact]
+   [RequiresDocker]
+   public async Task WhenWaitBehaviorIsStopOnResourceUnavailableWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
+   {
+      using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+      var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+      var dependency = builder.AddContainer("redis", "redis");
+
+      dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
+
+      using var app = builder.Build();
+      await app.StartAsync();
+
+      var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => {
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(
+            dependency.Resource.Name,
+            WaitBehavior.StopOnResourceUnavailable
+            ).WaitAsync(TimeSpan.FromSeconds(15));
+      });
+
+      Assert.Equal("Stopped waiting for resource 'redis' to become healthy because it failed to start.", ex.Message);
+   }
+
+   [Fact]
+   [RequiresDocker]
+   public async Task WhenWaitBehaviorIsWaitOnResourceUnavailableWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
+   {
+      using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+      var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+      var dependency = builder.AddContainer("redis", "redis");
+
+      dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
+
+      using var app = builder.Build();
+      await app.StartAsync();
+
+      var ex = await Assert.ThrowsAsync<TimeoutException>(async () => {
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(
+            dependency.Resource.Name,
+            WaitBehavior.WaitOnResourceUnavailable
+            ).WaitAsync(TimeSpan.FromSeconds(15));
+      });
+
+      Assert.Equal("The operation has timed out.", ex.Message);
+   }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(WaitBehavior.WaitOnResourceUnavailable, typeof(TimeoutException), "The operation has timed out.")]
+    [InlineData(WaitBehavior.StopOnResourceUnavailable, typeof(DistributedApplicationException), "Stopped waiting for resource 'redis' to become healthy because it failed to start.")]
+    public async Task WhenWaitBehaviorIsMissingWaitForResourceHealthyAsyncShouldUseDefaultWaitBehavior(WaitBehavior defaultWaitBehavior, Type exceptionType, string exceptionMessage)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        builder.Services.Configure<ResourceNotificationServiceOptions>(o =>
+        {
+            o.DefaultWaitBehavior = defaultWaitBehavior;
+        });
+
+        var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+        var dependency = builder.AddContainer("redis", "redis");
+
+        dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var ex = await Assert.ThrowsAsync(exceptionType, async () => {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(dependency.Resource.Name)
+                .WaitAsync(TimeSpan.FromSeconds(15));
+        });
+
+        Assert.Equal(exceptionMessage, ex.Message);
     }
 
     [Theory]
@@ -236,14 +313,14 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
     [InlineData(nameof(KnownResourceStates.Finished))]
     [RequiresDocker]
-    public async Task WaitForBehaviorWaitOnDependencyFailure(string status)
+    public async Task WaitForBehaviorWaitOnResourceUnavailable(string status)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
-                           .WaitFor(dependency, WaitBehavior.WaitOnDependencyFailure);
+                           .WaitFor(dependency, WaitBehavior.WaitOnResourceUnavailable);
 
         using var app = builder.Build();
 
@@ -278,13 +355,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
     [InlineData(nameof(KnownResourceStates.Finished))]
     [RequiresDocker]
-    public async Task WaitForBehaviorWaitOnDependencyFailureViaOptions(string status)
+    public async Task WaitForBehaviorWaitOnResourceUnavailableViaOptions(string status)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         builder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
-            o.DefaultWaitBehavior = WaitBehavior.WaitOnDependencyFailure;
+            o.DefaultWaitBehavior = WaitBehavior.WaitOnResourceUnavailable;
         });
 
         var dependency = builder.AddResource(new CustomResource("test"));

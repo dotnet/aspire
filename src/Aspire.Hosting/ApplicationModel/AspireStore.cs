@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Cryptography;
+using System.IO.Hashing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 internal sealed class AspireStore : IAspireStore
 {
+    internal const string AspireStorePathKeyName = "Aspire:Store:Path";
+
     private readonly string _basePath;
 
     /// <summary>
@@ -29,55 +32,37 @@ internal sealed class AspireStore : IAspireStore
 
     public string BasePath => _basePath;
 
-    public string GetFileNameWithContent(string filenameTemplate, string sourceFilename)
+    public string GetFileNameWithContent(string filenameTemplate, Stream contentStream)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filenameTemplate);
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFilename);
-
-        if (!File.Exists(sourceFilename))
-        {
-            throw new FileNotFoundException("The source file does not exist.", sourceFilename);
-        }
+        ArgumentNullException.ThrowIfNull(contentStream);
 
         EnsureDirectory();
 
         // Strip any folder information from the filename.
         filenameTemplate = Path.GetFileName(filenameTemplate);
 
-        var hashStream = File.OpenRead(sourceFilename);
-
-        // Compute the hash of the content.
-        var hash = SHA256.HashData(hashStream);
-
-        hashStream.Dispose();
-
-        var name = Path.GetFileNameWithoutExtension(filenameTemplate);
-        var ext = Path.GetExtension(filenameTemplate);
-        var finalFilePath = Path.Combine(_basePath, $"{name}.{Convert.ToHexString(hash)[..12].ToLowerInvariant()}{ext}");
-
-        if (!File.Exists(finalFilePath))
-        {
-            File.Copy(sourceFilename, finalFilePath, overwrite: true);
-        }
-
-        return finalFilePath;
-    }
-
-    public string GetFileNameWithContent(string filenameTemplate, Stream contentStream)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filenameTemplate);
-        ArgumentNullException.ThrowIfNull(contentStream);
-
         // Create a temporary file to write the content to.
         var tempFileName = Path.GetTempFileName();
 
-        // Write the content to the temporary file.
+        // Fast, non-cryptographic hash.
+        var hash = new XxHash3();
+
+        // Write the content to the temporary file while also building a hash.
         using (var fileStream = File.OpenWrite(tempFileName))
         {
-            contentStream.CopyTo(fileStream);
+            using var digestStream = new HashDigestStream(fileStream, hash);
+            contentStream.CopyTo(digestStream);
         }
 
-        var finalFilePath = GetFileNameWithContent(filenameTemplate, tempFileName);
+        var name = Path.GetFileNameWithoutExtension(filenameTemplate);
+        var ext = Path.GetExtension(filenameTemplate);
+        var finalFilePath = Path.Combine(_basePath, $"{name}.{Convert.ToHexString(hash.GetCurrentHash())[..12].ToLowerInvariant()}{ext}");
+
+        if (!File.Exists(finalFilePath))
+        {
+            File.Copy(tempFileName, finalFilePath, overwrite: true);
+        }
 
         try
         {

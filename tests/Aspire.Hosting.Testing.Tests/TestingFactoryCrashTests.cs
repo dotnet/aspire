@@ -26,8 +26,6 @@ public class TestingFactoryCrashTests
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-            await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);
-            return;
         }
         else
         {

@@ -729,7 +729,12 @@ public static class ResourceBuilderExtensions
     /// return <see cref="HealthStatus.Healthy"/>.</para>
     /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
     /// additional health checks with a resource.</para>
-    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the wait operation.</para>
+    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the
+    /// wait operation. When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified, the wait
+    /// operation will continue to wait until the resource becomes healthy. This is the default
+    /// behavior with the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
+    /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
     /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
@@ -738,7 +743,7 @@ public static class ResourceBuilderExtensions
     /// var messaging = builder.AddRabbitMQ("messaging");
     /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
     ///        .WithReference(messaging)
-    ///        .WaitFor(messaging, WaitBehavior.StopOnDependencyFailure);
+    ///        .WaitFor(messaging, WaitBehavior.StopOnResourceUnavailable);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport

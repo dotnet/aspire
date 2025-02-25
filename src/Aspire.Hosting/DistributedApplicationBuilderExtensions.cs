@@ -60,7 +60,7 @@ public static class DistributedApplicationBuilderExtensions
     public static IResourceBuilder<T> CreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentNullException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
         var resource = builder.Resources.FirstOrDefault(r => string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase));
         if (resource is null)
         {

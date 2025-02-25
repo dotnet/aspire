@@ -63,7 +63,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
             builder.Append($"{UserNameReference}:{PasswordParameter}@");
         }
 
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         if (databaseName is not null)
         {

@@ -17,17 +17,12 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
-    public async Task HasEndPoints()
+    public void HasEndPoints()
     {
         // Get an endpoint from a resource
         var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
-
-        // Get a connection string from a resource
-        var pgConnectionString = await _app.GetConnectionStringAsync("postgres1");
-        Assert.NotNull(pgConnectionString);
-        Assert.True(pgConnectionString.Length > 0);
     }
 
     [Fact]
@@ -44,7 +39,6 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 

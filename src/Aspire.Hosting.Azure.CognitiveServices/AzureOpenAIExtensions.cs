@@ -26,23 +26,29 @@ public static class AzureOpenAIExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = "OpenAI",
-                Sku = new CognitiveServicesSku()
+            var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = "S0"
+                    var resource = CognitiveServicesAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Properties = new CognitiveServicesAccountProperties()
+                (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
-                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                    // Disable local auth for AOAI since managed identity is used
-                    DisableLocalAuth = true
-                },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(cogServicesAccount);
+                    Kind = "OpenAI",
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = "S0"
+                    },
+                    Properties = new CognitiveServicesAccountProperties()
+                    {
+                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                        // Disable local auth for AOAI since managed identity is used
+                        DisableLocalAuth = true
+                    },
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
