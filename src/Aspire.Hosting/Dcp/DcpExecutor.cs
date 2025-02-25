@@ -1024,6 +1024,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
+                {
+                    // If there are app host args, add a double-dash to separate them from the launch args.
+                    launchProfileArgs.Insert(0, "--");
+                }
+
                 launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
             }
         }
@@ -1036,17 +1042,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
     {
-        var args = new List<string>();
         if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
         {
-            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-            if (cmdArgs.Count > 0)
-            {
-                args.Add("--");
-                args.AddRange(cmdArgs);
-            }
+            return CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
         }
-        return args;
+
+        return [];
     }
 
     private void PrepareContainers()
