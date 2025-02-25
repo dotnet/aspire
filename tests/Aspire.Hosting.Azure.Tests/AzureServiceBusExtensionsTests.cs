@@ -179,7 +179,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
-        
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -215,7 +214,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
     [RequiresDocker]
     public async Task VerifyAzureServiceBusEmulatorResource()
     {
@@ -330,7 +329,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
         topic1.AddServiceBusSubscription("subscription1")
             .WithProperties(sub =>
-            { 
+            {
                 sub.DeadLetteringOnMessageExpiration = true;
                 sub.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 sub.LockDuration = TimeSpan.FromMinutes(5);
