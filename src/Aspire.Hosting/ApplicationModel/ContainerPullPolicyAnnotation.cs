@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Image pull policies for container resources.
 /// </summary>
-public enum PullPolicy
+public enum ImagePullPolicy
 {
     /// <summary>
     /// Default image pull policy behavior. Currently this will be the same as the default behavior for your container runtime.
@@ -33,5 +33,5 @@ public sealed class ContainerPullPolicyAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets the image pull policy for the container resource.
     /// </summary>
-    public required PullPolicy PullPolicy { get; set; }
+    public required ImagePullPolicy ImagePullPolicy { get; set; }
 }

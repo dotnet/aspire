@@ -558,13 +558,13 @@ public static class ResourceExtensions
     /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
     /// </summary>
     /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
-    /// <param name="pullPolicy">The <see cref="PullPolicy"/> for the annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
     /// <returns>True if an annotation exists, false otherwise</returns>
-    internal static bool TryGetContainerPullPolicy(this IResource resource, [NotNullWhen(true)] out PullPolicy? pullPolicy)
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
     {
         if (resource.TryGetLastAnnotation<ContainerPullPolicyAnnotation>(out var pullPolicyAnnotation))
         {
-            pullPolicy = pullPolicyAnnotation.PullPolicy;
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
             return true;
         }
 

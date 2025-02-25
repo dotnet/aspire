@@ -324,11 +324,11 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="pullPolicy">The pull policy behavior for the container resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPullPolicy<T>(this IResourceBuilder<T> builder, PullPolicy pullPolicy) where T : ContainerResource
+    public static IResourceBuilder<T> WithImagePullPolicy<T>(this IResourceBuilder<T> builder, ImagePullPolicy pullPolicy) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new ContainerPullPolicyAnnotation { PullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerPullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource

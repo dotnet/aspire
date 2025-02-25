@@ -1075,14 +1075,14 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 ctr.Spec.Persistent = true;
             }
 
-            if (container.TryGetContainerPullPolicy(out var pullPolicy))
+            if (container.TryGetContainerImagePullPolicy(out var pullPolicy))
             {
                 ctr.Spec.PullPolicy = pullPolicy switch
                 {
-                    PullPolicy.Default => null,
-                    PullPolicy.Always => ContainerPullPolicy.Always,
-                    PullPolicy.Missing => ContainerPullPolicy.Missing,
-                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(PullPolicy), pullPolicy)}' for container '{container.Name}'")
+                    ImagePullPolicy.Default => null,
+                    ImagePullPolicy.Always => ContainerPullPolicy.Always,
+                    ImagePullPolicy.Missing => ContainerPullPolicy.Missing,
+                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(ImagePullPolicy), pullPolicy)}' for container '{container.Name}'")
                 };
             }
 
