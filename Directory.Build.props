@@ -50,4 +50,8 @@
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>
   </PropertyGroup>
 
+  <!-- Workaround for resolving Git packaging related targets inner Functions build. -->
+  <Target Name="GitVersion" />
+  <Target Name="GitInfo" />
+
 </Project>

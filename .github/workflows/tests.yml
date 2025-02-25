@@ -187,6 +187,11 @@ jobs:
         run: |
           ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
+      - name: Rebuild for Azure Functions project
+        if: matrix.name == 'Playground'
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+
       - name: Run tests
         id: run-tests
         env:
