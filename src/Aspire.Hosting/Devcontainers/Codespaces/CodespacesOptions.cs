@@ -47,7 +47,7 @@ internal class ConfigureCodespacesOptions(IConfiguration configuration) : IConfi
 
     private string GetRequiredCodespacesConfigurationValue(string key)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(key);
+        ArgumentException.ThrowIfNullOrEmpty(key);
         return configuration.GetValue<string>(key) ?? throw new DistributedApplicationException($"Codespaces was detected but {key} environment missing.");
     }
 

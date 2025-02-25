@@ -9,7 +9,7 @@ internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
 {
     public string RewriteUrl(string url)
     {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
         if (!options.Value.IsCodespace)
         {
