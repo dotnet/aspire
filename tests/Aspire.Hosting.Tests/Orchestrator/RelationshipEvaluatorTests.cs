@@ -20,10 +20,10 @@ public class RelationshipEvaluatorTests
         var greatGrandChildResource = builder.AddResource(new CustomChildResource("greatgrandchild", grandChildResource.Resource));
 
         var childWithAnnotationsResource = builder.AddContainer("child-with-annotations", "image")
-            .WithParentRelationship(parentResource.Resource);
+            .WithParentRelationship(parentResource);
 
         var grandChildWithAnnotationsResource = builder.AddContainer("grandchild-with-annotations", "image")
-            .WithParentRelationship(childWithAnnotationsResource.Resource);
+            .WithParentRelationship(childWithAnnotationsResource);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

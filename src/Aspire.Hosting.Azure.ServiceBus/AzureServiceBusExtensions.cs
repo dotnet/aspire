@@ -347,7 +347,7 @@ public static class AzureServiceBusExtensions
                 {
                     context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
                 })
-                .WithParentRelationship(builder.Resource);
+                .WithParentRelationship(builder);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
@@ -418,10 +418,19 @@ public static class AzureServiceBusExtensions
                     jsonObject.WriteTo(writer);
                 }
 
-                var aspireStore = builder.ApplicationBuilder.CreateStore();
+                var aspireStore = @event.Services.GetRequiredService<IAspireStore>();
 
                 // Deterministic file path for the configuration file based on its content
                 var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
+
+                // The docker container runs as a non-root user, so we need to grant other user's read/write permission
+                if (!OperatingSystem.IsWindows())
+                {
+                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(configJsonPath, mode);
+                }
 
                 builder.WithAnnotation(new ContainerMountAnnotation(
                     configJsonPath,

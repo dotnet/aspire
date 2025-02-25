@@ -202,7 +202,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
                     }
 
-                    await InvokeAsync(StateHasChanged);
+                    await InvokeAsync(() =>
+                    {
+                        // The selected resource may have changed, so update resource action buttons.
+                        // Update inside in the render's sync context so the buttons don't change while the UI is rendering.
+                        UpdateMenuButtons();
+
+                        StateHasChanged();
+                    });
                 }
             });
         }

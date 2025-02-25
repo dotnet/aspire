@@ -36,7 +36,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     private ReferenceExpression BuildConnectionString()
     {
         var builder = new ReferenceExpressionBuilder();
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         if (PasswordParameter is not null)
         {

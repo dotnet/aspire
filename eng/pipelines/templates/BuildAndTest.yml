@@ -22,6 +22,9 @@ parameters:
   - name: runPipelineTests
     type: boolean
     default: false
+  - name: dockerCliVersion
+    type: string
+    default: '28.0.0'
 
 steps:
   # Internal pipeline: Build with pack+sign
@@ -48,6 +51,11 @@ steps:
               $(_OfficialBuildIdArgs)
       displayName: Build
 
+    - task: DockerInstaller@0
+      inputs:
+        dockerVersion: ${{ parameters.dockerCliVersion }}
+      displayName: Install Docker CLI
+
   # Non-helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
@@ -68,9 +76,11 @@ steps:
       - script: |
           docker info
           docker container ls
+          docker volume ls
           docker network ls
           docker network prune -f
-        displayName: List Docker containers and networks, and prune networks
+        displayName: List Docker containers and networks, and prune networks (Before Tests)
+        condition: always()
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
@@ -86,6 +96,16 @@ steps:
         DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
         DCP_PRESERVE_EXECUTABLE_LOGS: 1
       displayName: Run non-helix tests
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks (After Tests always)
+        condition: always()
 
   # Helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
@@ -114,6 +134,8 @@ steps:
             HelixTargetQueues: Ubuntu.2204.Amd64.Open
           ${{ if eq(variables['System.TeamProject'], 'internal') }}:
             HelixTargetQueues: Ubuntu.2204.Amd64
+          ${{ if and(ne(parameters.isWindows, 'true'), ne(parameters.dockerCliVersion, '')) }}:
+            DockerCliPath: /opt/hostedtoolcache/docker-stable/${{ parameters.dockerCliVersion }}/x64/
 
         IsWindows: ${{ parameters.isWindows }}
         ${{ if eq(variables['System.TeamProject'], 'public') }}:

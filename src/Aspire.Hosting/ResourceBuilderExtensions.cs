@@ -729,7 +729,12 @@ public static class ResourceBuilderExtensions
     /// return <see cref="HealthStatus.Healthy"/>.</para>
     /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
     /// additional health checks with a resource.</para>
-    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the wait operation.</para>
+    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the
+    /// wait operation. When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified, the wait
+    /// operation will continue to wait until the resource becomes healthy. This is the default
+    /// behavior with the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
+    /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
     /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
@@ -738,7 +743,7 @@ public static class ResourceBuilderExtensions
     /// var messaging = builder.AddRabbitMQ("messaging");
     /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
     ///        .WithReference(messaging)
-    ///        .WaitFor(messaging, WaitBehavior.StopOnDependencyFailure);
+    ///        .WaitFor(messaging, WaitBehavior.StopOnResourceUnavailable);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
@@ -1136,6 +1141,36 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(type);
 
         return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, type));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="parent">The parent of <paramref name="builder"/>.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithParentRelationship</c> method is used to add parent relationships to the resource. Relationships are used to link
+    /// resources together in UI.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// 
+    /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
+    ///                      .WithParentRelationship(backend);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithParentRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResource> parent) where T : IResource
+    {
+        return builder.WithParentRelationship(parent.Resource);
     }
 
     /// <summary>
