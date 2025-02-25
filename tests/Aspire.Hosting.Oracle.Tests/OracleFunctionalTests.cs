@@ -22,8 +22,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     // for the non-root user in the container to be able to access them.
 
     private const UnixFileMode MountFilePermissions =
-       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+                UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+                UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 

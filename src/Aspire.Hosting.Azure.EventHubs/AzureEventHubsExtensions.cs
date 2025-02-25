@@ -19,6 +19,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureEventHubsExtensions
 {
+    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
     /// <summary>
     /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create Event Hub resources.
     /// </summary>
@@ -325,10 +327,7 @@ public static class AzureEventHubsExtensions
                 // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                 if (!OperatingSystem.IsWindows())
                 {
-                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(configJsonPath, mode);
+                    File.SetUnixFileMode(configJsonPath, FileMode644);
                 }
 
                 builder.WithAnnotation(new ContainerMountAnnotation(

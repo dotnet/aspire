@@ -158,10 +158,11 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                     // Change permissions for non-root accounts (container user account)
                     // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver16#storagepermissions
 
-                    // This is the minimal set to get the tests passing.
+                    // Change permissions for non-root accounts (container user account)
                     const UnixFileMode MsSqlPermissions =
-                       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
                     File.SetUnixFileMode(bindMountPath, MsSqlPermissions);
                     File.SetUnixFileMode($"{bindMountPath}/data", MsSqlPermissions);
