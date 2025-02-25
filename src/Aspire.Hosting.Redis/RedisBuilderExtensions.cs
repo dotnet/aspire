@@ -92,56 +92,42 @@ public static class RedisBuilderExtensions
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
                       .WithHealthCheck(healthCheckKey)
-                      .EnsureCommandLineCallback();
-    }
+                      // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+                      .WithEntrypoint("/bin/sh")
+                      .WithEnvironment(context =>
+                      {
+                          if (redis.PasswordParameter is { } password)
+                          {
+                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                          }
+                      })
+                      .WithArgs(context =>
+                      {
+                          var redisCommand = new List<string>
+                          {
+                              "redis-server"
+                          };
 
-    private static IResourceBuilder<RedisResource> EnsureCommandLineCallback(this IResourceBuilder<RedisResource> builder)
-    {
-        if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
-        {
-            builder.WithEntrypoint("/bin/sh");
+                          if (redis.PasswordParameter is not null)
+                          {
+                              redisCommand.Add("--requirepass");
+                              redisCommand.Add("$REDIS_PASSWORD");
+                          }
 
-            builder.WithEnvironment(context =>
-            {
-                if (builder.Resource.PasswordParameter is { } password)
-                {
-                    context.EnvironmentVariables["REDIS_PASSWORD"] = password;
-                }
-            });
+                          if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                          {
+                              var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
 
-            builder.WithArgs(context =>
-            {
-                var args = new List<string>
-                {
-                    "redis-server"
-                };
+                              redisCommand.Add("--save");
+                              redisCommand.Add(interval);
+                              redisCommand.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                          }
 
-                if (builder.Resource.PasswordParameter is { } password)
-                {
-                    args.Add("--requirepass");
-                    args.Add("$REDIS_PASSWORD");
-                }
+                          context.Args.Add("-c");
+                          context.Args.Add(string.Join(' ', redisCommand));
 
-                if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
-                {
-                    var persistenceAnnotation = annotations.Single();
-
-                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
-
-                    args.Add("--save");
-                    args.Add(interval);
-                    args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-                }
-
-                var redisCommand = string.Join(' ', args);
-
-                context.Args.Add("-c");
-                context.Args.Add(redisCommand);
-
-                return Task.CompletedTask;
-            });
-        }
-        return builder;
+                          return Task.CompletedTask;
+                      });
     }
 
     /// <summary>
@@ -571,8 +557,8 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace)
-            .EnsureCommandLineCallback();
+        return builder.WithAnnotation(
+            new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private sealed class PersistenceAnnotation(TimeSpan? interval, long keysChangedThreshold) : IResourceAnnotation
