@@ -189,6 +189,8 @@ jobs:
 
       - name: Rebuild for Azure Functions project
         if: matrix.name == 'Playground'
+        env:
+          CI: false
         run: |
           ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
