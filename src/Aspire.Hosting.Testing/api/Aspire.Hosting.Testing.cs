@@ -46,6 +46,10 @@ namespace Aspire.Hosting.Testing
 
     public static partial class DistributedApplicationTestingBuilder
     {
+        public static IDistributedApplicationTestingBuilder Create(string[] args, System.Action<DistributedApplicationOptions, Microsoft.Extensions.Hosting.HostApplicationBuilderSettings> configureBuilder) { throw null; }
+
+        public static IDistributedApplicationTestingBuilder Create(params string[] args) { throw null; }
+
         public static System.Threading.Tasks.Task<IDistributedApplicationTestingBuilder> CreateAsync(System.Type entryPoint, string[] args, System.Action<DistributedApplicationOptions, Microsoft.Extensions.Hosting.HostApplicationBuilderSettings> configureBuilder, System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
         public static System.Threading.Tasks.Task<IDistributedApplicationTestingBuilder> CreateAsync(System.Type entryPoint, string[] args, System.Threading.CancellationToken cancellationToken = default) { throw null; }
@@ -61,7 +65,7 @@ namespace Aspire.Hosting.Testing
             where TEntryPoint : class { throw null; }
     }
 
-    public partial interface IDistributedApplicationTestingBuilder
+    public partial interface IDistributedApplicationTestingBuilder : IDistributedApplicationBuilder, System.IAsyncDisposable, System.IDisposable
     {
         System.Reflection.Assembly? AppHostAssembly { get; }
 
@@ -70,6 +74,8 @@ namespace Aspire.Hosting.Testing
         Microsoft.Extensions.Configuration.ConfigurationManager Configuration { get; }
 
         Microsoft.Extensions.Hosting.IHostEnvironment Environment { get; }
+
+        Eventing.IDistributedApplicationEventing Eventing { get; }
 
         DistributedApplicationExecutionContext ExecutionContext { get; }
 
