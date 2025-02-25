@@ -120,15 +120,15 @@ public partial class TraceDetail : ComponentBase, IDisposable
                     return true;
                 }
 
-                List<string?> candidateStrings =
-                [
-                    viewModel.Span.SpanId,
-                    GetResourceName(viewModel.Span.Source),
-                    SpanWaterfallViewModel.GetDisplaySummary(viewModel.Span),
-                    viewModel.UninstrumentedPeer
-                ];
+                if (viewModel.Span.SpanId.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                    || GetResourceName(viewModel.Span.Source).Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                    || viewModel.Span.GetDisplaySummary().Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                    || viewModel.UninstrumentedPeer?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) is true)
+                {
+                    return true;
+                }
 
-                return candidateStrings.Any(s => s is not null && s.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+                return false;
             }
         }
     }
