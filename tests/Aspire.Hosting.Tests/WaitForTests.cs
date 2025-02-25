@@ -197,6 +197,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     }
 
    [Fact]
+   [RequiresDocker]
    public async Task WhenWaitBehaviorIsStopOnResourceUnavailableWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
    {
       using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
@@ -220,6 +221,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
    }
 
    [Fact]
+   [RequiresDocker]
    public async Task WhenWaitBehaviorIsWaitOnResourceUnavailableWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
    {
       using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
@@ -241,6 +243,35 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
       Assert.Equal("The operation has timed out.", ex.Message);
    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(WaitBehavior.WaitOnResourceUnavailable, typeof(TimeoutException), "The operation has timed out.")]
+    [InlineData(WaitBehavior.StopOnResourceUnavailable, typeof(DistributedApplicationException), "Stopped waiting for resource 'redis' to become healthy because it failed to start.")]
+    public async Task WhenWaitBehaviorIsMissingWaitForResourceHealthyAsyncShouldUseDefaultWaitBehavior(WaitBehavior defaultWaitBehavior, Type exceptionType, string exceptionMessage)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        builder.Services.Configure<ResourceNotificationServiceOptions>(o =>
+        {
+            o.DefaultWaitBehavior = defaultWaitBehavior;
+        });
+
+        var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+        var dependency = builder.AddContainer("redis", "redis");
+
+        dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var ex = await Assert.ThrowsAsync(exceptionType, async () => {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(dependency.Resource.Name)
+                .WaitAsync(TimeSpan.FromSeconds(15));
+        });
+
+        Assert.Equal(exceptionMessage, ex.Message);
+    }
 
     [Theory]
     [InlineData(nameof(KnownResourceStates.Exited))]

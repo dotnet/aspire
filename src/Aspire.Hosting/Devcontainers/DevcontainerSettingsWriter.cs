@@ -23,9 +23,9 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
     public void AddPortForward(string url, int port, string protocol, string label, bool openBrowser = false)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(url);
-        ArgumentNullException.ThrowIfNullOrEmpty(protocol);
-        ArgumentNullException.ThrowIfNullOrEmpty(label);
+        ArgumentException.ThrowIfNullOrEmpty(url);
+        ArgumentException.ThrowIfNullOrEmpty(protocol);
+        ArgumentException.ThrowIfNullOrEmpty(label);
 
         _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
     }

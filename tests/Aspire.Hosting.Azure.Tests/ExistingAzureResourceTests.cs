@@ -17,7 +17,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -79,7 +79,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -150,7 +150,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName);
+            .PublishAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -778,12 +778,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
-              properties: {
-                authConfig: {
-                  activeDirectoryAuth: 'Enabled'
-                  passwordAuth: 'Disabled'
-                }
-              }
             }
 
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
@@ -809,6 +803,84 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${principalName}'
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingPostgresSqlWithResourceGroupWithPasswordAuth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var existingUserName = builder.AddParameter("existingUserName");
+        var existingPassword = builder.AddParameter("existingPassword");
+
+        var postgresSql = builder.AddAzurePostgresFlexibleServer("postgresSql")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName)
+            .WithPasswordAuthentication(existingUserName, existingPassword);
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(postgresSql.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{postgresSql.secretOutputs.connectionString}",
+              "path": "postgresSql.module.bicep",
+              "params": {
+                "administratorLogin": "{existingUserName.value}",
+                "administratorLoginPassword": "{existingPassword.value}",
+                "existingResourceName": "{existingResourceName.value}",
+                "keyVaultName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param administratorLogin string
+
+            @secure()
+            param administratorLoginPassword string
+
+            param keyVaultName string
+
+            resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+              name: existingResourceName
+            }
+
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+              name: 'AllowAllAzureIps'
+              properties: {
+                endIpAddress: '0.0.0.0'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: postgresSql
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
             """;
 
         output.WriteLine(BicepText);
@@ -1050,15 +1122,15 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
+            }
+
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
               properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
+                login: principalName
+                sid: principalId
               }
+              parent: sqlServer
             }
 
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
@@ -1084,7 +1156,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
@@ -1096,8 +1168,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               "params": {
                 "existingResourceName": "{existingResourceName.value}",
                 "principalId": "",
-                "principalName": "",
-                "principalType": ""
+                "principalName": ""
               }
             }
             """;
@@ -1114,20 +1185,17 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             param existingResourceName string
 
-            param principalType string
-
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
+            }
+
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
               properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  principalType: principalType
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
+                login: principalName
+                sid: principalId
               }
+              parent: sqlServer
             }
 
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
@@ -1300,13 +1368,13 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-    
+
             param existingResourceName string
-    
+
             resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
               name: existingResourceName
             }
-    
+
             output appInsightsConnectionString string = appInsights.properties.ConnectionString
             """;
 
@@ -1347,17 +1415,17 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-    
+
             param existingResourceName string
-    
+
             param principalType string
-    
+
             param principalId string
-    
+
             resource openAI 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
               name: existingResourceName
             }
-    
+
             resource openAI_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(openAI.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
               properties: {
@@ -1367,7 +1435,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               scope: openAI
             }
-    
+
             resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
               name: 'mymodel'
               properties: {

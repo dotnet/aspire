@@ -394,14 +394,19 @@ public static class AzurePostgresExtensions
             keyVault.Name = kvNameParam;
             infrastructure.Add(keyVault);
 
-            postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+            // bicep doesn't allow for setting properties on existing resources. So we don't set auth properties here.
+            // The administratorLogin and administratorLoginPassword are expected to match what is already configured on the server
+            if (!postgres.IsExistingResource)
             {
-                ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Disabled,
-                PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Enabled
-            };
+                postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+                {
+                    ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Disabled,
+                    PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Enabled
+                };
 
-            postgres.AdministratorLogin = administratorLogin;
-            postgres.AdministratorLoginPassword = administratorLoginPassword;
+                postgres.AdministratorLogin = administratorLogin;
+                postgres.AdministratorLoginPassword = administratorLoginPassword;
+            }
 
             var secret = new KeyVaultSecret("connectionString")
             {
@@ -430,11 +435,14 @@ public static class AzurePostgresExtensions
         }
         else
         {
-            postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+            if (!postgres.IsExistingResource)
             {
-                ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Enabled,
-                PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
-            };
+                postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+                {
+                    ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Enabled,
+                    PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
+                };
+            }
 
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
