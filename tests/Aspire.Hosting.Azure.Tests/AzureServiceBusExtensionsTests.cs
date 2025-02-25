@@ -180,7 +180,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
 
-
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
