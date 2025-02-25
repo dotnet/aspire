@@ -1023,7 +1023,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 // We still want to display the args in the dashboard so only add them to the custom arg annotations.
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
-                var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile/*, appHostArgs.Count > 0*/);
+                var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile, appHostArgs.Count > 0);
                 launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
             }
         }
@@ -1034,7 +1034,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         return launchArgs;
     }
 
-    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile/*, bool containsAppHostArgs*/)
+    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile, bool containsAppHostArgs)
     {
         var args = new List<string>();
         if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
@@ -1043,10 +1043,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             if (cmdArgs.Count > 0)
             {
                 // If there are no app host args, we don't need a redundant --
-                //if (containsAppHostArgs)
-                //{
+                if (containsAppHostArgs)
+                {
                     args.Add("--");
-                //}
+                }
+
                 args.AddRange(cmdArgs);
             }
         }
