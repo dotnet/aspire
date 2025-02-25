@@ -187,6 +187,14 @@ jobs:
         run: |
           ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
+      # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
+      - name: Rebuild for Azure Functions project
+        if: matrix.name == 'Playground'
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+
       - name: Run tests
         id: run-tests
         env:
