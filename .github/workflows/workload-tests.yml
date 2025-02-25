@@ -1,4 +1,4 @@
-name: Run Workload Tests
+name: Workload Tests
 
 on:
   pull_request:
