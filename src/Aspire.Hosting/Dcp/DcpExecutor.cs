@@ -1024,13 +1024,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
-                if (launchProfileArgs.Count > 0)
+                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
                 {
-                    if (appHostArgs.Count > 0)
-                    {
-                        // If there are app host args, add a double-dash to separate them from the launch args.
-                        launchProfileArgs.Insert(0, "--");
-                    }
+                    // If there are app host args, add a double-dash to separate them from the launch args.
+                    launchProfileArgs.Insert(0, "--");
                 }
 
                 launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
