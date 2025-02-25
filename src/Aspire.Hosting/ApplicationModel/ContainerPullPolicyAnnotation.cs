@@ -28,7 +28,7 @@ public enum ImagePullPolicy
 /// Annotation that controls the image pull policy for a container resource.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
-public sealed class ContainerPullPolicyAnnotation : IResourceAnnotation
+public sealed class ContainerImagePullPolicyAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Gets or sets the image pull policy for the container resource.

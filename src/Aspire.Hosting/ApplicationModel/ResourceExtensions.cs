@@ -562,7 +562,7 @@ public static class ResourceExtensions
     /// <returns>True if an annotation exists, false otherwise</returns>
     internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
     {
-        if (resource.TryGetLastAnnotation<ContainerPullPolicyAnnotation>(out var pullPolicyAnnotation))
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
         {
             pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
             return true;

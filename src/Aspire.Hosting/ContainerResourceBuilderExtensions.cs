@@ -328,7 +328,7 @@ public static class ContainerResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new ContainerPullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerImagePullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
