@@ -15,6 +15,13 @@ else
         <div class="metrics-chart-header">
             <h3>@_instrument.Summary.Name</h3>
             <p>@_instrument.Summary.Description</p>
+            @if (OtlpInstrumentData.HasOverflowDimension(_instrument.Dimensions))
+            {
+                <p>
+                    <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" Style="vertical-align: text-bottom" />
+                    @((MarkupString)string.Format(ControlsStrings.ChartContainerOverflow, "https://opentelemetry.io/docs/specs/otel/metrics/sdk/#cardinality-limits"))
+                </p>
+            }
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
             <FluentTab LabelClass="tab-label"

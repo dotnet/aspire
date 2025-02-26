@@ -57,6 +57,11 @@
         <target state="translated">Seçenekler</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerOverflow">
+        <source>Cardinality capping has been detected for the metric, meaning some dimensions have been dropped by the OpenTelemetry SDK. For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
+        <target state="new">Cardinality capping has been detected for the metric, meaning some dimensions have been dropped by the OpenTelemetry SDK. For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</target>
+        <note>OpenTelemetry is the name of the standard.</note>
+      </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
         <target state="translated">Filtreleri seçin</target>

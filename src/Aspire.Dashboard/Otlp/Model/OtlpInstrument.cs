@@ -27,6 +27,23 @@ public class OtlpInstrumentData
     public required OtlpInstrumentSummary Summary { get; init; }
     public required List<DimensionScope> Dimensions { get; init; }
     public required Dictionary<string, List<string?>> KnownAttributeValues { get; init; }
+
+    public static bool HasOverflowDimension(List<DimensionScope> dimensions)
+    {
+        // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
+        foreach (var dimension in dimensions)
+        {
+            foreach (var attribute in dimension.Attributes)
+            {
+                if (attribute.Key == "otel.metric.overflow" && attribute.Value == "true")
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
 
 [DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
