@@ -26,6 +26,13 @@ jobs:
             8.x
             9.x
 
+      - name: Enumerate test class names
+        id: enumerateNamesStep
+        env:
+          CI: false
+        run: |
+          echo "templates_output=$(jq -cnR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < ${{ github.workspace }}/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+
       - name: Build with packages
         env:
           CI: false
@@ -53,7 +60,7 @@ jobs:
         env:
           CI: false
         run: |
-          echo "templates_output=$(jq -nR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+          echo "templates_output=$(jq -cnR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
       - name: Archive built nugets
         uses: actions/upload-artifact@v4
