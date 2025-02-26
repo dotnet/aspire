@@ -33,6 +33,9 @@ public class OtlpInstrumentData
         // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
         foreach (var dimension in dimensions)
         {
+            // The spec says "otel.metric.overflow" should be the only attribute on the dimension.
+            // However, by this point there are other attributes in the data so we can't tell.
+            // Improve if "otel.metric.overflow" is added to counters in other situations and this turns out to be a problem.
             foreach (var attribute in dimension.Attributes)
             {
                 if (attribute.Key == "otel.metric.overflow" && attribute.Value == "true")
