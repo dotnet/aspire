@@ -151,6 +151,7 @@ public static class AzureFunctionsProjectResourceExtensions
         }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
+        var useHttps = false;
         if (launchProfile is not null)
         {
             var commandLineArgs = CommandLineArgsParser.Parse(launchProfile.LaunchProfile.CommandLineArgs ?? string.Empty);
@@ -162,30 +163,40 @@ public static class AzureFunctionsProjectResourceExtensions
             {
                 port = parsedPort;
             }
+
+            useHttps = commandLineArgs is { Count: > 0 } &&
+                commandLineArgs.IndexOf("--useHttps") > -1;
         }
         // When a port is defined in the launch profile, Azure Functions will favor that port over
         // the port configured in the `WithArgs` callback when starting the project. To that end
         // we register an endpoint where the target port matches the port the Azure Functions worker
         // is actually configured to listen on and the endpoint is not proxied by DCP.
-        return builder
-            .WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null)
-            .WithArgs(context =>
+        if (useHttps)
+        {
+            builder.WithHttpsEndpoint(port: port, targetPort: port, isProxied: port == null);
+        }
+        else
+        {
+            builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
+        }
+
+        return builder.WithArgs(context =>
+        {
+            // Only pass the --port argument to the functions host if
+            // it has not been explicitly defined in the launch profile
+            // already. This covers the case where the user has defined
+            // a launch profile without a `commandLineArgs` property.
+            // We only do this when not in publish mode since the Azure
+            // Functions container image overrides the default port to 80.
+            if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode
+                || port is not null)
             {
-                // Only pass the --port argument to the functions host if
-                // it has not been explicitly defined in the launch profile
-                // already. This covers the case where the user has defined
-                // a launch profile without a `commandLineArgs` property.
-                // We only do this when not in publish mode since the Azure
-                // Functions container image overrides the default port to 80.
-                if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode
-                    || port is not null)
-                {
-                    return;
-                }
-                var http = builder.Resource.GetEndpoint("http");
-                context.Args.Add("--port");
-                context.Args.Add(http.Property(EndpointProperty.TargetPort));
-            });
+                return;
+            }
+            var targetEndpoint = builder.Resource.GetEndpoint(useHttps ? "https" : "http");
+            context.Args.Add("--port");
+            context.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+        });
     }
 
     /// <summary>
