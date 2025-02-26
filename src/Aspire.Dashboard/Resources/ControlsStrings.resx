@@ -437,8 +437,15 @@
   <data name="ClearPendingSelectedResource" xml:space="preserve">
     <value>Remove for resource</value>
   </data>
-  <data name="ChartContainerOverflow" xml:space="preserve">
-    <value>Cardinality capping has been detected for the metric, meaning some dimensions have been dropped by the OpenTelemetry SDK. For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
+  <data name="ChartContainerOverflowDescription" xml:space="preserve">
+    <value>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="ChartContainerOverflowTitle" xml:space="preserve">
+    <value>Cardinality capping has been detected</value>
+  </data>
+  <data name="ChartContainerOverflowLink" xml:space="preserve">
+    <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
     <comment>OpenTelemetry is the name of the standard.</comment>
   </data>
 </root>

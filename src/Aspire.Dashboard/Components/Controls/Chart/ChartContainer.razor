@@ -15,12 +15,19 @@ else
         <div class="metrics-chart-header">
             <h3>@_instrument.Summary.Name</h3>
             <p>@_instrument.Summary.Description</p>
-            @if (OtlpInstrumentData.HasOverflowDimension(_instrument.Dimensions))
+            @if (_instrument.HasOverflow)
             {
-                <p>
-                    <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" Style="vertical-align: text-bottom" />
-                    @((MarkupString)string.Format(ControlsStrings.ChartContainerOverflow, "https://aka.ms/dotnet/aspire/cardinality-limits"))
-                </p>
+                <div class="overflow-warning">
+                    <div class="overflow-warning-icon">
+                        <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" />
+                    </div>
+
+                    <div class="overflow-warning-message">
+                        <span class="title">@Loc[nameof(ControlsStrings.ChartContainerOverflowTitle)]</span>
+                        @Loc[nameof(ControlsStrings.ChartContainerOverflowDescription)]<br/>
+                        @((MarkupString)string.Format(ControlsStrings.ChartContainerOverflowLink, "https://aka.ms/dotnet/aspire/cardinality-limits"))
+                    </div>
+                </div>
             }
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">

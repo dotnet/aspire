@@ -160,11 +160,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cardinality capping has been detected for the metric, meaning some dimensions have been dropped by the OpenTelemetry SDK. For more information, see &lt;a href=&quot;{0}&quot; target=&quot;_blank&quot;&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;..
+        ///   Looks up a localized string similar to Some dimensions for the metric have been dropped by the OpenTelemetry SDK..
         /// </summary>
-        public static string ChartContainerOverflow {
+        public static string ChartContainerOverflowDescription {
             get {
-                return ResourceManager.GetString("ChartContainerOverflow", resourceCulture);
+                return ResourceManager.GetString("ChartContainerOverflowDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to For more information, see &lt;a href=&quot;{0}&quot; target=&quot;_blank&quot;&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;..
+        /// </summary>
+        public static string ChartContainerOverflowLink {
+            get {
+                return ResourceManager.GetString("ChartContainerOverflowLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cardinality capping has been detected.
+        /// </summary>
+        public static string ChartContainerOverflowTitle {
+            get {
+                return ResourceManager.GetString("ChartContainerOverflowTitle", resourceCulture);
             }
         }
         

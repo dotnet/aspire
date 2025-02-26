@@ -27,26 +27,7 @@ public class OtlpInstrumentData
     public required OtlpInstrumentSummary Summary { get; init; }
     public required List<DimensionScope> Dimensions { get; init; }
     public required Dictionary<string, List<string?>> KnownAttributeValues { get; init; }
-
-    public static bool HasOverflowDimension(List<DimensionScope> dimensions)
-    {
-        // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
-        foreach (var dimension in dimensions)
-        {
-            // The spec says "otel.metric.overflow" should be the only attribute on the dimension.
-            // However, by this point there are other attributes in the data so we can't tell.
-            // Improve if "otel.metric.overflow" is added to counters in other situations and this turns out to be a problem.
-            foreach (var attribute in dimension.Attributes)
-            {
-                if (attribute.Key == "otel.metric.overflow" && attribute.Value == "true")
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+    public required bool HasOverflow { get; init; }
 }
 
 [DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
@@ -57,9 +38,17 @@ public class OtlpInstrument
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
+    public bool HasOverflow { get; set; }
 
     public DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
+        // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
+        // Inspect attributes before they're merged with parent attributes. "otel.metric.overflow" should be the only attribute.
+        if (!HasOverflow && attributes.Count == 1 && attributes[0].Key == "otel.metric.overflow" && attributes[0].Value.GetString() == "true")
+        {
+            HasOverflow = true;
+        }
+
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
         //
@@ -121,7 +110,8 @@ public class OtlpInstrument
         var newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
-            Context = instrument.Context
+            Context = instrument.Context,
+            HasOverflow = instrument.HasOverflow
         };
 
         if (cloneData)
