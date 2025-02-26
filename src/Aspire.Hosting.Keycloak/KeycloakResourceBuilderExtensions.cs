@@ -174,4 +174,26 @@ public static class KeycloakResourceBuilderExtensions
 
         throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
     }
+
+    /// <summary>
+    /// Adds a Keycloak Realm to the application model from a <see cref="IResourceBuilder{KeycloakRealmResource}"/>.
+    /// </summary>
+    /// <param name="builder">The Keycloak server resource builder.</param>
+    /// <param name="name">The name of the realm.</param>
+    /// <param name="realmName">The name of the realm. If not provided, the resource name will be used.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{KeycloakRealmResource}"/>.</returns>
+    public static IResourceBuilder<KeycloakRealmResource> AddRealm(
+        this IResourceBuilder<KeycloakResource> builder,
+        string name,
+        string? realmName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Use the resource name as the realm name if it's not provided
+        realmName ??= name;
+
+        var keycloakRealm = new KeycloakRealmResource(name, realmName, builder.Resource);
+
+        return builder.ApplicationBuilder.AddResource(keycloakRealm);
+    }
 }
