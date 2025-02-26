@@ -19,10 +19,10 @@ public static class PostgresBuilderExtensions
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
     private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-    private const UnixFileMode FileMode777 =
+    private const UnixFileMode FileMode755 =
         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+        UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
 
     /// <summary>
     /// Adds a PostgreSQL resource to the application model. A container is used for local development.
@@ -313,7 +313,7 @@ public static class PostgresBuilderExtensions
                     // Grant listing access to the bookmarks folder on unix like systems.
                     if (!OperatingSystem.IsWindows())
                     {
-                        File.SetUnixFileMode(pgwebBookmarks, FileMode777);
+                        File.SetUnixFileMode(pgwebBookmarks, FileMode755);
                     }
 
                     foreach (var file in Directory.GetFiles(tempDir))
