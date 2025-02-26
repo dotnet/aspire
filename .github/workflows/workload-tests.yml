@@ -53,7 +53,7 @@ jobs:
         env:
           CI: false
         run: |
-          echo "templates_output=$(jq -cR '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+          echo "templates_output=$(jq -nR 'inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
       - name: Archive built nugets
         uses: actions/upload-artifact@v4
@@ -78,7 +78,7 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    name: ${{ matrix.class_names }}
+    name: ${{ matrix.title }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -139,7 +139,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }} \
+            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.fullname }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
             RunConfiguration.TestSessionTimeout=1200000
@@ -156,12 +156,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: binlog-${{ matrix.class_names }}
+          name: binlog-${{ matrix.fullname }}
           path: "**/*.binlog"
 
       - name: Upload test results artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: testresults-${{ matrix.class_names }}
+          name: testresults-${{ matrix.fullname }}
           path: testresults/**
