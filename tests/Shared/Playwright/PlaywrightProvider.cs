@@ -58,6 +58,10 @@ public class PlaywrightProvider
                 Environment.SetEnvironmentVariable(PlaywrightBrowsersPathEnvironmentVariableName, probePath);
                 Console.WriteLine($"** Found playwright dependencies in {probePath}");
             }
+            else
+            {
+                Console.WriteLine($"** Did not find playwright dependencies in {probePath}");
+            }
         }
     }
 }
