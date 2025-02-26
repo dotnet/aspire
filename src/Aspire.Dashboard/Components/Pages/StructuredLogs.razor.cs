@@ -132,6 +132,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
         else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage is { } message)
         {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
             message.Close();
         }
 

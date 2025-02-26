@@ -136,6 +136,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
         else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage is { } message)
         {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
             message.Close();
         }
 
