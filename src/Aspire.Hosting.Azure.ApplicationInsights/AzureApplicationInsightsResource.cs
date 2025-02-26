@@ -10,8 +10,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The resource name.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure Application Insights resource.</param>
-public class AzureApplicationInsightsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
+public class AzureApplicationInsightsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     /// <summary>

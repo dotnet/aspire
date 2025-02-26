@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Elasticsearch.Tests;
@@ -9,83 +10,93 @@ namespace Aspire.Hosting.Elasticsearch.Tests;
 public class ElasticsearchPublicApiTests
 {
     [Fact]
-    public void AddElasticsearchContainerShouldThrowWhenBuilderIsNull()
+    public void AddElasticsearchShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
-        const string name = "Elasticsearch";
+        const string name = "elasticsearch";
 
         var action = () => builder.AddElasticsearch(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddElasticsearchContainerShouldThrowWhenNameIsNull()
-    {
-        IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
-        string name = null!;
-
-        var action = () => builder.AddElasticsearch(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(false)]
     [InlineData(true)]
-    public void WithDataShouldThrowWhenBuilderIsNull(bool useVolume)
+    [InlineData(false)]
+    public void AddElasticsearchShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddElasticsearch(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithDataVolumeShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<ElasticsearchResource> builder = null!;
 
-        Func<IResourceBuilder<ElasticsearchResource>>? action = null;
-
-        if (useVolume)
-        {
-            action = () => builder.WithDataVolume();
-        }
-        else
-        {
-            const string source = "/data";
-
-            action = () => builder.WithDataBindMount(source);
-        }
+        var action = () => builder.WithDataVolume();
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
-        var builder = new DistributedApplicationBuilder([]); 
-        var resourceBuilder = builder.AddElasticsearch("Elasticsearch");
+        IResourceBuilder<ElasticsearchResource> builder = null!;
+        const string source = "/usr/share/elasticsearch/data";
 
-        string source = null!;
-
-        var action = () => resourceBuilder.WithDataBindMount(source);
+        var action = () => builder.WithDataBindMount(source);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddElasticsearch("elasticsearch");
+        var source = isNull ? null! : string.Empty;
+
+        var action = () => builder.WithDataBindMount(source);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorElasticsearchResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorElasticsearchResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = new DistributedApplicationBuilder([]);
-        var password = builder.AddParameter("Password", "p@ssw0rd1");
-        const string name = null!;
+        var name = isNull ? null! : string.Empty;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var password = builder.AddParameter("password");
 
         var action = () => new ElasticsearchResource(name, password.Resource);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
     [Fact]
     public void CtorElasticsearchResourceShouldThrowWhenPasswordIsNull()
     {
-        const string name = "Elasticsearch";
+        const string name = "elasticsearch";
         ParameterResource password = null!;
 
         var action = () => new ElasticsearchResource(name, password);

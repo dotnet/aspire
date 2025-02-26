@@ -35,6 +35,8 @@ public sealed class ServiceEndpointQuery
     /// <returns><see langword="true"/> if the value was successfully parsed; otherwise <see langword="false"/>.</returns>
     public static bool TryParse(string input, [NotNullWhen(true)] out ServiceEndpointQuery? query)
     {
+        ArgumentException.ThrowIfNullOrEmpty(input);
+
         bool hasScheme;
         if (!input.Contains("://", StringComparison.InvariantCulture)
             && Uri.TryCreate($"fakescheme://{input}", default, out var uri))
