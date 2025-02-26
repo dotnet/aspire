@@ -423,6 +423,15 @@ public static class AzureServiceBusExtensions
                 // Deterministic file path for the configuration file based on its content
                 var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
 
+                // The docker container runs as a non-root user, so we need to grant other user's read/write permission
+                if (!OperatingSystem.IsWindows())
+                {
+                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(configJsonPath, mode);
+                }
+
                 builder.WithAnnotation(new ContainerMountAnnotation(
                     configJsonPath,
                     AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,

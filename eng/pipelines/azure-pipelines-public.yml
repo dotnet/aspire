@@ -197,7 +197,7 @@ stages:
         # ----------------------------------------------------------------
         jobs:
         - job: CodeCoverageReport
-          timeoutInMinutes: 10
+          timeoutInMinutes: 15
 
           pool:
             name: $(DncEngPublicBuildPool)

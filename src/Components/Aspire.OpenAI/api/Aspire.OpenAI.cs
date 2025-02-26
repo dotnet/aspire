@@ -8,6 +8,21 @@
 //------------------------------------------------------------------------------
 namespace Aspire.OpenAI
 {
+    public partial class AspireOpenAIClientBuilder
+    {
+        public AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing) { }
+
+        public virtual string ConfigurationSectionName { get { throw null; } }
+
+        public string ConnectionName { get { throw null; } }
+
+        public bool DisableTracing { get { throw null; } }
+
+        public Microsoft.Extensions.Hosting.IHostApplicationBuilder HostBuilder { get { throw null; } }
+
+        public string? ServiceKey { get { throw null; } }
+    }
+
     public sealed partial class OpenAISettings
     {
         public bool DisableMetrics { get { throw null; } set { } }
@@ -22,10 +37,24 @@ namespace Aspire.OpenAI
 
 namespace Microsoft.Extensions.Hosting
 {
+    public static partial class AspireOpenAIClientBuilderChatClientExtensions
+    {
+        public static AI.ChatClientBuilder AddChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder builder, string? deploymentName = null) { throw null; }
+
+        public static AI.ChatClientBuilder AddKeyedChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder builder, string serviceKey, string? deploymentName = null) { throw null; }
+    }
+
+    public static partial class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
+    {
+        public static AI.EmbeddingGeneratorBuilder<string, AI.Embedding<float>> AddEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder builder, string? deploymentName = null) { throw null; }
+
+        public static AI.EmbeddingGeneratorBuilder<string, AI.Embedding<float>> AddKeyedEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder builder, string serviceKey, string? deploymentName = null) { throw null; }
+    }
+
     public static partial class AspireOpenAIExtensions
     {
-        public static void AddKeyedOpenAIClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.OpenAI.OpenAISettings>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions>? configureOptions = null) { }
+        public static Aspire.OpenAI.AspireOpenAIClientBuilder AddKeyedOpenAIClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.OpenAI.OpenAISettings>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions>? configureOptions = null) { throw null; }
 
-        public static void AddOpenAIClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.OpenAI.OpenAISettings>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions>? configureOptions = null) { }
+        public static Aspire.OpenAI.AspireOpenAIClientBuilder AddOpenAIClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.OpenAI.OpenAISettings>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions>? configureOptions = null) { throw null; }
     }
 }
