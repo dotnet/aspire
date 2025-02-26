@@ -33,42 +33,42 @@ jobs:
         run: |
           echo "templates_output=$(jq -cnR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < ${{ github.workspace }}/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
-      #- name: Build with packages
-        #env:
-          #CI: false
-        #run: ./build.sh -restore -build -ci -pack /bl
+      - name: Build with packages
+        env:
+          CI: false
+        run: ./build.sh -restore -build -ci -pack /bl
 
-      #- name: Install sdk for testing
-        #env:
-          #CI: false
-        #run: |
-          #./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            #/p:SkipPackageCheckForWorkloadTesting=true \
-            #/bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+      - name: Install sdk for testing
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
-      #- name: Build workload tests
-        #env:
-          #CI: false
-        #run: |
-          #./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
-            #-p:ContinuousIntegrationBuild=true \
-            #/p:ArchiveTests=true \
-            #/bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+      - name: Build workload tests
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            -p:ContinuousIntegrationBuild=true \
+            /p:ArchiveTests=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
 
-      #- name: Archive built nugets
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: built-nugets
-          #path: artifacts/packages
+      - name: Archive built nugets
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-nugets
+          path: artifacts/packages
 
-      #- name: Archive artifacts for template tests
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: workload-artifacts
-          #path: |
-            #artifacts/bin/dotnet-*
-            #artifacts/bin/playwright-deps
-          #retention-days: 3
+      - name: Archive artifacts for template tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: workload-artifacts
+          path: |
+            artifacts/bin/dotnet-*
+            artifacts/bin/playwright-deps
+          retention-days: 3
 
   template_tests:
     needs: setup_for_template_tests
