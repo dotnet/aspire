@@ -58,9 +58,11 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
 
 app.MapGet("/overflow-counter", (TestMetrics metrics) =>
 {
+    // Emit measurements to ensure at least 2000 unique tag values are emitted,
+    // matching the default cardinality limit in OpenTelemetry.
     for (var i = 0; i < 100; i++)
     {
-        for (int j = 0; j < 100; j++)
+        for (int j = 0; j < 50; j++)
         {
             metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>($"add-tag-{i}", j.ToString(CultureInfo.InvariantCulture))]));
         }
