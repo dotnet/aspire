@@ -378,18 +378,9 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-        if (!OperatingSystem.IsWindows())
-        {
-            // Change permissions for non-root accounts (container user account)
-            const UnixFileMode OwnershipPermissions =
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-        }
+        Directory.CreateDirectory(bindMountPath);
 
         // Use a bind mount to do a snapshot save
 
@@ -572,18 +563,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    // Change permissions for non-root accounts (container user account)
-                    const UnixFileMode OwnershipPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-                }
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }

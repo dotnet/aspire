@@ -134,18 +134,8 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    // Change permissions for non-root accounts (container user account)
-                    const UnixFileMode OwnershipPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-                }
+                // MongoDB container runs as root and will create the directory.
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
                 mongodb1.WithDataBindMount(bindMountPath);
             }

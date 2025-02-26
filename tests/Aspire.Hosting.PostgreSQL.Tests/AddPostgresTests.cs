@@ -448,7 +448,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+        Assert.Single(builder.Resources.Where(r => r.Name.EndsWith("-pgadmin")));
     }
 
     [Fact]
