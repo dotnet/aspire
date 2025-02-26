@@ -122,13 +122,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 options.Intent = MessageIntent.Info;
                 options.Section = "MessagesTop";
                 options.AllowDismiss = true;
+                options.OnClose = m =>
+                {
+                    TelemetryRepository.MaxLogLimitMessage = null;
+                    return Task.CompletedTask;
+                };
             });
             TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
         }
-        else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage != null)
+        else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage is { } message)
         {
-            TelemetryRepository.MaxLogLimitMessage.Close();
-            TelemetryRepository.MaxLogLimitMessage = null;
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
