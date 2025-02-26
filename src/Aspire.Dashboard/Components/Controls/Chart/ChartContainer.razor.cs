@@ -90,7 +90,12 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             }
             else
             {
-                await UpdateInstrumentDataAsync(_instrument);
+                // Update instrument data on sync context to prevent UI interaction from modifing control data during an update.
+                // For example, DimensionFilters.
+                await InvokeAsync(async () =>
+                {
+                    await UpdateInstrumentDataAsync(_instrument);
+                });
             }
         }
     }
