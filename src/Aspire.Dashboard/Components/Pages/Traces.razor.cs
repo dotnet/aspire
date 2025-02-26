@@ -126,13 +126,17 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
                 options.Intent = MessageIntent.Info;
                 options.Section = "MessagesTop";
                 options.AllowDismiss = true;
+                options.OnClose = m =>
+                {
+                    TelemetryRepository.MaxTraceLimitMessage = null;
+                    return Task.CompletedTask;
+                };
             });
             TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
         }
-        else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage != null)
+        else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage is { } message)
         {
-            TelemetryRepository.MaxTraceLimitMessage.Close();
-            TelemetryRepository.MaxTraceLimitMessage = null;
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
