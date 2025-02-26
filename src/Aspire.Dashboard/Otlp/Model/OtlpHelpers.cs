@@ -401,12 +401,12 @@ public static class OtlpHelpers
         return sb.ToString();
     }
 
-    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count)
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count, bool isFull)
     {
-        return GetItems<T, T>(results, startIndex, count, null);
+        return GetItems<T, T>(results, startIndex, count, isFull, null);
     }
 
-    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, Func<TSource, TResult>? select)
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, bool isFull, Func<TSource, TResult>? select)
     {
         var query = results.Skip(startIndex).Take(count);
         List<TResult> items;
@@ -423,7 +423,8 @@ public static class OtlpHelpers
         return new PagedResult<TResult>
         {
             Items = items,
-            TotalItemCount = totalItemCount
+            TotalItemCount = totalItemCount,
+            IsFull = isFull
         };
     }
 }

@@ -117,17 +117,27 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = TracesViewModel.GetTraces();
 
-        if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
+        if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
-            await MessageService.ShowMessageBarAsync(options =>
+            TelemetryRepository.MaxTraceLimitMessage = await MessageService.ShowMessageBarAsync(options =>
             {
                 options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
                 options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
                 options.Intent = MessageIntent.Info;
                 options.Section = "MessagesTop";
                 options.AllowDismiss = true;
+                options.OnClose = m =>
+                {
+                    TelemetryRepository.MaxTraceLimitMessage = null;
+                    return Task.CompletedTask;
+                };
             });
             TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
+        }
+        else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage is { } message)
+        {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
