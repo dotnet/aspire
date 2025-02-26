@@ -315,7 +315,13 @@ public static class PostgresBuilderExtensions
                     foreach (var file in Directory.GetFiles(tempDir))
                     {
                         // Target is overwritten just in case the previous attempts has failed
-                        File.Copy(file, Path.Combine(pgwebBookmarks, Path.GetFileName(file)), overwrite: true);
+                        var destinationPath = Path.Combine(pgwebBookmarks, Path.GetFileName(file));
+                        File.Copy(file, destinationPath, overwrite: true);
+
+                        if (!OperatingSystem.IsWindows())
+                        {
+                            File.SetUnixFileMode(destinationPath, FileMode644);
+                        }
                     }
 
                     pgwebContainerBuilder.WithBindMount(pgwebBookmarks, "/.pgweb/bookmarks");
