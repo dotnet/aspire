@@ -26,7 +26,10 @@ for (var i = 0; i < 5; i++)
     }
 }
 
-var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null);
+// TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
+// See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
+var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null)
+    .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_METRICS_EMIT_OVERFLOW_ATTRIBUTE", "true");
 serviceBuilder.WithCommand(
     name: "icon-test",
     displayName: "Icon test",
@@ -59,6 +62,7 @@ serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod
 serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linked", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 

@@ -27,6 +27,7 @@ public class OtlpInstrumentData
     public required OtlpInstrumentSummary Summary { get; init; }
     public required List<DimensionScope> Dimensions { get; init; }
     public required Dictionary<string, List<string?>> KnownAttributeValues { get; init; }
+    public required bool HasOverflow { get; init; }
 }
 
 [DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
@@ -37,9 +38,17 @@ public class OtlpInstrument
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
+    public bool HasOverflow { get; set; }
 
     public DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
+        // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
+        // Inspect attributes before they're merged with parent attributes. "otel.metric.overflow" should be the only attribute.
+        if (!HasOverflow && attributes.Count == 1 && attributes[0].Key == "otel.metric.overflow" && attributes[0].Value.GetString() == "true")
+        {
+            HasOverflow = true;
+        }
+
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
         //
@@ -101,7 +110,8 @@ public class OtlpInstrument
         var newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
-            Context = instrument.Context
+            Context = instrument.Context,
+            HasOverflow = instrument.HasOverflow
         };
 
         if (cloneData)
