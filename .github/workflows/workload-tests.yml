@@ -31,7 +31,6 @@ jobs:
         env:
           CI: false
         run: |
-          echo "templates_output=$(jq -cnR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < ${{ github.workspace }}/Aspire.Workload.Tests.tests.list)"
           echo "templates_output=$(jq -cnR '[inputs as $h | {fullname: $h, title: $h | ltrimstr("Aspire.Workload.Tests.")}]' < ${{ github.workspace }}/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
       #- name: Build with packages
