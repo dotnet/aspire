@@ -820,7 +820,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             context.EnvironmentVariables["TARGET_PORT"] = httpEp.Property(EndpointProperty.TargetPort);
             context.EnvironmentVariables["PORT"] = httpEp.Property(EndpointProperty.Port);
             context.EnvironmentVariables["HOST"] = httpEp.Property(EndpointProperty.Host);
+            context.EnvironmentVariables["HOSTANDPORT"] = httpEp.Property(EndpointProperty.HostAndPort);
             context.EnvironmentVariables["SCHEME"] = httpEp.Property(EndpointProperty.Scheme);
+            context.EnvironmentVariables["INTERNAL_HOSTANDPORT"] = internalEp.Property(EndpointProperty.HostAndPort);
         });
 
         using var app = builder.Build();
@@ -1035,8 +1037,16 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                       value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
                     }
                     {
+                      name: 'HOSTANDPORT'
+                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
+                    }
+                    {
                       name: 'SCHEME'
                       value: 'http'
+                    }
+                    {
+                      name: 'INTERNAL_HOSTANDPORT'
+                      value: 'api:8000'
                     }
                     {
                       name: 'AZURE_CLIENT_ID'

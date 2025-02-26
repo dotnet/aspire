@@ -608,6 +608,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{port}"),
                     EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
                     EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
+                    EndpointProperty.HostAndPort=> GetHostValue(suffix: isHttpIngress ? null : $":{port}"),
                     EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : targetPort,
                     EndpointProperty.Scheme => scheme,
                     _ => throw new NotSupportedException(),
