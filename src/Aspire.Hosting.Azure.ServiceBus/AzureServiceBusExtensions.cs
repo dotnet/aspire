@@ -558,6 +558,7 @@ public static class AzureServiceBusExtensions
 
     private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
     {
+        // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
