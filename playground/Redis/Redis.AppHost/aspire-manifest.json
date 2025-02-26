@@ -99,12 +99,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -117,7 +119,8 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 22
+              "minLength": 22,
+              "special": false
             }
           }
         }

@@ -68,7 +68,10 @@ public static class RedisBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        // StackExchange.Redis doesn't support passwords with commas.
+        // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
+        // https://github.com/Azure/azure-dev/issues/4848 
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var redis = new RedisResource(name, passwordParameter);
 
