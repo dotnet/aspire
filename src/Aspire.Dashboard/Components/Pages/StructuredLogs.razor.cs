@@ -113,9 +113,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         var logs = ViewModel.GetLogs();
 
-        if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
+        if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
-            await MessageService.ShowMessageBarAsync(options =>
+            TelemetryRepository.MaxLogLimitMessage = await MessageService.ShowMessageBarAsync(options =>
             {
                 options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
                 options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
@@ -124,6 +124,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 options.AllowDismiss = true;
             });
             TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
+        }
+        else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage != null)
+        {
+            TelemetryRepository.MaxLogLimitMessage.Close();
+            TelemetryRepository.MaxLogLimitMessage = null;
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.

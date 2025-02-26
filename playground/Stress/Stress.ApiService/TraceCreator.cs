@@ -32,7 +32,7 @@ public class TraceCreator
         return activity;
     }
 
-    public async Task CreateTraceAsync(int count, bool createChildren, string? rootName = null)
+    public async Task CreateTraceAsync(string traceName, int count, bool createChildren, string? rootName = null)
     {
         var activityStack = new Stack<Activity>();
 
@@ -43,7 +43,7 @@ public class TraceCreator
                 await Task.Delay(Random.Shared.Next(10, 50));
             }
 
-            var name = $"Span-{i}";
+            var name = $"{traceName}-Span-{i}";
             using var activity = s_activitySource.StartActivity(rootName ?? name, ActivityKind.Client);
             if (activity == null)
             {
