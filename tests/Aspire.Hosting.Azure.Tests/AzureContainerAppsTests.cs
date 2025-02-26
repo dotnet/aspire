@@ -1038,7 +1038,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     }
                     {
                       name: 'HOSTANDPORT'
-                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
+                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}:80'
                     }
                     {
                       name: 'SCHEME'
