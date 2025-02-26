@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using Aspire.OpenAI;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +25,8 @@ public static class AspireConfigurableOpenAIExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    public static void AddOpenAIClientFromConfiguration(
+    /// <returns>An <see cref="AspireOpenAIClientBuilder"/> that can be used to register additional services.</returns>
+    public static AspireOpenAIClientBuilder AddOpenAIClientFromConfiguration(
         this IHostApplicationBuilder builder,
         string connectionName)
     {
@@ -38,14 +40,9 @@ public static class AspireConfigurableOpenAIExtensions
             useAzure = IsAzureConnectionString(connectionString, connectionName);
         }
 
-        if (useAzure)
-        {
-            builder.AddAzureOpenAIClient(connectionName);
-        }
-        else
-        {
+        return useAzure ?
+            builder.AddAzureOpenAIClient(connectionName) :
             builder.AddOpenAIClient(connectionName);
-        }
     }
 
     /// <summary>
@@ -54,7 +51,8 @@ public static class AspireConfigurableOpenAIExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    public static void AddKeyedOpenAIClientFromConfiguration(
+    /// <returns>An <see cref="AspireOpenAIClientBuilder"/> that can be used to register additional services.</returns>
+    public static AspireOpenAIClientBuilder AddKeyedOpenAIClientFromConfiguration(
         this IHostApplicationBuilder builder,
         string name)
     {
@@ -68,14 +66,9 @@ public static class AspireConfigurableOpenAIExtensions
             useAzure = IsAzureConnectionString(connectionString, name);
         }
 
-        if (useAzure)
-        {
-            builder.AddKeyedAzureOpenAIClient(name);
-        }
-        else
-        {
+        return useAzure ?
+            builder.AddKeyedAzureOpenAIClient(name) :
             builder.AddKeyedOpenAIClient(name);
-        }
     }
 
     private static bool IsAzureConnectionString(string connectionString, string connectionName)

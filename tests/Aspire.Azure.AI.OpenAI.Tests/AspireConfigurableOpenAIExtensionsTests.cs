@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.AI.OpenAI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -214,5 +215,35 @@ public class AspireConfigurableOpenAIExtensionsTests
             host.Services.GetRequiredService<OpenAIClient>();
 
         Assert.IsType<OpenAIClient>(openAiClient);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanChainBuilderOperations(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", "Endpoint=https://aspireopenaitests.azure.com/;Deployment=mymodel")
+        ]);
+
+        var clientBuilder = useKeyed
+            ? builder.AddKeyedOpenAIClientFromConfiguration("openai").AddKeyedChatClient("chat")
+            : builder.AddOpenAIClientFromConfiguration("openai").AddChatClient();
+
+        clientBuilder.UseFunctionInvocation();
+
+        using var host = builder.Build();
+        var openAiClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.IsType<AzureOpenAIClient>(openAiClient);
+
+        var chatClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<IChatClient>("chat") :
+            host.Services.GetRequiredService<IChatClient>();
+
+        Assert.IsType<FunctionInvokingChatClient>(chatClient);
     }
 }
