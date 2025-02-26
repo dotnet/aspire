@@ -134,7 +134,19 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    const UnixFileMode OwnershipPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
+                }
+
                 mongodb1.WithDataBindMount(bindMountPath);
             }
 
@@ -264,9 +276,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             // Change permissions for non-root accounts (container user account)
             const UnixFileMode OwnershipPermissions =
-                UnixFileMode.UserRead | UnixFileMode.UserWrite |
-                UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
-                UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
             File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
         }

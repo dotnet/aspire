@@ -103,8 +103,6 @@ public static class MySqlBuilderExtensions
 
         containerName ??= $"{builder.Resource.Name}-phpmyadmin";
 
-        var configurationTempFileName = Path.GetTempFileName();
-
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                                 .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)

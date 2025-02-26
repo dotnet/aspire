@@ -378,11 +378,17 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
-        if (!Directory.Exists(bindMountPath))
+        if (!OperatingSystem.IsWindows())
         {
-            Directory.CreateDirectory(bindMountPath);
+            // Change permissions for non-root accounts (container user account)
+            const UnixFileMode OwnershipPermissions =
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
         }
 
         // Use a bind mount to do a snapshot save
@@ -566,7 +572,19 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    const UnixFileMode OwnershipPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
+                }
+
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }
 

@@ -136,9 +136,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-                Directory.CreateDirectory(bindMountPath);
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
                 if (!OperatingSystem.IsWindows())
                 {
@@ -146,9 +144,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                     // to the bind mount directory.
                     // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
                     const UnixFileMode BindMountPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
                     File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
