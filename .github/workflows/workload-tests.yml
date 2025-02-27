@@ -81,6 +81,11 @@ jobs:
     timeout-minutes: 60
     name: ${{ matrix.titles }}
     steps:
+      - name: debug
+        run: |
+          echo "title: ${{ matrix.titles }}"
+          echo "fullname: ${{ matrix.fullnames }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
