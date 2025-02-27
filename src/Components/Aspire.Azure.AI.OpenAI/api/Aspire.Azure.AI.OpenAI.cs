@@ -40,8 +40,8 @@ namespace Microsoft.Extensions.Hosting
 
     public static partial class AspireConfigurableOpenAIExtensions
     {
-        public static void AddKeyedOpenAIClientFromConfiguration(this IHostApplicationBuilder builder, string name) { }
+        public static Aspire.OpenAI.AspireOpenAIClientBuilder AddKeyedOpenAIClientFromConfiguration(this IHostApplicationBuilder builder, string name) { throw null; }
 
-        public static void AddOpenAIClientFromConfiguration(this IHostApplicationBuilder builder, string connectionName) { }
+        public static Aspire.OpenAI.AspireOpenAIClientBuilder AddOpenAIClientFromConfiguration(this IHostApplicationBuilder builder, string connectionName) { throw null; }
     }
 }
