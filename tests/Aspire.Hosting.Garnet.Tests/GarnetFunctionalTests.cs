@@ -133,9 +133,8 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
                 else
                 {
-                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                     // to the bind mount directory.
-                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
 
                     const UnixFileMode BindMountPermissions =
                         UnixFileMode.UserRead | UnixFileMode.UserWrite |

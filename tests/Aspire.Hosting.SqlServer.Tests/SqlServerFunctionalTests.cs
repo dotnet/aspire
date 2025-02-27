@@ -153,8 +153,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 if (OperatingSystem.IsWindows())
                 {
                     Directory.CreateDirectory(bindMountPath);
-
-                    Directory.CreateDirectory(bindMountPath);
                     Directory.CreateDirectory($"{bindMountPath}/data");
                     Directory.CreateDirectory($"{bindMountPath}/log");
                     Directory.CreateDirectory($"{bindMountPath}/secrets");
