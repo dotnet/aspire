@@ -9,7 +9,7 @@
     {
         <FluentAppBarItem
             Href="@DashboardUrls.ResourcesUrl()"
-            Match="NavLinkMatch.All"
+            Match="@(_isResources ? NavLinkMatch.Prefix : NavLinkMatch.All)"
             IconRest="ResourcesIcon()"
             IconActive="ResourcesIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuResourcesTab)]" />
