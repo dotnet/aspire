@@ -57,13 +57,15 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                             {
                                 await MonitorResourceHealthAsync(state).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException)
-                            {
-                                // Ignore cancellation errors.
-                            }
                             catch (Exception ex)
                             {
-                                logger.LogDebug(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
+                                // Ignore error if resource monitoring was cancelled.
+                                if (state.CancellationToken.IsCancellationRequested)
+                                {
+                                    return;
+                                }
+
+                                logger.LogError(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
                             }
                         }, state.CancellationToken);
                     }
@@ -137,10 +139,22 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     continue;
                 }
 
-                var report = await healthCheckService.CheckHealthAsync(
-                    r => registrationKeysToCheck.Contains(r.Name),
-                    cancellationToken
-                    ).ConfigureAwait(false);
+                HealthReport report;
+                try
+                {
+                    report = await healthCheckService.CheckHealthAsync(
+                        r => registrationKeysToCheck.Contains(r.Name),
+                        cancellationToken
+                        ).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // It's possible for CheckHealthAsync to throw if there is an error creating the IHealthCheck instance.
+                    // In this case we don't get an error report so we have to build one. We don't know exactly which registration failed
+                    // so set them all to unhealthy with the thrown error as the reason.
+                    // This situation won't be common, but we need to handle it to prevent the monitoring loop from never informing the user.
+                    report = new HealthReport(registrationKeysToCheck.ToDictionary(k => k, k => new HealthReportEntry(HealthStatus.Unhealthy, "Error calling HealthCheckService.", TimeSpan.Zero, ex, data: null)), TimeSpan.Zero);
+                }
 
                 logger.LogTrace("Health report status for '{Resource}' is {HealthReportStatus}.", resource.Name, report.Status);
 

@@ -97,6 +97,46 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task ResourcesWithHealthCheck_CreationErrorIsReported()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            "healthcheck_a",
+            services => throw new InvalidOperationException("An error!"),
+            null,
+            null,
+            null));
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        await using var app = await builder.BuildAsync().DefaultTimeout();
+
+        await app.StartAsync().DefaultTimeout();
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        }).DefaultTimeout();
+
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource",
+            e => e.Snapshot.State?.Text == KnownResourceStates.Running && e.Snapshot.HealthReports.Single().Status == HealthStatus.Unhealthy).DefaultTimeout();
+
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+        Assert.Equal("Error calling HealthCheckService.", runningEvent.Snapshot.HealthReports.Single().Description);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
     public async Task ResourcesWithHealthCheck_StopsAndRestartsMonitoringWithResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
