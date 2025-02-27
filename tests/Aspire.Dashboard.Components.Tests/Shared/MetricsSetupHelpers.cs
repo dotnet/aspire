@@ -17,12 +17,14 @@ internal static class MetricsSetupHelpers
 {
     public static void SetupChartContainer(TestContext context)
     {
+        var version = typeof(FluentMain).Assembly.GetName().Version!;
+
         _ = context.JSInterop.SetupModule("/Components/Controls/Chart/MetricTable.razor.js");
 
-        var tabModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js?v=4.9.3.24205");
+        var tabModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js", version));
         tabModule.SetupVoid("TabEditable_Changed", _ => true);
 
-        var overflowModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js?v=4.9.3.24205");
+        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
 
         SetupPlotlyChart(context);

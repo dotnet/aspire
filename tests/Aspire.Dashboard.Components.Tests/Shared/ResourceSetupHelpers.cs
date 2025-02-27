@@ -77,6 +77,12 @@ internal static class ResourceSetupHelpers
         var anchoredRegionModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
         anchoredRegionModule.SetupVoid("goToNextFocusableElement", _ => true);
 
+        var tabModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js", version));
+        tabModule.SetupVoid("TabEditable_Changed", _ => true);
+
+        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
+        overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
+
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         context.Services.AddSingleton<TelemetryRepository>();
