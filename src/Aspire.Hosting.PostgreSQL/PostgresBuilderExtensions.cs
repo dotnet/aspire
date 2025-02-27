@@ -174,7 +174,7 @@ public static class PostgresBuilderExtensions
                     var aspireStore = e.Services.GetRequiredService<IAspireStore>();
 
                     // Deterministic file path for the configuration file based on its content
-                    var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-pgadmin-servers.json", tempConfigFile);
+                    var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-servers.json", tempConfigFile);
 
                     // Need to grant read access to the config file on unix like systems.
                     if (!OperatingSystem.IsWindows())
@@ -293,8 +293,7 @@ public static class PostgresBuilderExtensions
 
                 // Create a folder using IAspireStore. Its name is deterministic, based on all the database resources
                 // such that the same folder is reused across persistent usages, and changes in configuration require
-                // new folders. Note that when using dynamic proxies the configuration won't be reused, but it only makes
-                // sense for persistent containers (when pg servers are reused) in which case they would have fixed ports.
+                // new folders.
 
                 var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
@@ -304,7 +303,7 @@ public static class PostgresBuilderExtensions
 
                 // Create a deterministic folder name based on the content hash such that the same folder is reused across
                 // persistent usages.
-                var pgwebBookmarks = Path.Combine(aspireStore.BasePath, $"{pgwebContainerBuilder.Resource.Name}.{Convert.ToHexString(contentHash)[..12].ToLowerInvariant()}");
+                var pgwebBookmarks = Path.Combine(aspireStore.BasePath, $"{pgwebContainer.Name}.{Convert.ToHexString(contentHash)[..12].ToLowerInvariant()}");
 
                 try
                 {

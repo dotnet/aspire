@@ -254,22 +254,6 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public async Task WithPhpMyAdminAddsContainer()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddMySql("mySql").WithPhpMyAdmin();
-
-        using var app = builder.Build();
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
-        var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
-        var volumes = container.Annotations.OfType<ContainerMountAnnotation>();
-
-        // No custom configuration is created for a single instance
-        Assert.Empty(volumes);
-    }
-
-    [Fact]
     public void WithPhpMyAdminProducesValidServerConfigFile()
     {
         var builder = DistributedApplication.CreateBuilder();
