@@ -78,7 +78,7 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    name: ${{ matrix.title }}
+    name: ${{ matrix.titles }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -139,7 +139,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.fullname }} \
+            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.fullnames }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
             RunConfiguration.TestSessionTimeout=1200000
@@ -156,12 +156,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: binlog-${{ matrix.fullname }}
+          name: binlog-${{ matrix.fullnames }}
           path: "**/*.binlog"
 
       - name: Upload test results artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: testresults-${{ matrix.fullname }}
+          name: testresults-${{ matrix.fullnames }}
           path: testresults/**
