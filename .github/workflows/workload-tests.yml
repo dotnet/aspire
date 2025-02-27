@@ -30,8 +30,9 @@ jobs:
         id: enumerateNamesStep
         env:
           CI: false
+          #echo "templates_output=$(jq -cR '{fullnames: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
         run: |
-          echo "$(cat ${{ github.workspace }}/foo.list)" >> $GITHUB_OUTPUT
+          echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
 
       #- name: Build with packages
         #env:
