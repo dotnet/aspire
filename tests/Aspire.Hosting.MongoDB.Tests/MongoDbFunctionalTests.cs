@@ -260,18 +260,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-        if (!OperatingSystem.IsWindows())
-        {
-            // Change permissions for non-root accounts (container user account)
-            const UnixFileMode OwnershipPermissions =
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-        }
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
         try
         {

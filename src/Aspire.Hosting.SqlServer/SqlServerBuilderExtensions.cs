@@ -112,11 +112,6 @@ public static class SqlServerBuilderExtensions
         {
             var path = Path.Combine(source, dir);
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
             builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
         }
 

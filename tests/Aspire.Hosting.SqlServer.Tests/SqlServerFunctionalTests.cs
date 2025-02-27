@@ -150,39 +150,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-                if (OperatingSystem.IsWindows())
-                {
-                    Directory.CreateDirectory(bindMountPath);
-                    Directory.CreateDirectory($"{bindMountPath}/data");
-                    Directory.CreateDirectory($"{bindMountPath}/log");
-                    Directory.CreateDirectory($"{bindMountPath}/secrets");
-                }
-                else
-                {
-                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
-                    // to the bind mount directory.
-
-                    // Change permissions for non-root accounts (container user account)
-                    const UnixFileMode BindMountPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    //Directory.CreateDirectory(bindMountPath, BindMountPermissions);
-                    //Directory.CreateDirectory($"{bindMountPath}/data", BindMountPermissions);
-                    //Directory.CreateDirectory($"{bindMountPath}/log", BindMountPermissions);
-                    //Directory.CreateDirectory($"{bindMountPath}/secrets", BindMountPermissions);
-
-                    Directory.CreateDirectory(bindMountPath);
-                    Directory.CreateDirectory($"{bindMountPath}/data");
-                    Directory.CreateDirectory($"{bindMountPath}/log");
-                    Directory.CreateDirectory($"{bindMountPath}/secrets");
-
-                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/data", BindMountPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/log", BindMountPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/secrets", BindMountPermissions);
-                }
-
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
 

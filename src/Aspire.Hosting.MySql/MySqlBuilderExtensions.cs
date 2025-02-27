@@ -240,8 +240,7 @@ public static class MySqlBuilderExtensions
         // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
 
-        using var stream = new FileStream(filePath, FileMode.Create);
-        using var writer = new StreamWriter(stream);
+        using var writer = new StreamWriter(filePath);
 
         writer.WriteLine("<?php");
         writer.WriteLine();
