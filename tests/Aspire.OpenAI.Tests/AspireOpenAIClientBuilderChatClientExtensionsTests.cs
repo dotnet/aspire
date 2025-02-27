@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.ConformanceTests;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Aspire.OpenAI.Tests;
@@ -217,8 +219,52 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
 
         var completion = await client.GetResponseAsync("Whatever");
         Assert.Equal("Hello from middleware", completion.Message.Text);
-
-        static Task<ChatResponse> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
-            => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
     }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task LogsCorrectly(bool useKeyed, bool disableOpenTelemetry)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake"),
+            new("Aspire:OpenAI:DisableTracing", disableOpenTelemetry.ToString()),
+        ]);
+
+        builder.Services.AddSingleton<ILoggerFactory, TestLoggerFactory>();
+
+        if (useKeyed)
+        {
+            builder.AddOpenAIClient("openai").AddKeyedChatClient("openai_chatclient", "testdeployment1").Use(TestMiddleware, null);
+        }
+        else
+        {
+            builder.AddOpenAIClient("openai").AddChatClient("testdeployment1").Use(TestMiddleware, null);
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<IChatClient>("openai_chatclient") :
+            host.Services.GetRequiredService<IChatClient>();
+        var loggerFactory = (TestLoggerFactory)host.Services.GetRequiredService<ILoggerFactory>();
+
+        var completion = await client.GetResponseAsync("Whatever");
+        Assert.Equal("Hello from middleware", completion.Message.Text);
+
+        const string category = "Microsoft.Extensions.AI.OpenTelemetryChatClient";
+        if (disableOpenTelemetry)
+        {
+            Assert.DoesNotContain(category, loggerFactory.Categories);
+        }
+        else
+        {
+            Assert.Contains(category, loggerFactory.Categories);
+        }
+    }
+
+    private static Task<ChatResponse> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
+        => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
 }
