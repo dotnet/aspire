@@ -119,7 +119,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -149,6 +148,25 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+                Directory.CreateDirectory($"{bindMountPath}/data");
+                Directory.CreateDirectory($"{bindMountPath}/log");
+                Directory.CreateDirectory($"{bindMountPath}/secrets");
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // to the bind mount directory.
+                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+                    const UnixFileMode BindMountPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode($"{bindMountPath}/data", BindMountPermissions);
+                    File.SetUnixFileMode($"{bindMountPath}/log", BindMountPermissions);
+                    File.SetUnixFileMode($"{bindMountPath}/secrets", BindMountPermissions);
+                }
 
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
