@@ -307,7 +307,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         private readonly object _lock = new object();
         private readonly string _resourceName;
         private TaskCompletionSource? _delayInterruptTcs;
-        private CancellationTokenSource? _delayCts;
 
         public ResourceMonitorState(ILogger logger, ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
         {
@@ -348,6 +347,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         internal async Task<bool> DelayAsync(ResourceEvent? currentEvent, TimeSpan delay, CancellationToken cancellationToken)
         {
+            Task delayInterruptedTask;
             lock (_lock)
             {
                 // The event might have changed before delay was called. Interrupt immediately if required.
@@ -356,26 +356,16 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     _logger.LogTrace("Health monitoring delay interrupted for resource '{Resource}'.", _resourceName);
                     return true;
                 }
-                if (_delayCts == null || !_delayCts.TryReset())
-                {
-                    _delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                }
                 _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                delayInterruptedTask = _delayInterruptTcs.Task;
             }
 
-            var completedTask = await Task.WhenAny(Task.Delay(delay, _delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
+            // Don't throw to avoid writing the thrown exception to the debug console.
+            // See https://github.com/dotnet/aspire/issues/7486
+            await delayInterruptedTask.WaitAsync(delay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            var delayInterrupted = delayInterruptedTask.IsCompletedSuccessfully == true;
 
-            if (completedTask != _delayInterruptTcs.Task)
-            {
-                // Task.Delay won.
-                return false;
-            }
-            else
-            {
-                // Delay was interrupted. Cancel the delay task so it doesn't hang around when not needed.
-                _delayCts.Cancel();
-                return true;
-            }
+            return delayInterrupted;
         }
 
         private static bool ShouldInterrupt(ResourceEvent currentEvent, ResourceEvent previousEvent)
