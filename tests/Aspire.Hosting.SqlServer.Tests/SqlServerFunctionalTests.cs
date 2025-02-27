@@ -149,9 +149,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-                Directory.CreateDirectory($"{bindMountPath}/data");
-                Directory.CreateDirectory($"{bindMountPath}/log");
-                Directory.CreateDirectory($"{bindMountPath}/secrets");
+                Directory.CreateDirectory(bindMountPath);
 
                 if (!OperatingSystem.IsWindows())
                 {
@@ -163,9 +161,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                         UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
                         UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
-                    File.SetUnixFileMode($"{bindMountPath}/data", BindMountPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/log", BindMountPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/secrets", BindMountPermissions);
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
 
                 sqlserver1.WithDataBindMount(bindMountPath);
