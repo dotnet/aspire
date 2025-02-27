@@ -2,21 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Xml.Linq;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components.Extensions;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -312,95 +309,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             return;
         }
 
-        var databaseIcon = GetIconPathData(new Icons.Filled.Size24.Database());
-        var containerIcon = GetIconPathData(new Icons.Filled.Size24.Box());
-        var executableIcon = GetIconPathData(new Icons.Filled.Size24.SettingsCogMultiple());
-        var projectIcon = GetIconPathData(new Icons.Filled.Size24.CodeCircle());
-
         var activeResources = _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).ToList();
-        var resources = activeResources.Select(MapDto).ToList();
+        var resources = activeResources.Select(r => ResourceDto.MapDto(r, _resourceByName, ColumnsLoc)).ToList();
         await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
-
-        ResourceDto MapDto(ResourceViewModel r)
-        {
-            var resolvedNames = new List<string>();
-
-            foreach (var resourceRelationships in r.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
-            {
-                var matches = _resourceByName.Values
-                    .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                    .Where(r => r.KnownState != KnownResourceState.Hidden)
-                    .ToList();
-
-                foreach (var match in matches)
-                {
-                    resolvedNames.Add(match.Name);
-                }
-            }
-
-            var endpoint = GetDisplayedEndpoints(r).FirstOrDefault();
-            var resolvedEndpointText = ResolvedEndpointText(endpoint);
-            var resourceName = ResourceViewModel.GetResourceName(r, _resourceByName);
-            var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
-
-            var icon = r.ResourceType switch
-            {
-                KnownResourceTypes.Executable => executableIcon,
-                KnownResourceTypes.Project => projectIcon,
-                KnownResourceTypes.Container => containerIcon,
-                string t => t.Contains("database", StringComparison.OrdinalIgnoreCase) ? databaseIcon : executableIcon
-            };
-
-            var stateIcon = ResourceStateViewModel.GetStateViewModel(r, ColumnsLoc);
-
-            var dto = new ResourceDto
-            {
-                Name = r.Name,
-                ResourceType = r.ResourceType,
-                DisplayName = ResourceViewModel.GetResourceName(r, _resourceByName),
-                Uid = r.Uid,
-                ResourceIcon = new IconDto
-                {
-                    Path = icon,
-                    Color = color,
-                    Tooltip = r.ResourceType
-                },
-                StateIcon = new IconDto
-                {
-                    Path = GetIconPathData(stateIcon.Icon),
-                    Color = stateIcon.Color.ToAttributeValue()!,
-                    Tooltip = stateIcon.Text ?? r.State
-                },
-                ReferencedNames = resolvedNames.Distinct().OrderBy(n => n).ToImmutableArray(),
-                EndpointUrl = endpoint?.Url,
-                EndpointText = resolvedEndpointText
-            };
-
-            return dto;
-        }
-    }
-
-    private static string ResolvedEndpointText(DisplayedEndpoint? endpoint)
-    {
-        var text = endpoint?.Text ?? endpoint?.Url;
-        if (string.IsNullOrEmpty(text))
-        {
-            return "No endpoints";
-        }
-
-        if (Uri.TryCreate(text, UriKind.Absolute, out var uri))
-        {
-            return $"{uri.Host}:{uri.Port}";
-        }
-
-        return text;
-    }
-
-    private static string GetIconPathData(Icon icon)
-    {
-        var p = icon.Content;
-        var e = XElement.Parse(p);
-        return e.Attribute("d")!.Value;
     }
 
     private class ResourcesInterop(Resources resources)
@@ -417,26 +328,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 });
             }
         }
-    }
-
-    private class ResourceDto
-    {
-        public required string Name { get; init; }
-        public required string ResourceType { get; init; }
-        public required string DisplayName { get; init; }
-        public required string Uid { get; init; }
-        public required IconDto ResourceIcon { get; init; }
-        public required IconDto StateIcon { get; init; }
-        public required string? EndpointUrl { get; init; }
-        public required string? EndpointText { get; init; }
-        public required ImmutableArray<string> ReferencedNames { get; init; }
-    }
-
-    private class IconDto
-    {
-        public required string Path { get; init; }
-        public required string Color { get; init; }
-        public required string? Tooltip { get; init; }
     }
 
     internal IEnumerable<ResourceViewModel> GetFilteredResources()
