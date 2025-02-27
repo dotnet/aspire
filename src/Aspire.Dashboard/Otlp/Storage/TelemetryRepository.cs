@@ -1174,13 +1174,15 @@ public sealed class TelemetryRepository
             {
                 Summary = instrument.Summary,
                 KnownAttributeValues = instrument.KnownAttributeValues,
-                Dimensions = instrument.Dimensions.Values.ToList()
+                Dimensions = instrument.Dimensions.Values.ToList(),
+                HasOverflow = instrument.HasOverflow
             };
         }
         else
         {
             var allDimensions = new List<DimensionScope>();
             var allKnownAttributes = new Dictionary<string, List<string?>>();
+            var hasOverflow = false;
 
             foreach (var instrument in instruments)
             {
@@ -1199,13 +1201,16 @@ public sealed class TelemetryRepository
                         values = knownAttributeValues.Value.ToList();
                     }
                 }
+
+                hasOverflow = hasOverflow || instrument.HasOverflow;
             }
 
             return new OtlpInstrumentData
             {
                 Summary = instruments[0].Summary,
                 Dimensions = allDimensions,
-                KnownAttributeValues = allKnownAttributes
+                KnownAttributeValues = allKnownAttributes,
+                HasOverflow = hasOverflow
             };
         }
     }

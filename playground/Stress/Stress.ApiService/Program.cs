@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -53,6 +54,21 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
     metrics.IncrementCounter(3, default);
 
     return "Counter incremented";
+});
+
+app.MapGet("/overflow-counter", (TestMetrics metrics) =>
+{
+    // Emit measurements to ensure at least 2000 unique tag values are emitted,
+    // matching the default cardinality limit in OpenTelemetry.
+    for (var i = 0; i < 250; i++)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>($"add-tag-{i}", j.ToString(CultureInfo.InvariantCulture))]));
+        }
+    }
+
+    return "Counter overflowed";
 });
 
 app.MapGet("/big-trace", async () =>
