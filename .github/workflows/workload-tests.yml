@@ -31,7 +31,7 @@ jobs:
         env:
           CI: false
         run: |
-          echo $(cat ${{ github.workspace }}/foo.list) >> $GITHUB_OUTPUT
+          echo "$(cat ${{ github.workspace }}/foo.list)" >> $GITHUB_OUTPUT
 
       #- name: Build with packages
         #env:
