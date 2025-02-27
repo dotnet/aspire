@@ -148,13 +148,11 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                     // to the bind mount directory.
 
                     const UnixFileMode BindMountPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
-                    // Directory.CreateDirectory(bindMountPath, BindMountPermissions);
-                    Directory.CreateDirectory(bindMountPath);
-                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
+                    Directory.CreateDirectory(bindMountPath, BindMountPermissions);
                 }
 
                 kafka1.WithDataBindMount(bindMountPath);
