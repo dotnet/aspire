@@ -34,6 +34,9 @@ public static class AzureContainerAppProjectExtensions
     public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> project, Action<AzureResourceInfrastructure, ContainerApp> configure)
         where T : ProjectResource
     {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(configure);
+
         if (!project.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return project;

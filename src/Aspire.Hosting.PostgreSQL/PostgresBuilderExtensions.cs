@@ -43,7 +43,7 @@ public static class PostgresBuilderExtensions
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -110,7 +110,7 @@ public static class PostgresBuilderExtensions
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -130,7 +130,8 @@ public static class PostgresBuilderExtensions
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null)
+        where T : PostgresServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -235,6 +236,8 @@ public static class PostgresBuilderExtensions
     /// <returns>The resource builder for pgweb.</returns>
     public static IResourceBuilder<PgWebContainerResource> WithHostPort(this IResourceBuilder<PgWebContainerResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -268,6 +271,8 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
@@ -384,7 +389,7 @@ public static class PostgresBuilderExtensions
     public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
     }
@@ -399,7 +404,7 @@ public static class PostgresBuilderExtensions
     public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
