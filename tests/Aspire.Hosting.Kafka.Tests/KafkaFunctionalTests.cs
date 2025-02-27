@@ -138,7 +138,23 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-                Directory.CreateDirectory(bindMountPath);
+                if (OperatingSystem.IsWindows())
+                {
+                    Directory.CreateDirectory(bindMountPath);
+                }
+                else
+                {
+                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // to the bind mount directory.
+                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+
+                    const UnixFileMode BindMountPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+
+                    Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                }
 
                 kafka1.WithDataBindMount(bindMountPath);
             }
