@@ -14,10 +14,7 @@
 			]
 		},
 		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/devcontainers/features/python:1": {},
-		"ghcr.io/dapr/cli/dapr-cli": {
-			"version": "1.12.0"
-		}
+		"ghcr.io/devcontainers/features/python:1": {}
 	},
 
 	"hostRequirements": {
