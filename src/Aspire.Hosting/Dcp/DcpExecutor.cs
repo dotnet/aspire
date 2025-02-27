@@ -1188,7 +1188,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             spec.Ports = BuildContainerPorts(cr);
         }
 
-        spec.VolumeMounts = BuildBindMounts(modelContainerResource);
+        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1631,7 +1631,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         return ports;
     }
 
-    private static List<VolumeMount> BuildBindMounts(IResource container)
+    private static List<VolumeMount> BuildContainerMounts(IResource container)
     {
         var volumeMounts = new List<VolumeMount>();
 
