@@ -103,13 +103,13 @@ public static class SqlServerBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The container starts up as non-root and the <paramref name="source"/> directory must be readable by the user that the container runs as.
-    /// https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver16&pivots=cs1-bash#mount-a-host-directory-as-data-volume
+    /// https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver16&amp;pivots=cs1-bash#mount-a-host-directory-as-data-volume
     /// </remarks>
     public static IResourceBuilder<SqlServerServerResource> WithDataBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, $"/var/opt/mssql", isReadOnly);
+        return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
     }
 }
