@@ -1,1 +1,1 @@
-{"names": [{"fullname":"Aspire.Workload.Tests.Foo.Bar","title":"Foo.Bar"},{"fullname":"Aspire.Workload.Tests.Abc.Templates","title":"Abc.Templates"},{"fullname":"Aspire.Workload.Tests.XyzTests.Foo","title":"XyzTests.Foo"}]}
+{ "fullnames" : ["Aspire.Workload.Tests.Foo.Bar", "Aspire.Workload.Tests.Abc.Templates", "Aspire.Workload.Tests.XyzTests.Foo"], "titles" : ["Foo.Bar", "Abc.Templates", "XyzTests.Foo"] }
