@@ -152,7 +152,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                         UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
                         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
-                    Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    // Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    Directory.CreateDirectory(bindMountPath);
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
 
                 kafka1.WithDataBindMount(bindMountPath);

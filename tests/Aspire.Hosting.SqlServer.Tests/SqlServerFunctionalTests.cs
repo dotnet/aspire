@@ -167,10 +167,20 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
                         UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
-                    Directory.CreateDirectory(bindMountPath, BindMountPermissions);
-                    Directory.CreateDirectory($"{bindMountPath}/data", BindMountPermissions);
-                    Directory.CreateDirectory($"{bindMountPath}/log", BindMountPermissions);
-                    Directory.CreateDirectory($"{bindMountPath}/secrets", BindMountPermissions);
+                    //Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    //Directory.CreateDirectory($"{bindMountPath}/data", BindMountPermissions);
+                    //Directory.CreateDirectory($"{bindMountPath}/log", BindMountPermissions);
+                    //Directory.CreateDirectory($"{bindMountPath}/secrets", BindMountPermissions);
+
+                    Directory.CreateDirectory(bindMountPath);
+                    Directory.CreateDirectory($"{bindMountPath}/data");
+                    Directory.CreateDirectory($"{bindMountPath}/log");
+                    Directory.CreateDirectory($"{bindMountPath}/secrets");
+
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
+                    File.SetUnixFileMode($"{bindMountPath}/data", BindMountPermissions);
+                    File.SetUnixFileMode($"{bindMountPath}/log", BindMountPermissions);
+                    File.SetUnixFileMode($"{bindMountPath}/secrets", BindMountPermissions);
                 }
 
                 sqlserver1.WithDataBindMount(bindMountPath);

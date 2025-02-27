@@ -141,7 +141,9 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                         UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
                         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
-                    Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    // Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    Directory.CreateDirectory(bindMountPath);
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
 
                 garnet1.WithDataBindMount(bindMountPath);
