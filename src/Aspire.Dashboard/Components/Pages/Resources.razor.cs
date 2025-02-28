@@ -16,6 +16,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Microsoft.VisualStudio.Telemetry;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -151,8 +152,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     protected override async Task OnInitializedAsync()
     {
-        var isTelemetryEnabled = await TelemetryService.IsTelemetryEnabledAsync();
-        Console.WriteLine(isTelemetryEnabled);
+        var pageLoadTelemetryUserTask = Task.Run(() => TelemetryService.StartUserTaskAsync(new StartOperationRequest("vs/aspire/dashboard/resources/load")));
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -200,6 +200,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         });
 
         _isLoading = false;
+
+        var startPageLoadTelemetryUserTaskResponse = await pageLoadTelemetryUserTask;
+        if (startPageLoadTelemetryUserTaskResponse?.Content is { OperationId: { } operationId })
+        {
+            _ = Task.Run(() => TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success)));
+        }
+
+        return;
 
         async Task SubscribeResourcesAsync()
         {

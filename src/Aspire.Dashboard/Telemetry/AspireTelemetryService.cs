@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Configuration;
 using Microsoft.Extensions.Options;
@@ -26,7 +27,16 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             }
 
             var response = await client.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
-            return response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
+            var isTelemetryEnabled = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
+
+            if (!isTelemetryEnabled)
+            {
+                return false;
+            }
+
+            // start the actual telemetry session
+            var telemetryStartedStatusCode = (await client.PostAsync(TelemetryEndpoints.TelemetryStart, content: null).ConfigureAwait(false)).StatusCode;
+            return telemetryStartedStatusCode is HttpStatusCode.OK;
         }
     }
 
@@ -37,7 +47,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/startOperation", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartOperation, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
             new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
@@ -50,7 +60,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/endOperation", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -61,7 +71,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/startUserTask", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartUserTask, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
             new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
@@ -74,7 +84,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/endUserTask", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -85,7 +95,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/operation", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostOperation, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -98,7 +108,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/userTask", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostUserTask, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -111,7 +121,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/fault", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostFault, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -124,7 +134,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/asset", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostAsset, request).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -137,7 +147,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/property", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostProperty, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -148,7 +158,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/recurringProperty", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostRecurringProperty, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -159,7 +169,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             return null;
         }
 
-        var response = await client.PostAsJsonAsync("/telemetry/commandLineFlags", request).ConfigureAwait(false);
+        var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
