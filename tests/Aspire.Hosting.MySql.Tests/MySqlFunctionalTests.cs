@@ -443,48 +443,74 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker]
-    public async Task MySql_WithPersistentLifetime_ReusesContainers()
+    public async Task MySql_WithPersistentLifetime_ReusesContainers(bool useMultipleInstances)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
-        using var builder1 = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resource1 = builder1.AddMySql("resource").WithLifetime(ContainerLifetime.Persistent);
+        // Use the same path for both runs
+        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
 
-        using var app = builder1.Build();
+        var before = await RunContainersAsync();
+        var after = await RunContainersAsync();
 
-        await app.StartAsync(cts.Token);
+        Assert.All(before, Assert.NotNull);
+        Assert.All(after, Assert.NotNull);
+        Assert.Equal(before, after);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        try
+        {
+            Directory.Delete(aspireStorePath, true);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
 
-        await rns.WaitForResourceHealthyAsync(resource1.Resource.Name, cts.Token);
+        async Task<string?[]> RunContainersAsync()
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+                .WithTempAspireStore(aspireStorePath)
+                .WithResourceCleanUp(false);
 
-        var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
-        var containerId1 = GetContainerId(resourceEvent);
+            var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
+            var mysql = builder
+                .AddMySql("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
+                .WithPhpMyAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .AddDatabase("db");
 
-        await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1));
+            if (useMultipleInstances)
+            {
+                var passwordParameter2 = builder.AddParameter("pwd2", "p@ssword2", secret: true);
+                builder.AddMySql("resource2", password: passwordParameter2).WithLifetime(ContainerLifetime.Persistent);
+            }
 
-        using var builder2 = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resource2 = builder2.AddMySql("resource").WithLifetime(ContainerLifetime.Persistent);
+            var app = builder.Build();
+            await app.StartAsync(cts.Token);
 
-        using var app2 = builder2.Build();
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await app2.StartAsync(cts.Token);
+            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+            var mySqlId = GetContainerId(resourceEvent);
 
-        var rns2 = app2.Services.GetRequiredService<ResourceNotificationService>();
+            var mySqlId2 = "";
 
-        await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
+            if (useMultipleInstances)
+            {
+                resourceEvent = await rns.WaitForResourceHealthyAsync("resource2", cts.Token);
+                mySqlId2 = GetContainerId(resourceEvent);
+            }
 
-        resourceEvent = await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
-        var containerId2 = GetContainerId(resourceEvent);
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-phpmyadmin", cts.Token);
+            var phpMyAdminId = GetContainerId(resourceEvent);
 
-        Assert.NotNull(containerId1);
-        Assert.NotNull(containerId2);
+            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
 
-        Assert.Equal(containerId1, containerId2);
-
-        await app2.StopAsync(cts.Token);
+            return [mySqlId, mySqlId2, phpMyAdminId];
+        }
 
         static string? GetContainerId(ResourceEvent resourceEvent)
         {

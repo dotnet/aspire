@@ -123,18 +123,15 @@ public static class MySqlBuilderExtensions
             if (mySqlInstances.Count() == 1)
             {
                 var singleInstance = mySqlInstances.Single();
-                if (singleInstance.PrimaryEndpoint.IsAllocated)
+                var endpoint = singleInstance.PrimaryEndpoint;
+                phpMyAdminContainerBuilder.WithEnvironment(context =>
                 {
-                    var endpoint = singleInstance.PrimaryEndpoint;
-                    phpMyAdminContainerBuilder.WithEnvironment(context =>
-                    {
-                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
-                        context.EnvironmentVariables.Add("PMA_USER", "root");
-                        context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
-                    });
-                }
+                    // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                    // This will need to be refactored once updated service discovery APIs are available
+                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
+                    context.EnvironmentVariables.Add("PMA_USER", "root");
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                });
             }
             else
             {

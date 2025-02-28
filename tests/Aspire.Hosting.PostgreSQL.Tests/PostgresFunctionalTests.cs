@@ -442,42 +442,56 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
-        using var builder1 = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resource1 = builder1.AddPostgres("resource").WithLifetime(ContainerLifetime.Persistent);
+        // Use the same path for both runs
+        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
 
-        using var app = builder1.Build();
+        var before = await RunContainersAsync();
+        var after = await RunContainersAsync();
 
-        await app.StartAsync(cts.Token);
+        Assert.All(before, Assert.NotNull);
+        Assert.All(after, Assert.NotNull);
+        Assert.Equal(before, after);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        try
+        {
+            Directory.Delete(aspireStorePath, true);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
 
-        await rns.WaitForResourceHealthyAsync(resource1.Resource.Name, cts.Token);
+        async Task<string?[]> RunContainersAsync()
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+                .WithTempAspireStore(aspireStorePath)
+                .WithResourceCleanUp(false);
 
-        var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
-        var containerId1 = GetContainerId(resourceEvent);
+            var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
+            builder
+                .AddPostgres("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
+                .WithPgWeb(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .WithPgAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .AddDatabase("mydb");
 
-        await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1));
+            var app = builder.Build();
+            await app.StartAsync(cts.Token);
 
-        using var builder2 = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resource2 = builder2.AddPostgres("resource").WithLifetime(ContainerLifetime.Persistent);
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        using var app2 = builder2.Build();
+            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+            var postgresId = GetContainerId(resourceEvent);
 
-        await app2.StartAsync(cts.Token);
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgweb", cts.Token);
+            var pgWebId = GetContainerId(resourceEvent);
 
-        var rns2 = app2.Services.GetRequiredService<ResourceNotificationService>();
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgadmin", cts.Token);
+            var pgadminId = GetContainerId(resourceEvent);
 
-        await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
+            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
 
-        resourceEvent = await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
-        var containerId2 = GetContainerId(resourceEvent);
-
-        Assert.NotNull(containerId1);
-        Assert.NotNull(containerId2);
-
-        Assert.Equal(containerId1, containerId2);
-
-        await app2.StopAsync(cts.Token);
+            return [postgresId, pgWebId, pgadminId];
+        }
 
         static string? GetContainerId(ResourceEvent resourceEvent)
         {

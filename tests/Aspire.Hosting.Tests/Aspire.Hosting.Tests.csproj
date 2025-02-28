@@ -7,7 +7,6 @@
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <RunTestsOnHelix>false</RunTestsOnHelix>
-    <UserSecretsId>9106a278-21b3-4a0c-860a-10102ff1063c</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +20,6 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />

@@ -4,9 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
-using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Dcp;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
@@ -53,9 +51,6 @@ public static class TestDistributedApplicationBuilder
     private static IDistributedApplicationTestingBuilder CreateCore(string[] args, Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {
         var builder = DistributedApplicationTestingBuilder.Create(args, (applicationOptions, hostBuilderOptions) => configureOptions?.Invoke(applicationOptions));
-
-        // Load the user secrets file for Aspire.Hosting.Tests
-        builder.Configuration.AddUserSecrets<AspireStoreTests>();
 
         // TODO: consider centralizing this to DistributedApplicationFactory by default once consumers have a way to opt-out
         // E.g., once https://github.com/dotnet/extensions/pull/5801 is released.
