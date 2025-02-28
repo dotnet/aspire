@@ -64,6 +64,22 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
+    <!--<Message Text="Uniq: @(UniqueTestClassNamesFiltered)" Importance="High" />-->
+    <ItemGroup>
+      <UniqueTestClassNamesFiltered ShortName="$([System.String]::new(%(Identity)).Replace('$(ExtractTestClassNamesPrefix).', ''))" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_JsonForGithubActions>
+        $(_JsonForGithubActions)
+        {&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;fullname&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+      </_JsonForGithubActions>
+    </PropertyGroup>
+
+    <Message Text="json: $(_JsonForGithubActions)" Importance="High" />
+
+    <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).for-gh-actions.list"
+                      Lines="$(_JsonForGithubActions)"
+                      Overwrite="true" />
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
