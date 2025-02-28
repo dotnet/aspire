@@ -90,7 +90,7 @@ jobs:
         run: |
           echo "title: ${{ matrix.foo.title }}"
           echo "fullname: ${{ matrix.foo.fullname }}"
-          echo "matrix: ${{ matrix }}
+          echo "matrix: ${{ matrix }}"
 
       - name: Checkout code
         uses: actions/checkout@v4
