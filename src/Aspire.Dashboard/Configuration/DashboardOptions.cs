@@ -305,4 +305,5 @@ public sealed class DebugSession
 {
     public string? Address { get; set; }
     public string? Token { get; set; }
+    public string? ServerCertificate { get; set; }
 }
