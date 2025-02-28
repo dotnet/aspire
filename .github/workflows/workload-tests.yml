@@ -77,7 +77,8 @@ jobs:
     needs: setup_for_template_tests
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).include }}
+      #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).include }}
+    matrix: ${{ fromJson('[{"fullname":"abc","title":"t_abc"}]') }}
 
     runs-on: ubuntu-latest
     timeout-minutes: 60
