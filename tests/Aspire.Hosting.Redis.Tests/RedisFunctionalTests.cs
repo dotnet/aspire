@@ -380,10 +380,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-        if (!Directory.Exists(bindMountPath))
-        {
-            Directory.CreateDirectory(bindMountPath);
-        }
+        Directory.CreateDirectory(bindMountPath);
 
         // Use a bind mount to do a snapshot save
 
@@ -567,6 +564,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }
 
