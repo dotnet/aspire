@@ -120,6 +120,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
                 rabbitMQ1.WithDataBindMount(bindMountPath);
             }
 
