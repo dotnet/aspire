@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
@@ -41,16 +41,15 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
         }
 
         var cert = new X509Certificate2(certData);
-
-        var handler = new HttpClientHandler();
-        handler.ClientCertificates.Add(cert);
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (_, c, _, _) => cert.Equals(c)
+        };
         var client = new HttpClient(handler)
         {
             BaseAddress = debugSessionUri,
-            DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" } }
+            DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" }, { "User-Agent", "Aspire Dashboard" } }
         };
-
-        client.DefaultRequestHeaders.Add("User-Agent", "Aspire Dashboard");
 
         return client;
 
