@@ -119,19 +119,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
         if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
-            TelemetryRepository.MaxTraceLimitMessage = await MessageService.ShowMessageBarAsync(options =>
-            {
-                options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
-                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
-                options.Intent = MessageIntent.Info;
-                options.Section = "MessagesTop";
-                options.AllowDismiss = true;
-                options.OnClose = m =>
-                {
-                    TelemetryRepository.MaxTraceLimitMessage = null;
-                    return Task.CompletedTask;
-                };
-            });
+            TelemetryRepository.MaxTraceLimitMessage = await DashboardUIHelpers.DisplayMaxLimitMessageAsync(
+                MessageService,
+                Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)],
+                string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount),
+                () => TelemetryRepository.MaxTraceLimitMessage = null);
+
             TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
         }
         else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage is { } message)

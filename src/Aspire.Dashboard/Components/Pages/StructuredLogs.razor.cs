@@ -115,19 +115,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
-            TelemetryRepository.MaxLogLimitMessage = await MessageService.ShowMessageBarAsync(options =>
-            {
-                options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
-                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
-                options.Intent = MessageIntent.Info;
-                options.Section = "MessagesTop";
-                options.AllowDismiss = true;
-                options.OnClose = m =>
-                {
-                    TelemetryRepository.MaxLogLimitMessage = null;
-                    return Task.CompletedTask;
-                };
-            });
+            TelemetryRepository.MaxLogLimitMessage = await DashboardUIHelpers.DisplayMaxLimitMessageAsync(
+                MessageService,
+                Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)],
+                string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount),
+                () => TelemetryRepository.MaxLogLimitMessage = null);
+
             TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
         }
         else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage is { } message)
