@@ -51,13 +51,14 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
         };
 
         client.DefaultRequestHeaders.Add("User-Agent", "Aspire Dashboard");
+
         return client;
 
         static bool SupportsTelemetry(DebugSession debugSession, [NotNullWhen(true)] out Uri? debugSessionUri, [NotNullWhen(true)] out string? token, [NotNullWhen(true)] out byte[]? certData)
         {
             if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null)
             {
-                debugSessionUri = new Uri(debugSession.Address);
+                debugSessionUri = new Uri($"https://{debugSession.Address}");
                 token = debugSession.Token;
                 certData = Convert.FromBase64String(debugSession.ServerCertificate);
                 return true;
