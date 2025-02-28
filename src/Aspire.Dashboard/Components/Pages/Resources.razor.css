@@ -88,6 +88,11 @@
 ::deep .resource-name {
     fill: var(--neutral-foreground-rest);
     stroke: var(--fill-color);
+    font-size: 15px;
+    text-anchor: middle;
+    stroke-width: 0.5em;
+    paint-order: stroke;
+    stroke-linejoin: round;
 }
 
 ::deep .resource-node {
@@ -127,6 +132,8 @@
 
 ::deep .resource-endpoint {
     fill: var(--foreground-subtext-rest);
+    font-size: 11px;
+    text-anchor: middle;
 }
 
 ::deep .resource-status-circle {

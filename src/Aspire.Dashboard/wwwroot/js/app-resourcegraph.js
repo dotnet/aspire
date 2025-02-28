@@ -285,12 +285,12 @@ class ResourceGraph {
             .append("title")
             .text(n => n.resourceIcon.tooltip);
 
-        newNodesContainer
-            .append("text")
-            .attr("class", "resource-endpoint")
-            .attr("font-size", 11)
-            .attr("text-anchor", "middle")
-            .attr("dy", 28);
+        var endpointGroup = newNodesContainer
+            .append("g")
+            .attr("transform", "translate(0,28)")
+            .attr("class", "resource-endpoint");
+        endpointGroup.append("text");
+        endpointGroup.append("title");
 
         // Resource status
         var statusGroup = newNodesContainer
@@ -308,20 +308,18 @@ class ResourceGraph {
             .attr("class", "resource-status-path")
             .append("title");
 
-        newNodesContainer
-            .append("text")
-            .text(function (node) {
-                return node.label;
-            })
+        var resourceNameGroup = newNodesContainer
+            .append("g")
+            .attr("transform", "translate(0,71)")
             .attr("class", "resource-name")
-            .attr("font-size", 15)
-            .attr("text-anchor", "middle")
-            .attr("stroke", "white")
-            .attr("stroke-width", "0.5em")
-            .attr("paint-order", "stroke")
-            .attr("stroke-linejoin", "round")
-            .attr("dy", 71)
             .on('click', this.selectNode);
+        resourceNameGroup
+            .append("text")
+            .text(n => trimText(n.label, 30))
+            .on('click', this.selectNode);
+        resourceNameGroup
+            .append("title")
+            .text(n => n.label);
 
         newNodes.transition()
             .attr("opacity", 1);
@@ -332,9 +330,13 @@ class ResourceGraph {
         this.nodeElementsG
             .selectAll(".resource-group")
             .select(".resource-endpoint")
-            .text((node) => {
-                return node.endpointText || 'No endpoints';
-            });
+            .select("text")
+            .text(n => trimText(n.endpointText, 15));
+        this.nodeElementsG
+            .selectAll(".resource-group")
+            .select(".resource-endpoint")
+            .select("title")
+            .text(n => n.endpointText);
         this.nodeElementsG
             .selectAll(".resource-group")
             .select(".resource-status-circle")
@@ -379,6 +381,13 @@ class ResourceGraph {
         }
         else {
             this.simulation.restart();
+        }
+
+        function trimText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.slice(0, maxLength) + "\u2026";
+            }
+            return text;
         }
    }
 
