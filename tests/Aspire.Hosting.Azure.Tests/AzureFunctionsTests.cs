@@ -200,21 +200,25 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    public void AddAzureFunctionsProject_ConfiguresEnvironmentVariables_WhenInPublishMode()
+    public async Task AddAzureFunctionsProject_ConfiguresEnvironmentVariables_WhenInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-        Assert.True(functionsResource.TryGetLastAnnotation<EnvironmentCallbackAnnotation>(out var envAnnotation));
+        Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
 
         var context = new EnvironmentCallbackContext(builder.ExecutionContext);
-        envAnnotation.Callback(context);
+        foreach (var envAnnotation in envAnnotations)
+        {
+            await envAnnotation.Callback(context);
+        }
 
         // Verify ASPNETCORE_URLS is set correctly with the target port
         var aspNetCoreUrls = context.EnvironmentVariables["ASPNETCORE_URLS"];
         Assert.NotNull(aspNetCoreUrls);
-        Assert.Contains("8080", aspNetCoreUrls.ToString());
+        var aspNetCoreUrlsValue = await ((ReferenceExpression)aspNetCoreUrls).GetValueAsync(default);
+        Assert.Contains("8080", aspNetCoreUrlsValue);
     }
 
     [Fact]
