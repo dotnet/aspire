@@ -19,21 +19,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.x
-            9.x
+      #- name: Set up .NET Core
+        #uses: actions/setup-dotnet@v4
+        #with:
+          #dotnet-version: |
+            #8.x
+            #9.x
 
-      - name: Enumerate test class names
-        id: enumerateNamesStep
-        env:
-          CI: false
-          #echo "templates_output=$(jq -cR '{fullname: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
-          #echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
-        run: |
-          cat foo.list >> $GITHUB_OUTPUT
+      #- name: Enumerate test class names
+        #id: enumerateNamesStep
+        #env:
+          #CI: false
+          ##echo "templates_output=$(jq -cR '{fullname: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
+          ##echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
+        #run: |
+          #cat foo.list >> $GITHUB_OUTPUT
 
       #- name: Build with packages
         #env:
@@ -78,6 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).include }}
+      #no seq: matrix: ${{ fromJson('[{"fullname":"abc","title":"t_abc"}]') }}
       matrix: ${{ fromJson('[{"fullname":"abc"}]') }}
 
     runs-on: ubuntu-latest
