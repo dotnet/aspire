@@ -79,7 +79,7 @@ jobs:
       fail-fast: false
       #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).include }}
       #no seq: matrix: ${{ fromJson('[{"fullname":"abc","title":"t_abc"}]') }}
-      matrix: ${{ fromJson('[{"fullname":"abc"}]') }}
+      matrix: ${{ fromJson('{"foo": [{"fullname":"abc"}]}') }}
 
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -87,8 +87,9 @@ jobs:
     steps:
       - name: debug
         run: |
-          echo "title: ${{ matrix.title }}"
-          echo "fullname: ${{ matrix.fullname }}"
+          echo "title: ${{ matrix.foo.title }}"
+          echo "fullname: ${{ matrix.foo.fullname }}"
+          echo "matrix: ${{ matrix }}
 
       - name: Checkout code
         uses: actions/checkout@v4
