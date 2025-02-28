@@ -19,6 +19,7 @@ using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication;
@@ -229,6 +230,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
         builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
+
+        // Telemetry
+        builder.Services.TryAddSingleton<AspireTelemetryService>();
 
         // OTLP services.
         builder.Services.AddGrpc();
