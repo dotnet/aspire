@@ -12,8 +12,15 @@ namespace Aspire.Dashboard.Telemetry;
 public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
 {
     private readonly Lazy<HttpClient?> _httpClient = new(() => CreateHttpClient(options.Value.DebugSession));
+    private bool? _telemetryEnabled;
 
-    public async Task<bool> GetTelemetryEnabledAsync()
+    public async Task<bool> IsTelemetryEnabledAsync()
+    {
+        _telemetryEnabled ??= await GetTelemetryEnabledAsync().ConfigureAwait(false);
+        return _telemetryEnabled.Value;
+    }
+
+    private async Task<bool> GetTelemetryEnabledAsync()
     {
         var client = _httpClient.Value;
         if (client is null)
