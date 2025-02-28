@@ -19,59 +19,56 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      #- name: Set up .NET Core
-        #uses: actions/setup-dotnet@v4
-        #with:
-          #dotnet-version: |
-            #8.x
-            #9.x
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Build with packages
+        env:
+          CI: false
+        run: ./build.sh -restore -build -ci -pack /bl
+
+      - name: Install sdk for testing
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      - name: Build workload tests
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            -p:ContinuousIntegrationBuild=true \
+            /p:ArchiveTests=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
 
       - name: Enumerate test class names
         id: enumerateNamesStep
         env:
           CI: false
-          #echo "templates_output=$(jq -cR '{fullname: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
-          #echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
-          #cat foo.list >> $GITHUB_OUTPUT
         run: |
-          cat foo.list >> $GITHUB_OUTPUT
+          cat ${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.for-gh-actions.list >> $GITHUB_OUTPUT
 
-      #- name: Build with packages
-        #env:
-          #CI: false
-        #run: ./build.sh -restore -build -ci -pack /bl
+      - name: Archive built nugets
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-nugets
+          path: artifacts/packages
 
-      #- name: Install sdk for testing
-        #env:
-          #CI: false
-        #run: |
-          #./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            #/p:SkipPackageCheckForWorkloadTesting=true \
-            #/bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
-
-      #- name: Build workload tests
-        #env:
-          #CI: false
-        #run: |
-          #./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
-            #-p:ContinuousIntegrationBuild=true \
-            #/p:ArchiveTests=true \
-            #/bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
-
-      #- name: Archive built nugets
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: built-nugets
-          #path: artifacts/packages
-
-      #- name: Archive artifacts for template tests
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: workload-artifacts
-          #path: |
-            #artifacts/bin/dotnet-*
-            #artifacts/bin/playwright-deps
-          #retention-days: 3
+      - name: Archive artifacts for template tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: workload-artifacts
+          path: |
+            artifacts/bin/dotnet-*
+            artifacts/bin/playwright-deps
+          retention-days: 3
 
 
   template_tests:
@@ -79,17 +76,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
-      #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).include }}
-      #no seq: matrix: ${{ fromJson('[{"fullname":"abc","title":"t_abc"}]') }}
-      #matrix: ${{ fromJson('{"foo": [{"fullname":"abc"}]}') }}
-
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    name: ${{ matrix.title }}
+    name: ${{ matrix.shortname }}
     steps:
       - name: debug
         run: |
-          echo "title: ${{ matrix.tests.title }}"
+          echo "shortname: ${{ matrix.tests.shortname }}"
           echo "fullname: ${{ matrix.tests.fullname }}"
           echo "matrix: ${{ matrix }}"
 
@@ -152,7 +145,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.fullname }} \
+            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.tests.fullname }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
             RunConfiguration.TestSessionTimeout=1200000
@@ -169,12 +162,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: binlog-${{ matrix.fullname }}
+          name: binlog-${{ matrix.tests.fullname }}
           path: "**/*.binlog"
 
       - name: Upload test results artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: testresults-${{ matrix.fullname }}
+          name: testresults-${{ matrix.tests.fullname }}
           path: testresults/**
