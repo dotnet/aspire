@@ -442,4 +442,53 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.Equal("BatMobile", cars[0].Brand);
         }, cts.Token);
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task MySql_WithPersistentLifetime_ReusesContainers()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder1 = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resource1 = builder1.AddMySql("resource").WithLifetime(ContainerLifetime.Persistent);
+
+        using var app = builder1.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceHealthyAsync(resource1.Resource.Name, cts.Token);
+
+        var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+        var containerId1 = GetContainerId(resourceEvent);
+
+        await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1));
+
+        using var builder2 = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resource2 = builder2.AddMySql("resource").WithLifetime(ContainerLifetime.Persistent);
+
+        using var app2 = builder2.Build();
+
+        await app2.StartAsync(cts.Token);
+
+        var rns2 = app2.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
+
+        resourceEvent = await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
+        var containerId2 = GetContainerId(resourceEvent);
+
+        Assert.NotNull(containerId1);
+        Assert.NotNull(containerId2);
+
+        Assert.Equal(containerId1, containerId2);
+
+        await app2.StopAsync(cts.Token);
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        }
+    }
 }

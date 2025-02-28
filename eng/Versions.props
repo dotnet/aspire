@@ -65,6 +65,7 @@
     <MicrosoftExtensionsHostingVersion>9.0.2</MicrosoftExtensionsHostingVersion>
     <MicrosoftExtensionsConfigurationAbstractionsVersion>9.0.2</MicrosoftExtensionsConfigurationAbstractionsVersion>
     <MicrosoftExtensionsConfigurationBinderVersion>9.0.2</MicrosoftExtensionsConfigurationBinderVersion>
+    <MicrosoftExtensionsConfigurationUserSecretsVersion>9.0.2</MicrosoftExtensionsConfigurationUserSecretsVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsVersion>9.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsVersion>
     <MicrosoftExtensionsLoggingAbstractionsVersion>9.0.2</MicrosoftExtensionsLoggingAbstractionsVersion>
     <MicrosoftExtensionsOptionsVersion>9.0.2</MicrosoftExtensionsOptionsVersion>
@@ -95,6 +96,7 @@
     <MicrosoftExtensionsHostingLTSVersion>8.0.1</MicrosoftExtensionsHostingLTSVersion>
     <MicrosoftExtensionsConfigurationAbstractionsLTSVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsLTSVersion>
     <MicrosoftExtensionsConfigurationBinderLTSVersion>8.0.2</MicrosoftExtensionsConfigurationBinderLTSVersion>
+    <MicrosoftExtensionsConfigurationUserSecretsLTSVersion>8.0.1</MicrosoftExtensionsConfigurationUserSecretsLTSVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>
     <MicrosoftExtensionsLoggingAbstractionsLTSVersion>8.0.3</MicrosoftExtensionsLoggingAbstractionsLTSVersion>
     <MicrosoftExtensionsOptionsLTSVersion>8.0.2</MicrosoftExtensionsOptionsLTSVersion>
