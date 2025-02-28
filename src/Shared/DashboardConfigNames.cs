@@ -27,6 +27,8 @@ internal static class DashboardConfigNames
     public static readonly ConfigName ResourceServiceClientCertificateFilePathName = new("Dashboard:ResourceServiceClient:ClientCertificate:FilePath", "DASHBOARD__RESOURCESERVICECLIENT__CLIENTCERTIFICATE__FILEPATH");
     public static readonly ConfigName ResourceServiceClientCertificateSubjectName = new("Dashboard:ResourceServiceClient:ClientCertificate:Subject", "DASHBOARD__RESOURCESERVICECLIENT__CLIENTCERTIFICATE__SUBJECT");
     public static readonly ConfigName ResourceServiceClientApiKeyName = new("Dashboard:ResourceServiceClient:ApiKey", "DASHBOARD__RESOURCESERVICECLIENT__APIKEY");
+    public static readonly ConfigName DebugSessionAddressName = new("Dashboard:DebugSession:Address", "DASHBOARD__DEBUGSESSION__ADDRESS");
+    public static readonly ConfigName DebugSessionTokenName = new("Dashboard:DebugSession:Token", "DASHBOARD__DEBUGSESSION__TOKEN");
 }
 
 internal readonly struct ConfigName(string configKey, string? envVarName = null)

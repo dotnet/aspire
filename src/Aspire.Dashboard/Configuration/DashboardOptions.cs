@@ -16,6 +16,7 @@ public sealed class DashboardOptions
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
+    public DebugSession DebugSession { get; set;} = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -298,4 +299,10 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class DebugSession
+{
+    public string? Address { get; set; }
+    public string? Token { get; set; }
 }
