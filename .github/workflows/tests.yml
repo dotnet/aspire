@@ -158,6 +158,11 @@ jobs:
             name: Extensions.ServiceDiscovery.Dns
           - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
             name: Extensions.ServiceDiscovery.Yarp
+
+          # Others
+          - project: tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj
+            name: Cli
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
