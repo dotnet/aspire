@@ -136,6 +136,7 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7839")]
     public void ClearLogEntries_AllResources_LogsFilteredOut()
     {
         // Arrange
