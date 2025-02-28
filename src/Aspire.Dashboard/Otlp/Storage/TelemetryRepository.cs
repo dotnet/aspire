@@ -12,6 +12,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -47,7 +48,10 @@ public sealed class TelemetryRepository
     internal readonly OtlpContext _otlpContext;
 
     public bool HasDisplayedMaxLogLimitMessage { get; set; }
+    public Message? MaxLogLimitMessage { get; set; }
+
     public bool HasDisplayedMaxTraceLimitMessage { get; set; }
+    public Message? MaxTraceLimitMessage { get; set; }
 
     // For testing.
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
@@ -406,7 +410,7 @@ public sealed class TelemetryRepository
                 results = filter.Apply(results);
             }
 
-            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count);
+            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _logs.IsFull);
         }
         finally
         {
@@ -532,7 +536,7 @@ public sealed class TelemetryRepository
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
             var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
 
-            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _traces.IsFull, copyFunc);
             var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
 
             return new GetTracesResponse
