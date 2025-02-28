@@ -10,6 +10,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
@@ -47,6 +48,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required IAspireTelemetryService TelemetryService { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => "Resources_PageState";
@@ -148,6 +151,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     protected override async Task OnInitializedAsync()
     {
+        var isTelemetryEnabled = await TelemetryService.IsTelemetryEnabledAsync();
+        Console.WriteLine(isTelemetryEnabled);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [

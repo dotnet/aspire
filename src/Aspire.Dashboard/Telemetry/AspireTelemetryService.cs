@@ -3,34 +3,174 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.Json.Serialization;
 using Aspire.Dashboard.Configuration;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.Telemetry;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
+public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) : IAspireTelemetryService
 {
     private readonly Lazy<HttpClient?> _httpClient = new(() => CreateHttpClient(options.Value.DebugSession));
     private bool? _telemetryEnabled;
 
     public async Task<bool> IsTelemetryEnabledAsync()
     {
-        _telemetryEnabled ??= await GetTelemetryEnabledAsync().ConfigureAwait(false);
+        _telemetryEnabled ??= await GetTelemetryEnabledAsync(_httpClient.Value).ConfigureAwait(false);
         return _telemetryEnabled.Value;
+
+        static async Task<bool> GetTelemetryEnabledAsync(HttpClient? client)
+        {
+            if (client is null)
+            {
+                return false;
+            }
+
+            var response = await client.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
+            return response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
+        }
     }
 
-    private async Task<bool> GetTelemetryEnabledAsync()
+    public async Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request)
     {
-        var client = _httpClient.Value;
-        if (client is null)
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
         {
-            return false;
+            return null;
         }
 
-        var response = await client.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
-        return response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
+        var response = await client.PostAsJsonAsync("/telemetry/startOperation", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
+            new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/endOperation", request).ConfigureAwait(false);
+        return new TelemetryResponse(response.StatusCode);
+    }
+
+    public async Task<TelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/startUserTask", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
+            new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/endUserTask", request).ConfigureAwait(false);
+        return new TelemetryResponse(response.StatusCode);
+    }
+
+    public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/operation", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
+            new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostUserTaskAsync(PostOperationRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/userTask", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
+            new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostFaultAsync(PostFaultRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/fault", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
+            new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostAssetAsync(PostAssetRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/asset", request).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
+            new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
+    }
+
+    public async Task<ITelemetryResponse?> PostPropertyAsync(PostPropertyRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/property", request).ConfigureAwait(false);
+        return new TelemetryResponse(response.StatusCode);
+    }
+
+    public async Task<ITelemetryResponse?> PostRecurringPropertyAsync(PostPropertyRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/recurringProperty", request).ConfigureAwait(false);
+        return new TelemetryResponse(response.StatusCode);
+    }
+
+    public async Task<ITelemetryResponse?> PostCommandLineFlagsAsync(PostCommandLineFlagsRequest request)
+    {
+        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        {
+            return null;
+        }
+
+        var response = await client.PostAsJsonAsync("/telemetry/commandLineFlags", request).ConfigureAwait(false);
+        return new TelemetryResponse(response.StatusCode);
+    }
+
+    private async Task<HttpClient?> GetHttpClientAsync()
+    {
+        if (_httpClient.Value is null || await IsTelemetryEnabledAsync().ConfigureAwait(false) is not true)
+        {
+            return null;
+        }
+
+        return _httpClient.Value;
     }
 
     private static HttpClient? CreateHttpClient(DebugSession debugSession)
@@ -85,33 +225,5 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
         public const string TelemetryPostProperty = "/telemetry/property";
         public const string TelemetryPostRecurringProperty = "/telemetry/recurringProperty";
         public const string TelemetryPostCommandLineFlags = "/telemetry/commandLineFlags";
-    }
-
-    public record TelemetryEnabledResponse(bool IsEnabled);
-    public record StartOperationRequest(string EventName, AspireTelemetryScopeSettings? Settings = null);
-    public record StartOperationResponse(string OperationId);
-    public record EndOperationRequest(string Id, TelemetryResult Result, string? ErrorMessage = null);
-    public record PostOperationRequest(string EventName, TelemetryResult Result, string? ResultSummary = null, TelemetryEventCorrelation[]? CorrelatedWith = null);
-    public record PostFaultRequest(string EventName, string Description, FaultSeverity Severity, TelemetryEventCorrelation[]? CorrelatedWith = null);
-    public record PostAssetRequest(string EventName, string AssetId, int AssetEventVersion, Dictionary<string, object>? AdditionalProperties, TelemetryEventCorrelation[]? CorrelatedWith = null);
-    public record PostPropertyRequest(string PropertyName, string PropertyValue);
-    public record PostCommandLineFlagsRequest(List<string> FlagPrefixes, Dictionary<string, object> AdditionalProperties);
-
-    public record AspireTelemetryScopeSettings(
-        Dictionary<string, object> StartEventProperties,
-        TelemetrySeverity Severity = TelemetrySeverity.Normal,
-        bool IsOptOutFriendly = false,
-        TelemetryEventCorrelation[]? Correlations = null,
-        bool PostStartEvent = true
-    );
-
-    public class TelemetryEventCorrelation
-    {
-        [JsonPropertyName("id")]
-        public required Guid Id { get; set; }
-
-        [JsonPropertyName("eventType")]
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public DataModelEventType EventType { get; set; }
     }
 }

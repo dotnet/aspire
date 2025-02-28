@@ -232,7 +232,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         // Telemetry
-        builder.Services.TryAddSingleton<AspireTelemetryService>();
+        builder.Services.TryAddSingleton<IAspireTelemetryService, AspireTelemetryService>();
 
         // OTLP services.
         builder.Services.AddGrpc();
