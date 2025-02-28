@@ -1,1 +1,1 @@
-templates_output={"include":[{"fullname":"Aspire.Workload.Tests.Foo.Bar","title":"abc"},{"fullname":"Aspire.Workload.Tests.Abc.Templates","title":"def"},{"fullname":"Aspire.Workload.Tests.XyzTests.Foo","title":"xyz"}]}
+templates_output={"foo":[{"fullname":"Aspire.Workload.Tests.Foo.Bar","title":"abc"},{"fullname":"Aspire.Workload.Tests.Abc.Templates","title":"def"},{"fullname":"Aspire.Workload.Tests.XyzTests.Foo","title":"xyz"}]}
