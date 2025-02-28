@@ -70,8 +70,7 @@
     </ItemGroup>
     <PropertyGroup>
       <_JsonForGithubActions>
-        $(_JsonForGithubActions)
-        {&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;fullname&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+        templates_output={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;fullname&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 

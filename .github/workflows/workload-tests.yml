@@ -34,7 +34,7 @@ jobs:
           #echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
           #cat foo.list >> $GITHUB_OUTPUT
         run: |
-          echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
+          cat foo.list >> $GITHUB_OUTPUT
 
       #- name: Build with packages
         #env:
