@@ -179,7 +179,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
-        
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -330,7 +329,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
         topic1.AddServiceBusSubscription("subscription1")
             .WithProperties(sub =>
-            { 
+            {
                 sub.DeadLetteringOnMessageExpiration = true;
                 sub.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 sub.LockDuration = TimeSpan.FromMinutes(5);
@@ -469,6 +468,16 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        if (!OperatingSystem.IsWindows())
+        {
+            // Ensure the configuration file has correct attributes
+            var fileInfo = new FileInfo(volumeAnnotation.Source!);
+
+            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
+        }
 
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 

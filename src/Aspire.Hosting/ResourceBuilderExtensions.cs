@@ -528,20 +528,21 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="port">An optional port. This is the port that will be given to other resource to communicate with this resource.</param>
-    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to the <paramref name="protocol"/> argument if it is defined or "tcp" otherwise.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
     /// <param name="env">An optional name of the environment variable that will be used to inject the <paramref name="targetPort"/>. If the target port is null one will be dynamically generated and assigned to the environment variable.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
+    /// <param name="protocol">Network protocol: TCP or UDP are supported today, others possibly in future.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null, ProtocolType? protocol = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var annotation = new EndpointAnnotation(
-            protocol: ProtocolType.Tcp,
+            protocol: protocol ?? ProtocolType.Tcp,
             uriScheme: scheme,
             name: name,
             port: port,
@@ -568,6 +569,26 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be the scheme name if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
+    /// <param name="port">An optional port. This is the port that will be given to other resource to communicate with this resource.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
+    /// <param name="env">An optional name of the environment variable that will be used to inject the <paramref name="targetPort"/>. If the target port is null one will be dynamically generated and assigned to the environment variable.</param>
+    /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
+    /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port, int? targetPort, string? scheme, [EndpointName] string? name, string? env, bool isProxied, bool? isExternal) where T : IResourceWithEndpoints
+    {
+        return WithEndpoint(builder, port, targetPort, scheme, name, env, isProxied, isExternal, protocol: null);
     }
 
     /// <summary>
@@ -637,7 +658,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, int?, string?, string?, string?, bool, bool?)"/> or by launch settings (for project resources).
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, int?, string?, string?, string?, bool, bool?, ProtocolType?)"/> or by launch settings (for project resources).
     /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

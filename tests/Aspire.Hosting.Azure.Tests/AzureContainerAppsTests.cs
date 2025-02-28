@@ -820,7 +820,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             context.EnvironmentVariables["TARGET_PORT"] = httpEp.Property(EndpointProperty.TargetPort);
             context.EnvironmentVariables["PORT"] = httpEp.Property(EndpointProperty.Port);
             context.EnvironmentVariables["HOST"] = httpEp.Property(EndpointProperty.Host);
+            context.EnvironmentVariables["HOSTANDPORT"] = httpEp.Property(EndpointProperty.HostAndPort);
             context.EnvironmentVariables["SCHEME"] = httpEp.Property(EndpointProperty.Scheme);
+            context.EnvironmentVariables["INTERNAL_HOSTANDPORT"] = internalEp.Property(EndpointProperty.HostAndPort);
         });
 
         using var app = builder.Build();
@@ -1035,8 +1037,16 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                       value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
                     }
                     {
+                      name: 'HOSTANDPORT'
+                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}:80'
+                    }
+                    {
                       name: 'SCHEME'
                       value: 'http'
+                    }
+                    {
+                      name: 'INTERNAL_HOSTANDPORT'
+                      value: 'api:8000'
                     }
                     {
                       name: 'AZURE_CLIENT_ID'
@@ -1159,7 +1169,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task ConfigureCustomDomainsMutatesIngress()
+    public async Task ConfigureCustomDomainMutatesIngress()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -1239,6 +1249,258 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     name: customDomain
                     bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
                     certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+                  }
+                ]
+              }
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task ConfigureDuplicateCustomDomainMutatesIngress()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customDomain = builder.AddParameter("customDomain");
+        var initialCertificateName = builder.AddParameter("initialCertificateName");
+        var expectedCertificateName = builder.AddParameter("expectedCertificateName");
+
+        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 1111)
+            .PublishAsAzureContainerApp((module, c) =>
+            {
+                c.ConfigureCustomDomain(customDomain, initialCertificateName);
+                c.ConfigureCustomDomain(customDomain, expectedCertificateName);
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "initialCertificateName": "{initialCertificateName.value}",
+            "customDomain": "{customDomain.value}",
+            "expectedCertificateName": "{expectedCertificateName.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param initialCertificateName string
+
+        param customDomain string
+
+        param expectedCertificateName string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: 1111
+                transport: 'http'
+                customDomains: [
+                  {
+                    name: customDomain
+                    bindingType: (expectedCertificateName != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (expectedCertificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${expectedCertificateName}' : null
+                  }
+                ]
+              }
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task ConfigureMultipleCustomDomainsMutatesIngress()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customDomain1 = builder.AddParameter("customDomain1");
+        var certificateName1 = builder.AddParameter("certificateName1");
+
+        var customDomain2 = builder.AddParameter("customDomain2");
+        var certificateName2 = builder.AddParameter("certificateName2");
+
+        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 1111)
+            .PublishAsAzureContainerApp((module, c) =>
+            {
+                c.ConfigureCustomDomain(customDomain1, certificateName1);
+                c.ConfigureCustomDomain(customDomain2, certificateName2);
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "certificateName1": "{certificateName1.value}",
+            "customDomain1": "{customDomain1.value}",
+            "certificateName2": "{certificateName2.value}",
+            "customDomain2": "{customDomain2.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param certificateName1 string
+
+        param customDomain1 string
+
+        param certificateName2 string
+
+        param customDomain2 string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: 1111
+                transport: 'http'
+                customDomains: [
+                  {
+                    name: customDomain1
+                    bindingType: (certificateName1 != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName1 != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName1}' : null
+                  }
+                  {
+                    name: customDomain2
+                    bindingType: (certificateName2 != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName2 != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName2}' : null
                   }
                 ]
               }

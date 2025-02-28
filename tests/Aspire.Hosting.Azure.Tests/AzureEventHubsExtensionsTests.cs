@@ -111,6 +111,46 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresDocker]
+    public async Task AzureEventHubsNs_ProducesAndConsumes()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var eventHubns = builder.AddAzureEventHubs("eventhubns")
+            .RunAsEmulator();
+        var eventHub = eventHubns.AddHub("hub");
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
+        hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
+
+        var producerClient = host.Services.GetRequiredService<EventHubProducerClient>();
+        var consumerClient = host.Services.GetRequiredService<EventHubConsumerClient>();
+
+        // If no exception is thrown when awaited, the Event Hubs service has acknowledged
+        // receipt and assumed responsibility for delivery of the set of events to its partition.
+        await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))], cts.Token);
+
+        await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
+        {
+            Assert.Equal("hello worlds", Encoding.UTF8.GetString(partitionEvent.Data.EventBody.ToArray()));
+            break;
+        }
+    }
+
+    [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -392,6 +432,16 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            // Ensure the configuration file has correct attributes
+            var fileInfo = new FileInfo(volumeAnnotation.Source!);
+
+            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
+        }
 
         Assert.Equal(/*json*/"""
         {

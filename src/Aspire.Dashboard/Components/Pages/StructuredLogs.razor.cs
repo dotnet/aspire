@@ -113,17 +113,20 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         var logs = ViewModel.GetLogs();
 
-        if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
+        if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
-            await MessageService.ShowMessageBarAsync(options =>
-            {
-                options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
-                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
-                options.Intent = MessageIntent.Info;
-                options.Section = "MessagesTop";
-                options.AllowDismiss = true;
-            });
+            TelemetryRepository.MaxLogLimitMessage = await DashboardUIHelpers.DisplayMaxLimitMessageAsync(
+                MessageService,
+                Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)],
+                string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount),
+                () => TelemetryRepository.MaxLogLimitMessage = null);
+
             TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
+        }
+        else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage is { } message)
+        {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.

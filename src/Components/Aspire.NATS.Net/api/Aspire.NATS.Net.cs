@@ -22,9 +22,29 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireNatsClientExtensions
     {
-        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings = null, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions = null) { }
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
 
-        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings = null, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions = null) { }
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings, System.Func<System.IServiceProvider, NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings) { }
+
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, System.Func<System.IServiceProvider, NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings, System.Func<System.IServiceProvider, NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.NATS.Net.NatsClientSettings>? configureSettings) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Func<NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, System.Func<System.IServiceProvider, NATS.Client.Core.NatsOpts, NATS.Client.Core.NatsOpts>? configureOptions) { }
+
+        public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName) { }
 
         public static void AddNatsJetStream(this IHostApplicationBuilder builder) { }
     }

@@ -555,6 +555,24 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
+    /// </summary>
+    /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
+    /// <returns>True if an annotation exists, false otherwise</returns>
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
+    {
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
+            return true;
+        }
+
+        pullPolicy = null;
+        return false;
+    }
+
+    /// <summary>
     /// Determines whether a resource has proxy support enabled or not. Container resources may have a <see cref="ProxySupportAnnotation"/> setting that disables proxying for their
     /// endpoints regardless of the endpoint proxy configuration.
     /// </summary>
