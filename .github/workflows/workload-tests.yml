@@ -89,8 +89,8 @@ jobs:
     steps:
       - name: debug
         run: |
-          echo "title: ${{ matrix.foo.title }}"
-          echo "fullname: ${{ matrix.foo.fullname }}"
+          echo "title: ${{ matrix.tests.title }}"
+          echo "fullname: ${{ matrix.tests.fullname }}"
           echo "matrix: ${{ matrix }}"
 
       - name: Checkout code
