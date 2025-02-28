@@ -1,0 +1,174 @@
+name: Workload Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  setup_for_template_tests:
+    name: Setup for template tests
+    runs-on: ubuntu-latest
+    outputs:
+      template_matrix: ${{ steps.enumerateNamesStep.outputs.templates_output }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Enumerate test class names
+        id: enumerateNamesStep
+        env:
+          CI: false
+          #echo "templates_output=$(jq -cR '{fullnames: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
+        run: |
+          echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
+
+      #- name: Build with packages
+        #env:
+          #CI: false
+        #run: ./build.sh -restore -build -ci -pack /bl
+
+      #- name: Install sdk for testing
+        #env:
+          #CI: false
+        #run: |
+          #./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            #/p:SkipPackageCheckForWorkloadTesting=true \
+            #/bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      #- name: Build workload tests
+        #env:
+          #CI: false
+        #run: |
+          #./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            #-p:ContinuousIntegrationBuild=true \
+            #/p:ArchiveTests=true \
+            #/bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+
+      #- name: Archive built nugets
+        #uses: actions/upload-artifact@v4
+        #with:
+          #name: built-nugets
+          #path: artifacts/packages
+
+      #- name: Archive artifacts for template tests
+        #uses: actions/upload-artifact@v4
+        #with:
+          #name: workload-artifacts
+          #path: |
+            #artifacts/bin/dotnet-*
+            #artifacts/bin/playwright-deps
+          #retention-days: 3
+
+
+  template_tests:
+    needs: setup_for_template_tests
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix).names }}
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: ${{ matrix.titles }}
+    steps:
+      - name: debug
+        run: |
+          echo "title: ${{ matrix.titles }}"
+          echo "fullname: ${{ matrix.fullnames }}"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Download built nugets
+        uses: actions/download-artifact@v4
+        with:
+          name: built-nugets
+          path: artifacts/packages
+
+      - name: Download artifacts for template tests
+        uses: actions/download-artifact@v4
+        with:
+          name: workload-artifacts
+          path: artifacts/bin
+
+      - name: Fix up permissions
+        run: |
+          chmod +x artifacts/bin/dotnet-*/dotnet && \
+          chmod -R +x artifacts/bin/playwright-deps
+
+      - name: Build test project
+        env:
+          CI: false
+        run: |
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
+
+      - name: Run tests
+        id: run-tests
+        env:
+          CI: false
+          TEMPLATE_TESTS_ON_GITHUB_ACTIONS: true
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+        run: |
+          ./dotnet.sh test ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            /p:ContinuousIntegrationBuild=true \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
+            --blame \
+            --blame-hang-timeout 12m \
+            --blame-crash \
+            --results-directory testresults \
+            --no-restore \
+            --no-build \
+            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.fullnames }} \
+            -- \
+            RunConfiguration.CollectSourceInformation=true \
+            RunConfiguration.TestSessionTimeout=1200000
+
+      - name: Dump docker info
+        if: always()
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.fullnames }}
+          path: "**/*.binlog"
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.fullnames }}
+          path: testresults/**
