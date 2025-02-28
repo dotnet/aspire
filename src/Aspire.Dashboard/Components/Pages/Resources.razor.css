@@ -65,10 +65,11 @@
 }
 
 ::deep .resource-tabs fluent-tab:first-child {
-    margin-left: calc(var(--design-unit) * 2px);
+    margin-left: calc(var(--design-unit) * 3px);
 }
 
 ::deep .resources-grid-container {
+    margin-top: 10px;
     overflow: auto;
     grid-area: resources-tab-content;
 }
@@ -101,7 +102,7 @@
 }
 
 ::deep .resource-group-hover .resource-node {
-    fill: var(--neutral-fill-hover);
+    fill: var(--neutral-fill-hover) !important;
 }
 
 ::deep .resource-group-selected .resource-scale {
@@ -109,11 +110,15 @@
 }
 
 ::deep .resource-group-selected .resource-node {
-    fill: var(--neutral-fill-secondary-rest);
+    fill: var(--neutral-fill-secondary-rest) !important;
 }
 
 ::deep .resource-group-selected .resource-node-border {
     stroke: var(--neutral-stroke-hover);
+}
+
+::deep .resource-group-highlight .resource-node {
+    fill: url(#highlighted-pattern);
 }
 
 ::deep .resource-group-highlight .resource-node-border {

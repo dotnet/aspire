@@ -90,6 +90,30 @@ class ResourceGraph {
         this.createArrowMarker(defs, "arrow-highlight", "arrow-highlight", 15, 15, 48);
         this.createArrowMarker(defs, "arrow-highlight-expand", "arrow-highlight-expand", 15, 15, 56);
 
+        var highlightedPattern = defs.append("pattern")
+            .attr("id", "highlighted-pattern")
+            .attr("patternUnits", "userSpaceOnUse")
+            .attr("width", "17.5")
+            .attr("height", "17.5")
+            .attr("patternTransform", "rotate(45)");
+
+        highlightedPattern
+            .append("rect")
+            .attr("x", "0")
+            .attr("y", "0")
+            .attr("width", "17.5")
+            .attr("height", "17.5")
+            .attr("fill", "var(--fill-color)");
+
+        highlightedPattern
+            .append("line")
+            .attr("x1", "0")
+            .attr("y", "0")
+            .attr("x2", "0")
+            .attr("y2", "17.5")
+            .attr("stroke", "var(--neutral-fill-secondary-hover)")
+            .attr("stroke-width", "15");
+
         this.linkElementsG = this.baseGroup.append("g").attr("class", "links");
         this.nodeElementsG = this.baseGroup.append("g").attr("class", "nodes");
     }
