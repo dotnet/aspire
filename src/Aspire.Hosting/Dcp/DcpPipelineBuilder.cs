@@ -10,16 +10,16 @@ namespace Aspire.Hosting.Dcp;
 
 internal static class DcpPipelineBuilder
 {
-    public static ResiliencePipeline BuildDeleteRetryPipeline(ILogger logger)
+    public static ResiliencePipeline<bool> BuildDeleteRetryPipeline(ILogger logger)
     {
-        var ensureDeleteRetryStrategy = new RetryStrategyOptions()
+        var ensureDeleteRetryStrategy = new RetryStrategyOptions<bool>()
         {
             BackoffType = DelayBackoffType.Exponential,
             Delay = TimeSpan.FromMilliseconds(200),
             UseJitter = true,
             MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
             MaxDelay = TimeSpan.FromSeconds(3),
-            ShouldHandle = new PredicateBuilder().Handle<Exception>(),
+            ShouldHandle = args => ValueTask.FromResult(!args.Outcome.Result),
             OnRetry = (retry) =>
             {
                 logger.LogDebug("Retrying check for deleted resource. Attempt: {Attempt}. Error message: {ErrorMessage}", retry.AttemptNumber, retry.Outcome.Exception?.Message);
@@ -27,7 +27,7 @@ internal static class DcpPipelineBuilder
             }
         };
 
-        var execution = new ResiliencePipelineBuilder().AddRetry(ensureDeleteRetryStrategy).Build();
+        var execution = new ResiliencePipelineBuilder<bool>().AddRetry(ensureDeleteRetryStrategy).Build();
         return execution;
     }
 
