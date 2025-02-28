@@ -1,4 +1,4 @@
-import './d3.v7.js'
+import './d3.v7.min.js'
 
 let resourceGraph = null;
 
