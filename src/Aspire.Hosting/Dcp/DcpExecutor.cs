@@ -56,7 +56,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
     // Internal for testing.
-    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
 
@@ -1091,24 +1091,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
-            if (container.TryGetContainerMounts(out var containerMounts))
-            {
-                ctr.Spec.VolumeMounts = [];
-
-                foreach (var mount in containerMounts)
-                {
-                    var volumeSpec = new VolumeMount
-                    {
-                        Source = mount.Source,
-                        Target = mount.Target,
-                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
-                        IsReadOnly = mount.IsReadOnly
-                    };
-
-                    ctr.Spec.VolumeMounts.Add(volumeSpec);
-                }
-            }
-
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
                 new ContainerNetworkConnection
@@ -1216,6 +1198,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Ports = BuildContainerPorts(cr);
         }
+
+        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1527,18 +1511,24 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
+                var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
                         await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
+                        return false;
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
+                        return true;
                     }
                 }, resourceName, cancellationToken).ConfigureAwait(false);
+
+                if (!result)
+                {
+                    throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+                }
             }
         }
     }
@@ -1656,5 +1646,28 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         return ports;
+    }
+
+    private static List<VolumeMount> BuildContainerMounts(IResource container)
+    {
+        var volumeMounts = new List<VolumeMount>();
+
+        if (container.TryGetContainerMounts(out var containerMounts))
+        {
+            foreach (var mount in containerMounts)
+            {
+                var volumeSpec = new VolumeMount
+                {
+                    Source = mount.Source,
+                    Target = mount.Target,
+                    Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                    IsReadOnly = mount.IsReadOnly
+                };
+
+                volumeMounts.Add(volumeSpec);
+            }
+        }
+
+        return volumeMounts;
     }
 }

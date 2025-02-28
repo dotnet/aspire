@@ -438,9 +438,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             // Ensure the configuration file has correct attributes
             var fileInfo = new FileInfo(volumeAnnotation.Source!);
 
-            var expectedUnixFileMode =
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
 
             Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
         }

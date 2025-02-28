@@ -10,10 +10,14 @@
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PublishAot>true</PublishAot>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>aspire</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
 </Project>
