@@ -1,0 +1,115 @@
+﻿@page "/"
+@using Azure
+@using Azure.AI.Projects
+@using System.ClientModel
+@inject AIProjectClient Client
+@inject ILogger<Home> Logger
+
+<PageTitle>Home</PageTitle>
+
+<div class="storybox" style="margin: 25%">
+    <p style="font-size: 2em">User Question: "@Question"</p>
+    <p style="font-size: 2em">Agent response</p>
+    <p style="font-size: 2em;">
+    @foreach (var message in chatMessages)
+    {
+        <span>@message</span>
+    }
+    </p>
+</div>
+
+@code {
+    AgentsClient? agentsClient;
+    private const string Question = "I need to solve the equation `3x + 11 = 14`. Can you help me?";
+    List<string> chatMessages = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        agentsClient = Client.GetAgentsClient();
+
+        Response<Agent> agentResponse = await agentsClient.CreateAgentAsync(
+            model: "gpt-4o",
+            name: "Aspire Agent Playground",
+            instructions: "You are a helpful agent.",
+            tools: new List<ToolDefinition> { new CodeInterpreterToolDefinition() });
+        Agent agent = agentResponse.Value;
+
+        // Intermission: agent should now be listed
+
+        Response<PageableList<Agent>> agentListResponse = await agentsClient.GetAgentsAsync();
+
+        //// Step 2: Create a thread
+        Response<AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
+        AgentThread thread = threadResponse.Value;
+
+        // Step 3: Add a message to a thread
+        Response<ThreadMessage> messageResponse = await agentsClient.CreateMessageAsync(
+            thread.Id,
+            MessageRole.User,
+            Question);
+        ThreadMessage message = messageResponse.Value;
+
+        // Intermission: message is now correlated with thread
+        // Intermission: listing messages will retrieve the message just added
+
+        Response<PageableList<ThreadMessage>> messagesListResponse = await agentsClient.GetMessagesAsync(thread.Id);
+        //Assert.That(messagesListResponse.Value.Data[0].Id == message.Id);
+
+        // Step 4: Run the agent
+        AsyncCollectionResult<StreamingUpdate> runResponse = agentsClient.CreateRunStreamingAsync(
+            thread.Id,
+            agent.Id,
+            additionalInstructions: "");
+
+        await foreach (StreamingUpdate update in runResponse)
+        {
+            Logger.LogInformation($"Update received: {update.UpdateKind}");
+            switch (update.UpdateKind)
+            {
+                case StreamingUpdateReason.RunQueued:
+                    break;
+
+                case StreamingUpdateReason.MessageUpdated:
+                    MessageContentUpdate messageContentUpdate = (MessageContentUpdate)update;
+                    chatMessages.Add(messageContentUpdate.Text);
+                    StateHasChanged();
+                    break;
+            }
+        }
+
+        await agentsClient.DeleteThreadAsync(thread.Id);
+        await agentsClient.DeleteAgentAsync(agent.Id);
+
+        // ThreadRun run = runResponse.Value;
+
+        // do
+        // {
+        //     await Task.Delay(TimeSpan.FromMilliseconds(500));
+        //     runResponse = await agentsClient.GetRunAsync(thread.Id, runResponse.Value.Id);
+        // }
+        // while (runResponse.Value.Status == RunStatus.Queued
+        //     || runResponse.Value.Status == RunStatus.InProgress);
+
+        // Response<PageableList<ThreadMessage>> afterRunMessagesResponse
+        //     = await agentsClient.GetMessagesAsync(thread.Id);
+        // IReadOnlyList<ThreadMessage> messages = afterRunMessagesResponse.Value.Data;
+
+        // // Note: messages iterate from newest to oldest, with the messages[0] being the most recent
+        // foreach (ThreadMessage threadMessage in messages)
+        // {
+        //     Console.Write($"{threadMessage.CreatedAt:yyyy-MM-dd HH:mm:ss} - {threadMessage.Role,10}: ");
+        //     foreach (MessageContent contentItem in threadMessage.ContentItems)
+        //     {
+        //         if (contentItem is MessageTextContent textItem)
+        //         {
+        //             chatMessages.Add(textItem);
+        //         }
+        //         else if (contentItem is MessageImageFileContent imageFileItem)
+        //         {
+        //             Console.Write($"<image from ID: {imageFileItem.FileId}");
+        //         }
+        //         Console.WriteLine();
+        //     }
+        // }
+    }
+}
