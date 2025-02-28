@@ -31,9 +31,9 @@ jobs:
         env:
           CI: false
           #echo "templates_output=$(jq -cR '{fullname: [inputs]}' < foo.list)" >> $GITHUB_OUTPUT
+          #echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
         run: |
-          set +x
-          echo "templates_output=$(cat foo.list)" >> $GITHUB_OUTPUT
+          cat foo.list >> $GITHUB_OUTPUT
 
       #- name: Build with packages
         #env:
