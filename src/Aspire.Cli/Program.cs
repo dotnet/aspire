@@ -27,7 +27,9 @@ public class Program
     private static void ConfigureDevCommand(Command parentCommand)
     {
         var command = new Command("dev", "Run a .NET Aspire AppHost project in development mode.");
-        command.Arguments.Add(new Argument<FileInfo>("project").AcceptExistingOnly());
+
+        var projectArgument = new Argument<FileInfo>("project").AcceptExistingOnly();
+        command.Arguments.Add(projectArgument);
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication();

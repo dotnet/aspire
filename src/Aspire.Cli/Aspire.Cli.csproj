@@ -11,6 +11,8 @@
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PublishAot>true</PublishAot>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>aspire</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
