@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.Configuration;
 using Microsoft.Extensions.Options;
@@ -34,12 +35,16 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
 
     private static HttpClient? CreateHttpClient(DebugSession debugSession)
     {
-        if (!SupportsTelemetry(debugSession, out var debugSessionUri, out var token))
+        if (!SupportsTelemetry(debugSession, out var debugSessionUri, out var token, out var certData))
         {
             return null;
         }
 
-        var client = new HttpClient
+        var cert = new X509Certificate2(certData);
+
+        var handler = new HttpClientHandler();
+        handler.ClientCertificates.Add(cert);
+        var client = new HttpClient(handler)
         {
             BaseAddress = debugSessionUri,
             DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" } }
@@ -48,17 +53,19 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options)
         client.DefaultRequestHeaders.Add("User-Agent", "Aspire Dashboard");
         return client;
 
-        static bool SupportsTelemetry(DebugSession debugSession, [NotNullWhen(true)] out Uri? debugSessionUri, out string? token)
+        static bool SupportsTelemetry(DebugSession debugSession, [NotNullWhen(true)] out Uri? debugSessionUri, [NotNullWhen(true)] out string? token, [NotNullWhen(true)] out byte[]? certData)
         {
-            if (debugSession.Address is not null && debugSession.Token is not null)
+            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null)
             {
                 debugSessionUri = new Uri(debugSession.Address);
                 token = debugSession.Token;
+                certData = Convert.FromBase64String(debugSession.ServerCertificate);
                 return true;
             }
 
             debugSessionUri = null;
             token = null;
+            certData = null;
             return false;
         }
     }
