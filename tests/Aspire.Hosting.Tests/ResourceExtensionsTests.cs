@@ -263,7 +263,7 @@ public class ResourceExtensionsTests
     public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var surrogate = builder.AddResource(new ResourceWithConnectionStringSurrogate("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
+        var surrogate = builder.AddResource(new ConnectionStringParameterResource("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
         var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
         var nonSecretParameter = builder.AddResource(new ParameterResource("NonSecretParameter", _ => "NonSecretParameter"));
 
