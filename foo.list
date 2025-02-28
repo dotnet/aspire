@@ -1,1 +1,1 @@
-[{"fullname":"Aspire.Workload.Tests.Foo.Bar","title":"abc"},{"fullname":"Aspire.Workload.Tests.Abc.Templates","title":"def"},{"fullname":"Aspire.Workload.Tests.XyzTests.Foo","title":"xyz"}]
+{"names":[{"fullname":"Aspire.Workload.Tests.Foo.Bar","title":"abc"},{"fullname":"Aspire.Workload.Tests.Abc.Templates","title":"def"},{"fullname":"Aspire.Workload.Tests.XyzTests.Foo","title":"xyz"}]}
