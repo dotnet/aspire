@@ -1128,6 +1128,41 @@ public class DcpExecutorTests
         HasKnownCommandAnnotations(project.Resource);
     }
 
+    [Fact]
+    public async Task ContainersArePassedExpectedImagePullPolicy()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("ImplicitDefault", "container");
+        builder.AddContainer("ExplicitDefault", "container").WithImagePullPolicy(ImagePullPolicy.Default);
+        builder.AddContainer("ExplicitAlways", "container").WithImagePullPolicy(ImagePullPolicy.Always);
+        builder.AddContainer("ExplicitMissing", "container").WithImagePullPolicy(ImagePullPolicy.Missing);
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        Assert.Equal(4, kubernetesService.CreatedResources.OfType<Container>().Count());
+        var implicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ImplicitDefault"));
+        Assert.Null(implicitDefaultContainer.Spec.PullPolicy);
+
+        var explicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitDefault"));
+        Assert.Null(explicitDefaultContainer.Spec.PullPolicy);
+
+        var explicitAlwaysContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitAlways"));
+        Assert.Equal(ContainerPullPolicy.Always, explicitAlwaysContainer.Spec.PullPolicy);
+
+        var explicitMissingContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitMissing"));
+        Assert.Equal(ContainerPullPolicy.Missing, explicitMissingContainer.Spec.PullPolicy);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();

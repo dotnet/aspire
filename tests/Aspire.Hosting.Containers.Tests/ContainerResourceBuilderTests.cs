@@ -201,6 +201,20 @@ public class ContainerResourceBuilderTests
         AssertImageComponents(redis, null, "redis-stack", "latest", null);
     }
 
+    [Fact]
+    public void WithImagePullPolicyMutatesImagePullPolicyOfLastAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "image")
+            .WithImagePullPolicy(ImagePullPolicy.Missing)
+            .WithImagePullPolicy(ImagePullPolicy.Always);
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImagePullPolicyAnnotation>().Single();
+
+        Assert.Equal(ImagePullPolicy.Always, annotation.ImagePullPolicy);
+    }
+
     private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
         where T: IResource
     {

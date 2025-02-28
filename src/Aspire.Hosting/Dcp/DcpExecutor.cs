@@ -1075,28 +1075,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 ctr.Spec.Persistent = true;
             }
 
+            if (container.TryGetContainerImagePullPolicy(out var pullPolicy))
+            {
+                ctr.Spec.PullPolicy = pullPolicy switch
+                {
+                    ImagePullPolicy.Default => null,
+                    ImagePullPolicy.Always => ContainerPullPolicy.Always,
+                    ImagePullPolicy.Missing => ContainerPullPolicy.Missing,
+                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(ImagePullPolicy), pullPolicy)}' for container '{container.Name}'")
+                };
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
-
-            if (container.TryGetContainerMounts(out var containerMounts))
-            {
-                ctr.Spec.VolumeMounts = [];
-
-                foreach (var mount in containerMounts)
-                {
-                    var volumeSpec = new VolumeMount
-                    {
-                        Source = mount.Source,
-                        Target = mount.Target,
-                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
-                        IsReadOnly = mount.IsReadOnly
-                    };
-
-                    ctr.Spec.VolumeMounts.Add(volumeSpec);
-                }
-            }
 
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
@@ -1205,6 +1198,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Ports = BuildContainerPorts(cr);
         }
+
+        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1645,5 +1640,28 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         return ports;
+    }
+
+    private static List<VolumeMount> BuildContainerMounts(IResource container)
+    {
+        var volumeMounts = new List<VolumeMount>();
+
+        if (container.TryGetContainerMounts(out var containerMounts))
+        {
+            foreach (var mount in containerMounts)
+            {
+                var volumeSpec = new VolumeMount
+                {
+                    Source = mount.Source,
+                    Target = mount.Target,
+                    Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                    IsReadOnly = mount.IsReadOnly
+                };
+
+                volumeMounts.Add(volumeSpec);
+            }
+        }
+
+        return volumeMounts;
     }
 }

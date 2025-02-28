@@ -52,7 +52,13 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
-	"postStartCommand": "dotnet dev-certs https --trust"
+	"postStartCommand": "dotnet dev-certs https --trust",
+
+	"remoteEnv": {
+		// When the project is built the Aspire.Cli project produces an executable which can be useful to
+		// have on the path for local testing within the devcontainer environment.
+		"PATH": "${containerEnv:PATH}:/workspaces/aspire/artifacts/bin/Aspire.Cli/Debug/net8.0/"
+	}
 
 	// Configure tool-specific properties.
 	// "customizations": {},

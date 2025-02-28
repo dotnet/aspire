@@ -81,6 +81,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 valkey1.WithDataBindMount(bindMountPath);
             }
 

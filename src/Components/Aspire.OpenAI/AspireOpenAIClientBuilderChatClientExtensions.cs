@@ -4,6 +4,7 @@
 using Aspire.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 
 namespace Microsoft.Extensions.Hosting;
@@ -44,6 +45,11 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
             services => CreateInnerChatClient(services, builder, deploymentName));
     }
 
+    /// <summary>
+    /// Wrap the <see cref="OpenAIClient"/> in a telemetry client if tracing is enabled.
+    /// Note that this doesn't use ".UseOpenTelemetry()" because the order of the clients would be incorrect.
+    /// We want the telemetry client to be the innermost client, right next to the inner <see cref="OpenAIClient"/>.
+    /// </summary>
     private static IChatClient CreateInnerChatClient(
         IServiceProvider services,
         AspireOpenAIClientBuilder builder,
@@ -56,6 +62,12 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         deploymentName ??= builder.GetRequiredDeploymentName();
         var result = openAiClient.AsChatClient(deploymentName);
 
-        return builder.DisableTracing ? result : new OpenTelemetryChatClient(result);
+        if (builder.DisableTracing)
+        {
+            return result;
+        }
+
+        var loggerFactory = services.GetService<ILoggerFactory>();
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
     }
 }
