@@ -39,10 +39,6 @@
     <WriteLinesToFile File="$(RepoRoot)artifacts\TestsToRunForGithubActions.list"
                       Lines="$(_JsonForGithubActions)"
                       Overwrite="true" />
-
-    <WriteLinesToFile Condition="'$(GITHUB_OUTPUT)' != ''"
-                      File="$(GITHUB_OUTPUT)"
-                      Lines="$(_JsonForGithubActions)" />
   </Target>
 
 </Project>
