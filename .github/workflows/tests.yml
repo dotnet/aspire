@@ -162,8 +162,8 @@ jobs:
 
     uses: ./.github/workflows/run-tests.yml
     with:
-      testProject: ${{ matrix.project }}
       testName: ${{ matrix.name }}
+      testProject: ${{ matrix.project }}
       testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
       extraArgs: ${{ matrix.extraArgs }}
 
