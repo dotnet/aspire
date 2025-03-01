@@ -22,14 +22,14 @@
 
     <ItemGroup>
       <ProjectsToTestFiltered Include="%(ProjectsToTest.MSBuildSourceProjectFile)" />
-      <ProjectsToTestFiltered FullName="%(FileName)" />
+      <ProjectsToTestFiltered RelativeProjectPath="$([System.IO.Path]::GetRelativePath('$(RepoRoot)', '%(Identity)'))" />
       <ProjectsToTestFiltered ShortName="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), '^Aspire.|.Tests', ''))" />
     </ItemGroup>
 
     <PropertyGroup>
       <!-- The output variable here corresponds to the matrix input in .github/workflows/tests.yml -->
       <_JsonForGithubActions>
-        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;project&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;project&quot;:&quot;%(RelativeProjectPath)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 
