@@ -25,14 +25,6 @@ jobs:
           CI: false
         run: ./build.sh -restore -build -ci -pack /bl
 
-      - name: Install sdk for testing
-        env:
-          CI: false
-        run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            /p:SkipPackageCheckForWorkloadTesting=true \
-            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
-
       - name: Build workload tests
         env:
           CI: false
@@ -60,7 +52,6 @@ jobs:
         with:
           name: workload-artifacts
           path: |
-            artifacts/bin/dotnet-*
             artifacts/bin/playwright-deps
           retention-days: 3
 

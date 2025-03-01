@@ -73,6 +73,15 @@ jobs:
           chmod +x artifacts/bin/dotnet-*/dotnet && \
           chmod -R +x artifacts/bin/playwright-deps
 
+      - name: Install sdk for workload testing
+        if: ${{ inputs.isWorkloadTests }}
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
       - name: Build test project
         env:
           CI: false
