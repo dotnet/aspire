@@ -449,6 +449,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task MySql_WithPersistentLifetime_ReusesContainers(bool useMultipleInstances)
     {
+        // When WithPhpMyAdmin in invoked with 2 and two or more MySql instances are created,
+        // it generates and mounts a config.user.inc.php file instead of using environment variables.
+        // For this reason we need to test with and without multiple instances to cover both scenarios.
+
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         // Use the same path for both runs

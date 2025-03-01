@@ -35,9 +35,6 @@ public static class DistributedApplicationTestingBuilderExtensions
 
     public static IDistributedApplicationTestingBuilder WithResourceCleanUp(this IDistributedApplicationTestingBuilder builder, bool? resourceCleanup = null)
     {
-        // We create the Aspire Store in a folder with user-only access. This way non-root containers won't be able
-        // to access the files unless they correctly assign the required permissions for the container to work.
-
         builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = resourceCleanup.ToString();
         return builder;
     }
