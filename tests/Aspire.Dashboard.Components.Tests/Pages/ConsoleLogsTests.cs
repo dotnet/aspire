@@ -2,13 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -30,12 +33,14 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
-    public void ResourceName_MultiRender_SubscribeConsoleLogsOnce()
+    public void ResourceName_SubscribeOnLoadAndChange_SubscribeConsoleLogsOnce()
     {
         // Arrange
         var subscribedResourceNames = new List<string>();
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource2 = ModelTestHelpers.CreateResource(appName: "test-resource2", state: KnownResourceState.Running);
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name =>
@@ -43,15 +48,19 @@ public partial class ConsoleLogsTests : TestContext
                 subscribedResourceNames.Add(name);
                 return consoleLogsChannel;
             },
-            resourceChannelProvider: () => resourceChannel);
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource, testResource2]);
 
         SetupConsoleLogsServices(dashboardClient);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: "test-resource"));
 
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
-        // Act
+        // Act 1
         var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
         {
             builder.Add(p => p.ResourceName, "test-resource");
@@ -62,21 +71,10 @@ public partial class ConsoleLogsTests : TestContext
         var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
-        logger.LogInformation("Console log page is waiting for resource.");
-        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsLoadingResources)]);
-
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
-        resourceChannel.Writer.TryWrite([
-            new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, testResource)
-        ]);
-
-        // Assert
+        // Assert 1
         logger.LogInformation("Waiting for selected resource.");
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
-
-        // Ensure component is rendered again.
-        cut.SetParametersAndRender(builder => { });
 
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Test content", IsErrorMessage: false)]);
         consoleLogsChannel.Writer.Complete();
@@ -85,6 +83,33 @@ public partial class ConsoleLogsTests : TestContext
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)]);
 
         Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
+
+        navigationManager.LocationChanged += (sender, e) =>
+        {
+            var expectedUrl = DashboardUrls.ConsoleLogsUrl(resource: "test-resource2");
+            Assert.EndsWith(expectedUrl, e.Location);
+
+            cut.SetParametersAndRender(builder =>
+            {
+                builder.Add(m => m.ResourceName, "test-resource2");
+            });
+        };
+        consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+
+        // Act 2
+        logger.LogInformation("Changing resource.");
+        var resourceSelect = cut.FindComponent<ResourceSelect>();
+        var innerSelect = resourceSelect.Find("fluent-select");
+        innerSelect.Change("test-resource2");
+
+        // Assert 2
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource2);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        Assert.Collection(subscribedResourceNames,
+            r => Assert.Equal("test-resource", r),
+            r => Assert.Equal("test-resource2", r));
     }
 
     [Fact]
