@@ -20,11 +20,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
       - name: Generate list of tests
         env:
           CI: false
         run: |
-            ./build.sh --project ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            ./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
             "/t:Build;ExtractTestClassNames" \
             /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog \
             -p:ExtractTestClassNamesForHelix=true \
@@ -38,19 +45,19 @@ jobs:
         run: |
           cat ${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.for-gh-actions.list >> $GITHUB_OUTPUT
 
-      - name: Archive built nugets
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-nugets
-          path: artifacts/packages
+      #- name: Archive built nugets
+        #uses: actions/upload-artifact@v4
+        #with:
+          #name: built-nugets
+          #path: artifacts/packages
 
-      - name: Archive artifacts for template tests
-        uses: actions/upload-artifact@v4
-        with:
-          name: workload-artifacts
-          path: |
-            artifacts/bin/playwright-deps
-          retention-days: 3
+      #- name: Archive artifacts for template tests
+        #uses: actions/upload-artifact@v4
+        #with:
+          #name: workload-artifacts
+          #path: |
+            #artifacts/bin/playwright-deps
+          #retention-days: 3
 
   _:
     uses: ./.github/workflows/run-tests.yml
