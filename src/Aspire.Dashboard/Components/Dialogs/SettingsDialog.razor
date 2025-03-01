@@ -46,6 +46,17 @@
             </div>
         </div>
 
+        @if (TelemetryService.IsTelemetrySupported)
+        {
+            <div>
+                <FluentCheckbox Label="@Loc[nameof(Dialogs.SettingsDialogEnableTelemetry)]"
+                                Value="@TelemetryService.IsTelemetryEnabled"
+                                ValueChanged="@OnTelemetryEnabledChangedAsync"/>
+
+                <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogTelemetryEnabledInfo)]</p>
+            </div>
+        }
+
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
     </FluentStack>
 </FluentDialogBody>

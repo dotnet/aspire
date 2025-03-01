@@ -9,8 +9,11 @@ namespace Aspire.Dashboard.Telemetry;
 
 public interface IAspireTelemetryService
 {
-    Task SetTelemetryStatusAsync(bool enabled);
-    Task<bool> IsTelemetryEnabledAsync();
+    Task InitializeAsync();
+
+    bool IsTelemetrySupported { get; }
+    bool IsTelemetryEnabled { get; }
+    Task<bool> SetTelemetryEnabledAsync(bool enabled);
 
     Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request);
     Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request);

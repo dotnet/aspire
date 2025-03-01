@@ -188,8 +188,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">Журналы панели мониторинга и телеметрия</target>
+        <source>Resource logs and telemetry</source>
+        <target state="needs-review-translation">Журналы панели мониторинга и телеметрия</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogEnableTelemetry">
+        <source>Enable dashboard telemetry</source>
+        <target state="new">Enable dashboard telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -210,6 +215,11 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">Система</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard.</source>
+        <target state="new">When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

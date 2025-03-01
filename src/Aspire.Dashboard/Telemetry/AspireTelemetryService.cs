@@ -1,38 +1,49 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) : IAspireTelemetryService
+public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, ILocalStorage localStorage) : IAspireTelemetryService
 {
     private readonly Lazy<HttpClient?> _httpClient = new(() => CreateHttpClient(options.Value.DebugSession));
+    private bool? _serverTelemetryEnabled;
     private bool? _telemetryEnabled;
 
-    public async Task SetTelemetryStatusAsync(bool enabled)
+    public bool IsTelemetrySupported => _serverTelemetryEnabled ?? throw new ArgumentNullException(nameof(_serverTelemetryEnabled), "InitializeAsync has not been called yet");
+    public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
+
+    public async Task InitializeAsync()
     {
-        if (!enabled)
+        _serverTelemetryEnabled ??= await GetTelemetrySupportedAsync(_httpClient.Value).ConfigureAwait(false);
+        _telemetryEnabled ??= await GetTelemetryEnabledAsync(_serverTelemetryEnabled, localStorage).ConfigureAwait(false);
+
+        return;
+
+        static async Task<bool> GetTelemetryEnabledAsync(bool? serverTelemetryEnabled, ILocalStorage localStorage)
         {
-            _telemetryEnabled = false;
-            return;
+            if (serverTelemetryEnabled is true)
+            {
+                var storageResult = await localStorage.GetUnprotectedAsync<TelemetrySettings>(BrowserStorageKeys.DashboardTelemetrySettings).ConfigureAwait(false);
+                if (storageResult.Value is { } telemetrySettings)
+                {
+                    return telemetrySettings.IsEnabled;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
-        // if we are enabling telemetry, we need to check if it is enabled on the server
-        _telemetryEnabled = null;
-        await IsTelemetryEnabledAsync().ConfigureAwait(false);
-    }
-
-    public async Task<bool> IsTelemetryEnabledAsync()
-    {
-        _telemetryEnabled ??= await GetTelemetryEnabledAsync(_httpClient.Value).ConfigureAwait(false);
-        return _telemetryEnabled.Value;
-
-        static async Task<bool> GetTelemetryEnabledAsync(HttpClient? client)
+        static async Task<bool> GetTelemetrySupportedAsync(HttpClient? client)
         {
             if (client is null)
             {
@@ -51,6 +62,19 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
             var telemetryStartedStatusCode = (await client.PostAsync(TelemetryEndpoints.TelemetryStart, content: null).ConfigureAwait(false)).StatusCode;
             return telemetryStartedStatusCode is HttpStatusCode.OK;
         }
+    }
+
+    public async Task<bool> SetTelemetryEnabledAsync(bool enabled)
+    {
+        Debug.Assert(_serverTelemetryEnabled is not null);
+        if (_serverTelemetryEnabled is false)
+        {
+            return false;
+        }
+
+        _telemetryEnabled = enabled;
+        await localStorage.SetUnprotectedAsync(BrowserStorageKeys.DashboardTelemetrySettings, new TelemetrySettings(IsEnabled: enabled)).ConfigureAwait(false);
+        return true;
     }
 
     public async Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request)
@@ -215,7 +239,8 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
 
     private async Task<HttpClient?> GetHttpClientAsync()
     {
-        if (_httpClient.Value is null || await IsTelemetryEnabledAsync().ConfigureAwait(false) is not true)
+        await this.InitializeAsync().ConfigureAwait(false);
+        if (_httpClient.Value is null || _serverTelemetryEnabled is false || _telemetryEnabled is false)
         {
             return null;
         }
@@ -276,4 +301,6 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
         public const string TelemetryPostRecurringProperty = "/telemetry/recurringProperty";
         public const string TelemetryPostCommandLineFlags = "/telemetry/commandLineFlags";
     }
+
+    private record TelemetrySettings(bool IsEnabled);
 }

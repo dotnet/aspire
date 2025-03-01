@@ -402,6 +402,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enable dashboard telemetry.
+        /// </summary>
+        public static string SettingsDialogEnableTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDialogEnableTelemetry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
         public static string SettingsDialogLanguage {
@@ -434,6 +443,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogSystemTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogSystemTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard..
+        /// </summary>
+        public static string SettingsDialogTelemetryEnabledInfo {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryEnabledInfo", resourceCulture);
             }
         }
         

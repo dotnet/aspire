@@ -268,4 +268,10 @@
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
   </data>
+  <data name="SettingsDialogEnableTelemetry" xml:space="preserve">
+    <value>Enable dashboard telemetry</value>
+  </data>
+  <data name="SettingsDialogTelemetryEnabledInfo" xml:space="preserve">
+    <value>When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard.</value>
+  </data>
 </root>
