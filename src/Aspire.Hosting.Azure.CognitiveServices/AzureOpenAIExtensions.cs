@@ -65,8 +65,6 @@ public static class AzureOpenAIExtensions
             var resource = (AzureOpenAIResource)infrastructure.AspireResource;
 
             CognitiveServicesAccountDeployment? dependency = null;
-
-            var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
                 var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
@@ -89,7 +87,6 @@ public static class AzureOpenAIExtensions
                     }
                 };
                 infrastructure.Add(cdkDeployment);
-                cdkDeployments.Add(cdkDeployment);
 
                 // Subsequent deployments need an explicit dependency on the previous one
                 // to ensure they are not created in parallel. This is equivalent to @batchSize(1)

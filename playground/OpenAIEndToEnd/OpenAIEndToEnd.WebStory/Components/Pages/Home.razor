@@ -1,39 +1,35 @@
 ﻿@page "/"
-@using OpenAI
-@using OpenAI.Chat
-@inject OpenAIClient aiClient
+@using Microsoft.Extensions.AI
+@inject IChatClient chatClient
 @inject ILogger<Home> logger
 @inject IConfiguration configuration
 
     <div class="storybox" style="margin: 25%">
-        @foreach (var message in chatMessages.OfType<AssistantChatMessage>())
+        @foreach (var message in chatMessages.Where(m => m.Role == ChatRole.Assistant))
         {
-            <p style="font-size: 3em;">@message.Content[0].Text</p>
+            <p style="font-size: 3em;">@message.Text</p>
         }
 
         <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
     </div>
 
 @code {
-    private ChatClient? chatClient = null;
     private List<ChatMessage> chatMessages = new List<ChatMessage>();
 
     private async Task GenerateNextParagraph()
     {
-        if (chatClient == null)
+        if (chatMessages.Count == 0)
         {
-            chatClient = aiClient.GetChatClient(configuration["OpenAI:DeploymentName"] ?? throw new ApplicationException("No OpenAI:DeploymentName."));
-            chatMessages.Add(new SystemChatMessage("Pick a random topic and write a sentence of a fictional story about it."));
+            chatMessages.Add(new ChatMessage(ChatRole.System, "Pick a random topic and write a sentence of a fictional story about it."));
+        }
+        else
+        {
+            chatMessages.Add(new ChatMessage(ChatRole.System, "Write the next sentence in the story."));
         }
 
-        if (chatMessages.Count > 1)
-        {
-            chatMessages.Add(new UserChatMessage("Write the next sentence in the story."));
-        }
+        var result = await chatClient.GetResponseAsync(chatMessages);
 
-        var result = await chatClient.CompleteChatAsync(chatMessages);
-
-        chatMessages.Add(new AssistantChatMessage(result.Value.Content[0].Text));
+        chatMessages.Add(result.Message);
 
         this.StateHasChanged();
     }
