@@ -156,11 +156,7 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-resource";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b =>
-        {
-            b.AddXunit(_testOutputHelper);
-            b.SetMinimumLevel(LogLevel.Trace);
-        });
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-servicea";
         var dependentResourceName = $"{testName}-serviceb";
