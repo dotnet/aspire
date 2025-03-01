@@ -32,7 +32,7 @@
       <!-- The output variable here corresponds to the matrix input in .github/workflows/tests.yml -->
         <!--tests_matrix={&quot;include&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}-->
       <_JsonForGithubActions>
-        tests_matrix={&quot;include&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;, &quot;project&quot;:&quot;%(RelativeProjectPath)&quot;}', ',') ]}
+        tests_matrix={&quot;include&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;,&quot;project&quot;:&quot;%(RelativeProjectPath)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 
