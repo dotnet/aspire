@@ -53,6 +53,12 @@ jobs:
       # get all the test-job-result* artifacts into a single directory
       - uses: actions/download-artifact@v4
         with:
+          pattern: testresults-*
+          merge-multiple: true
+          path: testresults
+
+      - uses: actions/download-artifact@v4
+        with:
           pattern: test-job-result-*
           merge-multiple: true
           path: test-job-result
@@ -62,3 +68,9 @@ jobs:
         run: |
           ls -al test-job-result/
           [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "testresults/**/*.trx"
+        if: always()
