@@ -26,6 +26,9 @@ jobs:
         run: ./dotnet.sh build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj /p:ContinuousIntegrationBuild=true
 
       - name: Enumerate test class names
+        id: enumerateNamesStep
+        env:
+          CI: false
         run: |
           cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list
           cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list >> $GITHUB_OUTPUT
