@@ -175,6 +175,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
                 nats1.WithDataBindMount(bindMountPath);
             }
 

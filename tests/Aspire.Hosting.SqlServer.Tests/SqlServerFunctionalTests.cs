@@ -119,7 +119,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -149,25 +148,23 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                Directory.CreateDirectory(bindMountPath);
 
-                sqlserver1.WithDataBindMount(bindMountPath);
+                Directory.CreateDirectory(bindMountPath);
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    // Change permissions for non-root accounts (container user account)
-                    // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver16#storagepermissions
+                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // to the bind mount directory.
+                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+                    const UnixFileMode BindMountPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
-                    // This is the minimal set to get the tests passing.
-                    const UnixFileMode MsSqlPermissions =
-                       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(bindMountPath, MsSqlPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/data", MsSqlPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/log", MsSqlPermissions);
-                    File.SetUnixFileMode($"{bindMountPath}/secrets", MsSqlPermissions);
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
+
+                sqlserver1.WithDataBindMount(bindMountPath);
             }
 
             using var app1 = builder1.Build();
