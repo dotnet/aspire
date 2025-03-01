@@ -6,5 +6,6 @@ namespace Aspire.Cli;
 internal static class ExitCodeConstants
 {
     public const int Success = 0;
-    public const int FailedToDotnetRunAppHost = 1;
+    public const int InvalidCommand = 1;
+    public const int FailedToDotnetRunAppHost = 2;
 }
