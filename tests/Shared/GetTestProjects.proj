@@ -18,7 +18,7 @@
                      Exclude="@(_TestProjectsToExclude)" />
     </ItemGroup>
 
-    <MSBuild Projects="@(_TestProjects)" Targets="GetShouldRunTests">
+    <MSBuild Projects="@(_TestProjects)" Targets="GetRunTestsOnGithubActions">
       <Output TaskParameter="TargetOutputs" ItemName="ProjectsToTest" />
     </MSBuild>
 

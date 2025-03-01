@@ -65,7 +65,7 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
-    <!--<Message Text="Uniq: @(UniqueTestClassNamesFiltered)" Importance="High" />-->
+
     <ItemGroup>
       <UniqueTestClassNamesFiltered ShortName="$([System.String]::new(%(Identity)).Replace('$(ExtractTestClassNamesPrefix).', ''))" />
     </ItemGroup>
@@ -80,8 +80,7 @@
                       Overwrite="true" />
   </Target>
 
-  <Target Name="GetShouldRunTests" Returns="$(ShouldRunTests)">
-    <Message Text="GetShouldRunTests for $(MSBuildProjectName), run=$(RunTestsOnGithubActions)" Importance="High" />
+  <Target Name="GetRunTestsOnGithubActions" Returns="$(RunTestsOnGithubActions)">
     <PropertyGroup>
       <ShouldRunTests>$(RunTestsOnGithubActions)</ShouldRunTests>
     </PropertyGroup>

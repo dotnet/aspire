@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       testProject:
-        required: false
+        required: true
         type: string
       testSessionTimeoutMs:
         required: false
