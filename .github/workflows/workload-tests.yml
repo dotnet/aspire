@@ -74,8 +74,8 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_template_tests
     with:
-      testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testName: ${{ matrix.tests.shortname }}
+      testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.tests.fullname }}"

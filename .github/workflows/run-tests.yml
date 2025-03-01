@@ -12,6 +12,7 @@ on:
       testSessionTimeoutMs:
         required: false
         type: string
+        default: "600000"
       testHangTimeout:
         required: false
         type: string
@@ -109,7 +110,7 @@ jobs:
             ${{ inputs.extraArgs }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
-            RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs || 600000 }}
+            RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
 
       # Save the result of the previous steps - success or failure
       # in the form of a file result-success/result-failure -{name}.rst
