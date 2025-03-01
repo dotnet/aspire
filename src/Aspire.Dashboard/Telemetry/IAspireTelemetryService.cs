@@ -9,11 +9,16 @@ namespace Aspire.Dashboard.Telemetry;
 
 public interface IAspireTelemetryService
 {
+    Task SetTelemetryStatusAsync(bool enabled);
     Task<bool> IsTelemetryEnabledAsync();
+
     Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request);
     Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request);
-    Task<TelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request);
+    Task<ITelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request);
     Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request);
+    Task PerformUserTaskAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
+    Task PerformOperationAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
+
     Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request);
     Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostUserTaskAsync(PostOperationRequest request);
     Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostFaultAsync(PostFaultRequest request);
@@ -71,3 +76,5 @@ public class TelemetryEventCorrelation
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public DataModelEventType EventType { get; set; }
 }
+
+public record OperationResult(TelemetryResult Result, string? ErrorMessage = null);

@@ -14,6 +14,19 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
     private readonly Lazy<HttpClient?> _httpClient = new(() => CreateHttpClient(options.Value.DebugSession));
     private bool? _telemetryEnabled;
 
+    public async Task SetTelemetryStatusAsync(bool enabled)
+    {
+        if (!enabled)
+        {
+            _telemetryEnabled = false;
+            return;
+        }
+
+        // if we are enabling telemetry, we need to check if it is enabled on the server
+        _telemetryEnabled = null;
+        await IsTelemetryEnabledAsync().ConfigureAwait(false);
+    }
+
     public async Task<bool> IsTelemetryEnabledAsync()
     {
         _telemetryEnabled ??= await GetTelemetryEnabledAsync(_httpClient.Value).ConfigureAwait(false);
@@ -64,7 +77,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
         return new TelemetryResponse(response.StatusCode);
     }
 
-    public async Task<TelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request)
+    public async Task<ITelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request)
     {
         if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
         {
@@ -86,6 +99,16 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
 
         var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
+    }
+
+    public async Task PerformUserTaskAsync(StartOperationRequest request, Func<Task<OperationResult>> func)
+    {
+        await PerformOperationAsync(isUserTask: true, request, func).ConfigureAwait(false);
+    }
+
+    public async Task PerformOperationAsync(StartOperationRequest request, Func<Task<OperationResult>> func)
+    {
+        await PerformOperationAsync(isUserTask: false, request, func).ConfigureAwait(false);
     }
 
     public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request)
@@ -171,6 +194,23 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options) :
 
         var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
+    }
+
+    private async Task PerformOperationAsync(bool isUserTask, StartOperationRequest request, Func<Task<OperationResult>> func)
+    {
+        var startOperationTask = Task.Run(() => isUserTask ? StartUserTaskAsync(request) : StartOperationAsync(request));
+        var operationResult = await func().ConfigureAwait(false);
+
+        _ = Task.Run(async () =>
+        {
+            var operationId = (await startOperationTask.ConfigureAwait(false))?.Content?.OperationId;
+            if (operationId is null)
+            {
+                return;
+            }
+
+            await EndOperationAsync(new EndOperationRequest(operationId, operationResult.Result, operationResult.ErrorMessage)).ConfigureAwait(false);
+        });
     }
 
     private async Task<HttpClient?> GetHttpClientAsync()
