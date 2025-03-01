@@ -30,7 +30,7 @@ jobs:
         env:
           CI: false
         run: |
-          cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.for-gh-actions.list >> $GITHUB_OUTPUT
+          cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list >> $GITHUB_OUTPUT
 
   _:
     uses: ./.github/workflows/run-tests.yml
