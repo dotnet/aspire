@@ -39,10 +39,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix) }}
     with:
-      testName: ${{ matrix.tests.shortname }}
-      testProject: ${{ matrix.tests.project }}
+      testName: ${{ matrix.shortname }}
+      testProjectPath: tests/Aspire.${{ matrix.shortname }}.Tests
       testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
-      extraArgs: ${{ matrix.extraArgs }}
+      extraTestArgs: ${{ matrix.extraTestArgs }}
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}

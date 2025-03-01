@@ -6,7 +6,7 @@ on:
       testName:
         required: true
         type: string
-      testProject:
+      testProjectPath:
         required: true
         type: string
       testSessionTimeoutMs:
@@ -17,12 +17,9 @@ on:
         required: false
         type: string
         default: "7m"
-      extraArgs:
+      extraTestArgs:
         required: false
         type: string
-      isWorkloadTests:
-        required: false
-        type: boolean
 
 jobs:
 
@@ -33,21 +30,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build with packages
-        if: ${{ inputs.isWorkloadTests }}
-        env:
-          CI: false
-        run: ./build.sh -restore -build -ci -pack -testnobuild /bl
-
-      - name: Install sdk for workload testing
-        if: ${{ inputs.isWorkloadTests }}
-        env:
-          CI: false
-        run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            /p:SkipPackageCheckForWorkloadTesting=true \
-            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Trust HTTPS development certificate
         run: ./dotnet.sh dev-certs https --trust
@@ -65,7 +47,7 @@ jobs:
         env:
           CI: false
         run: |
-          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ inputs.testProject }} /bl
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ inputs.testProjectPath }} /bl
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -79,11 +61,10 @@ jobs:
         id: run-tests
         env:
           CI: false
-          TEMPLATE_TESTS_ON_GITHUB_ACTIONS: ${{ inputs.testName == 'Workload' }}
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
-          ./dotnet.sh test ${{ github.workspace }}/${{ inputs.testProject }} \
+          ./dotnet.sh test ${{ github.workspace }}/${{ inputs.testProjectPath }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
@@ -95,7 +76,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            ${{ inputs.extraArgs }} \
+            ${{ inputs.extraTestArgs }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
             RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
