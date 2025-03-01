@@ -8,6 +8,7 @@ on:
         type: string
       testProject:
         required: true
+        description: _
         type: string
       testSessionTimeoutMs:
         required: false

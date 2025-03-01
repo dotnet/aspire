@@ -79,29 +79,11 @@
                       Overwrite="true" />
   </Target>
 
-  <Target Name="GenerateTestProjectsJsonForGithubActions">
-
-    <ItemGroup>
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\Shared\**\*Tests.csproj" />
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\testproject\**\*Tests.csproj" />
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
-
-      <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
-                     Exclude="@(_TestProjectsToExclude)" />
-    </ItemGroup>
-
-    <MSBuild Projects="@(_TestProjects)" Targets="GetCanRunTests">
-      <Output TaskParameter="TargetOutputs" ItemName="ShouldRunTests" />
-    </MSBuild>
-
-    <Message Text="Projects: %(ShouldRunTests.MSBuildSourceProjectFile)" Condition="'%(ShouldRunTests.Identity)' == 'true'" Importance="High" />
-
-  </Target>
-
-  <Target Name="GetCanRunTests" Returns="$(ShouldRunTests)">
+  <Target Name="GetShouldRunTests" Returns="$(ShouldRunTests)">
     <PropertyGroup>
-      <ShouldRunTests Condition="'$(SkipTests)' != 'true'">true</ShouldRunTests>
-      <ShouldRunTests Condition="'$(SkipTests)' == 'true'">true</ShouldRunTests>
+      <ShouldRunTests />
+      <ShouldRunTests Condition="'$(SkipTests)' != 'true' and '$(IsTestSupportProject)' != 'true'">true</ShouldRunTests>
+      <ShouldRunTests Condition="'$(SkipTests)' == 'true'">false</ShouldRunTests>
     </PropertyGroup>
   </Target>
 
