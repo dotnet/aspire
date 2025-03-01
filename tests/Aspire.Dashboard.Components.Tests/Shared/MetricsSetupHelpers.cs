@@ -71,6 +71,8 @@ internal static class MetricsSetupHelpers
         var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
 
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+
         SetupChartContainer(context);
 
         context.Services.AddLocalization();

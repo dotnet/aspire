@@ -8,10 +8,9 @@ namespace Aspire.Cli.Tests;
 public class CliSmokeTests
 {
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7832")]
-    public async Task NoArgsReturnsZeroExitCode()
+    public async Task NoArgsReturnsExitCode1()
     {
         var exitCode = await Aspire.Cli.Program.Main([]);
-        Assert.Equal(0, exitCode);
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 }
