@@ -1,0 +1,41 @@
+<Project DefaultTargets="GenerateTestProjectsJsonForGithubActions">
+  <!-- This is meant to be invoked directly to get the list of test projects to run for PR validation -->
+
+  <Target Name="GenerateTestProjectsJsonForGithubActions">
+    <PropertyGroup>
+      <RepoRoot>$(MSBuildThisFileDirectory)..\..\</RepoRoot>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\Shared\**\*Tests.csproj" />
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\testproject\**\*Tests.csproj" />
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Workload.Tests\**\*Tests.csproj" />
+
+      <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
+                     Exclude="@(_TestProjectsToExclude)" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(_TestProjects)" Targets="GetShouldRunTests">
+      <Output TaskParameter="TargetOutputs" ItemName="ProjectsToTest" />
+    </MSBuild>
+
+    <ItemGroup>
+      <ProjectsToTestFiltered Include="%(ProjectsToTest.MSBuildSourceProjectFile)" />
+      <ProjectsToTestFiltered FullName="%(FileName)" />
+      <ProjectsToTestFiltered ShortName="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), '^Aspire.|.Tests', ''))" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <!-- The output variable here corresponds to the matrix input in .github/workflows/tests.yml -->
+      <_JsonForGithubActions>
+        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;project&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+      </_JsonForGithubActions>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(RepoRoot)artifacts\TestsToRunForGithubActions.for-gh-actions.list"
+                      Lines="$(_JsonForGithubActions)"
+                      Overwrite="true" />
+  </Target>
+
+</Project>

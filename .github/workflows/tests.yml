@@ -30,7 +30,7 @@ jobs:
       - name: Generate tests json
         env:
           CI: false
-        run: ./dotnet.sh build ${{ github.workspace }}tests/GetTestProjects.proj
+        run: ./dotnet.sh build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
 
       - name: Enumerate test class names
         id: enumerateNamesStep
