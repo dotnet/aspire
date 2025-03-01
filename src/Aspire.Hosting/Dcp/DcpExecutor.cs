@@ -1493,6 +1493,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource
         {
+            _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
+
             var resourceNotFound = false;
             try
             {
@@ -1530,6 +1532,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
                 }
             }
+
+            _logger.LogDebug("Successfully ensured '{ResourceName}' is deleted.", resourceName);
         }
     }
 

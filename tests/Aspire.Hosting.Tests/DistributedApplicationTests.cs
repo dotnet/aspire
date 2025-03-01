@@ -113,7 +113,7 @@ public class DistributedApplicationTests
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
         testProgram.AppBuilder.Services.AddHealthChecks().AddCheck("dummy_healthcheck", () => HealthCheckResult.Unhealthy());
 
         var dependentResourceName = "force-resource-start-serviceb";
@@ -156,7 +156,11 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-resource";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b =>
+        {
+            b.AddXunit(_testOutputHelper);
+            b.SetMinimumLevel(LogLevel.Trace);
+        });
 
         var notStartedResourceName = $"{testName}-servicea";
         var dependentResourceName = $"{testName}-serviceb";
@@ -272,7 +276,7 @@ public class DistributedApplicationTests
         var replicaCount = 3;
 
         using var testProgram = CreateTestProgram("multi-replica-svcs");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
@@ -327,7 +331,7 @@ public class DistributedApplicationTests
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
@@ -358,7 +362,7 @@ public class DistributedApplicationTests
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         const string containerName = "container-start-stop-redis";
         testProgram.AppBuilder.AddContainer(containerName, "redis")
@@ -412,7 +416,7 @@ public class DistributedApplicationTests
         const string testName = "executable-start-stop";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -447,7 +451,7 @@ public class DistributedApplicationTests
         const string testName = "ports-flow-to-env";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
@@ -510,7 +514,7 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -550,7 +554,7 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -581,7 +585,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-entrypoint";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithEntrypoint("bob");
@@ -610,7 +614,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-absolute";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
@@ -641,7 +645,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-relative";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithBindMount("etc/path-here", "path-here");
@@ -672,7 +676,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-volume";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithVolume($"{testName}-volume", "/path-here");
@@ -702,7 +706,7 @@ public class DistributedApplicationTests
     {
         const string testName = "kube-resource-names";
         using var testProgram = CreateTestProgram(testName, includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -764,7 +768,7 @@ public class DistributedApplicationTests
         {
             endpoint.IsProxied = false;
         });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -784,7 +788,7 @@ public class DistributedApplicationTests
             endpoint.Port = null;
             endpoint.IsProxied = false;
         });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -807,7 +811,7 @@ public class DistributedApplicationTests
                 e.TargetPort = 1234;
                 e.IsProxied = false;
             });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -849,7 +853,7 @@ public class DistributedApplicationTests
                 e.Port = 1543;
             }, createIfNotExists: true);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -1042,6 +1046,15 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    private void SetupXUnitLogging(IServiceCollection services)
+    {
+        services.AddLogging(b =>
+        {
+            b.AddXunit(_testOutputHelper);
+            b.SetMinimumLevel(LogLevel.Trace);
+        });
     }
 
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
