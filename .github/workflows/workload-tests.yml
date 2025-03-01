@@ -64,7 +64,7 @@ jobs:
             artifacts/bin/playwright-deps
           retention-days: 3
 
-  _:
+  test:
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_template_tests
     strategy:
