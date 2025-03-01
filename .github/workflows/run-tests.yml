@@ -31,6 +31,11 @@ jobs:
     timeout-minutes: 60
     name: ${{ inputs.testName }}
     steps:
+      - run: |
+        echo "testProject: ${{ inputs.testProject }}"
+        echo "testName: ${{ inputs.testName }}"
+        echo "extraArgs: ${{ inputs.extraArgs }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 

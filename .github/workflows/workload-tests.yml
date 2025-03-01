@@ -9,6 +9,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   setup_for_template_tests:
     name: Setup for template tests
@@ -73,6 +74,9 @@ jobs:
   template_tests:
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_template_tests
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     with:
       testName: ${{ matrix.tests.shortname }}
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
