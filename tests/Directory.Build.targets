@@ -71,7 +71,7 @@
     </ItemGroup>
     <PropertyGroup>
       <_JsonForGithubActions>
-        templates_test_matrix={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;, &quot;fullname&quot;:&quot;%(Identity)&quot;}', ',') ]}
+        templates_test_matrix={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 

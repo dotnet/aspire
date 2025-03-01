@@ -75,7 +75,7 @@ jobs:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
-      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.tests.fullname }}"
+      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.tests.shortname }}"
       isWorkloadTests: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
