@@ -375,7 +375,6 @@ public class ResourceNotificationService : IDisposable
             if (waitAnnotation.Resource is IResourceWithoutLifetime)
             {
                 // IResourceWithoutLifetime are inert and don't need to be waited on.
-                // If we add support for parameter resources that can be waited on.
                 continue;
             }
 

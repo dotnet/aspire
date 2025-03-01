@@ -145,7 +145,7 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task OnResourcesPrepared(OnResourcesPreparedContext context)
+    private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
     {
         await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
     }
@@ -162,10 +162,7 @@ internal sealed class ApplicationOrchestrator
                 {
                     return s with
                     {
-                        Properties = [
-                            ..s.Properties,
-                            new("Value", value) { IsSensitive = resource is ParameterResource p && p.Secret }
-                        ]
+                        Properties = s.Properties.SetResourceProperty("Value", value ?? "", resource is ParameterResource p && p.Secret)
                     };
                 })
                 .ConfigureAwait(false);
@@ -177,10 +174,7 @@ internal sealed class ApplicationOrchestrator
                     return s with
                     {
                         State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = [
-                            ..s.Properties,
-                            new("Value", ex.Message)
-                        ]
+                        Properties = s.Properties.SetResourceProperty("Value", ex.Message)
                     };
                 })
                 .ConfigureAwait(false);

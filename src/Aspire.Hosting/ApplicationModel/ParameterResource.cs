@@ -65,7 +65,8 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     public string ValueExpression => $"{{{Name}.value}}";
 
     /// <summary>
-    /// The configuration key for this parameter, the default is
+    /// The configuration key for this parameter. The default format is "ConnectionStrings:{Name}" if the parameter is a connection string,
+    /// otherwise it is "Parameters:{Name}".
     /// </summary>
     internal string ConfigurationKey
     {

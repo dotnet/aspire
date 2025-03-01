@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 public static class ConnectionStringBuilderExtensions
 {
     /// <summary>
-    /// Adds a connection string to the distributed application a resource with the specified expression.
+    /// Adds a connection string resource to the distributed application with the specified expression.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">The name of the resource.</param>

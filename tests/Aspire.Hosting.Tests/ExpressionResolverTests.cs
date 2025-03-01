@@ -38,7 +38,7 @@ public class ExpressionResolverTests
         data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("String"), true)), null, ("String", false));
         data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("SecretParameter"), false)), null, ("SecretParameter", true));
 
-        // IResourceWithConnectionString resolves differently for ResourceWithConnectionStringSurrogate (as a secret parameter)
+        // IResourceWithConnectionString resolves differently for ConnectionStringParameterResource (as a secret parameter)
         data.Add(new ExpressionResolverTestData(false, new ConnectionStringParameterResource("SurrogateResource", _ => "SurrogateResource", null)), null, ("SurrogateResource", true));
         data.Add(new ExpressionResolverTestData(false, new TestExpressionResolverResource("String")), null, ("String", false));
 
