@@ -1,3 +1,5 @@
+# Workflow to run tests for a given test project
+
 name: Run Tests
 
 on:
@@ -97,7 +99,6 @@ jobs:
         with:
           name: test-job-result-${{ inputs.testName }}
           path: result-*.rst
-
 
       - name: Dump docker info
         if: always()

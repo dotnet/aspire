@@ -25,12 +25,12 @@ jobs:
           CI: false
         run: ./dotnet.sh build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj /p:ContinuousIntegrationBuild=true
 
-      - name: Enumerate test class names
-        id: enumerateNamesStep
-        env:
-          CI: false
-        run: |
-          cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list >> $GITHUB_OUTPUT
+      #- name: Enumerate test class names
+        #id: enumerateNamesStep
+        #env:
+          #CI: false
+        #run: |
+          #cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list >> $GITHUB_OUTPUT
 
   _:
     uses: ./.github/workflows/run-tests.yml
