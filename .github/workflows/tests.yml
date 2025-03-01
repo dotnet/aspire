@@ -30,7 +30,6 @@ jobs:
         env:
           CI: false
         run: |
-          cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list
           cat ${{ github.workspace }}/artifacts/TestsToRunForGithubActions.list >> $GITHUB_OUTPUT
 
   _:
