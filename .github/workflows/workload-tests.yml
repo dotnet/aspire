@@ -45,20 +45,6 @@ jobs:
         run: |
           cat ${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.for-gh-actions.list >> $GITHUB_OUTPUT
 
-      #- name: Archive built nugets
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: built-nugets
-          #path: artifacts/packages
-
-      #- name: Archive artifacts for template tests
-        #uses: actions/upload-artifact@v4
-        #with:
-          #name: workload-artifacts
-          #path: |
-            #artifacts/bin/playwright-deps
-          #retention-days: 3
-
   _:
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_template_tests
