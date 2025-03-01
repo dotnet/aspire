@@ -59,17 +59,17 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="new">Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</target>
+        <target state="translated">메트릭의 일부 차원이 OpenTelemetry SDK에 의해 삭제되었습니다.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="new">For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</target>
+        <target state="translated">자세한 내용은 &lt;a href="{0}" target="_blank"&gt;OpenTelemetry 사양 카디널리티 한도&lt;/a&gt;를 참조하세요.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">
         <source>Cardinality capping has been detected</source>
-        <target state="new">Cardinality capping has been detected</target>
+        <target state="translated">카디널리티 상한이 감지되었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
