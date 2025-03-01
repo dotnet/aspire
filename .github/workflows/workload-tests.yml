@@ -72,6 +72,7 @@ jobs:
 
   template_tests:
     uses: ./.github/workflows/run-tests.yml
+    needs: setup_for_template_tests
     with:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testName: ${{ matrix.tests.shortname }}
