@@ -24,7 +24,7 @@ jobs:
         env:
           CI: false
         run: |
-            dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            ./dotnet.sh build --project ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
             "/t:Build;ExtractTestClassNames" \
             /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog \
             -p:ExtractTestClassNamesForHelix=true \
