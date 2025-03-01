@@ -161,7 +161,6 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7839")]
     public void ClearLogEntries_AllResources_LogsFilteredOut()
     {
         // Arrange
@@ -207,6 +206,8 @@ public partial class ConsoleLogsTests : TestContext
 
         logger.LogInformation("Clear current entries.");
         cut.Find(".clear-button").Click();
+
+        cut.WaitForElement("#clear-menu-all");
         cut.Find("#clear-menu-all").Click();
 
         cut.WaitForState(() => instance._logEntries.EntriesCount == 0);
