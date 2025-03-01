@@ -10,7 +10,9 @@
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Shared\**\*Tests.csproj" />
       <_TestProjectsToExclude Include="$(RepoRoot)tests\testproject\**\*Tests.csproj" />
       <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
+
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Workload.Tests\**\*Tests.csproj" />
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />
 
       <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
                      Exclude="@(_TestProjectsToExclude)" />
@@ -29,7 +31,7 @@
     <PropertyGroup>
       <!-- The output variable here corresponds to the matrix input in .github/workflows/tests.yml -->
       <_JsonForGithubActions>
-        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;project&quot;:&quot;%(RelativeProjectPath)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;,&quot;project&quot;:&quot;%(RelativeProjectPath)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 
