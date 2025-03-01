@@ -12,8 +12,9 @@
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
+    <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnGithubActions>
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true' or '$(RunTestsOnGithubActions)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -70,7 +71,7 @@
     </ItemGroup>
     <PropertyGroup>
       <_JsonForGithubActions>
-        templates_output={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;fullname&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+        templates_test_matrix={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;fullname&quot;:&quot;%(Identity)&quot;,&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 
@@ -80,10 +81,9 @@
   </Target>
 
   <Target Name="GetShouldRunTests" Returns="$(ShouldRunTests)">
+    <Message Text="GetShouldRunTests for $(MSBuildProjectName), run=$(RunTestsOnGithubActions)" Importance="High" />
     <PropertyGroup>
-      <ShouldRunTests />
-      <ShouldRunTests Condition="'$(SkipTests)' != 'true' and '$(IsTestSupportProject)' != 'true'">true</ShouldRunTests>
-      <ShouldRunTests Condition="'$(SkipTests)' == 'true'">false</ShouldRunTests>
+      <ShouldRunTests>$(RunTestsOnGithubActions)</ShouldRunTests>
     </PropertyGroup>
   </Target>
 

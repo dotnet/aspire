@@ -15,7 +15,7 @@ jobs:
     name: Setup for template tests
     runs-on: ubuntu-latest
     outputs:
-      template_matrix: ${{ steps.enumerateNamesStep.outputs.templates_output }}
+      templates_tests_matrix: ${{ steps.enumerateNamesStep.outputs.templates_test_matrix }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
     needs: setup_for_template_tests
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.templates_tests_matrix) }}
     with:
       testName: ${{ matrix.tests.shortname }}
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
