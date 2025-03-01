@@ -40,7 +40,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix) }}
     with:
       testName: ${{ matrix.tests.shortname }}
-      testProject: tests/Aspire.${{ matrix.tests.shortname }}/Aspire.${{ matrix.tests.shortname }}.csproj
+      testProject: tests/Aspire.${{ matrix.tests.shortname }}.Tests/Aspire.${{ matrix.tests.shortname }}.Tests.csproj
       testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
       extraArgs: ${{ matrix.extraArgs }}
 
