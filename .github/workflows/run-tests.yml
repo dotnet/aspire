@@ -34,15 +34,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.x
-            9.x
+      - name: Install sdk for workload testing
+        if: ${{ inputs.isWorkloadTests }}
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Trust HTTPS development certificate
-        run: dotnet dev-certs https --trust
+        run: ./dotnet.sh dev-certs https --trust
 
       - name: Verify Docker is running
         run: docker info
@@ -69,18 +71,7 @@ jobs:
 
       - name: Fix up permissions
         if: ${{ inputs.isWorkloadTests }}
-        run: |
-          chmod +x artifacts/bin/dotnet-*/dotnet && \
-          chmod -R +x artifacts/bin/playwright-deps
-
-      - name: Install sdk for workload testing
-        if: ${{ inputs.isWorkloadTests }}
-        env:
-          CI: false
-        run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            /p:SkipPackageCheckForWorkloadTesting=true \
-            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+        run: chmod -R +x artifacts/bin/playwright-deps
 
       - name: Build test project
         env:
