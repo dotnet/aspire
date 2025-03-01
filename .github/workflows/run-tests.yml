@@ -34,6 +34,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build with packages
+        if: ${{ inputs.isWorkloadTests }}
+        env:
+          CI: false
+        run: ./build.sh -restore -build -ci -pack -testnobuild /bl
+
       - name: Install sdk for workload testing
         if: ${{ inputs.isWorkloadTests }}
         env:
@@ -55,23 +61,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
-      - name: Download built nugets
-        if: ${{ inputs.isWorkloadTests }}
-        uses: actions/download-artifact@v4
-        with:
-          name: built-nugets
-          path: artifacts/packages
+      #- name: Download built nugets
+        #if: ${{ inputs.isWorkloadTests }}
+        #uses: actions/download-artifact@v4
+        #with:
+          #name: built-nugets
+          #path: artifacts/packages
 
-      - name: Download artifacts for template tests
-        if: ${{ inputs.isWorkloadTests }}
-        uses: actions/download-artifact@v4
-        with:
-          name: workload-artifacts
-          path: artifacts/bin
+      #- name: Download artifacts for template tests
+        #if: ${{ inputs.isWorkloadTests }}
+        #uses: actions/download-artifact@v4
+        #with:
+          #name: workload-artifacts
+          #path: artifacts/bin
 
-      - name: Fix up permissions
-        if: ${{ inputs.isWorkloadTests }}
-        run: chmod -R +x artifacts/bin/playwright-deps
+      #- name: Fix up permissions
+        #if: ${{ inputs.isWorkloadTests }}
+        #run: chmod -R +x artifacts/bin/playwright-deps
 
       - name: Build test project
         env:

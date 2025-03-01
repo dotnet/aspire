@@ -20,19 +20,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build with packages
-        env:
-          CI: false
-        run: ./build.sh -restore -build -ci -pack /bl
-
-      - name: Build workload tests
+      - name: Generate list of tests
         env:
           CI: false
         run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
-            -p:ContinuousIntegrationBuild=true \
-            /p:ArchiveTests=true \
-            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+            dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            "/t:Build;ExtractTestClassNames" \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog \
+            -p:ExtractTestClassNamesForHelix=true \
+            -p:ArchiveTests=true \
+            -p:ExtractTestClassNamesPrefix=Aspire.Workload.Tests
 
       - name: Enumerate test class names
         id: enumerateNamesStep
@@ -66,7 +63,7 @@ jobs:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
-      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.tests.shortname }}"
+      extraArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.tests.shortname }}"
       isWorkloadTests: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
