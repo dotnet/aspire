@@ -150,3 +150,22 @@ jobs:
         with:
           name: testresults-${{ inputs.testName }}
           path: testresults/**
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [test]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          ls -al test-job-result/
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
