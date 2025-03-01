@@ -78,7 +78,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    name: ${{ matrix.shortname }}
+    name: ${{ matrix.tests.shortname }}
     steps:
       - name: debug
         run: |
