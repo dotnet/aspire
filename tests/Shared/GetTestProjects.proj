@@ -31,11 +31,11 @@
     <PropertyGroup>
       <!-- The output variable here corresponds to the matrix input in .github/workflows/tests.yml -->
       <_JsonForGithubActions>
-        tests_matrix={&quot;tests&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;,&quot;project&quot;:&quot;%(RelativeProjectPath)&quot;}', ',') ]}
+        tests_matrix={&quot;include&quot;: [ @(ProjectsToTestFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
       </_JsonForGithubActions>
     </PropertyGroup>
 
-    <WriteLinesToFile File="$(RepoRoot)artifacts\TestsToRunForGithubActions.for-gh-actions.list"
+    <WriteLinesToFile File="$(RepoRoot)artifacts\TestsToRunForGithubActions.list"
                       Lines="$(_JsonForGithubActions)"
                       Overwrite="true" />
   </Target>
