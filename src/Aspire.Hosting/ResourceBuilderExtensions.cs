@@ -798,6 +798,16 @@ public static class ResourceBuilderExtensions
             builder.WaitForCore(parentBuilder, waitBehavior, addRelationship: false);
         }
 
+        // Wait for any referenced resources in the connection string.
+        if (dependency.Resource is ConnectionStringResource cs)
+        {
+            // We only look at top level resources with the assumption that they are transitive themselves.
+            foreach (var referencedResource in cs.ConnectionStringExpression.ValueProviders.OfType<IResource>())
+            {
+                builder.WaitForCore(builder.ApplicationBuilder.CreateResourceBuilder(referencedResource), waitBehavior, addRelationship: false);
+            }
+        }
+
         if (addRelationship)
         {
             builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);

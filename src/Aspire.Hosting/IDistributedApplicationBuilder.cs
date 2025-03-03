@@ -203,7 +203,7 @@ public interface IDistributedApplicationBuilder
     ///     secret: true,
     ///     connectionString: true);
     /// 
-    ///     var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
+    ///     var surrogate = new ConnectionStringParameterResource(parameterBuilder.Resource, environmentVariableName);
     ///     return builder.CreateResourceBuilder(surrogate);
     /// }
     /// </code>

@@ -83,7 +83,6 @@ steps:
         condition: always()
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
-              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /maxcpucount:1 /p:BuildInParallel=false $(_OfficialBuildIdArgs)"
       env:
@@ -122,7 +121,7 @@ steps:
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
         # Code coverage on windows is disabled: <issue>
-        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -153,19 +152,3 @@ steps:
       displayName: Gather helix trx files
       continueOnError: true
       condition: always()
-
-  # Code coverage - only on public pipelines
-  - ${{ if and(eq(parameters.runAsPublic, 'true'), or(eq(parameters.runHelixTests, 'true'), eq(parameters.runPipelineTests, 'true'))) }}:
-    - task: CopyFiles@2
-      inputs:
-        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        flattenFolders: true
-      displayName: Gather code coverage results
-
-    - task: PublishPipelineArtifact@1
-      displayName: Publish coverage results (cobertura.xml)
-      inputs:
-        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        artifactName: '$(Agent.JobName)_CodeCoverageResults'
-        publishLocation: 'pipeline'

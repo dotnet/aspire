@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting;
 
@@ -224,6 +225,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+
+        // Aspire CLI support
+        _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
 
         ConfigureHealthChecks();
 
@@ -531,5 +535,4 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <returns>The metadata value if found; otherwise, null.</returns>
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
-
 }

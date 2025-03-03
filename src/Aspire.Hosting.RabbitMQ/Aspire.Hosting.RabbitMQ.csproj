@@ -7,10 +7,6 @@
     <Description>RabbitMQ support for .NET Aspire.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>59</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
   </ItemGroup>

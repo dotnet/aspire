@@ -442,4 +442,83 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.Equal("BatMobile", cars[0].Brand);
         }, cts.Token);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task MySql_WithPersistentLifetime_ReusesContainers(bool useMultipleInstances)
+    {
+        // When WithPhpMyAdmin in invoked with 2 and two or more MySql instances are created,
+        // it generates and mounts a config.user.inc.php file instead of using environment variables.
+        // For this reason we need to test with and without multiple instances to cover both scenarios.
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        // Use the same path for both runs
+        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+
+        var before = await RunContainersAsync();
+        var after = await RunContainersAsync();
+
+        Assert.All(before, Assert.NotNull);
+        Assert.All(after, Assert.NotNull);
+        Assert.Equal(before, after);
+
+        try
+        {
+            Directory.Delete(aspireStorePath, true);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
+
+        async Task<string?[]> RunContainersAsync()
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+                .WithTempAspireStore(aspireStorePath)
+                .WithResourceCleanUp(false);
+
+            var passwordParameter = builder.AddParameter("pwd", "p@ssw0rd1", secret: true);
+            var mysql = builder
+                .AddMySql("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
+                .WithPhpMyAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .AddDatabase("db");
+
+            if (useMultipleInstances)
+            {
+                var passwordParameter2 = builder.AddParameter("pwd2", "p@ssw0rd2", secret: true);
+                builder.AddMySql("resource2", password: passwordParameter2).WithLifetime(ContainerLifetime.Persistent);
+            }
+
+            var app = builder.Build();
+            await app.StartAsync(cts.Token);
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+            var mySqlId = GetContainerId(resourceEvent);
+
+            var mySqlId2 = "";
+
+            if (useMultipleInstances)
+            {
+                resourceEvent = await rns.WaitForResourceHealthyAsync("resource2", cts.Token);
+                mySqlId2 = GetContainerId(resourceEvent);
+            }
+
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-phpmyadmin", cts.Token);
+            var phpMyAdminId = GetContainerId(resourceEvent);
+
+            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
+
+            return [mySqlId, mySqlId2, phpMyAdminId];
+        }
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        }
+    }
 }

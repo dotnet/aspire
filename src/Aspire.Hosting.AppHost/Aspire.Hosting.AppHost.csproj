@@ -13,10 +13,6 @@
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>100</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <TextReplacementValue Include="VERSION" NewValue="$(PackageVersion)" />
 

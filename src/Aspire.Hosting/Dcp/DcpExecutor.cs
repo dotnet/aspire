@@ -56,7 +56,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
     // Internal for testing.
-    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
 
@@ -1024,6 +1024,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
+                {
+                    // If there are app host args, add a double-dash to separate them from the launch args.
+                    launchProfileArgs.Insert(0, "--");
+                }
+
                 launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
             }
         }
@@ -1036,17 +1042,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
     {
-        var args = new List<string>();
         if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
         {
-            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-            if (cmdArgs.Count > 0)
-            {
-                args.Add("--");
-                args.AddRange(cmdArgs);
-            }
+            return CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
         }
-        return args;
+
+        return [];
     }
 
     private void PrepareContainers()
@@ -1493,6 +1494,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource
         {
+            _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
+
             var resourceNotFound = false;
             try
             {
@@ -1511,19 +1514,27 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
+                var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
                         await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
+                        return false;
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
+                        return true;
                     }
                 }, resourceName, cancellationToken).ConfigureAwait(false);
+
+                if (!result)
+                {
+                    throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+                }
             }
+
+            _logger.LogDebug("Successfully ensured '{ResourceName}' is deleted.", resourceName);
         }
     }
 

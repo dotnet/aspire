@@ -31,7 +31,9 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     {
         // Get a connection string from a resource
         var connectionString = await _app.GetConnectionStringAsync("cs");
+        var connectionString2 = await _app.GetConnectionStringAsync("cs2");
         Assert.Equal("testconnection", connectionString);
+        Assert.Equal("Value=this is a value", connectionString2);
     }
 
     [Fact]
