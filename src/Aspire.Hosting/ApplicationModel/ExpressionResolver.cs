@@ -174,7 +174,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return value switch
         {
             ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs).ConfigureAwait(false),
-            IResourceWithConnectionString cs and not ResourceWithConnectionStringSurrogate => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
+            IResourceWithConnectionString cs and not ConnectionStringParameterResource => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
             EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
             EndpointReferenceExpression ep when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),

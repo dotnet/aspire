@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
 
-internal sealed class ResourceWithConnectionStringSurrogate : ParameterResource, IResourceWithConnectionString
+namespace Aspire.Hosting;
+
+internal sealed class ConnectionStringParameterResource : ParameterResource, IResourceWithConnectionString
 {
     private readonly string? _environmentVariableName;
 
-    public ResourceWithConnectionStringSurrogate(string name, Func<ParameterDefault?, string> callback, string? environmentVariableName) : base(name, callback, secret: true)
+    public ConnectionStringParameterResource(string name, Func<ParameterDefault?, string> callback, string? environmentVariableName) : base(name, callback, secret: true)
     {
         _environmentVariableName = environmentVariableName;
 
