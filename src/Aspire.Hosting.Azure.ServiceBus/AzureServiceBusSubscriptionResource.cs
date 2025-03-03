@@ -184,12 +184,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
         writer.WriteEndObject();
     }
 
-    private static string private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
-    ([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;

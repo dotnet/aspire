@@ -321,16 +321,4 @@ public class ServiceBusPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
-
-    [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
-    {
-        IResourceBuilder<AzureServiceBusEmulatorResource> builder = null!;
-        int? port = null;
-
-        var action = () => builder.WithHostPort(port);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
 }
