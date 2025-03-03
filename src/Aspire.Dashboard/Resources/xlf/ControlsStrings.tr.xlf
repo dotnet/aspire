@@ -59,17 +59,17 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="new">Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</target>
+        <target state="translated">Ölçümle ilgili bazı boyutlar OpenTelemetry SDK’sı tarafından çıkarıldı.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="new">For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</target>
+        <target state="translated">Daha fazla bilgi için &lt;a href="{0}" target="_blank"&gt;OpenTelemetry belirtimleri kardinalite sınırları&lt;/a&gt; sayfasına bakın.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">
         <source>Cardinality capping has been detected</source>
-        <target state="new">Cardinality capping has been detected</target>
+        <target state="translated">Kardinalite sınırlaması algılandı</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
