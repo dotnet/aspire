@@ -35,11 +35,6 @@
       "condition": "AspireVersionActual == 9.1"
     },
     {
-      "source": "./9.0",
-      "target": "./",
-      "condition": "AspireVersionActual == 9.0"
-    },
-    {
       "source": "./8.2",
       "target": "./",
       "condition": "AspireVersionActual == 8.2"
@@ -80,11 +75,6 @@
           "description": "Chooses .NET Aspire 9.1"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
-        },
-        {
           "choice": "8.2",
           "displayName": "8.2",
           "description": "Chooses .NET Aspire 8.2 (only valid when '--framework net8.0' is specified)"
@@ -110,11 +100,6 @@
           "description": "Chooses .NET Aspire 9.1"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
-        },
-        {
           "choice": "8.2",
           "displayName": "8.2",
           "description": "Chooses .NET Aspire 8.2"
@@ -138,11 +123,6 @@
           "choice": "9.1",
           "displayName": "9.1",
           "description": "Chooses .NET Aspire 9.1"
-        },
-        {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
         }
       ],
       "defaultValue": "9.2"
@@ -160,18 +140,6 @@
           {
             "condition": "(AspireVersionCli == 8.2 && Framework == net8.0)",
             "value": "8.2"
-          },
-          {
-            "condition": "AspireVersionCli == 9.0",
-            "value": "9.0"
-          },
-          {
-            "condition": "AspireVersion == 9.0",
-            "value": "9.0"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.0",
-            "value": "9.0"
           },
           {
             "condition": "AspireVersionCli == 9.1",
