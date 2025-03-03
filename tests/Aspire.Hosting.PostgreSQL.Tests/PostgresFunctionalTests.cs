@@ -221,7 +221,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 postgres1.WithDataBindMount(bindMountPath);
             }
 
@@ -432,6 +433,69 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 // Don't fail test if we can't clean the temporary folder
             }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task Postgres_WithPersistentLifetime_ReusesContainers()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        // Use the same path for both runs
+        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+
+        var before = await RunContainersAsync();
+        var after = await RunContainersAsync();
+
+        Assert.All(before, Assert.NotNull);
+        Assert.All(after, Assert.NotNull);
+        Assert.Equal(before, after);
+
+        try
+        {
+            Directory.Delete(aspireStorePath, true);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
+
+        async Task<string?[]> RunContainersAsync()
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+                .WithTempAspireStore(aspireStorePath)
+                .WithResourceCleanUp(false);
+
+            var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
+            builder
+                .AddPostgres("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
+                .WithPgWeb(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .WithPgAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .AddDatabase("mydb");
+
+            var app = builder.Build();
+            await app.StartAsync(cts.Token);
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+            var postgresId = GetContainerId(resourceEvent);
+
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgweb", cts.Token);
+            var pgWebId = GetContainerId(resourceEvent);
+
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgadmin", cts.Token);
+            var pgadminId = GetContainerId(resourceEvent);
+
+            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
+
+            return [postgresId, pgWebId, pgadminId];
+        }
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
         }
     }
 }

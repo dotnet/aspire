@@ -93,7 +93,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // Milvus container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 milvus1.WithDataBindMount(bindMountPath);
             }
 

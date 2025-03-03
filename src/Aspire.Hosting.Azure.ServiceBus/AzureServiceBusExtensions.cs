@@ -20,6 +20,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureServiceBusExtensions
 {
+    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
     /// </summary>
@@ -446,10 +448,7 @@ public static class AzureServiceBusExtensions
                 // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                 if (!OperatingSystem.IsWindows())
                 {
-                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(configJsonPath, mode);
+                    File.SetUnixFileMode(configJsonPath, FileMode644);
                 }
 
                 builder.WithAnnotation(new ContainerMountAnnotation(
@@ -584,6 +583,7 @@ public static class AzureServiceBusExtensions
 
     private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
     {
+        // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);

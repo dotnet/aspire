@@ -26,7 +26,7 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.12" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.47.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.10.0" />
@@ -91,8 +91,8 @@
     <PackageVersion Include="KubernetesClient" Version="15.0.1" />
     <PackageVersion Include="JsonPatch.Net" Version="3.2.3" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.3" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.3" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.5" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.5" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="2.0.0" />

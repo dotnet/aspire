@@ -161,6 +161,9 @@ public partial class TraceDetailsTests : TestContext
         var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
 
+        var toolbarModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+        toolbarModule.SetupVoid("removePreventArrowKeyNavigation", _ => true);
+
         JSInterop.SetupVoid("initializeContinuousScroll");
 
         Services.AddLocalization();
