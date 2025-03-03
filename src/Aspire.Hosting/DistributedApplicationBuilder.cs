@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting;
 
@@ -224,6 +225,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+
+        // Aspire CLI support
+        _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
 
         ConfigureHealthChecks();
 
