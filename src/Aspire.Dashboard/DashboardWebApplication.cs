@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -267,6 +268,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
+
+        if (builder.Configuration.GetBool("ASPNETCORE_FORWARDEDHEADERS_ENABLED") ?? false)
+        {
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+
+                // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
+                // being enabled by explicit configuration.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+        }
 
         _app = builder.Build();
 
