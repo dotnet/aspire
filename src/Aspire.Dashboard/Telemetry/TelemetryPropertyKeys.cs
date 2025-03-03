@@ -7,5 +7,9 @@ public static class TelemetryPropertyKeys
 {
     private const string AspireDashboardPropertyPrefix = "Aspire.Dashboard";
 
-    public const string PageUrl = AspireDashboardPropertyPrefix + ".PageUrl";
+    // Default properties
+    public const string DashboardVersion = AspireDashboardPropertyPrefix + ".Version";
+    public const string DashboardBuildId = AspireDashboardPropertyPrefix + ".BuildId";
+
+    public const string DashboardPageUrl = AspireDashboardPropertyPrefix + ".PageUrl";
 }

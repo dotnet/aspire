@@ -17,16 +17,20 @@ public abstract class TelemetryPageComponentBase : ComponentBase
     [Inject]
     public required IAspireTelemetryService TelemetryService { get; init; }
 
+    protected abstract string PageId { get; }
+
     protected virtual Dictionary<string, AspireTelemetryProperty> GetPageProperties() => [];
 
     protected override async Task OnInitializedAsync()
     {
+        await TelemetryService.InitializeAsync();
+
         if (TelemetryService.IsTelemetryEnabled)
         {
             var request = new StartOperationRequest(
                 TelemetryEventKeys.NavigateToPage,
                 new AspireTelemetryScopeSettings(new Dictionary<string, AspireTelemetryProperty> {
-                    { TelemetryPropertyKeys.PageUrl, new AspireTelemetryProperty(NavigationManager.Uri) }
+                    { TelemetryPropertyKeys.DashboardPageUrl, new AspireTelemetryProperty(NavigationManager.Uri) }
                 }));
             _loadOperation = await TelemetryService.StartOperationAsync(request);
         }

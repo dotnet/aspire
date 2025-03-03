@@ -29,6 +29,8 @@ public interface IAspireTelemetryService
     Task<ITelemetryResponse?> PostPropertyAsync(PostPropertyRequest request);
     Task<ITelemetryResponse?> PostRecurringPropertyAsync(PostPropertyRequest request);
     Task<ITelemetryResponse?> PostCommandLineFlagsAsync(PostCommandLineFlagsRequest request);
+
+    Dictionary<string, AspireTelemetryProperty> GetDefaultProperties();
 }
 
 public interface ITelemetryResponse

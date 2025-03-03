@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
@@ -23,7 +24,18 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, I
     public async Task InitializeAsync()
     {
         _serverTelemetryEnabled ??= await GetTelemetrySupportedAsync(_httpClient.Value).ConfigureAwait(false);
-        _telemetryEnabled ??= await GetTelemetryEnabledAsync(_serverTelemetryEnabled, localStorage).ConfigureAwait(false);
+
+        if (_telemetryEnabled is null)
+        {
+            _telemetryEnabled = await GetTelemetryEnabledAsync(_serverTelemetryEnabled, localStorage).ConfigureAwait(false);
+
+            // Post session property values after initialization, if telemetry has been enabled.
+            if (_telemetryEnabled is true)
+            {
+                var propertyPostTasks = GetDefaultProperties().Select(defaultProperty => PostPropertyAsync(new PostPropertyRequest(defaultProperty.Key, defaultProperty.Value)));
+                await Task.WhenAll(propertyPostTasks).ConfigureAwait(false);
+            }
+        }
 
         return;
 
@@ -218,6 +230,15 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, I
 
         var response = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
+    }
+
+    public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
+            { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
+        };
     }
 
     private async Task PerformOperationAsync(bool isUserTask, StartOperationRequest request, Func<Task<OperationResult>> func)

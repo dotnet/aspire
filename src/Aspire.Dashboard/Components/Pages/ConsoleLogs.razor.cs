@@ -24,7 +24,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
+public sealed partial class ConsoleLogs : TelemetryPageComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     private sealed class ConsoleLogsSubscription
     {
@@ -52,9 +52,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
-
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
@@ -107,12 +104,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
+    protected override string PageId => DashboardUrls.ConsoleLogBasePath;
+
     protected override async Task OnInitializedAsync()
     {
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+
+        await base.OnInitializedAsync();
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
@@ -233,6 +234,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             return;
         }
+
+        await base.OnParametersSetAsync();
 
         UpdateMenuButtons();
 
