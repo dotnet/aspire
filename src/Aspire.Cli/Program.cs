@@ -31,6 +31,9 @@ public class Program
         var projectArgument = new Argument<FileInfo>("project").AcceptExistingOnly();
         command.Arguments.Add(projectArgument);
 
+        var pidOverrideOption = new Option<int?>("--cli-pid-override", "-cpo");
+        command.Options.Add(pidOverrideOption);
+
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication();
             var pendingRun = app.RunAsync(ct).ConfigureAwait(false);
