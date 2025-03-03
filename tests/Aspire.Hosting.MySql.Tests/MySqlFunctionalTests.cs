@@ -480,7 +480,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 .WithTempAspireStore(aspireStorePath)
                 .WithResourceCleanUp(false);
 
-            var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
+            var passwordParameter = builder.AddParameter("pwd", "p@ssw0rd1", secret: true);
             var mysql = builder
                 .AddMySql("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
                 .WithPhpMyAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
@@ -488,7 +488,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             if (useMultipleInstances)
             {
-                var passwordParameter2 = builder.AddParameter("pwd2", "p@ssword2", secret: true);
+                var passwordParameter2 = builder.AddParameter("pwd2", "p@ssw0rd2", secret: true);
                 builder.AddMySql("resource2", password: passwordParameter2).WithLifetime(ContainerLifetime.Persistent);
             }
 
