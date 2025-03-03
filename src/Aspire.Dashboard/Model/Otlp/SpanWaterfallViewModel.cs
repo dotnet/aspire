@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
-using Grpc.Core;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
@@ -21,13 +20,12 @@ public sealed class SpanWaterfallViewModel
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
     public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
 
-    private bool _isCollapsed;
     public bool IsCollapsed
     {
-        get => _isCollapsed;
+        get;
         set
         {
-            _isCollapsed = value;
+            field = value;
             UpdateHidden();
         }
     }
@@ -49,60 +47,7 @@ public sealed class SpanWaterfallViewModel
 
     public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
     {
-        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {GetDisplaySummary(span)}";
-    }
-
-    public static string GetDisplaySummary(OtlpSpan span)
-    {
-        // Use attributes on the span to calculate a friendly summary.
-        // Optimize for common cases: HTTP, RPC, DATA, etc.
-        // Fall back to the span name if we can't find anything.
-        if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
-        {
-            if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
-            {
-                var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
-                var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
-
-                return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
-            {
-                var dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
-
-                return $"DATA {dbSystem} {span.Name}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "rpc.system")))
-            {
-                var rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
-                var rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
-                var rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
-
-                if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
-                {
-                    var grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
-
-                    var summary = $"RPC {rpcService}/{rpcMethod}";
-                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
-                    {
-                        summary += $" {statusCode}";
-                    }
-                    return summary;
-                }
-
-                return $"RPC {rpcService}/{rpcMethod}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "messaging.system")))
-            {
-                var messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
-                var messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
-                var destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
-
-                return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
-            }
-        }
-
-        return span.Name;
+        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
     }
 
     private void UpdateHidden(bool isParentCollapsed = false)
