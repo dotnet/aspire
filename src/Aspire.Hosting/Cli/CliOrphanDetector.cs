@@ -35,8 +35,6 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             return;
         }
 
-        Console.WriteLine("CLI PROCESS ID IS: " + pid);
-
         using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), TimeProvider);
 
         do
