@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Qdrant.Tests;
 public class QdrantPublicApiTests
 {
     [Fact]
-    public void AddQdrantContainerShouldThrowWhenBuilderIsNull()
+    public void AddQdrantShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Qdrant";
@@ -21,15 +21,19 @@ public class QdrantPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddQdrantContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddQdrantShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddQdrant(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -56,16 +60,20 @@ public class QdrantPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
         var builderResource = TestDistributedApplicationBuilder.Create();
         var qdrant = builderResource.AddQdrant("Qdrant");
-        string source = null!;
+        var source = isNull ? null! : string.Empty;
 
         var action = () => qdrant.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -95,17 +103,21 @@ public class QdrantPublicApiTests
         Assert.Equal(nameof(qdrantResource), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorQdrantServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorQdrantServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var distributedApplicationBuilder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
         const string key = nameof(key);
-        var apiKey = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, key, special: false);
+        var apiKey = new ParameterResource(key, (ParameterDefault? parameterDefault) => key);
 
         var action = () => new QdrantServerResource(name, apiKey);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+             ? Assert.Throws<ArgumentNullException>(action)
+             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 

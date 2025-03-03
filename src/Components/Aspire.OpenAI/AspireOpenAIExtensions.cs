@@ -32,12 +32,7 @@ public static class AspireOpenAIExtensions
         string connectionName,
         Action<OpenAISettings>? configureSettings = null,
         Action<OpenAIClientOptions>? configureOptions = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(connectionName);
-
-        return AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
-    }
+        => AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -54,7 +49,6 @@ public static class AspireOpenAIExtensions
         Action<OpenAISettings>? configureSettings = null,
         Action<OpenAIClientOptions>? configureOptions = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         return AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
@@ -69,6 +63,8 @@ public static class AspireOpenAIExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configurationSectionName);
+        ArgumentNullException.ThrowIfNull(connectionName);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);

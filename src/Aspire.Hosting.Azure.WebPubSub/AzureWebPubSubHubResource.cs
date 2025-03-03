@@ -13,10 +13,11 @@ namespace Aspire.Hosting.ApplicationModel;
 public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : Resource(name),
     IResourceWithParent<AzureWebPubSubResource>
 {
+    private readonly AzureWebPubSubResource _webpubsub = webpubsub ?? throw new ArgumentNullException(nameof(webpubsub));
     /// <summary>
     /// Gets the parent AzureWebPubSubResource of this AzureWebPubSubHubSettingResource.
     /// </summary>
-    public AzureWebPubSubResource Parent => webpubsub;
+    public AzureWebPubSubResource Parent => _webpubsub;
 
     internal List<(ReferenceExpression url, string userEvents, string[]? systemEvents, UpstreamAuthSettings? auth)> EventHandlers { get; } = new();
 }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
@@ -9,25 +11,18 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Event Hub.
+/// Initializes a new instance of the <see cref="AzureEventHubResource"/> class.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureEventHubResource : Resource, IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+public class AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent)
+    : Resource(name), IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureEventHubResource"/> class.
-    /// </summary>
-    public AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent) : base(name)
-    {
-        HubName = hubName;
-        Parent = parent;
-    }
-
     /// <summary>
     /// The event hub name.
     /// </summary>
-    public string HubName { get; set; }
+    public string HubName { get; set; } = ThrowIfNullOrEmpty(hubName);
 
     /// <summary>
     /// Number of partitions created for the Event Hub, allowed values are from
@@ -38,7 +33,7 @@ public class AzureEventHubResource : Resource, IResourceWithParent<AzureEventHub
     /// <summary>
     /// Gets the parent Azure Event Hubs resource.
     /// </summary>
-    public AzureEventHubsResource Parent { get; }
+    public AzureEventHubsResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure Event Hub.
@@ -115,4 +110,9 @@ public class AzureEventHubResource : Resource, IResourceWithParent<AzureEventHub
     }
 #pragma warning restore CA1507 // Use nameof to express symbol names
 
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 }

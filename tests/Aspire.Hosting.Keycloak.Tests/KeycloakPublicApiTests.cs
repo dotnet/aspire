@@ -9,36 +9,41 @@ namespace Aspire.Hosting.Keycloak.Tests;
 
 public class KeycloakPublicApiTests
 {
-    [Fact]
-    public void CtorKeycloakResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorKeycloakResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
-        var builder = TestDistributedApplicationBuilder.Create();
-        var adminPassword = builder.AddParameter("Password");
+        var name = isNull ? null! : string.Empty;
+        ParameterResource? admin = null;
+        var adminPassword = new ParameterResource("adminPassword", (p) => "password");
 
-        var action = () => new KeycloakResource(name, default(ParameterResource?), adminPassword.Resource);
+        var action = () => new KeycloakResource(name, admin, adminPassword);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
     public void CtorKeycloakResourceShouldThrowWhenAdminPasswordIsNull()
     {
-        const string name = "Keycloak";
+        const string name = "keycloak";
+        ParameterResource? admin = null;
         ParameterResource adminPassword = null!;
 
-        var action = () => new KeycloakResource(name, default(ParameterResource?), adminPassword);
+        var action = () => new KeycloakResource(name, admin, adminPassword);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(adminPassword), exception.ParamName);
     }
 
     [Fact]
-    public void AddKeycloakContainerShouldThrowWhenBuilderIsNull()
+    public void AddKeycloakShouldThrowWhenBuilderIsNull()
     {
-        IDistributedApplicationBuilder builder =  null!;
-        const string name = "Keycloak";
+        IDistributedApplicationBuilder builder = null!;
+        const string name = "keycloak";
 
         var action = () => builder.AddKeycloak(name);
 
@@ -46,15 +51,19 @@ public class KeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeycloak(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -81,16 +90,20 @@ public class KeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var keycloak = builder.AddKeycloak("Keycloak");
-        string source = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddKeycloak("keycloak");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => keycloak.WithDataBindMount(source);
+        var action = () => builder.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -106,26 +119,30 @@ public class KeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithRealmImportShouldThrowWhenImportIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithRealmImportShouldThrowWhenImportIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var keycloak = builder.AddKeycloak("Keycloak");
-        string import = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddKeycloak("keycloak");
+        var import = isNull ? null! : string.Empty;
 
-        var action = () => keycloak.WithRealmImport(import);
+        var action = () => builder.WithRealmImport(import);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(import), exception.ParamName);
     }
 
     [Fact]
     public void WithRealmImportShouldThrowWhenImportDoesNotExist()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var keycloak = builder.AddKeycloak("Keycloak");
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddKeycloak("Keycloak");
 
-        var action = () => keycloak.WithRealmImport("does-not-exist");
+        var action = () => builder.WithRealmImport("does-not-exist");
 
         Assert.Throws<InvalidOperationException>(action);
     }

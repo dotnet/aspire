@@ -31,8 +31,12 @@ public static class AzureContainerAppExecutableExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> executable, Action<AzureResourceInfrastructure, ContainerApp> configure) where T : ExecutableResource
+    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> executable, Action<AzureResourceInfrastructure, ContainerApp> configure)
+        where T : ExecutableResource
     {
+        ArgumentNullException.ThrowIfNull(executable);
+        ArgumentNullException.ThrowIfNull(configure);
+
         if (!executable.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return executable;

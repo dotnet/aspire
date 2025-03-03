@@ -14,12 +14,12 @@ namespace Aspire.Hosting.Azure;
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The Azure SQL Database (server) parent resource associated with this database.</param>
 public class AzureSqlDatabaseResource(string name, string databaseName, AzureSqlServerResource parent)
-    : Resource(ThrowIfNull(name)), IResourceWithParent<AzureSqlServerResource>, IResourceWithConnectionString
+    : Resource(name), IResourceWithParent<AzureSqlServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the parent Azure SQL Database (server) resource.
     /// </summary>
-    public AzureSqlServerResource Parent { get; } = ThrowIfNull(parent);
+    public AzureSqlServerResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure SQL database.
@@ -30,7 +30,7 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = ThrowIfNull(databaseName);
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.
@@ -42,8 +42,11 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
-    private static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-        => argument ?? throw new ArgumentNullException(paramName);
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 
     internal void SetInnerResource(SqlServerDatabaseResource innerResource)
     {

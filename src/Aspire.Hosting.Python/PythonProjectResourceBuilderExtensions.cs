@@ -61,11 +61,7 @@ public static class PythonProjectResourceBuilderExtensions
     [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddPythonProject(name, projectDirectory, scriptPath, ".venv", scriptArgs);
-    }
+        => AddPythonProject(builder, name, projectDirectory, scriptPath, ".venv", scriptArgs);
 
     /// <summary>
     /// This method is retained only for compatibility.
@@ -114,11 +110,11 @@ public static class PythonProjectResourceBuilderExtensions
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(projectDirectory);
-        ArgumentNullException.ThrowIfNull(scriptPath);
-        ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
-        ArgumentNullException.ThrowIfNull(scriptArgs);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+        ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
 
         projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
@@ -179,5 +175,22 @@ public static class PythonProjectResourceBuilderExtensions
 
         context.Args.Add("--metrics_exporter");
         context.Args.Add("otlp");
+    }
+
+    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
+    {
+        ArgumentNullException.ThrowIfNull(scriptArgs);
+        foreach (var scriptArg in scriptArgs)
+        {
+            if (string.IsNullOrEmpty(scriptArg))
+            {
+                var values = string.Join(", ", scriptArgs);
+                if (scriptArg is null)
+                {
+                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
+            }
+        }
     }
 }
