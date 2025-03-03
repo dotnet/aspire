@@ -14,6 +14,7 @@
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.1" />
+    <PackageVersion Include="Azure.AI.Projects" Version="1.0.0-beta.3" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.6" />
@@ -172,9 +173,7 @@
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
-
   <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used. -->
-
   <ItemGroup>
     <!-- EF -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosLTSVersion)" />
@@ -205,7 +204,6 @@
     <PackageVersion Include="System.Formats.Asn1" Version="$(SystemFormatsAsn1LTSVersion)" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonLTSVersion)" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!-- EF -->
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosVersion)" />
