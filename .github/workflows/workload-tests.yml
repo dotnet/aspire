@@ -1,0 +1,79 @@
+name: Workload Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup_for_template_tests:
+    name: Setup for template tests
+    runs-on: ubuntu-latest
+    outputs:
+      templates_tests_matrix: ${{ steps.enumerateNamesStep.outputs.templates_test_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Generate list of tests
+        env:
+          CI: false
+        run: |
+            dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            "/t:Build;ExtractTestClassNames" \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog \
+            -p:ExtractTestClassNamesForHelix=true \
+            -p:ArchiveTests=true \
+            -p:ExtractTestClassNamesPrefix=Aspire.Workload.Tests
+
+      - name: Enumerate test class names
+        id: enumerateNamesStep
+        env:
+          CI: false
+        run: |
+          cat ${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.for-gh-actions.list >> $GITHUB_OUTPUT
+
+  _:
+    uses: ./.github/workflows/run-tests.yml
+    needs: setup_for_template_tests
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.templates_tests_matrix) }}
+    with:
+      testName: ${{ matrix.tests.shortname }}
+      testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      testSessionTimeoutMs: 1200000
+      testHangTimeout: 12m
+      extraArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.tests.shortname }}"
+      isWorkloadTests: true
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [_]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          ls -al test-job-result/
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]

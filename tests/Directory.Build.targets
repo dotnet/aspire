@@ -12,8 +12,9 @@
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
+    <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnGithubActions>
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true' or '$(RunTestsOnGithubActions)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,8 +37,8 @@
   </Target>
 
   <!-- Used for running one helix job per test class -->
-  <Target Name="_ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
+  <Target Name="ExtractTestClassNames"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true' and '$(IsTestSupportProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
@@ -64,6 +65,25 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
+
+    <ItemGroup>
+      <UniqueTestClassNamesFiltered ShortName="$([System.String]::new(%(Identity)).Replace('$(ExtractTestClassNamesPrefix).', ''))" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_JsonForGithubActions>
+        templates_test_matrix={&quot;tests&quot;: [ @(UniqueTestClassNamesFiltered -> '{&quot;shortname&quot;:&quot;%(ShortName)&quot;}', ',') ]}
+      </_JsonForGithubActions>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).for-gh-actions.list"
+                      Lines="$(_JsonForGithubActions)"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="GetRunTestsOnGithubActions" Returns="$(RunTestsOnGithubActions)">
+    <PropertyGroup>
+      <ShouldRunTests>$(RunTestsOnGithubActions)</ShouldRunTests>
+    </PropertyGroup>
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
