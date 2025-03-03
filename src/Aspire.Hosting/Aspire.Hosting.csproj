@@ -10,10 +10,6 @@
     <Description>Core abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>75</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />

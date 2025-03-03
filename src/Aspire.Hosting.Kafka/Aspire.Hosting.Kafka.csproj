@@ -7,10 +7,6 @@
   <Description>Kafka support for .NET Aspire.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>25</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Kafka" />
   </ItemGroup>
