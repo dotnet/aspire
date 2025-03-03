@@ -14,7 +14,7 @@ public class AzureServiceBusEmulatorResource(AzureServiceBusResource innerResour
     // The path to the emulator configuration file in the container.
     internal const string EmulatorConfigJsonPath = "/ServiceBus_Emulator/ConfigFiles/Config.json";
 
-    private readonly AzureServiceBusResource _innerResource = innerResource;
+    private readonly AzureServiceBusResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;

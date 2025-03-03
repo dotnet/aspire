@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class AppConfigurationTests
+public class AppConfigurationPublicApiTests
 {
     [Fact]
     public void AddAzureAppConfigurationShouldThrowWhenBuilderIsNull()

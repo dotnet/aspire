@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
@@ -10,30 +12,29 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Subscription.
+/// Initializes a new instance of the <see cref="AzureServiceBusSubscriptionResource"/> class.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusSubscriptionResource : Resource, IResourceWithParent<AzureServiceBusTopicResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+public class AzureServiceBusSubscriptionResource(string name, string subscriptionName, AzureServiceBusTopicResource parent)
+    : Resource(name), IResourceWithParent<AzureServiceBusTopicResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureServiceBusSubscriptionResource"/> class.
-    /// </summary>
-    public AzureServiceBusSubscriptionResource(string name, string subscriptionName, AzureServiceBusTopicResource parent) : base(name)
-    {
-        SubscriptionName = subscriptionName;
-        Parent = parent;
-    }
+    private string _subscriptionName = ThrowIfNullOrEmpty(subscriptionName);
 
     /// <summary>
     /// The subscription name.
     /// </summary>
-    public string SubscriptionName { get; set; }
+    public string SubscriptionName
+    {
+        get => _subscriptionName;
+        set => _subscriptionName = ThrowIfNullOrEmpty(value, nameof(subscriptionName));
+    }
 
     /// <summary>
     /// Gets the parent Azure Service Bus Topic resource.
     /// </summary>
-    public AzureServiceBusTopicResource Parent { get; }
+    public AzureServiceBusTopicResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Subscription.
@@ -181,5 +182,16 @@ public class AzureServiceBusSubscriptionResource : Resource, IResourceWithParent
         }
 
         writer.WriteEndObject();
+    }
+
+    private static string private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
+    ([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 }

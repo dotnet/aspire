@@ -22,7 +22,8 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name) => AddAzureSignalR(builder, name, AzureSignalRServiceMode.Default);
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+        => AddAzureSignalR(builder, name, AzureSignalRServiceMode.Default);
 
     /// <summary>
     /// Adds an Azure SignalR resource to the application model.
@@ -33,6 +34,9 @@ public static class AzureSignalRExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, AzureSignalRServiceMode serviceMode)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -95,6 +99,8 @@ public static class AzureSignalRExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSignalRResource> RunAsEmulator(this IResourceBuilder<AzureSignalRResource> builder, Action<IResourceBuilder<AzureSignalREmulatorResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;

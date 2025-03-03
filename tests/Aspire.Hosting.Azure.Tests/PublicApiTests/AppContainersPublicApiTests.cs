@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class AppContainersTests
+public class AppContainersPublicApiTests
 {
     [Fact]
     public void PublishAsAzureContainerAppShouldThrowWhenContainerIsNull()

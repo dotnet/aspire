@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Azure.Provisioning;
 
@@ -8,24 +10,23 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Rule.
+/// Initializes a new instance of the <see cref="AzureServiceBusRule"/> class.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusRule
+public class AzureServiceBusRule(string name)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureServiceBusRule"/> class.
-    /// </summary>
-    public AzureServiceBusRule(string name)
-    {
-        Name = name;
-    }
+    private string _name = ThrowIfNullOrEmpty(name);
 
     /// <summary>
     /// The rule name.
     /// </summary>
-    public string Name { get; set; }
+    public string Name
+    {
+        get => _name;
+        set => _name = ThrowIfNullOrEmpty(value, nameof(name));
+    }
 
     /// <summary>
     /// Properties of correlation filter.
@@ -179,5 +180,11 @@ public class AzureServiceBusRule
         writer.WriteEndObject(); // CorrelationFilter
 
         writer.WriteEndObject(); // Properties
+    }
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 }

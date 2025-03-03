@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class CosmosDBTests
+public class CosmosDBPublicApiTests
 {
     [Theory]
     [InlineData(false)]

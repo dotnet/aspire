@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class CognitiveServicesTests
+public class CognitiveServicesPublicApiTests
 {
     [Theory]
     [InlineData(false)]
