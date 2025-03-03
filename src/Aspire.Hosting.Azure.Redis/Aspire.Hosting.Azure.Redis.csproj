@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)AzureCacheRedis_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>97</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />

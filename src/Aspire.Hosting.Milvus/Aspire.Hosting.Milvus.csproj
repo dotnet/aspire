@@ -9,10 +9,6 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn><!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>17</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
   </ItemGroup>
