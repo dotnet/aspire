@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
 
@@ -39,13 +39,20 @@
 
   <ItemGroup>
     <!-- Reference the analyzer to ensure it's built but don't reference its output -->
-    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" OutputItemType="AnalyzerAssemblyPath" ReferenceOutputAssembly="false" Private="true" />
+    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
   </ItemGroup>
 
   <!-- Include the analyzer in the package -->
-  <Target Name="IncludeAnalyzerInPackage" AfterTargets="ResolveProjectReferences">
+  <PropertyGroup>
+    <BeforePack>$(BeforePack);IncludeAnalyzerInPackage</BeforePack>
+  </PropertyGroup>
+  <Target Name="IncludeAnalyzerInPackage">
+    <MSBuild Projects="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" ItemName="_AnalyzerFile" />
+    </MSBuild>
+
     <ItemGroup>
-      <None Include="@(AnalyzerAssemblyPath -> '%(Identity)')" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="@(_AnalyzerFile)" Pack="True" PackagePath="analyzers/dotnet/cs" />
     </ItemGroup>
   </Target>
 
