@@ -20,7 +20,7 @@
     <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
 
     <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
-    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
+    <!--<_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>-->
 
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
@@ -189,7 +189,7 @@
     </PropertyGroup>
 
     <ItemGroup Label="Common payload">
-      <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
+      <!--<HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />-->
       <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
       <HelixCorrelationPayload Condition="'$(DockerCliToolDir)' != ''" Include="$(DockerCliToolDir)" Destination="docker-cli" />
     </ItemGroup>
