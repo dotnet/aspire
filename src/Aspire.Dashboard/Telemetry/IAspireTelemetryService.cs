@@ -54,16 +54,16 @@ public class TelemetryResponse<T>(HttpStatusCode statusCode, T? result) : ITelem
 
 public record TelemetryEnabledResponse(bool IsEnabled);
 public record StartOperationRequest(string EventName, AspireTelemetryScopeSettings? Settings = null);
-public record StartOperationResponse(string OperationId);
+public record StartOperationResponse(string OperationId, TelemetryEventCorrelation Correlation);
 public record EndOperationRequest(string Id, TelemetryResult Result, string? ErrorMessage = null);
-public record PostOperationRequest(string EventName, TelemetryResult Result, string? ResultSummary = null, TelemetryEventCorrelation[]? CorrelatedWith = null);
-public record PostFaultRequest(string EventName, string Description, FaultSeverity Severity, TelemetryEventCorrelation[]? CorrelatedWith = null);
-public record PostAssetRequest(string EventName, string AssetId, int AssetEventVersion, Dictionary<string, object>? AdditionalProperties, TelemetryEventCorrelation[]? CorrelatedWith = null);
-public record PostPropertyRequest(string PropertyName, string PropertyValue);
-public record PostCommandLineFlagsRequest(List<string> FlagPrefixes, Dictionary<string, object> AdditionalProperties);
+public record PostOperationRequest(string EventName, TelemetryResult Result, string? ResultSummary = null, Dictionary<string, AspireTelemetryProperty>? Properties = null, TelemetryEventCorrelation[]? CorrelatedWith = null);
+public record PostFaultRequest(string EventName, string Description, FaultSeverity Severity, Dictionary<string, AspireTelemetryProperty>? Properties = null, TelemetryEventCorrelation[]? CorrelatedWith = null);
+public record PostAssetRequest(string EventName, string AssetId, int AssetEventVersion, Dictionary<string, AspireTelemetryProperty>? AdditionalProperties, TelemetryEventCorrelation[]? CorrelatedWith = null);
+public record PostPropertyRequest(string PropertyName, AspireTelemetryProperty PropertyValue);
+public record PostCommandLineFlagsRequest(List<string> FlagPrefixes, Dictionary<string, AspireTelemetryProperty> AdditionalProperties);
 
 public record AspireTelemetryScopeSettings(
-    Dictionary<string, object> StartEventProperties,
+    Dictionary<string, AspireTelemetryProperty> StartEventProperties,
     TelemetrySeverity Severity = TelemetrySeverity.Normal,
     bool IsOptOutFriendly = false,
     TelemetryEventCorrelation[]? Correlations = null,
@@ -81,3 +81,5 @@ public class TelemetryEventCorrelation
 }
 
 public record OperationResult(TelemetryResult Result, string? ErrorMessage = null);
+
+public record AspireTelemetryProperty(object Value, bool IsPii = false);

@@ -7,10 +7,12 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Microsoft.VisualStudio.Telemetry;
 
 namespace Aspire.Dashboard.Components.Layout;
 
@@ -25,6 +27,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
+
+    private string? _previousRelativeUri;
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
@@ -75,6 +79,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         await TelemetryService.InitializeAsync();
+        PostPageNavigationTelemetry(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
 
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
         // Note that this event could be raised from a settings dialog opened in a different browser window.
@@ -135,6 +141,40 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                     };
                 });
             }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        PostPageNavigationTelemetry(e.Location);
+    }
+
+    private void PostPageNavigationTelemetry(string location)
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(location);
+        // Collect only page base path, since there can also be other parts of the path
+        // ie for /consolelogs/resource/****, we only want to capture /consolelogs
+        var pageBaseUrl = GetPageBaseUrl(relativePath);
+
+        if (_previousRelativeUri is not null && StringComparers.UrlPath.Equals(GetPageBaseUrl(_previousRelativeUri), pageBaseUrl))
+        {
+            // The user did not navigate to a new page, but did perform an action that caused a *change* in the page url.
+            return;
+        }
+
+        _previousRelativeUri = relativePath;
+        TelemetryService.PostUserTaskAsync(new PostOperationRequest(TelemetryEventKeys.NavigateToPage, TelemetryResult.Success));
+        return;
+
+        static string GetPageBaseUrl(string relativePath)
+        {
+            var slashLocation = relativePath.IndexOf('/');
+            if (slashLocation == -1)
+            {
+                return relativePath;
+            }
+
+            return relativePath.Substring(0, slashLocation);
         }
     }
 
