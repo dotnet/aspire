@@ -2,21 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Cli.Tests.Helpers;
 using Aspire.Hosting.Cli;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Cli.Tests;
 
-public class CliOrphanDetectorTests
+public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task CliOrphanDetectorCompletesWhenNoPidEnvironmentVariablePresent()
     {
+        var configuration = new ConfigurationBuilder().Build();
+
         var lifetime = new HostLifetimeStub(() => {});
-        var detector = new CliOrphanDetector(lifetime);
-        detector.GetEnvironmentVariable = _ => null;
+        var detector = new CliOrphanDetector(configuration, lifetime);
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
@@ -27,11 +32,14 @@ public class CliOrphanDetectorTests
     [Fact]
     public async Task CliOrphanDetectorCallsStopIfEnvironmentVariablePresentAndProcessNotRunning()
     {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })    
+            .Build();
+
         var stopSignalChannel = Channel.CreateUnbounded<bool>();
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
 
-        var detector = new CliOrphanDetector(lifetime);
-        detector.GetEnvironmentVariable = _ => "1111";
+        var detector = new CliOrphanDetector(configuration, lifetime);
         detector.IsProcessRunning = _ => false;
 
         // The detector should complete almost immediately because there is no
@@ -44,15 +52,17 @@ public class CliOrphanDetectorTests
     [Fact]
     public async Task CliOrphanDetectorAfterTheProcessWasRunningForAWhileThenStops()
     {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })    
+            .Build();
         var fakeTimeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
         var stopSignalChannel = Channel.CreateUnbounded<bool>();
         var processRunningChannel = Channel.CreateUnbounded<int>();
 
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
-        var detector = new CliOrphanDetector(lifetime);
+        var detector = new CliOrphanDetector(configuration, lifetime);
         detector.TimeProvider = fakeTimeProvider;
-        detector.GetEnvironmentVariable = _ => "1111";
         
         var processRunningCallCounter = 0;
         detector.IsProcessRunning = pid => {
@@ -80,6 +90,18 @@ public class CliOrphanDetectorTests
         Assert.Equal(5, processRunningCallCounter);
 
         Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+    }
+
+    [Fact]
+    public async Task AppHostExitsWhenCliProcessPidDies()
+    {
+        using var stubProcess = StubProcess.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        builder.Configuration["ASPIRE_CLI_PID"] = stubProcess.Process.Id.ToString();
+        using var app = builder.Build();
+        var pendingRun = app.RunAsync();
+        stubProcess.Process.Kill();
+        await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
     }
 }
 

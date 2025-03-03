@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class CliOrphanDetector(IHostApplicationLifetime lifetime) : BackgroundService
+internal sealed class CliOrphanDetector(IConfiguration configuration, IHostApplicationLifetime lifetime) : BackgroundService
 {
     private const string CliProcessIdEnvironmentVariable = "ASPIRE_CLI_PID";
 
@@ -25,11 +26,9 @@ internal sealed class CliOrphanDetector(IHostApplicationLifetime lifetime) : Bac
         }
     };
 
-    internal Func<string, string?> GetEnvironmentVariable { get; set; } = Environment.GetEnvironmentVariable;
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (GetEnvironmentVariable(CliProcessIdEnvironmentVariable) is not { } pidString || !int.TryParse(pidString, out var pid))
+        if (configuration[CliProcessIdEnvironmentVariable] is not { } pidString || !int.TryParse(pidString, out var pid))
         {
             // If there is no PID environment variable, we assume that the process is not a child process
             // of the .NET Aspire CLI and we won't continue monitoring.

@@ -35,6 +35,11 @@ public class StubProcess(Process process) : IDisposable
 
     public void Dispose()
     {
+        if (!Process.HasExited)
+        {
+            Process.Kill();
+        }
+        
         Process.Dispose();
     }
 }
