@@ -255,7 +255,8 @@ public class ApplicationOrchestratorTests
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
-        DistributedApplicationEventing? applicationEventing = null)
+        DistributedApplicationEventing? applicationEventing = null,
+        ResourceLoggerService? resourceLoggerService = null)
     {
         return new ApplicationOrchestrator(
             distributedAppModel,
@@ -263,6 +264,7 @@ public class ApplicationOrchestratorTests
             dcpEvents ?? new DcpExecutorEvents(),
             Array.Empty<IDistributedApplicationLifecycleHook>(),
             notificationService,
+            resourceLoggerService ?? new ResourceLoggerService(),
             applicationEventing ?? new DistributedApplicationEventing(),
             new ServiceCollection().BuildServiceProvider()
             );
