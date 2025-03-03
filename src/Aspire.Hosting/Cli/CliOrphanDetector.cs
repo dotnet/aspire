@@ -7,11 +7,9 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class CliOrphanDetector(IConfiguration configuration, IHostApplicationLifetime lifetime) : BackgroundService
+internal sealed class CliOrphanDetector(IConfiguration configuration, IHostApplicationLifetime lifetime, TimeProvider timeProvider) : BackgroundService
 {
     private const string CliProcessIdEnvironmentVariable = "ASPIRE_CLI_PID";
-
-    internal TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
     internal Func<int, bool> IsProcessRunning { get; set; } = (int pid) =>
     {
@@ -35,7 +33,7 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             return;
         }
 
-        using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), TimeProvider);
+        using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), timeProvider);
 
         do
         {

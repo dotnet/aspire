@@ -21,7 +21,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var configuration = new ConfigurationBuilder().Build();
 
         var lifetime = new HostLifetimeStub(() => {});
-        var detector = new CliOrphanDetector(configuration, lifetime);
+        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
@@ -39,7 +39,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var stopSignalChannel = Channel.CreateUnbounded<bool>();
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
 
-        var detector = new CliOrphanDetector(configuration, lifetime);
+        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
         detector.IsProcessRunning = _ => false;
 
         // The detector should complete almost immediately because there is no
@@ -61,8 +61,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var processRunningChannel = Channel.CreateUnbounded<int>();
 
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
-        var detector = new CliOrphanDetector(configuration, lifetime);
-        detector.TimeProvider = fakeTimeProvider;
+        var detector = new CliOrphanDetector(configuration, lifetime, fakeTimeProvider);
         
         var processRunningCallCounter = 0;
         detector.IsProcessRunning = pid => {
