@@ -30,7 +30,7 @@ else
                 </div>
             }
         </div>
-        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync" Size="(TabSize)int.MinValue">
+        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
                        aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
