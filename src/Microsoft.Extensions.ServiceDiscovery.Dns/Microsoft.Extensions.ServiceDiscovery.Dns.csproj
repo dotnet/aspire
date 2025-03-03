@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>51</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
