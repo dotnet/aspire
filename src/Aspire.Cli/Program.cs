@@ -34,13 +34,11 @@ public class Program
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication();
-            var pendingRun = app.RunAsync(ct).ConfigureAwait(false);
+            _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var runner = app.Services.GetRequiredService<AppHostRunner>();
             var appHostProjectFile = parseResult.GetValue<FileInfo>("project");
             var exitCode = await runner.RunAppHostAsync(appHostProjectFile!, [], ct).ConfigureAwait(false);
-
-            await pendingRun;
 
             return exitCode;
         });
@@ -63,15 +61,13 @@ public class Program
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication();
-            var pendingRun = app.RunAsync(ct).ConfigureAwait(false);
+            _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var runner = app.Services.GetRequiredService<AppHostRunner>();
             var appHostProjectFile = parseResult.GetValue<FileInfo>("project");
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var exitCode = await runner.RunAppHostAsync(appHostProjectFile!, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
-
-            await pendingRun;
 
             return exitCode;
         });

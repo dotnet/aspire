@@ -3,11 +3,10 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Cli;
 
-internal sealed class AppHostRunner(IHostApplicationLifetime lifetime)
+internal sealed class AppHostRunner
 {
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -44,8 +43,6 @@ internal sealed class AppHostRunner(IHostApplicationLifetime lifetime)
         {
             process.Kill(false); // DCP should clean everything else up.
         }
-
-        lifetime.StopApplication();
 
         return process.ExitCode;
     }
