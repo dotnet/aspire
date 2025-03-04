@@ -90,10 +90,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
             if (existingAnnotation.ResourceGroup is not null)
             {
-                var existingResourceGroup = existingAnnotation.ResourceGroup is ParameterResource resourceGroupParameter
-                    ? resourceGroupParameter
-                    : existingAnnotation.ResourceGroup;
-                infrastructure.AspireResource.Scope = new(existingResourceGroup);
+                infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroup);
             }
         }
         else
