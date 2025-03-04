@@ -14,6 +14,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
@@ -649,5 +650,14 @@ public sealed partial class ConsoleLogs : TelemetryPageComponentBase, IAsyncDisp
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
         return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
+    }
+
+    protected override Dictionary<string, AspireTelemetryProperty> GetPageProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty) },
+            { TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting) }
+        };
     }
 }

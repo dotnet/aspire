@@ -11,5 +11,8 @@ public static class TelemetryPropertyKeys
     public const string DashboardVersion = AspireDashboardPropertyPrefix + ".Version";
     public const string DashboardBuildId = AspireDashboardPropertyPrefix + ".BuildId";
 
-    public const string DashboardPageUrl = AspireDashboardPropertyPrefix + ".PageUrl";
+    public const string DashboardPageId = AspireDashboardPropertyPrefix + ".PageId";
+
+    public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + ".ConsoleLogs.ShowTimestamp";
+    public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + ".ConsoleLogs.ApplicationName";
 }

@@ -84,4 +84,12 @@ public class TelemetryEventCorrelation
 
 public record OperationResult(TelemetryResult Result, string? ErrorMessage = null);
 
-public record AspireTelemetryProperty(object Value, bool IsPii = false);
+public record AspireTelemetryProperty(object Value, AspireTelemetryPropertyType PropertyType = AspireTelemetryPropertyType.Basic);
+
+public enum AspireTelemetryPropertyType
+{
+    Pii = 0,
+    Basic = 1,
+    Metric = 2,
+    UserSetting = 3
+}

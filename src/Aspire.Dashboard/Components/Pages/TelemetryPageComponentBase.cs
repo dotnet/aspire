@@ -30,7 +30,7 @@ public abstract class TelemetryPageComponentBase : ComponentBase
             var request = new StartOperationRequest(
                 TelemetryEventKeys.NavigateToPage,
                 new AspireTelemetryScopeSettings(new Dictionary<string, AspireTelemetryProperty> {
-                    { TelemetryPropertyKeys.DashboardPageUrl, new AspireTelemetryProperty(NavigationManager.Uri) }
+                    { TelemetryPropertyKeys.DashboardPageId, new AspireTelemetryProperty(PageId) }
                 }));
             _loadOperation = await TelemetryService.StartOperationAsync(request);
         }
@@ -44,25 +44,26 @@ public abstract class TelemetryPageComponentBase : ComponentBase
 
         Task PostPageRenderTelemetryAsync()
         {
+            var properties = GetPageProperties();
+            properties[TelemetryPropertyKeys.DashboardPageId] = new AspireTelemetryProperty(PageId);
+
             var request = new PostOperationRequest(
                 TelemetryEventKeys.PageRender,
                 TelemetryResult.Success,
                 null,
-                GetPageProperties(),
+                properties,
                 _loadOperation?.Content?.Correlation is { } loadPageCorrelation ? [loadPageCorrelation] : null);
 
             return TelemetryService.PostUserTaskAsync(request);
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender)
+        /*if (_loadOperation?.Content is { OperationId: { } operationId })
         {
-            if (_loadOperation?.Content is { OperationId: { } operationId })
-            {
-                await TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success));
-            }
-        }
+            _loadOperation = null;
+            _ = TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success));
+        }*/
     }
 }
