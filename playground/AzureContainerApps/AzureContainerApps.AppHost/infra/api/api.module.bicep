@@ -1,10 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param api_roles_outputs_id string
-
-param api_roles_outputs_clientid string
-
 param api_containerport string
 
 param storage_outputs_blobendpoint string

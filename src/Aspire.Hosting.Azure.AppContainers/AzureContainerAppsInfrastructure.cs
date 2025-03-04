@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -34,8 +35,11 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
+        var environment = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().LastOrDefault();
+
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
+            environment,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_ID,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID,
@@ -74,6 +78,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
     private sealed class ContainerAppEnvironmentContext(
         ILogger logger,
+        AzureContainerAppEnvironmentResource? environmentResource,
         IManifestExpressionProvider containerAppEnvironmentId,
         IManifestExpressionProvider containerAppDomain,
         IManifestExpressionProvider managedIdentityId,
@@ -82,11 +87,11 @@ internal sealed class AzureContainerAppsInfrastructure(
         )
     {
         private ILogger Logger => logger;
-        private IManifestExpressionProvider ContainerAppEnvironmentId => containerAppEnvironmentId;
-        private IManifestExpressionProvider ContainerAppDomain => containerAppDomain;
-        private IManifestExpressionProvider ManagedIdentityId => managedIdentityId;
-        private IManifestExpressionProvider ContainerRegistryUrl => containerRegistryUrl;
-        private IManifestExpressionProvider ContainerRegistryManagedIdentityId => containerRegistryManagedIdentityId;
+        private IManifestExpressionProvider ContainerAppEnvironmentId => environmentResource?.ContainerAppEnvironmentId ?? containerAppEnvironmentId;
+        private IManifestExpressionProvider ContainerAppDomain => environmentResource?.ContainerAppDomain ?? containerAppDomain;
+        private IManifestExpressionProvider ManagedIdentityId => environmentResource?.ManagedIdentityId ?? managedIdentityId;
+        private IManifestExpressionProvider ContainerRegistryUrl => environmentResource?.ContainerRegistryUrl ?? containerRegistryUrl;
+        private IManifestExpressionProvider ContainerRegistryManagedIdentityId => environmentResource?.ContainerRegistryManagedIdentityId ?? containerRegistryManagedIdentityId;
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
