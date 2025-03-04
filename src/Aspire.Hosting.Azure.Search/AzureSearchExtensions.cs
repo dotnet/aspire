@@ -22,6 +22,9 @@ public static class AzureSearchExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         AzureSearchResource resource = new(name, ConfigureSearch);

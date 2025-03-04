@@ -37,6 +37,9 @@ public static class AspireServiceBusExtensions
         Action<AzureMessagingServiceBusSettings>? configureSettings = null,
         Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -55,6 +58,7 @@ public static class AspireServiceBusExtensions
         Action<AzureMessagingServiceBusSettings>? configureSettings = null,
         Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);

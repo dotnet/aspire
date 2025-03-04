@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
@@ -10,30 +12,29 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Topic.
+/// Initializes a new instance of the <see cref="AzureServiceBusTopicResource"/> class.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusTopicResource : Resource, IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+public class AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent)
+    : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureServiceBusTopicResource"/> class.
-    /// </summary>
-    public AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent) : base(name)
-    {
-        TopicName = topicName;
-        Parent = parent;
-    }
+    private string _topicName = ThrowIfNullOrEmpty(topicName);
 
     /// <summary>
     /// The topic name.
     /// </summary>
-    public string TopicName { get; set; }
+    public string TopicName
+    {
+        get => _topicName;
+        set => _topicName = ThrowIfNullOrEmpty(value, nameof(topicName));
+    }
 
     /// <summary>
     /// Gets the parent Azure Service Bus resource.
     /// </summary>
-    public AzureServiceBusResource Parent { get; }
+    public AzureServiceBusResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Topic.
@@ -124,5 +125,11 @@ public class AzureServiceBusTopicResource : Resource, IResourceWithParent<AzureS
         }
 
         writer.WriteEndObject();
+    }
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 }

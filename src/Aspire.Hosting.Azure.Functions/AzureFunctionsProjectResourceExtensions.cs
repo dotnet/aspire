@@ -3,10 +3,10 @@
 
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure;
-using Azure.Provisioning.Storage;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting;
 
@@ -33,8 +33,12 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to which the Azure Functions project will be added.</param>
     /// <param name="name">The name to be associated with the Azure Functions project. This name will be used for service discovery when referenced in a dependency.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
-    public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+        where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
@@ -207,6 +211,9 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <returns>The resource builder for the Azure Functions project resource, configured with the specified host storage.</returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> WithHostStorage(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureStorageResource> storage)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(storage);
+
         builder.Resource.HostStorage = storage.Resource;
         return builder;
     }
@@ -222,6 +229,9 @@ public static class AzureFunctionsProjectResourceExtensions
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(source);
+
         return destination.WithEnvironment(context =>
         {
             connectionName ??= source.Resource.Name;
