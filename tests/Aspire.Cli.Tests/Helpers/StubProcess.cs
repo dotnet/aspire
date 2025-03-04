@@ -14,8 +14,8 @@ public class StubProcess(Process process) : IDisposable
         var startInfo = Environment.OSVersion.Platform switch {
             PlatformID.Win32NT => new ProcessStartInfo()
             {
-                FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-                Arguments = "/c set /p discard=WaitingUntilDeath"
+                FileName = Path.Combine(Environment.SystemDirectory, "ping.exe"),
+                Arguments = "-t 127.0.0.1"
             },
             PlatformID.Unix => new ProcessStartInfo()
             {
