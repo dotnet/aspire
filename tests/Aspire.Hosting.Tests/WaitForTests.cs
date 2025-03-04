@@ -125,7 +125,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
-        var cs = builder.AddConnectionString("cs", $"{dependency};Timeout=100");
+        var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"{dependency};Timeout=100"));
 
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WaitFor(cs);

@@ -50,29 +50,4 @@ public static class ConnectionStringBuilderExtensions
                           Properties = []
                       });
     }
-
-    /// <summary>
-    /// Adds a connection string to the distributed application a resource with the specified expression.
-    /// </summary>
-    /// <remarks>
-    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
-    /// </remarks>
-    /// <param name="builder">Distributed application builder</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="connectionStringExpression">The connection string expression.</param>
-    /// <returns>An <see cref="IResourceBuilder{ConnectionStringResource}"/> instance.</returns>
-    /// <example>
-    /// <code language="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
-    /// var key = builder.AddParameter("key", secret: true);
-    /// 
-    /// builder.AddConnectionString("myconnection", $"Endpoint={endpoint};Key={key}");
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression.ExpressionInterpolatedStringHandler connectionStringExpression)
-    {
-        return builder.AddConnectionString(name, ReferenceExpression.Create(connectionStringExpression));
-    }
 }
