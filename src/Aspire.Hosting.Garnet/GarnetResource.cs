@@ -9,7 +9,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class GarnetResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GarnetResource"/> class.
     /// </summary>
@@ -62,7 +61,4 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
 
         return builder.Build();
     }
-
-    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-        => argument ?? throw new ArgumentNullException(paramName);
 }
