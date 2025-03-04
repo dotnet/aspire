@@ -21,6 +21,7 @@ public class Program
     {
         var rootCommand = new RootCommand(".NET Aspire CLI");
         ConfigureDevCommand(rootCommand);
+        ConfigurePackCommand(rootCommand);
         return rootCommand;
     }
 
@@ -37,7 +38,38 @@ public class Program
 
             var runner = app.Services.GetRequiredService<AppHostRunner>();
             var appHostProjectFile = parseResult.GetValue<FileInfo>("project");
-            var exitCode = await runner.RunAppHostAsync(appHostProjectFile!, ct).ConfigureAwait(false);
+            var exitCode = await runner.RunAppHostAsync(appHostProjectFile!, [], ct).ConfigureAwait(false);
+
+            await pendingRun;
+
+            return exitCode;
+        });
+
+        parentCommand.Subcommands.Add(command);
+    }
+
+    private static void ConfigurePackCommand(Command parentCommand)
+    {
+        var command = new Command("pack", "Pack a .NET Aspire AppHost project.");
+
+        var projectArgument = new Argument<FileInfo>("project").AcceptExistingOnly();
+        command.Arguments.Add(projectArgument);
+
+        var targetOption = new Option<string>("--target", "-t");
+        command.Options.Add(targetOption);
+
+        var outputPath = new Option<string>("--output-path", "-o");
+        command.Options.Add(outputPath);
+
+        command.SetAction(async (parseResult, ct) => {
+            using var app = BuildApplication();
+            var pendingRun = app.RunAsync(ct).ConfigureAwait(false);
+
+            var runner = app.Services.GetRequiredService<AppHostRunner>();
+            var appHostProjectFile = parseResult.GetValue<FileInfo>("project");
+            var target = parseResult.GetValue<string>("--target");
+            var outputPath = parseResult.GetValue<string>("--output-path");
+            var exitCode = await runner.RunAppHostAsync(appHostProjectFile!, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
 
             await pendingRun;
 
