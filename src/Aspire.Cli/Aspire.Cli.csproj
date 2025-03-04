@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,7 +12,6 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PublishAot>true</PublishAot>
     <PackAsTool>true</PackAsTool>
-    <IsPackable>true</IsPackable>
     <ToolCommandName>aspire</ToolCommandName>
   </PropertyGroup>
 
