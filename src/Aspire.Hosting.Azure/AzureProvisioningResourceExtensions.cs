@@ -124,7 +124,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(outputReference);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= outputReference.Name;
+        parameterName ??= GetNameFromValueExpression(outputReference);
 
         infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
@@ -197,6 +197,17 @@ public static class AzureProvisioningResourceExtensions
         }
 
         return parameter;
+    }
+
+    private static string GetNameFromValueExpression(IManifestExpressionProvider ep)
+    {
+        var parameterName = ep.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
+
+        if (parameterName[0] == '_')
+        {
+            parameterName = parameterName[1..];
+        }
+        return parameterName;
     }
 }
 

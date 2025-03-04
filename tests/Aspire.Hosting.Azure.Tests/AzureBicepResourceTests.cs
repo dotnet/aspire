@@ -2200,6 +2200,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2359,6 +2361,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2517,6 +2521,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2604,6 +2610,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
             """;
+
+        var m = storageManifest.ManifestNode.ToString();
+
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         var expectedBicep = """
@@ -2611,11 +2620,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param principalType string
-            
+
             param principalId string
-            
+
             param storagesku string
-            
+
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2676,6 +2685,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);

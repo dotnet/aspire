@@ -27,6 +27,14 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// </summary>
     public ProvisioningBuildOptions? ProvisioningBuildOptions { get; set; }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public virtual ProvisionableResource GetExistingResource(BicepValue<string> name) => throw new NotImplementedException();
+
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {

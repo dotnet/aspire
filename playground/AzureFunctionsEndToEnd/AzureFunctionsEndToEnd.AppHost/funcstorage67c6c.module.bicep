@@ -75,3 +75,5 @@ output blobEndpoint string = funcstorage67c6c.properties.primaryEndpoints.blob
 output queueEndpoint string = funcstorage67c6c.properties.primaryEndpoints.queue
 
 output tableEndpoint string = funcstorage67c6c.properties.primaryEndpoints.table
+
+output name string = funcstorage67c6c.name
