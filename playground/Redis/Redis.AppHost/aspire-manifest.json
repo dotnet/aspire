@@ -59,12 +59,12 @@
     },
     "valkey": {
       "type": "container.v0",
-      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
+      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port},password={valkey-password.value}",
       "image": "docker.io/valkey/valkey:8.0",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "valkey-server --requirepass $VALKEY_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -73,6 +73,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "VALKEY_PASSWORD": "{valkey-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -129,6 +132,22 @@
     "garnet-password": {
       "type": "parameter.v0",
       "value": "{garnet-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "valkey-password": {
+      "type": "parameter.v0",
+      "value": "{valkey-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",
