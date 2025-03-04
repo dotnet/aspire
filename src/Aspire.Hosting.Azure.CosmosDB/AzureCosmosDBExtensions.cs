@@ -36,8 +36,7 @@ public static class AzureCosmosExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureCosmosDBResource(name, ConfigureCosmosDBInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

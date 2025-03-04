@@ -25,8 +25,7 @@ public static class AzureProvisioningResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureProvisioningResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

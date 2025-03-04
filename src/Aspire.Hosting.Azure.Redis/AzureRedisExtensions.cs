@@ -57,8 +57,7 @@ public static class AzureRedisExtensions
         };
 
         var resource = new AzureRedisResource(builder.Resource, configureInfrastructure);
-        var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                     .WithManifestPublishingCallback(resource.WriteToManifest);
+        var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
 
         if (useProvisioner)
         {
@@ -121,8 +120,7 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

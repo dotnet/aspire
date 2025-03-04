@@ -65,7 +65,6 @@ public static class AzureKeyVaultResourceExtensions
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

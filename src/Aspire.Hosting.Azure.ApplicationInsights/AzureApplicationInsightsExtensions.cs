@@ -110,7 +110,6 @@ public static class AzureApplicationInsightsExtensions
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);
 
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

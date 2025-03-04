@@ -70,7 +70,6 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresResource(builder.Resource, configureInfrastructure);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                                        .WithManifestPublishingCallback(resource.WriteToManifest)
                                                         .WithLoginAndPassword(builder.Resource);
 
         if (useProvisioner)
@@ -141,8 +140,7 @@ public static class AzurePostgresExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

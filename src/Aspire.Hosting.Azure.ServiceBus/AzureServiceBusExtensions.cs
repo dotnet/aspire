@@ -104,8 +104,7 @@ public static class AzureServiceBusExtensions
         };
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

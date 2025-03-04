@@ -28,8 +28,7 @@ public static class AzureSearchExtensions
         builder.AddAzureProvisioning();
 
         AzureSearchResource resource = new(name, ConfigureSearch);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {

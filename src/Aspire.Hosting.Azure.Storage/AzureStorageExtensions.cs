@@ -83,8 +83,7 @@ public static class AzureStorageExtensions
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
