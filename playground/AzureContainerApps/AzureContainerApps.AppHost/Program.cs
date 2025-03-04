@@ -3,7 +3,16 @@
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using Azure.Provisioning.AppContainers;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddContainerAppEnvironment()
+       .ConfigureInfrastructure(infra =>
+       {
+           var env = infra.GetProvisionableResources().OfType<ContainerAppManagedEnvironment>().Single();
+           env.WorkloadProfiles.Clear();
+       });
 
 var customDomain = builder.AddParameter("customDomain");
 var certificateName = builder.AddParameter("certificateName");
@@ -39,7 +48,7 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithEnvironment("VALUE", param)
        .PublishAsAzureContainerApp((module, app) =>
        {
-           app.ConfigureCustomDomain(customDomain, certificateName);
+           // app.ConfigureCustomDomain(customDomain, certificateName);
 
            // Scale to 0
            app.Template.Scale.MinReplicas = 0;
