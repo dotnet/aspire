@@ -99,6 +99,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7885")]
     public void PublishAsAzureContainerAppForProjectShouldThrowWhenConfigureIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
