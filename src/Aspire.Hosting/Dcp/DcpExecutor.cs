@@ -1080,6 +1080,24 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
+            if (container.TryGetContainerMounts(out var containerMounts))
+            {
+                ctr.Spec.VolumeMounts = [];
+
+                foreach (var mount in containerMounts)
+                {
+                    var volumeSpec = new VolumeMount
+                    {
+                        Source = mount.Source,
+                        Target = mount.Target,
+                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                        IsReadOnly = mount.IsReadOnly
+                    };
+
+                    ctr.Spec.VolumeMounts.Add(volumeSpec);
+                }
+            }
+
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
                 new ContainerNetworkConnection
@@ -1187,8 +1205,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Ports = BuildContainerPorts(cr);
         }
-
-        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1629,28 +1645,5 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         return ports;
-    }
-
-    private static List<VolumeMount> BuildContainerMounts(IResource container)
-    {
-        var volumeMounts = new List<VolumeMount>();
-
-        if (container.TryGetContainerMounts(out var containerMounts))
-        {
-            foreach (var mount in containerMounts)
-            {
-                var volumeSpec = new VolumeMount
-                {
-                    Source = mount.Source,
-                    Target = mount.Target,
-                    Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
-                    IsReadOnly = mount.IsReadOnly
-                };
-
-                volumeMounts.Add(volumeSpec);
-            }
-        }
-
-        return volumeMounts;
     }
 }

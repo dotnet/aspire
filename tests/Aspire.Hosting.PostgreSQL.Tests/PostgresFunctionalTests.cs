@@ -221,8 +221,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 postgres1.WithDataBindMount(bindMountPath);
             }
 

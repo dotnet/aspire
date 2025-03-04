@@ -115,7 +115,6 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
                 qdrant1.WithDataBindMount(bindMountPath);
             }
 

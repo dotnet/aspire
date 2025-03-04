@@ -146,7 +146,6 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
                 mysql1.WithDataBindMount(bindMountPath);
             }
 
@@ -304,10 +303,15 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-        Directory.CreateDirectory(bindMountPath);
-
         try
         {
+            if (Directory.Exists(bindMountPath))
+            {
+                Directory.Delete(bindMountPath);
+            }
+
+            Directory.CreateDirectory(bindMountPath);
+
             File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
                 CREATE TABLE cars (brand VARCHAR(255));
                 INSERT INTO cars (brand) VALUES ('BatMobile');
