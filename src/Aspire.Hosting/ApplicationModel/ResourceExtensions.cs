@@ -288,8 +288,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -336,7 +337,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -551,6 +554,24 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
+    /// </summary>
+    /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
+    /// <returns>True if an annotation exists, false otherwise</returns>
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
+    {
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
+            return true;
+        }
+
+        pullPolicy = null;
+        return false;
     }
 
     /// <summary>

@@ -23,9 +23,19 @@ public static class DistributedApplicationTestingBuilderExtensions
         builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
         return builder;
     }
-    public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder)
+
+    public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder, string? path = null)
     {
-        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
+        // We create the Aspire Store in a folder with user-only access. This way non-root containers won't be able
+        // to access the files unless they correctly assign the required permissions for the container to work.
+
+        builder.Configuration["Aspire:Store:Path"] = path ?? Directory.CreateTempSubdirectory().FullName;
+        return builder;
+    }
+
+    public static IDistributedApplicationTestingBuilder WithResourceCleanUp(this IDistributedApplicationTestingBuilder builder, bool? resourceCleanup = null)
+    {
+        builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = resourceCleanup.ToString();
         return builder;
     }
 }

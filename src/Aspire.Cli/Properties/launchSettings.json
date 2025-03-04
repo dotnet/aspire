@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "dev-waitfor": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "dev ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj",
+      "environmentVariables": {
+      }
+    },
+    "pack-waitfor": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "pack ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj --target manifest --output-path aspire-manifest.json",
+      "environmentVariables": {
+      }
+    }
+  }
+}

@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
 
 namespace Aspire.Hosting.Testing;
 
@@ -21,6 +21,7 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
+    private readonly string[] _args = ThrowIfNullOrContainsIsNullOrEmpty(args);
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -79,6 +80,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public HttpClient CreateHttpClient(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().CreateHttpClient(resourceName, endpointName);
     }
@@ -91,6 +94,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public ValueTask<string?> GetConnectionString(string resourceName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetConnectionStringAsync(resourceName);
     }
@@ -105,6 +110,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public Uri GetEndpoint(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetEndpoint(resourceName, endpointName);
     }
@@ -142,6 +149,24 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     {
     }
 
+    private static string[] ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        foreach (var arg in args)
+        {
+            if (string.IsNullOrEmpty(arg))
+            {
+                var values = string.Join(", ", args);
+                if (arg is null)
+                {
+                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
+            }
+        }
+        return args;
+    }
+
     private void OnBuiltCore(DistributedApplication application)
     {
         _shutdownTimeout = application.Services.GetService<IOptions<HostOptions>>()?.Value.ShutdownTimeout ?? _shutdownTimeout;
@@ -162,7 +187,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         };
         applicationOptions.Args = hostBuilderOptions.Args;
 
-        hostBuilderOptions.EnvironmentName = Environments.Development;
         hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
@@ -217,7 +241,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         DistributedApplicationOptions applicationOptions,
         HostApplicationBuilderSettings hostBuilderOptions)
     {
-        ConfigureBuilder(args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
+        ConfigureBuilder(_args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
     }
 
     private static void PostConfigureBuilderOptions(
@@ -264,6 +288,18 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
                 foreach (var (key, value) in envVars)
                 {
                     SetDefault(key, value);
+
+                    // See https://github.com/dotnet/runtime/blob/8edaf7460777e791b6279b395a68a77533db2d20/src/libraries/Microsoft.Extensions.Hosting/src/HostApplicationBuilder.cs#L96
+                    if (key.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SetDefault(key["DOTNET_".Length..], value);
+                    }
+
+                    // See https://github.com/dotnet/aspnetcore/blob/4ce2db7b8d85c07cad2c59242edc19af6a91b0d7/src/DefaultBuilder/src/WebApplicationBuilder.cs#L38
+                    if (key.StartsWith("ASPNETCORE_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SetDefault(key["ASPNETCORE_".Length..], value);
+                    }
                 }
             }
         }
@@ -380,7 +416,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         try
         {
             using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-            var app = await factory(args ?? [], cts.Token).ConfigureAwait(false);
+            var app = await factory(_args, cts.Token).ConfigureAwait(false);
             _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
                 ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
             OnBuiltCore(app);
@@ -581,8 +617,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
         public async Task StopAsync(CancellationToken cancellationToken = default)
         {
-            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, appFactory._disposingCts.Token);
-            await innerHost.StopAsync(linkedToken.Token).ConfigureAwait(false);
+            // The cancellation token is passed as-is here to give the host a chance to stop gracefully.
+            // Internally, in the host itself, the value of HostOptions.ShutdownTimeout limits how long the host has to stop gracefully.
+            await innerHost.StopAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

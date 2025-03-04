@@ -346,9 +346,9 @@ internal static class CosmosExtensions
         }
 
         return usePreview
-#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
             ? builder.RunAsPreviewEmulator(WithVolume)
-#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning restore ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
             : builder.RunAsEmulator(WithVolume);
     }
 }

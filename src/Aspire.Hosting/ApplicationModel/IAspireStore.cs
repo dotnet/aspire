@@ -29,14 +29,4 @@ public interface IAspireStore
     /// <param name="contentStream">A stream containing the content.</param>
     /// <returns>A deterministic file path with the same content as the provided stream.</returns>
     string GetFileNameWithContent(string filenameTemplate, Stream contentStream);
-
-    /// <summary>
-    /// Gets a deterministic file path that is a copy of the <paramref name="sourceFilename"/>.
-    /// The resulting file name will depend on the content of the file.
-    /// </summary>
-    /// <param name="filenameTemplate">A file name to base the result on.</param>
-    /// <param name="sourceFilename">An existing file.</param>
-    /// <returns>A deterministic file path with the same content as <paramref name="sourceFilename"/>.</returns>
-    /// <exception cref="FileNotFoundException">Thrown when the source file does not exist.</exception>
-    string GetFileNameWithContent(string filenameTemplate, string sourceFilename);
 }

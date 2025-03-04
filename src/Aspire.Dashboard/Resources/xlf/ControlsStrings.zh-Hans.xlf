@@ -57,6 +57,21 @@
         <target state="translated">选项</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerOverflowDescription">
+        <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
+        <target state="translated">OpenTelemetry SDK 已删除指标的一些维度。</target>
+        <note>OpenTelemetry is the name of the standard.</note>
+      </trans-unit>
+      <trans-unit id="ChartContainerOverflowLink">
+        <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
+        <target state="translated">有关详细信息，请参阅 &lt;a href="{0}" target="_blank"&gt;OpenTelemetry 规范基数限制&lt;/a&gt;。</target>
+        <note>OpenTelemetry is the name of the standard.</note>
+      </trans-unit>
+      <trans-unit id="ChartContainerOverflowTitle">
+        <source>Cardinality capping has been detected</source>
+        <target state="translated">已检测到基数上限</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
         <target state="translated">选择筛选器</target>

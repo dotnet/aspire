@@ -1,16 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a Garnet resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class GarnetResource(string name) : ContainerResource(ThrowIfNull(name)), IResourceWithConnectionString
+public class GarnetResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
 
     /// <summary>
@@ -56,7 +53,7 @@ public class GarnetResource(string name) : ContainerResource(ThrowIfNull(name)),
     private ReferenceExpression BuildConnectionString()
     {
         var builder = new ReferenceExpressionBuilder();
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         if (PasswordParameter is not null)
         {

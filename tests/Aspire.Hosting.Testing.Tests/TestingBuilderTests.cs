@@ -107,6 +107,20 @@ public class TestingBuilderTests(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public async Task CanSetEnvironment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--environment=Testing"]);
+        Assert.Equal("Testing", builder.Environment.EnvironmentName);
+    }
+
+    [Fact]
+    public async Task EnvironmentDefaultsToDevelopment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        Assert.Equal(Environments.Development, builder.Environment.EnvironmentName);
+    }
+
     [Theory]
     [RequiresDocker]
     [InlineData(false)]
@@ -125,10 +139,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
 
-        // Get a connection string from a resource
-        var pgConnectionString = await app.GetConnectionStringAsync("postgres1");
-        Assert.NotNull(pgConnectionString);
-        Assert.True(pgConnectionString.Length > 0);
+        // Get a connection string
+        var connectionString = await app.GetConnectionStringAsync("cs");
+        Assert.NotNull(connectionString);
+        Assert.True(connectionString.Length > 0);
     }
 
     [Theory]
@@ -146,7 +160,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
         // Ensure that the resource which we added is present in the model.
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
@@ -456,9 +469,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-
-            await app.DisposeAsync().AsTask().WaitAsync(cts.Token);
-            return;
         }
         else
         {
@@ -503,7 +513,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
         try
         {
             var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(
-                ["--wait-for-healthy"],
+                ["--wait-for-healthy", "--add-redis"],
                 cts.Token).WaitAsync(cts.Token);
 
             // Make the redis container hang forever.

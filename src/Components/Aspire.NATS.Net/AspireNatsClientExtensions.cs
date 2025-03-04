@@ -60,6 +60,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: null, configureOptions: null);
     }
 
@@ -67,6 +68,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Action<NatsClientSettings>? configureSettings)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: null);
     }
 
@@ -74,6 +76,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Func<NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: null, configureOptions: Wrap(configureOptions));
     }
 
@@ -81,6 +84,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: null, configureOptions: configureOptions);
     }
 
@@ -88,6 +92,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Action<NatsClientSettings>? configureSettings, Func<NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: Wrap(configureOptions));
     }
 
@@ -105,6 +110,7 @@ public static class AspireNatsClientExtensions
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Action<NatsClientSettings>? configureSettings, Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddNatsClientInternal(builder, connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: configureOptions);
     }
 

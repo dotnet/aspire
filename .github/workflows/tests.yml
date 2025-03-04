@@ -2,9 +2,9 @@ name: Run Integration Tests
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
-      - 'release/*'
+      - 'release/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -58,6 +58,8 @@ jobs:
             name: Hosting.Redis
           - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
             name: Hosting.Sdk
+          - project: tests/Aspire.Hosting.Seq.Tests/Aspire.Hosting.Seq.Tests.csproj
+            name: Hosting.Seq
           - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
             name: Hosting.SqlServer
           - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj
@@ -146,7 +148,7 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-          
+
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
@@ -158,6 +160,11 @@ jobs:
             name: Extensions.ServiceDiscovery.Dns
           - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
             name: Extensions.ServiceDiscovery.Yarp
+
+          # Others
+          - project: tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj
+            name: Cli
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -187,6 +194,14 @@ jobs:
         run: |
           ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
+      # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
+      - name: Rebuild for Azure Functions project
+        if: matrix.name == 'Playground'
+        env:
+          CI: false
+        run: |
+          ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+
       - name: Run tests
         id: run-tests
         env:
@@ -206,6 +221,23 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build -- RunConfiguration.CollectSourceInformation=true
+
+      # Save the result of the previous steps - success or failure
+      # in the form of a file result-success/result-failure -{name}.rst
+      - name: Store result - success
+        if: ${{ success() }}
+        run: touch result-success-${{ matrix.name }}.rst
+      - name: Store result - failure
+        if: ${{ !success() }}
+        run: touch result-failed-${{ matrix.name }}.rst
+
+      # Upload that result file to artifact named test-job-result-{name}
+      - name: Upload test result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-job-result-${{ matrix.name }}
+          path: result-*.rst
 
       - name: Dump docker info
         if: always()
@@ -228,3 +260,22 @@ jobs:
         with:
           name: testresults-${{ matrix.name }}
           path: testresults/**
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [test]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          ls -al test-job-result/
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]

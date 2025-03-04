@@ -27,9 +27,11 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
 
         if (string.IsNullOrEmpty(value) && !Optional)
         {
-            throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
+            ThrowConnectionStringUnavailableException();
         }
 
         return value;
     }
+
+    internal void ThrowConnectionStringUnavailableException() => throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
 }

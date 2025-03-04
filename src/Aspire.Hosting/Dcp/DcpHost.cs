@@ -278,6 +278,13 @@ internal sealed class DcpHost
             tab = line.IndexOf((byte)'\t');
             var category = line[..tab];
             line = line[(tab + 1)..];
+
+            // Trim trailing carriage return.
+            if (line[^1] == '\r')
+            {
+                line = line[0..^1];
+            }
+
             var message = line;
 
             var logLevel = LogLevel.Information;
