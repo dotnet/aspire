@@ -189,14 +189,16 @@ public static class ResourceExtensions
     {
         var env = new Dictionary<string, string>();
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessEnvironmentVariableValuesAsync(executionContext,
-                        (key, unprocessed, value, ex) =>
-                        {
-                            if (value is string s)
-                            {
-                                env[key] = s;
-                            }
-                        }).ConfigureAwait(false);
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (value is string s)
+                {
+                    env[key] = s;
+                }
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
         return env;
     }
@@ -240,15 +242,17 @@ public static class ResourceExtensions
         var args = new List<string>();
 
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessArgumentValuesAsync(executionContext,
-                        (unprocessed, value, ex, _) =>
-                        {
-                            if (value is string s)
-                            {
-                                args.Add(s);
-                            }
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, value, ex, _) =>
+            {
+                if (value is string s)
+                {
+                    args.Add(s);
+                }
 
-                        }).ConfigureAwait(false);
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
         return [.. args];
     }
@@ -258,14 +262,12 @@ public static class ResourceExtensions
         DistributedApplicationExecutionContext executionContext,
         // (unprocessed, processed, exception, isSensitive)
         Action<object?, string?, Exception?, bool> processValue,
-        ILogger? logger = null,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
-            logger ??= NullLogger.Instance;
-
             var args = new List<object>();
             var context = new CommandLineArgsCallbackContext(args, cancellationToken)
             {
@@ -286,8 +288,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -309,14 +312,12 @@ public static class ResourceExtensions
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
-        ILogger? logger = null,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            logger ??= NullLogger.Instance;
-
             var config = new Dictionary<string, object>();
             var context = new EnvironmentCallbackContext(executionContext, config, cancellationToken)
             {
@@ -336,7 +337,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -357,6 +360,7 @@ public static class ResourceExtensions
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
         Action<string?, Exception?> processValue,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
@@ -379,7 +383,7 @@ public static class ResourceExtensions
                     var value = arg switch
                     {
                         string s => s,
-                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, NullLogger.Instance, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false))?.Value,
+                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false))?.Value,
                         { } obj => obj.ToString(),
                         null => null
                     };
@@ -550,6 +554,24 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
+    /// </summary>
+    /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
+    /// <returns>True if an annotation exists, false otherwise</returns>
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
+    {
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
+            return true;
+        }
+
+        pullPolicy = null;
+        return false;
     }
 
     /// <summary>

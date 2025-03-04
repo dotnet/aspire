@@ -66,7 +66,6 @@ public class AppHostTests
         else
         {
             var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-            var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
             await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(5));
 

@@ -51,7 +51,23 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                             _resourceMonitoringStates[resourceName] = state;
                         }
 
-                        _ = Task.Run(() => MonitorResourceHealthAsync(state), state.CancellationToken);
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await MonitorResourceHealthAsync(state).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Ignore error if resource monitoring was cancelled.
+                                if (state.CancellationToken.IsCancellationRequested)
+                                {
+                                    return;
+                                }
+
+                                logger.LogError(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
+                            }
+                        }, state.CancellationToken);
                     }
                 }
                 else if (KnownResourceStates.TerminalStates.Contains(resourceEvent.Snapshot.State?.Text))
@@ -123,10 +139,22 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     continue;
                 }
 
-                var report = await healthCheckService.CheckHealthAsync(
-                    r => registrationKeysToCheck.Contains(r.Name),
-                    cancellationToken
-                    ).ConfigureAwait(false);
+                HealthReport report;
+                try
+                {
+                    report = await healthCheckService.CheckHealthAsync(
+                        r => registrationKeysToCheck.Contains(r.Name),
+                        cancellationToken
+                        ).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // It's possible for CheckHealthAsync to throw if there is an error creating the IHealthCheck instance.
+                    // In this case we don't get an error report so we have to build one. We don't know exactly which registration failed
+                    // so set them all to unhealthy with the thrown error as the reason.
+                    // This situation won't be common, but we need to handle it to prevent the monitoring loop from never informing the user.
+                    report = new HealthReport(registrationKeysToCheck.ToDictionary(k => k, k => new HealthReportEntry(HealthStatus.Unhealthy, "Error calling HealthCheckService.", TimeSpan.Zero, ex, data: null)), TimeSpan.Zero);
+                }
 
                 logger.LogTrace("Health report status for '{Resource}' is {HealthReportStatus}.", resource.Name, report.Status);
 
@@ -319,6 +347,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         internal async Task<bool> DelayAsync(ResourceEvent? currentEvent, TimeSpan delay, CancellationToken cancellationToken)
         {
+            Task delayInterruptedTask;
             lock (_lock)
             {
                 // The event might have changed before delay was called. Interrupt immediately if required.
@@ -328,20 +357,15 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     return true;
                 }
                 _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                delayInterruptedTask = _delayInterruptTcs.Task;
             }
 
-            try
-            {
-                await _delayInterruptTcs.Task.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
+            // Don't throw to avoid writing the thrown exception to the debug console.
+            // See https://github.com/dotnet/aspire/issues/7486
+            await delayInterruptedTask.WaitAsync(delay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            var delayInterrupted = delayInterruptedTask.IsCompletedSuccessfully == true;
 
-                // Delay was interrupted.
-                return true;
-            }
-            catch (TimeoutException)
-            {
-                // Delay interval has elapsed.
-                return false;
-            }
+            return delayInterrupted;
         }
 
         private static bool ShouldInterrupt(ResourceEvent currentEvent, ResourceEvent previousEvent)

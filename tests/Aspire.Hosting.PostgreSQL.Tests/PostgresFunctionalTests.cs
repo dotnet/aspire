@@ -50,22 +50,20 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
         // What for the postgres server to start.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Wait for the dependent resource to be in the Waiting state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Now unblock the health check.
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // ... then the dependent resource should be able to move into a running state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await pendingStart.DefaultTimeout(TestConstants.LongTimeoutTimeSpan); // Startup should now complete.
 
@@ -162,13 +160,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-
         await app.StartAsync();
 
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
-        await resourceNotificationService.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var httpContent = new MultipartFormDataContent
         {
@@ -225,17 +221,16 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 postgres1.WithDataBindMount(bindMountPath);
             }
 
             using (var app = builder1.Build())
             {
-                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await app.StartAsync();
 
-                await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
                 try
                 {
@@ -295,11 +290,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await app.StartAsync();
 
-                await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
                 try
                 {
@@ -440,6 +433,69 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 // Don't fail test if we can't clean the temporary folder
             }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task Postgres_WithPersistentLifetime_ReusesContainers()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        // Use the same path for both runs
+        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+
+        var before = await RunContainersAsync();
+        var after = await RunContainersAsync();
+
+        Assert.All(before, Assert.NotNull);
+        Assert.All(after, Assert.NotNull);
+        Assert.Equal(before, after);
+
+        try
+        {
+            Directory.Delete(aspireStorePath, true);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
+
+        async Task<string?[]> RunContainersAsync()
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+                .WithTempAspireStore(aspireStorePath)
+                .WithResourceCleanUp(false);
+
+            var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
+            builder
+                .AddPostgres("resource", password: passwordParameter).WithLifetime(ContainerLifetime.Persistent)
+                .WithPgWeb(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .WithPgAdmin(c => c.WithLifetime(ContainerLifetime.Persistent))
+                .AddDatabase("mydb");
+
+            var app = builder.Build();
+            await app.StartAsync(cts.Token);
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
+            var postgresId = GetContainerId(resourceEvent);
+
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgweb", cts.Token);
+            var pgWebId = GetContainerId(resourceEvent);
+
+            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgadmin", cts.Token);
+            var pgadminId = GetContainerId(resourceEvent);
+
+            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
+
+            return [postgresId, pgWebId, pgadminId];
+        }
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
         }
     }
 }

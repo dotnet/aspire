@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -68,7 +68,10 @@ public static class RedisBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        // StackExchange.Redis doesn't support passwords with commas.
+        // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
+        // https://github.com/Azure/azure-dev/issues/4848 
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var redis = new RedisResource(name, passwordParameter);
 
@@ -92,34 +95,42 @@ public static class RedisBuilderExtensions
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
                       .WithHealthCheck(healthCheckKey)
-                      .EnsureCommandLineCallback();
-    }
+                      // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+                      .WithEntrypoint("/bin/sh")
+                      .WithEnvironment(context =>
+                      {
+                          if (redis.PasswordParameter is { } password)
+                          {
+                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                          }
+                      })
+                      .WithArgs(context =>
+                      {
+                          var redisCommand = new List<string>
+                          {
+                              "redis-server"
+                          };
 
-    private static IResourceBuilder<RedisResource> EnsureCommandLineCallback(this IResourceBuilder<RedisResource> builder)
-    {
-        if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
-        {
-            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-            {
-                if (builder.Resource.PasswordParameter is { } password)
-                {
-                    context.Args.Add("--requirepass");
-                    context.Args.Add(password);
-                }
+                          if (redis.PasswordParameter is not null)
+                          {
+                              redisCommand.Add("--requirepass");
+                              redisCommand.Add("$REDIS_PASSWORD");
+                          }
 
-                if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
-                {
-                    var persistenceAnnotation = annotations.Single();
-                    context.Args.Add("--save");
-                    context.Args.Add(
-                        (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-                }
+                          if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                          {
+                              var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
 
-                return Task.CompletedTask;
-            }));
-        }
-        return builder;
+                              redisCommand.Add("--save");
+                              redisCommand.Add(interval);
+                              redisCommand.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                          }
+
+                          context.Args.Add("-c");
+                          context.Args.Add(string.Join(' ', redisCommand));
+
+                          return Task.CompletedTask;
+                      });
     }
 
     /// <summary>
@@ -257,6 +268,8 @@ public static class RedisBuilderExtensions
 
                 await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
             });
+
+            resourceBuilder.WithRelationship(builder.Resource, "RedisInsight");
 
             configureContainer?.Invoke(resourceBuilder);
 
@@ -519,7 +532,7 @@ public static class RedisBuilderExtensions
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         builder.WithBindMount(source, "/data", isReadOnly);
         if (!isReadOnly)
@@ -549,8 +562,8 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace)
-            .EnsureCommandLineCallback();
+        return builder.WithAnnotation(
+            new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private sealed class PersistenceAnnotation(TimeSpan? interval, long keysChangedThreshold) : IResourceAnnotation
@@ -582,7 +595,7 @@ public static class RedisBuilderExtensions
     public static IResourceBuilder<RedisInsightResource> WithDataBindMount(this IResourceBuilder<RedisInsightResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/data");
     }

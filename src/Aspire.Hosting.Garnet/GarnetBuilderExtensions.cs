@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -56,7 +55,7 @@ public static class GarnetBuilderExtensions
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var garnet = new GarnetResource(name);
 
@@ -141,7 +140,7 @@ public static class GarnetBuilderExtensions
         string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)

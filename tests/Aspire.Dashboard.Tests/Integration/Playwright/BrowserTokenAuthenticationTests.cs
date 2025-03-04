@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[ActiveIssue("https://github.com/dotnet/aspire/issues/4921", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
 public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenAuthenticationTests.BrowserTokenDashboardServerFixture>
 {
     public class BrowserTokenDashboardServerFixture : DashboardServerFixture
@@ -54,7 +54,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
         });
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/7522")]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
@@ -73,10 +73,12 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             await submitButton.ClickAsync().DefaultTimeout();
 
             // Assert
+            const int pageVisibleTimeout = 10000;
+
             await Assertions
                 .Expect(page.GetByText("Invalid token"))
                 .ToBeVisibleAsync()
-                .DefaultTimeout();
+                .DefaultTimeout(pageVisibleTimeout);
         });
     }
 

@@ -48,6 +48,14 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Azure Event Hubs health check is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
@@ -82,11 +90,20 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
         return false;
     }
 
+    /// <summary>
+    /// Extracts properties from the connection string.
+    /// </summary>
+    /// <remarks>
+    /// The connection string can be in the following formats:
+    /// A valid FullyQualifiedNamespace
+    /// Endpoint={valid FullyQualifiedNamespace} - optionally with [;EntityPath={hubName}[;ConsumerGroup={groupName}]]
+    /// {valid EventHub ConnectionString} - optionally with [;ConsumerGroup={groupName}]
+    /// </remarks>
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         if (!string.IsNullOrEmpty(connectionString))
         {
-            // a event hubs namespace can't contain ';'. if it is found assume it is a connection string
+            // an event hubs namespace can't contain ';'. if it is found assume it is a connection string
             if (!connectionString.Contains(';'))
             {
                 FullyQualifiedNamespace = connectionString;
@@ -98,36 +115,34 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
                 ConnectionString = connectionString
             };
 
+            // Note: Strip out the ConsumerGroup and EntityPath from the connection string in order
+            // to tell if we are left with just Endpoint.
+
             if (connectionBuilder.TryGetValue("ConsumerGroup", out var group))
             {
                 SetConsumerGroup(group.ToString());
 
-                // remove ConsumerGroup from the connection builder since it isn't a connection property
-                // in regular Event Hubs connection strings
                 connectionBuilder.Remove("ConsumerGroup");
             }
 
-            var hasEntityPath = connectionBuilder.TryGetValue("EntityPath", out var entityPath);
-            if (hasEntityPath)
+            if (connectionBuilder.TryGetValue("EntityPath", out var entityPath))
             {
-                // don't strip off EntityPath from the connection string because
-                // it is a valid connection property in regular Event Hubs connection strings
                 EventHubName = entityPath!.ToString();
+
+                connectionBuilder.Remove("EntityPath");
             }
 
-            if (connectionBuilder.Count == 1 ||
-                (connectionBuilder.Count == 2 && hasEntityPath))
+            if (connectionBuilder.Count == 1 &&
+                connectionBuilder.TryGetValue("Endpoint", out var endpoint))
             {
-                if (connectionBuilder.TryGetValue("Endpoint", out var endpoint))
-                {
-                    // if all that's left is Endpoint or Endpoint+EntityPath,
-                    // it is a fully qualified namespace
-                    FullyQualifiedNamespace = endpoint.ToString();
-                    return;
-                }
+                // if all that's left is Endpoint, it is a fully qualified namespace
+                FullyQualifiedNamespace = endpoint.ToString();
+                return;
             }
 
             // if we got here, it's a full connection string
+            // use the original connection string since connectionBuilder was modified above.
+            // Extra keys, like ConsumerGroup, are ignored by the EventHub client constructors.
             ConnectionString = connectionString;
         }
     }

@@ -22,6 +22,9 @@ public static class AzureKeyVaultResourceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
@@ -43,16 +46,15 @@ public static class AzureKeyVaultResourceExtensions
                         Family = KeyVaultSkuFamily.A,
                         Name = KeyVaultSkuName.Standard
                     },
-                    EnableRbacAuthorization = true
-                }
+                    EnableRbacAuthorization = true,
+                },
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             });
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
                 Value = keyVault.Properties.VaultUri
             });
-
-            keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);

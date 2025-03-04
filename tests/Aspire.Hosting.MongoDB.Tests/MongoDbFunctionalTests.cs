@@ -51,17 +51,15 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
         await app.StopAsync();
@@ -136,7 +134,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // MongoDB container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 mongodb1.WithDataBindMount(bindMountPath);
             }
 
@@ -260,18 +260,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-        if (!OperatingSystem.IsWindows())
-        {
-            // Change permissions for non-root accounts (container user account)
-            const UnixFileMode OwnershipPermissions =
-               UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-        }
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
         try
         {

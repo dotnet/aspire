@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)garnet-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>92</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>

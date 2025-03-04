@@ -5,12 +5,10 @@
       "type": "container.v0",
       "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
       "image": "docker.io/library/redis:7.4",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--requirepass",
-        "{redis-password.value}",
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -19,6 +17,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "REDIS_PASSWORD": "{redis-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -98,12 +99,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -116,7 +119,8 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 22
+              "minLength": 22,
+              "special": false
             }
           }
         }

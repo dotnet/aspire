@@ -56,7 +56,7 @@ resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   parent: sb
 }
 
-resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+resource topic2sub 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'subscription1'
   parent: topic2
 }

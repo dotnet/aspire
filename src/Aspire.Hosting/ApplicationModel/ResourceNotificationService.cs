@@ -50,7 +50,7 @@ public class ResourceNotificationService : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = new NullServiceProvider();
         _resourceLoggerService = new ResourceLoggerService();
-        DefaultWaitBehavior = WaitBehavior.StopOnDependencyFailure;
+        DefaultWaitBehavior = WaitBehavior.StopOnResourceUnavailable;
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public class ResourceNotificationService : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
-        DefaultWaitBehavior = serviceProvider.GetService<IOptions<ResourceNotificationServiceOptions>>()?.Value.DefaultWaitBehavior ?? WaitBehavior.StopOnDependencyFailure;
+        DefaultWaitBehavior = serviceProvider.GetService<IOptions<ResourceNotificationServiceOptions>>()?.Value.DefaultWaitBehavior ?? WaitBehavior.StopOnResourceUnavailable;
 
         // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
         // Notification updates will be cancelled when the service is disposed.
@@ -161,7 +161,7 @@ public class ResourceNotificationService : IDisposable
             var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsContinuableState(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
-            if (waitBehavior == WaitBehavior.StopOnDependencyFailure)
+            if (waitBehavior == WaitBehavior.StopOnResourceUnavailable)
             {
                 if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
                 {
@@ -208,8 +208,8 @@ public class ResourceNotificationService : IDisposable
             static bool IsContinuableState(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
                 waitBehavior switch
                 {
-                    WaitBehavior.WaitOnDependencyFailure => snapshot.State?.Text == KnownResourceStates.Running,
-                    WaitBehavior.StopOnDependencyFailure => snapshot.State?.Text == KnownResourceStates.Running ||
+                    WaitBehavior.WaitOnResourceUnavailable => snapshot.State?.Text == KnownResourceStates.Running,
+                    WaitBehavior.StopOnResourceUnavailable => snapshot.State?.Text == KnownResourceStates.Running ||
                                                             snapshot.State?.Text == KnownResourceStates.Finished ||
                                                             snapshot.State?.Text == KnownResourceStates.Exited ||
                                                             snapshot.State?.Text == KnownResourceStates.FailedToStart ||
@@ -226,16 +226,78 @@ public class ResourceNotificationService : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
     /// <remarks>
+    /// <para>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once
+    /// it reaches a <see cref="KnownResourceStates.Running"/> state.
+    /// </para>
+    /// <para>
+    /// If the resource enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/> then
+    /// this method will continue to wait to enable scenarios where a resource could be restarted and recover. To
+    /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>
+    /// or configure the default behavior with <see cref="ResourceNotificationServiceOptions.DefaultWaitBehavior"/>.
+    /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
+        return await WaitForResourceHealthyAsync(
+            resourceName,
+            DefaultWaitBehavior,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Waits for a resource to become healthy.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="waitBehavior">The wait behavior.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method returns a task that will complete with the resource is healthy. A resource
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once
+    /// it reaches a <see cref="KnownResourceStates.Running"/> state. The
+    /// <see cref="WaitBehavior"/> controls how the wait operation behaves when the resource
+    /// enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/>.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified the wait operation
+    /// will continue to wait until the resource reaches a <see cref="KnownResourceStates.Running"/> state.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an
+    /// unavailable state.
+    /// </para>
+    /// </remarks>
+    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
+    {
         _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
-        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => ShouldYield(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (resourceEvent.Snapshot.HealthStatus != HealthStatus.Healthy)
+        {
+            _logger.LogError("Stopped waiting for resource '{ResourceName}' to become healthy because it failed to start.", resourceName);
+            throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to become healthy because it failed to start.");
+        }
+
         _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
 
         return resourceEvent;
+
+        // Determine if we should yield based on the wait behavior and the snapshot of the resource.
+        static bool ShouldYield(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
+            waitBehavior switch
+            {
+                WaitBehavior.WaitOnResourceUnavailable => snapshot.HealthStatus == HealthStatus.Healthy,
+                WaitBehavior.StopOnResourceUnavailable => snapshot.HealthStatus == HealthStatus.Healthy ||
+                                                      snapshot.State?.Text == KnownResourceStates.Finished ||
+                                                      snapshot.State?.Text == KnownResourceStates.Exited ||
+                                                      snapshot.State?.Text == KnownResourceStates.FailedToStart ||
+                                                      snapshot.State?.Text == KnownResourceStates.RuntimeUnhealthy,
+                _ => throw new DistributedApplicationException($"Unexpected wait behavior: {waitBehavior}")
+            };
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
@@ -310,11 +372,9 @@ public class ResourceNotificationService : IDisposable
         var pendingDependencies = new List<Task>();
         foreach (var waitAnnotation in waitAnnotations)
         {
-            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            if (waitAnnotation.Resource is IResourceWithoutLifetime)
             {
-                // Parameters and connection string resources are inert and don't need to be waited on.
-                // If we add support for parameter resources that can be waited on, we can remove this check.
-                // As of right now, we don't support waiting on parameter resources.
+                // IResourceWithoutLifetime are inert and don't need to be waited on.
                 continue;
             }
 
@@ -507,7 +567,7 @@ public class ResourceNotificationService : IDisposable
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    JoinIndentLines(newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                    JoinIndentLines(newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
                     JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
                     JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
 

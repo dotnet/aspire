@@ -859,19 +859,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param kind string = 'web'
 
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
-              kind: kind
-              location: location
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: law_appInsights.id
-              }
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-            }
-
             resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
               name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -882,6 +869,19 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               tags: {
                 'aspire-resource-name': 'law_appInsights'
+              }
+            }
+
+            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
+              kind: kind
+              location: location
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: law_appInsights.id
+              }
+              tags: {
+                'aspire-resource-name': 'appInsights'
               }
             }
 
@@ -1826,12 +1826,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         }
         else
         {
-            serviceBus
-                .WithQueue("queue1")
-                .WithQueue("queue2")
-                .WithTopic("t1")
-                .WithTopic("t2")
-                .WithTopic("t1", topic => topic.Subscriptions.Add(new("s3")));
+            serviceBus.AddServiceBusQueue("queue1");
+            serviceBus.AddServiceBusQueue("queue2");
+            serviceBus.AddServiceBusTopic("t1")
+                .AddServiceBusSubscription("s3");
+            serviceBus.AddServiceBusTopic("t2");
         }
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";

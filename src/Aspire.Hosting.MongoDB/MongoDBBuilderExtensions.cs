@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
@@ -53,7 +51,7 @@ public static class MongoDBBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
@@ -102,7 +100,7 @@ public static class MongoDBBuilderExtensions
     public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -146,7 +144,8 @@ public static class MongoDBBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<MongoExpressContainerResource>>? configureContainer = null, string? containerName = null) where T : MongoDBServerResource
+    public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<MongoExpressContainerResource>>? configureContainer = null, string? containerName = null)
+        where T : MongoDBServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -158,7 +157,7 @@ public static class MongoDBBuilderExtensions
                                                         .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
                                                         .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                                         .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                                        .WithParentRelationship(builder.Resource)
+                                                        .WithParentRelationship(builder)
                                                         .ExcludeFromManifest();
 
         configureContainer?.Invoke(resourceBuilder);
@@ -206,7 +205,7 @@ public static class MongoDBBuilderExtensions
     public static IResourceBuilder<MongoDBServerResource> WithDataBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/data/db", isReadOnly);
     }
@@ -221,7 +220,7 @@ public static class MongoDBBuilderExtensions
     public static IResourceBuilder<MongoDBServerResource> WithInitBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }

@@ -12,6 +12,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
@@ -70,6 +71,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
 
+    [Inject]
+    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -94,6 +101,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     private bool _showTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
+    private IDisposable? _consoleLogsFiltersChangedSubscription;
+    private ConsoleLogsFilters _consoleLogFilters = new();
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -105,11 +114,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
+        _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
+        {
+            _consoleLogFilters = ConsoleLogsManager.Filters;
+            _logEntries.Clear();
+            await InvokeAsync(StateHasChanged);
+        });
+
         var timestampStorageResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
         if (timestampStorageResult.Value?.ShowTimestamp is { } showTimestamp)
         {
             _showTimestamp = showTimestamp;
         }
+
+        await ConsoleLogsManager.EnsureInitializedAsync();
+        _consoleLogFilters = ConsoleLogsManager.Filters;
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -183,8 +202,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
                     }
 
-                    UpdateMenuButtons();
-                    await InvokeAsync(StateHasChanged);
+                    await InvokeAsync(() =>
+                    {
+                        // The selected resource may have changed, so update resource action buttons.
+                        // Update inside in the render's sync context so the buttons don't change while the UI is rendering.
+                        UpdateMenuButtons();
+
+                        StateHasChanged();
+                    });
                 }
             });
         }
@@ -417,6 +442,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
+                // Console logs are filtered in the UI by the timestamp of the log entry.
+                DateTime? timestampFilterDate;
+
+                if (PageViewModel.SelectedOption.Id is not null &&
+                    _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
+                        PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
+                        out var filterResourceLogsDate))
+                {
+                    // There is a filter for this individual resource.
+                    timestampFilterDate = filterResourceLogsDate;
+                }
+                else
+                {
+                    // Fallback to the global filter (if any, it could be null).
+                    timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
+                }
+
                 var logParser = new LogParser();
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
@@ -434,7 +476,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        _logEntries.InsertSorted(logEntry);
+                        if (timestampFilterDate is null || logEntry.Timestamp is null || logEntry.Timestamp > timestampFilterDate)
+                        {
+                            // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
+                            _logEntries.InsertSorted(logEntry);
+                        }
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -526,13 +572,34 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         using var streamReference = new DotNetStreamReference(stream);
         var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
-        var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        var fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
 
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
 
+    private async Task ClearConsoleLogs(ApplicationKey? key)
+    {
+        var now = TimeProvider.GetUtcNow().UtcDateTime;
+        if (key is null)
+        {
+            _consoleLogFilters.FilterAllLogsDate = now;
+            _consoleLogFilters.FilterResourceLogsDates?.Clear();
+        }
+        else
+        {
+            _consoleLogFilters.FilterResourceLogsDates ??= [];
+            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = now;
+        }
+
+        // Save filters to session storage so they're persisted when navigating to and from the console logs page.
+        // This makes remove behavior persistant which matches removing telemetry.
+        await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
+    }
+
     public async ValueTask DisposeAsync()
     {
+        _consoleLogsFiltersChangedSubscription?.Dispose();
+
         _resourceSubscriptionCts.Cancel();
         _resourceSubscriptionCts.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);

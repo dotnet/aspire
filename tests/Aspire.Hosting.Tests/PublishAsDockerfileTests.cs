@@ -56,6 +56,7 @@ public class PublishAsDockerfileTests
 
         var path = tempDir.Directory.FullName;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
@@ -64,6 +65,7 @@ public class PublishAsDockerfileTests
                 new DockerBuildArg("SOME_NUMBER", 7),
                 new DockerBuildArg("SOME_NONVALUE"),
             ]);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // There should be an equivalent container resource with the same name
         // as the npm app resource.
@@ -107,10 +109,12 @@ public class PublishAsDockerfileTests
 
         var path = tempDir.Directory.FullName;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // There should be an equivalent container resource with the same name
         // as the npm app resource.

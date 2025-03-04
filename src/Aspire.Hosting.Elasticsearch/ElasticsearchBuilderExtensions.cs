@@ -4,7 +4,6 @@
 using Aspire.Elastic.Clients.Elasticsearch;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Elasticsearch;
-using Aspire.Hosting.Utils;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -49,7 +48,7 @@ public static class ElasticsearchBuilderExtensions
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -147,7 +146,7 @@ public static class ElasticsearchBuilderExtensions
     public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/usr/share/elasticsearch/data");
     }

@@ -182,14 +182,14 @@
         <target state="translated">Esperando a que se cargue el {0} de seguimiento...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
-      <trans-unit id="SettingsDashboardTelemetry">
-        <source>Dashboard telemetry</source>
-        <target state="new">Dashboard telemetry</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Oscuro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
+        <source>Dashboard logs and telemetry</source>
+        <target state="translated">Registros de panel y telemetría</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -221,6 +221,11 @@
         <source>Version: {0}</source>
         <target state="translated">Versión: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsRemoveAllButtonText">
+        <source>Remove all</source>
+        <target state="translated">Quitar todo</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>

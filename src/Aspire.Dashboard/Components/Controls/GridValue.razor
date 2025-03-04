@@ -10,7 +10,7 @@
     @if (EnableMasking && IsMasked)
     {
         <span class="grid-value masked" id="@_cellTextId">
-            @DashboardUIHelpers.GetMaskingText(length: 8)
+            @DashboardUIHelpers.GetMaskingText(length: 8).MarkupString
         </span>
     }
     else
@@ -32,7 +32,7 @@
                     @((MarkupString)_formattedValue)
                 }
                 @ContentAfterValue
-            }            
+            }
         </span>
     }
 

@@ -22,31 +22,40 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = "OpenAI",
-                Sku = new CognitiveServicesSku()
+            var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = "S0"
+                    var resource = CognitiveServicesAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Properties = new CognitiveServicesAccountProperties()
+                (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
-                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                    // Disable local auth for AOAI since managed identity is used
-                    DisableLocalAuth = true
-                },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(cogServicesAccount);
+                    Kind = "OpenAI",
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = "S0"
+                    },
+                    Properties = new CognitiveServicesAccountProperties()
+                    {
+                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                        // Disable local auth for AOAI since managed identity is used
+                        DisableLocalAuth = true
+                    },
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
+                Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
             });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
@@ -111,6 +120,9 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> builder, AzureOpenAIDeployment deployment)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(deployment);
+
         builder.Resource.AddDeployment(deployment);
         return builder;
     }

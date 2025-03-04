@@ -106,6 +106,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Collapse child resources.
+        /// </summary>
+        public static string ResourceCollapseAllChildren {
+            get {
+                return ResourceManager.GetString("ResourceCollapseAllChildren", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} &quot;{1}&quot; failed.
         /// </summary>
         public static string ResourceCommandFailed {
@@ -165,6 +174,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceDetailsViewConsoleLogs {
             get {
                 return ResourceManager.GetString("ResourceDetailsViewConsoleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expand child resources.
+        /// </summary>
+        public static string ResourceExpandAllChildren {
+            get {
+                return ResourceManager.GetString("ResourceExpandAllChildren", resourceCulture);
             }
         }
         

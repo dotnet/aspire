@@ -27,6 +27,11 @@
         <target state="translated">Überwachungen</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="translated">Untergeordnete Ressourcen reduzieren</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">{0} "{1}" fehlgeschlagen</target>
@@ -60,6 +65,11 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Konsolenprotokolle anzeigen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="translated">Untergeordnete Ressourcen erweitern</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">

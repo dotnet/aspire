@@ -126,8 +126,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
-        var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
-        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
+
+        UpdateInstruments(viewModel);
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -144,6 +144,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return Task.CompletedTask;
     }
 
+    private void UpdateInstruments(MetricsViewModel viewModel)
+    {
+        var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
+        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
+    }
+
     private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications();
@@ -154,15 +160,14 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private async Task HandleSelectedApplicationChangedAsync()
     {
+        UpdateInstruments(PageViewModel);
+
         // The new resource might not have the currently selected meter/instrument.
         // Check whether the new resource has the current values or not, and clear if they're not available.
         if (PageViewModel.SelectedMeter != null ||
             PageViewModel.SelectedInstrument != null)
         {
-            var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
-
-            if (instruments == null || ShouldClearSelectedMetrics(instruments))
+            if (PageViewModel.Instruments == null || ShouldClearSelectedMetrics(PageViewModel.Instruments))
             {
                 PageViewModel.SelectedMeter = null;
                 PageViewModel.SelectedInstrument = null;
@@ -170,6 +175,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+
+        // The mobile view doesn't update the URL when the application changes.
+        // Because of this, the page doesn't autoamtically use updated instruments.
+        // Force the metrics tree to update so it re-renders with the new app's instruments.
         _treeMetricSelector?.OnResourceChanged();
     }
 

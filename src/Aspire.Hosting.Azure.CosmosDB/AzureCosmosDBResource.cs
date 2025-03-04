@@ -11,8 +11,8 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
-public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
+public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints,
     IResourceWithAzureFunctionsConfig
@@ -65,8 +65,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
             ReferenceExpression.Create($"{ConnectionStringOutput}");
 
-    /// <inheritdoc />
-    public void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (IsEmulator || UseAccessKeyAuthentication)
         {

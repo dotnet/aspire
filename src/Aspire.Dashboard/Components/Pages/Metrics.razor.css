@@ -86,7 +86,8 @@
 }
 
 ::deep .metrics-content {
-    margin-left: 10px;
+    /* Match left padding of the page header */
+    margin-left: calc(var(--design-unit)* 4.5px);
 }
 
 ::deep .plotly-chart-container {

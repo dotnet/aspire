@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -80,21 +81,22 @@ public class ResourceSourceViewModelTests
                 valueToVisualize: "path/to/project arg2",
                 tooltip: "path/to/project arg2"));
 
+        var maskingText = DashboardUIHelpers.GetMaskingText(6).Text;
         // Project with app arguments, as well as a secret (format argument)
         data.Add(new TestData(
                 ResourceType: "Project",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
-                AppArgs: ["arg2", "--key", "secret"],
-                AppArgsSensitivity: [false, false, true],
+                AppArgs: ["arg2", "--key", "secret", "secret2", "notsecret"],
+                AppArgsSensitivity: [false, false, true, true, false],
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "project",
-                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false)],
-                valueToVisualize: "path/to/project arg2 --key secret",
-                tooltip: "path/to/project arg2 --key secret"));
+                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false), new LaunchArgument("secret2", false), new LaunchArgument("notsecret", true)],
+                valueToVisualize: "path/to/project arg2 --key secret secret2 notsecret",
+                tooltip: $"path/to/project arg2 --key {maskingText} {maskingText} notsecret"));
 
         // Project without executable arguments
         data.Add(new TestData(

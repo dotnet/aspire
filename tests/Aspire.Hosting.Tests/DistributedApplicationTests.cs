@@ -113,7 +113,7 @@ public class DistributedApplicationTests
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
         testProgram.AppBuilder.Services.AddHealthChecks().AddCheck("dummy_healthcheck", () => HealthCheckResult.Unhealthy());
 
         var dependentResourceName = "force-resource-start-serviceb";
@@ -156,7 +156,7 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-resource";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-servicea";
         var dependentResourceName = $"{testName}-serviceb";
@@ -272,7 +272,7 @@ public class DistributedApplicationTests
         var replicaCount = 3;
 
         using var testProgram = CreateTestProgram("multi-replica-svcs");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
@@ -327,7 +327,7 @@ public class DistributedApplicationTests
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
@@ -348,7 +348,7 @@ public class DistributedApplicationTests
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -358,7 +358,7 @@ public class DistributedApplicationTests
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         const string containerName = "container-start-stop-redis";
         testProgram.AppBuilder.AddContainer(containerName, "redis")
@@ -402,7 +402,7 @@ public class DistributedApplicationTests
         redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
         Assert.NotNull(redisContainer);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -412,7 +412,7 @@ public class DistributedApplicationTests
         const string testName = "executable-start-stop";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -436,7 +436,7 @@ public class DistributedApplicationTests
         serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.NotNull(serviceA);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public class DistributedApplicationTests
         const string testName = "ports-flow-to-env";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
@@ -488,7 +488,7 @@ public class DistributedApplicationTests
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -510,7 +510,7 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -529,7 +529,7 @@ public class DistributedApplicationTests
         var keyBytes = Convert.FromHexString(GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__PRIMARYAPIKEY")!);
         Assert.Equal(16, keyBytes.Length);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -550,7 +550,7 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -565,7 +565,7 @@ public class DistributedApplicationTests
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -581,7 +581,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-entrypoint";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithEntrypoint("bob");
@@ -600,7 +600,7 @@ public class DistributedApplicationTests
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -610,7 +610,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-absolute";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
@@ -631,7 +631,7 @@ public class DistributedApplicationTests
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal(sourcePath, redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -641,7 +641,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-relative";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithBindMount("etc/path-here", "path-here");
@@ -662,7 +662,7 @@ public class DistributedApplicationTests
         Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -672,7 +672,7 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-volume";
         using var testProgram = CreateTestProgram(testName);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithVolume($"{testName}-volume", "/path-here");
@@ -692,7 +692,7 @@ public class DistributedApplicationTests
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal($"{testName}-volume", redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -702,7 +702,7 @@ public class DistributedApplicationTests
     {
         const string testName = "kube-resource-names";
         using var testProgram = CreateTestProgram(testName, includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -764,7 +764,7 @@ public class DistributedApplicationTests
         {
             endpoint.IsProxied = false;
         });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -784,7 +784,7 @@ public class DistributedApplicationTests
             endpoint.Port = null;
             endpoint.IsProxied = false;
         });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -807,7 +807,7 @@ public class DistributedApplicationTests
                 e.TargetPort = 1234;
                 e.IsProxied = false;
             });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -849,7 +849,7 @@ public class DistributedApplicationTests
                 e.Port = 1543;
             }, createIfNotExists: true);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -936,7 +936,7 @@ public class DistributedApplicationTests
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
@@ -945,7 +945,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -990,7 +990,7 @@ public class DistributedApplicationTests
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
@@ -999,7 +999,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -1042,6 +1042,15 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    private void SetupXUnitLogging(IServiceCollection services)
+    {
+        services.AddLogging(b =>
+        {
+            b.AddXunit(_testOutputHelper);
+            b.SetMinimumLevel(LogLevel.Trace);
+        });
     }
 
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook

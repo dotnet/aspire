@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Milvus;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -45,7 +44,8 @@ public static class MilvusBuilderExtensions
         int? grpcPort = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-key");
 
@@ -95,7 +95,7 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -157,6 +157,7 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithDataVolume(this IResourceBuilder<MilvusServerResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/milvus", isReadOnly);
     }
 
@@ -170,7 +171,8 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithDataBindMount(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
         return builder.WithBindMount(source, "/var/lib/milvus", isReadOnly);
     }
 
@@ -183,7 +185,8 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithConfigurationBindMount(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configurationFilePath);
+        ArgumentException.ThrowIfNullOrEmpty(configurationFilePath);
+
         return builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
     }
 

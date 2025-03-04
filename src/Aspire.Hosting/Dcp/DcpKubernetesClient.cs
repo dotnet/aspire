@@ -14,6 +14,8 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class DcpKubernetesClient : k8s.Kubernetes
 {
+    private const string ExecutionDocumentPath = "admin/execution";
+
     public DcpKubernetesClient(KubernetesClientConfiguration config, params DelegatingHandler[] handlers) : base(config, handlers)
     {
     }
@@ -83,9 +85,33 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
     }
 
     /// <summary>
+    /// GET DCP Execution document (part of the DCP administrative interface).
+    /// </summary>
+    public async Task<ApiServerExecution> GetExecutionDocumentAsync(CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(HttpClientTimeout);
+        cancellationToken = cts.Token;
+
+        var httpRequest = new HttpRequestMessage
+        {
+            Method = HttpMethod.Get,
+            RequestUri = new Uri(this.BaseUri, ExecutionDocumentPath)
+        };
+        httpRequest.Version = HttpVersion.Version20;
+
+        var httpResponse = await SendRequestRaw(null, httpRequest, cancellationToken).ConfigureAwait(false);
+        var content = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        return KubernetesJson.Deserialize<ApiServerExecution>(content);
+    }
+
+    /// <summary>
     /// PATCH Execution document (part of the DCP administrative interface) with supplied data. 
     /// </summary>
-    public Task<HttpResponseMessage> PatchExecutionDocumentAsync(
+    /// <returns>
+    /// The ApiServerExecution object representing the updated state of the API server.
+    /// </returns>
+    public async Task<ApiServerExecution> PatchExecutionDocumentAsync(
         ApiServerExecution apiServerExecution,
         CancellationToken cancellationToken = default)
     {
@@ -93,18 +119,33 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
         cts.CancelAfter(HttpClientTimeout);
         cancellationToken = cts.Token;
 
-        string url = $"admin/execution";
         var httpRequest = new HttpRequestMessage
         {
             Method = HttpMethod.Patch,
-            RequestUri = new Uri(this.BaseUri, url)
+            RequestUri = new Uri(this.BaseUri, ExecutionDocumentPath)
         };
         httpRequest.Version = HttpVersion.Version20;
 
         var content = KubernetesJson.Serialize(apiServerExecution, null);
         httpRequest.Content = new StringContent(content, System.Text.Encoding.UTF8);
         httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/merge-patch+json");
-        return SendRequestRaw(content, httpRequest, cancellationToken);
+
+        var httpResponse = await SendRequestRaw(content, httpRequest, cancellationToken).ConfigureAwait(false);
+        if (httpResponse.StatusCode == HttpStatusCode.NoContent || apiServerExecution.ApiServerStatus == ApiServerStatus.Stopping)
+        {
+            // NoContent means that the server successfully processed the request and the current state
+            // is equivalent to the sent patch, so we can just return that.
+            //
+            // The check for ApiServerStatus.Stopping is a workaround for DCP 0.11 series issue that it may not send complete response
+            // when programmatic server stoppage is requested. But it is not really possible for the server to respond
+            // with anything other than Stopping if the request was successful, so it does not matter.
+            return apiServerExecution;
+        }
+        else
+        {
+            var responseContent = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return KubernetesJson.Deserialize<ApiServerExecution>(responseContent);
+        }
     }
 
     private sealed class QueryBuilder

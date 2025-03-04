@@ -26,6 +26,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string OtelServiceInstanceIdAnnotation = "otel-service-instance-id";
     public const string ResourceStateAnnotation = "resource-state";
     public const string ResourceAppArgsAnnotation = "resource-app-args";
+    public const string ResourceProjectArgsAnnotation = "resource-project-args";
     public const string ResourceReplicaCount = "resource-replica-count";
     public const string ResourceReplicaIndex = "resource-replica-index";
 
@@ -54,6 +55,16 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
         }
 
         AnnotateAsObjectList<TValue>(Metadata.Annotations, annotationName, value);
+    }
+
+    public void SetAnnotationAsObjectList<TValue>(string annotationName, IEnumerable<TValue> list)
+    {
+        if (Metadata.Annotations is null)
+        {
+            Metadata.Annotations = new Dictionary<string, string>();
+        }
+
+        Metadata.Annotations[annotationName] = JsonSerializer.Serialize<List<TValue>>(list.ToList());
     }
 
     public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)

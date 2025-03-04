@@ -81,6 +81,13 @@ internal sealed class DcpOptions
     public TimeSpan ContainerRuntimeInitializationTimeout { get; set; }
 
     public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Whether to wait for resource cleanup to end when stopping DcpExecutor.
+    /// This guarantees that application resources (programs, transient containers etc.) are stopped
+    /// before DcpExecutor.StopAsync() returns. Default is false (resources are cleaned up asynchronously).
+    /// </summary>
+    public bool WaitForResourceCleanup { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -180,6 +187,7 @@ internal class ConfigureDefaultDcpOptions(
         }
 
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
+        options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
     }

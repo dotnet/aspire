@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Valkey;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -54,10 +53,14 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder,
+    public static IResourceBuilder<ValkeyResource> AddValkey(
+        this IDistributedApplicationBuilder builder,
         string name,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var valkey = new ValkeyResource(name);
 
         string? connectionString = null;
@@ -103,9 +106,13 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
-        string? name = null, bool isReadOnly = false)
+    public static IResourceBuilder<ValkeyResource> WithDataVolume(
+        this IResourceBuilder<ValkeyResource> builder,
+        string? name = null,
+        bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
@@ -136,9 +143,14 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
-        string source, bool isReadOnly = false)
+    public static IResourceBuilder<ValkeyResource> WithDataBindMount(
+        this IResourceBuilder<ValkeyResource> builder,
+        string source,
+        bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
         builder.WithBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
@@ -166,13 +178,19 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+    public static IResourceBuilder<ValkeyResource> WithPersistence(
+        this IResourceBuilder<ValkeyResource> builder,
+        TimeSpan? interval = null,
+        long keysChangedThreshold = 1)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");
             context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

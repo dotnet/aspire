@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -14,8 +13,8 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig, IResourceWithEndpoints
 {
-    internal List<ServiceBusQueue> Queues { get; } = [];
-    internal List<ServiceBusTopic> Topics { get; } = [];
+    internal List<AzureServiceBusQueueResource> Queues { get; } = [];
+    internal List<AzureServiceBusTopicResource> Topics { get; } = [];
 
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -34,7 +33,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
         : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

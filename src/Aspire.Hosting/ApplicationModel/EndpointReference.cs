@@ -48,17 +48,18 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     internal string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
-        var prop = property switch
+        return property switch
         {
-            EndpointProperty.Url => "url",
-            EndpointProperty.Host or EndpointProperty.IPV4Host => "host",
-            EndpointProperty.Port => "port",
-            EndpointProperty.Scheme => "scheme",
-            EndpointProperty.TargetPort => "targetPort",
+            EndpointProperty.Url => Binding("url"),
+            EndpointProperty.Host or EndpointProperty.IPV4Host => Binding("host"),
+            EndpointProperty.Port => Binding("port"),
+            EndpointProperty.Scheme => Binding("scheme"),
+            EndpointProperty.TargetPort => Binding("targetPort"),
+            EndpointProperty.HostAndPort => $"{Binding("host")}:{Binding("port")}",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
-        return $"{{{Resource.Name}.bindings.{EndpointName}.{prop}}}";
+        string Binding(string prop) => $"{{{Resource.Name}.bindings.{EndpointName}.{prop}}}";
     }
 
     /// <summary>
@@ -177,6 +178,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
         EndpointProperty.Scheme => new(Endpoint.Scheme),
         EndpointProperty.TargetPort => new(ComputeTargetPort()),
+        EndpointProperty.HostAndPort => new($"{Endpoint.Host}:{Endpoint.Port.ToString(CultureInfo.InvariantCulture)}"),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
 
@@ -227,4 +229,9 @@ public enum EndpointProperty
     /// The target port of the endpoint.
     /// </summary>
     TargetPort,
+
+    /// <summary>
+    /// The host and port of the endpoint in the format `{Host}:{Port}`.
+    /// </summary>
+    HostAndPort
 }

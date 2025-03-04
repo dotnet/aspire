@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -51,7 +50,7 @@ public static class KeycloakResourceBuilderExtensions
         IResourceBuilder<ParameterResource>? adminPassword = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = adminPassword?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -129,7 +128,7 @@ public static class KeycloakResourceBuilderExtensions
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/opt/keycloak/data", false);
     }
@@ -157,7 +156,7 @@ public static class KeycloakResourceBuilderExtensions
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(import);
+        ArgumentException.ThrowIfNullOrEmpty(import);
 
         var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 

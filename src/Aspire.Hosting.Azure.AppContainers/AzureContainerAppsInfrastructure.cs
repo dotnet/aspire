@@ -187,6 +187,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
                 containerAppContainer.Name = resource.Name;
 
+                SetEntryPoint(containerAppContainer);
                 AddEnvironmentVariablesAndCommandLineArgs(containerAppContainer);
 
                 foreach (var (_, mountedVolume) in Volumes)
@@ -607,6 +608,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{port}"),
                     EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
                     EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
+                    EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
                     EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : targetPort,
                     EndpointProperty.Scheme => scheme,
                     _ => throw new NotSupportedException(),
@@ -633,6 +635,13 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (url, secretType);
                 }
 
+                if (value is ParameterResource param)
+                {
+                    var st = param.Secret ? SecretType.Normal : secretType;
+
+                    return (AllocateParameter(param, secretType: st), st);
+                }
+
                 if (value is ConnectionStringReference cs)
                 {
                     return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
@@ -641,13 +650,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 if (value is IResourceWithConnectionString csrs)
                 {
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
-                }
-
-                if (value is ParameterResource param)
-                {
-                    var st = param.Secret ? SecretType.Normal : secretType;
-
-                    return (AllocateParameter(param, secretType: st), st);
                 }
 
                 if (value is BicepOutputReference output)
@@ -822,6 +824,14 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
 
                 config.Ingress = caIngress;
+            }
+
+            private void SetEntryPoint(ContainerAppContainer container)
+            {
+                if (resource is ContainerResource containerResource && containerResource.Entrypoint is { } entrypoint)
+                {
+                    container.Command = [entrypoint];
+                }
             }
 
             private void AddEnvironmentVariablesAndCommandLineArgs(ContainerAppContainer container)
