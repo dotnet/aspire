@@ -15,7 +15,7 @@ public class StubProcess(Process process) : IDisposable
             PlatformID.Win32NT => new ProcessStartInfo()
             {
                 FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-                Arguments = "/c set %never%=WaitUntilDeath"
+                Arguments = "/c set /p discard=WaitingUntilDeath"
             },
             PlatformID.Unix => new ProcessStartInfo()
             {

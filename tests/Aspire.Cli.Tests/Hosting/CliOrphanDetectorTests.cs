@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Aspire.Cli.Tests.Helpers;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -97,9 +98,21 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         using var stubProcess = StubProcess.Create();
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = stubProcess.Process.Id.ToString();
+        
+        var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+            resourcesCreatedTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
         using var app = builder.Build();
         var pendingRun = app.RunAsync();
+
+        // Wait until the apphost is spun up and then kill off the stub
+        // process so everything is torn down.
+        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
         stubProcess.Process.Kill();
+
         await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
     }
 }

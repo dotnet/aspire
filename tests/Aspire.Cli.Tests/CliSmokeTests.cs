@@ -21,7 +21,7 @@ public class CliSmokeTests
         // This is just an early signal to make sure the executables selected
         // for the stub processes work.
         using var stubProcess = StubProcess.Create();
-        var stillRunning = stubProcess.Process.WaitForExit(10000);
-        Assert.False(stillRunning);
+        var exited = stubProcess.Process.WaitForExit(1000);
+        Assert.False(exited);
     }
 }
