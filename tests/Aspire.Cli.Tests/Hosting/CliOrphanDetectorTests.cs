@@ -99,9 +99,10 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = stubProcess.Process.Id.ToString();
         
-        var resourcesCreatedEventsChannel = Channel.CreateUnbounded<AfterResourcesCreatedEvent>();
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) => {
-            await resourcesCreatedEventsChannel.Writer.WriteAsync(e, ct);
+        var resourcesCreatedTcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+            resourcesCreatedTcs.SetResult();
+            return Task.CompletedTask;
         });
 
         using var app = builder.Build();
@@ -109,7 +110,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
-        _ = await resourcesCreatedEventsChannel.Reader.WaitToReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
         stubProcess.Process.Kill();
 
         await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
