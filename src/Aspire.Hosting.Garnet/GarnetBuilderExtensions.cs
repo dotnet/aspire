@@ -100,7 +100,10 @@ public static class GarnetBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        // StackExchange.Redis doesn't support passwords with commas.
+        // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
+        // https://github.com/Azure/azure-dev/issues/4848 
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var garnet = new GarnetResource(name, passwordParameter);
 
@@ -124,7 +127,45 @@ public static class GarnetBuilderExtensions
             .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
             .WithImageRegistry(GarnetContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey)
-            .EnsureCommandLineCallback();
+            // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+            .WithEntrypoint("/bin/sh")
+            .WithEnvironment(context =>
+            {
+                if (garnet.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["GARNET_PASSWORD"] = password;
+                }
+            })
+            .WithArgs(context =>
+            {
+                var garnetCommand = new List<string>
+                {
+                    "/app/GarnetServer"
+                };
+
+                if (garnet.PasswordParameter is { } password)
+                {
+                    garnetCommand.Add("--auth Password --password");
+                    garnetCommand.Add("$GARNET_PASSWORD");
+                }
+
+                if (garnet.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                {
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
+
+                    garnetCommand.Add("--checkpointdir");
+                    garnetCommand.Add("/data/checkpoints");
+                    garnetCommand.Add("--recover");
+                    garnetCommand.Add("--aof");
+                    garnetCommand.Add("--aof-commit-freq");
+                    garnetCommand.Add(interval);
+                }
+
+                context.Args.Add("-c");
+                context.Args.Add(string.Join(' ', garnetCommand));
+
+                return Task.CompletedTask;
+            });
     }
 
     /// <summary>
@@ -240,64 +281,11 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new PersistenceAnnotation(interval), ResourceAnnotationMutationBehavior.Replace)
-            .EnsureCommandLineCallback();
+        return builder.WithAnnotation(new PersistenceAnnotation(interval), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private sealed class PersistenceAnnotation(TimeSpan? interval) : IResourceAnnotation
     {
         public TimeSpan? Interval => interval;
-    }
-
-    private static IResourceBuilder<GarnetResource> EnsureCommandLineCallback(this IResourceBuilder<GarnetResource> builder)
-    {
-        if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
-        {
-            builder.WithEntrypoint("/bin/sh");
-
-            builder.WithEnvironment(context =>
-            {
-                if (builder.Resource.PasswordParameter is { } password)
-                {
-                    context.EnvironmentVariables["GARNET_PASSWORD"] = password;
-                }
-            });
-
-            builder.WithArgs(context =>
-            {
-                var args = new List<string>
-                {
-                    "/app/GarnetServer"
-                };
-
-                if (builder.Resource.PasswordParameter is { } password)
-                {
-                    args.Add("--auth Password --password");
-                    args.Add("$GARNET_PASSWORD");
-                }
-
-                if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
-                {
-                    var persistenceAnnotation = annotations.Single();
-
-                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
-
-                    args.Add("--checkpointdir");
-                    args.Add("/data/checkpoints");
-                    args.Add("--recover");
-                    args.Add("--aof");
-                    args.Add("--aof-commit-freq");
-                    args.Add(interval);
-                }
-
-                var garnetCommand = string.Join(' ', args);
-
-                context.Args.Add("-c");
-                context.Args.Add(garnetCommand);
-
-                return Task.CompletedTask;
-            });
-        }
-        return builder;
     }
 }
