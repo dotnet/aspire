@@ -32,7 +32,7 @@ public abstract class TelemetryPageComponentBase : ComponentBase
                 new AspireTelemetryScopeSettings(new Dictionary<string, AspireTelemetryProperty> {
                     { TelemetryPropertyKeys.DashboardPageId, new AspireTelemetryProperty(PageId) }
                 }));
-            _loadOperation = await TelemetryService.StartOperationAsync(request);
+            _loadOperation = await TelemetryService.StartUserTaskAsync(request);
         }
     }
 
@@ -60,10 +60,10 @@ public abstract class TelemetryPageComponentBase : ComponentBase
 
     protected override void OnAfterRender(bool firstRender)
     {
-        /*if (_loadOperation?.Content is { OperationId: { } operationId })
+        if (_loadOperation?.Content is { OperationId: { } operationId })
         {
             _loadOperation = null;
             _ = TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success));
-        }*/
+        }
     }
 }
