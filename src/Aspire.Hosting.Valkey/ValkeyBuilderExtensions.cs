@@ -56,7 +56,7 @@ public static class ValkeyBuilderExtensions
     public static IResourceBuilder<ValkeyResource> AddValkey(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
-        int port)
+        int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
