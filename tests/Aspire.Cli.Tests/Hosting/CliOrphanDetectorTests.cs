@@ -99,7 +99,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = stubProcess.Process.Id.ToString();
         
-        var resourcesCreatedTcs = new TaskCompletionSource();
+        var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
             resourcesCreatedTcs.SetResult();
             return Task.CompletedTask;
