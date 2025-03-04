@@ -32,6 +32,7 @@ public static class AspireSeqExtensions
         Action<SeqSettings>? configureSettings = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new SeqSettings();
         settings.Logs.Protocol = OtlpExportProtocol.HttpProtobuf;
@@ -63,13 +64,15 @@ public static class AspireSeqExtensions
         }
 
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
-            _ => settings.Logs.ExportProcessorType switch {
+            _ => settings.Logs.ExportProcessorType switch
+            {
                 ExportProcessorType.Batch => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs)),
                 _ => new SimpleLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
             }));
 
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
-            _ => settings.Traces.ExportProcessorType switch {
+            _ => settings.Traces.ExportProcessorType switch
+            {
                 ExportProcessorType.Batch => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces)),
                 _ => new SimpleActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
             }));

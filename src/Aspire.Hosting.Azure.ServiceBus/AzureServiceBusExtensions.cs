@@ -30,6 +30,9 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
@@ -114,6 +117,9 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddServiceBusQueue(name);
 
         return builder;
@@ -129,7 +135,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusQueueResource> AddServiceBusQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? queueName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the queue name if it's not provided
         queueName ??= name;
@@ -164,6 +170,9 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddServiceBusTopic(name);
 
         return builder;
@@ -178,10 +187,15 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} and {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Topic and Subscriptions.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(subscriptions);
+
         var topic = builder.AddServiceBusTopic(name);
 
         foreach (var subscription in subscriptions)
         {
+            ArgumentException.ThrowIfNullOrEmpty(subscription);
             topic.AddServiceBusSubscription(subscription);
         }
 
@@ -198,7 +212,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusTopicResource> AddServiceBusTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? topicName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the topic name if it's not provided
         topicName ??= name;
@@ -235,6 +249,10 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Subscription to a Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(topicName);
+        ArgumentException.ThrowIfNullOrEmpty(subscriptionName);
+
         IResourceBuilder<AzureServiceBusTopicResource> topicBuilder;
         if (builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) is { } existingResource)
         {
@@ -260,7 +278,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusSubscriptionResource> AddServiceBusSubscription(this IResourceBuilder<AzureServiceBusTopicResource> builder, [ResourceName] string name, string? subscriptionName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the subscription name if it's not provided
         subscriptionName ??= name;
@@ -314,6 +332,8 @@ public static class AzureServiceBusExtensions
     /// </example>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.Resource.IsEmulator)
         {
             throw new InvalidOperationException("The Azure Service Bus resource is already configured to run as an emulator.");
@@ -502,6 +522,9 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)
@@ -550,6 +573,8 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithHostPort(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("emulator", endpoint =>
         {
             endpoint.Port = port;

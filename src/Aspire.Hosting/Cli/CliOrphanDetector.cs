@@ -26,22 +26,29 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (configuration[CliProcessIdEnvironmentVariable] is not { } pidString || !int.TryParse(pidString, out var pid))
+        try
         {
-            // If there is no PID environment variable, we assume that the process is not a child process
-            // of the .NET Aspire CLI and we won't continue monitoring.
-            return;
-        }
-
-        using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), timeProvider);
-
-        do
-        {
-            if (!IsProcessRunning(pid))
+            if (configuration[CliProcessIdEnvironmentVariable] is not { } pidString || !int.TryParse(pidString, out var pid))
             {
-                lifetime.StopApplication();
+                // If there is no PID environment variable, we assume that the process is not a child process
+                // of the .NET Aspire CLI and we won't continue monitoring.
                 return;
             }
-        } while (await periodic.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
+
+            using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), timeProvider);
+
+            do
+            {
+                if (!IsProcessRunning(pid))
+                {
+                    lifetime.StopApplication();
+                    return;
+                }
+            } while (await periodic.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
+        }
+        catch (TaskCanceledException)
+        {
+            // This is expected when the app is shutting down.
+        }
     }
 }

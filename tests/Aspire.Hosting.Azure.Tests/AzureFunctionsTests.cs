@@ -184,6 +184,74 @@ public class AzureFunctionsTests
         Assert.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
     }
 
+    [Fact]
+    public void AddAzureFunctionsProject_WiresUpHttpsEndpointCorrectly_WhenUseHttpsArgumentIsProvided()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject<TestProjectWithHttps>("funcapp");
+
+        // Assert that the EndpointAnnotation is configured correctly
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetLastAnnotation<EndpointAnnotation>(out var endpointAnnotation));
+        Assert.Equal(7071, endpointAnnotation.Port);
+        Assert.Equal(7071, endpointAnnotation.TargetPort);
+        Assert.False(endpointAnnotation.IsProxied);
+        Assert.Equal("https", endpointAnnotation.UriScheme);
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_ConfiguresEnvironmentVariables_WhenInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext);
+        foreach (var envAnnotation in envAnnotations)
+        {
+            await envAnnotation.Callback(context);
+        }
+
+        // Verify ASPNETCORE_URLS is set correctly with the target port
+        var aspNetCoreUrls = context.EnvironmentVariables["ASPNETCORE_URLS"];
+        Assert.NotNull(aspNetCoreUrls);
+        var aspNetCoreUrlsValue = await ((ReferenceExpression)aspNetCoreUrls).GetValueAsync(default);
+        Assert.Contains("8080", aspNetCoreUrlsValue);
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WiresUpHttpsEndpointCorrectly_WhenOnlyUseHttpsArgumentIsProvided()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
+            // Explicit set endpoint values for assertions later
+            .WithEndpoint("https", e =>
+            {
+                e.UriScheme = "https";
+                e.AllocatedEndpoint = new(e, "localhost", 1234);
+                e.TargetPort = 9876;
+            });
+
+        // Assert that the EndpointAnnotation is configured correctly
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetLastAnnotation<EndpointAnnotation>(out var endpointAnnotation));
+        Assert.Null(endpointAnnotation.Port);
+        Assert.Equal(9876, endpointAnnotation.TargetPort);
+        Assert.True(endpointAnnotation.IsProxied);
+        Assert.Equal("https", endpointAnnotation.UriScheme);
+
+        // Check that `--port` is present in the args
+        using var app = builder.Build();
+        var args = await ArgumentEvaluator.GetArgumentListAsync(functionsResource);
+
+        Assert.Collection(args,
+            arg => Assert.Equal("--port", arg),
+            arg => Assert.Equal("9876", arg)
+        );
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "some-path";
@@ -262,6 +330,40 @@ public class AzureFunctionsTests
                 ["funcapp"] = new()
                 {
                     CommandLineArgs = "--port 7072 --port 7071",
+                    LaunchBrowser = false,
+                }
+            }
+        };
+    }
+
+    private sealed class TestProjectWithHttps : IProjectMetadata
+    {
+        public string ProjectPath => "some-path";
+
+        public LaunchSettings LaunchSettings => new()
+        {
+            Profiles = new Dictionary<string, LaunchProfile>
+            {
+                ["funcapp"] = new()
+                {
+                    CommandLineArgs = "--port 7071 --useHttps",
+                    LaunchBrowser = false,
+                }
+            }
+        };
+    }
+
+    private sealed class TestProjectWithHttpsNoPort : IProjectMetadata
+    {
+        public string ProjectPath => "some-path";
+
+        public LaunchSettings LaunchSettings => new()
+        {
+            Profiles = new Dictionary<string, LaunchProfile>
+            {
+                ["funcapp"] = new()
+                {
+                    CommandLineArgs = "--useHttps",
                     LaunchBrowser = false,
                 }
             }
