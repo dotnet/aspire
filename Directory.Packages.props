@@ -35,6 +35,7 @@
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppContainers" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ContainerRegistry" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
