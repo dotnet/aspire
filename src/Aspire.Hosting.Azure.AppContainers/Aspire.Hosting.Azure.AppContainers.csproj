@@ -10,6 +10,10 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Provisioning.AppContainers" />
+    <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
+    <PackageReference Include="Azure.Provisioning.OperationalInsights" />
+    <PackageReference Include="Azure.Provisioning.KeyVault" />
+    <PackageReference Include="Azure.Provisioning.Storage" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
 
