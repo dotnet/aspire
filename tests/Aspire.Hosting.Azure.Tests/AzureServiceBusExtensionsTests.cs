@@ -215,7 +215,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
     [RequiresDocker]
     public async Task VerifyAzureServiceBusEmulatorResource()
     {
