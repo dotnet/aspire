@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -12,9 +11,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KeycloakResourceBuilderExtensions
 {
-    private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
-    private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
+    private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
+    private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
+    private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+
     private const int DefaultContainerPort = 8080;
+    private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
+    private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
@@ -29,7 +32,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <remarks>
     /// The container exposes port 8080 by default.
     /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -39,6 +41,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                        .WithReference(keycloak);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> AddKeycloak(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -59,10 +62,13 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
+            .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
+                context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
             });
 
         if (builder.ExecutionContext.IsRunMode)
@@ -87,7 +93,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The volume is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a data volume
     /// <code lang="csharp">
@@ -95,6 +100,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataVolume();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -111,7 +117,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The source directory is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a bind mount
     /// <code lang="csharp">
@@ -119,6 +124,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataBindMount("mydata");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -131,12 +137,11 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importDirectory">The directory containing the realm import files.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The realm import files are mounted at /opt/keycloak/data/import in the container.
-    /// </remarks>
     /// <example>
     /// Import the realms from a directory
     /// <code lang="csharp">
@@ -144,22 +149,29 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithRealmImport("../realms");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importDirectory,
+        string import,
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(importDirectory);
+        ArgumentNullException.ThrowIfNull(import);
 
-        var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
-        if (!Directory.Exists(importDirectoryFullPath))
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+
+        if (Directory.Exists(importFullPath))
         {
-            throw new DirectoryNotFoundException($"The realm import directory '{importDirectoryFullPath}' does not exist.");
+            return builder.WithBindMount(importFullPath, RealmImportDirectory, isReadOnly);
         }
 
-        builder.WithBindMount(importDirectoryFullPath, RealmImportDirectory, isReadOnly);
+        if (File.Exists(importFullPath))
+        {
+            var fileName = Path.GetFileName(import);
 
-        return builder;
+            return builder.WithBindMount(importFullPath, $"{RealmImportDirectory}/{fileName}", isReadOnly);
+        }
+
+        throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
     }
 }

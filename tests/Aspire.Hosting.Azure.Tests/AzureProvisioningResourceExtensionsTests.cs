@@ -20,7 +20,7 @@ public class AzureProvisioningResourceExtensionsTests(ITestOutputHelper output)
             .WithHttpsEndpoint();
 
         var endpointReference = apiProject.GetEndpoint("https");
-        var referenceExpression = ReferenceExpression.Create($"prefix:{endpointReference.Property(EndpointProperty.Host)}:{endpointReference.Property(EndpointProperty.Port)}");
+        var referenceExpression = ReferenceExpression.Create($"prefix:{endpointReference.Property(EndpointProperty.HostAndPort)}");
 
         var resource1 = builder.AddAzureInfrastructure("resource1", infrastructure =>
         {

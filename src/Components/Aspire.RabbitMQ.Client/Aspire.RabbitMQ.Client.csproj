@@ -6,10 +6,7 @@
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
     <Description>A RabbitMQ client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>80</MinCodeCoverage>
+    <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,11 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq.v6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 

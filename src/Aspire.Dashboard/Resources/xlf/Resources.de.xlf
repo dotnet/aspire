@@ -9,42 +9,47 @@
       </trans-unit>
       <trans-unit id="ResourceActionMetricsText">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metriken</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Strukturierte Protokolle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionTelemetryTooltip">
         <source>No telemetry found for this resource.</source>
-        <target state="new">No telemetry found for this resource.</target>
+        <target state="translated">Für diese Ressource wurden keine Telemetriedaten gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Überwachungen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="translated">Untergeordnete Ressourcen reduzieren</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
-        <target state="new">{0} "{1}" failed</target>
+        <target state="translated">{0} "{1}" fehlgeschlagen</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandStarting">
         <source>{0} "{1}" starting</source>
-        <target state="new">{0} "{1}" starting</target>
+        <target state="translated">{0} "{1}" wird gestartet</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>{0} "{1}" succeeded</source>
-        <target state="new">{0} "{1}" succeeded</target>
+        <target state="translated">{0} "{1}" erfolgreich</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">Protokolle anzeigen</target>
+        <target state="translated">Konsolenprotokolle anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -60,6 +65,16 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Konsolenprotokolle anzeigen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="translated">Untergeordnete Ressourcen erweitern</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(Nicht festgelegt)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
@@ -89,7 +104,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
         <source>Container lifetime</source>
-        <target state="new">Container lifetime</target>
+        <target state="translated">Containerlebensdauer</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -129,7 +144,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health state</source>
-        <target state="new">Health state</target>
+        <target state="translated">Integritätsstatus</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -160,6 +175,21 @@
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">Umgebung</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">Hat Filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">Keine Filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">Zustand</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -212,24 +242,14 @@
         <target state="translated">Typ</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">Typfilter: Alle Typen sichtbar</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">Typfilter: Gefiltert</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>
-        <target state="new">Waiting for health data...</target>
+        <target state="translated">Auf Integritätsdaten wird gewartet...</target>
         <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
       <trans-unit id="WaitingHealthDataStatusMessage">
         <source>Waiting...</source>
-        <target state="new">Waiting...</target>
+        <target state="translated">Warten ...</target>
         <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>

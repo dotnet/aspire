@@ -12,7 +12,7 @@ fluent-toolbar p {
 
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
-    padding-right: calc(var(--design-unit)* 2px);
+    padding-right: calc(var(--design-unit) * 2px);
 }
 
 fluent-toolbar::part(positioning-region) {
@@ -53,6 +53,7 @@ fluent-toolbar::part(end) {
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
+    --foreground-settings-text: var(--foreground-subtext-rest);
     --error-ui-foreground-color: #131313;
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
@@ -86,6 +87,7 @@ fluent-toolbar::part(end) {
     --log-warning: #3F3A2B;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
+    --foreground-settings-text: #A8A8A8;
     --error-ui-foreground-color: #000000;
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
@@ -109,19 +111,12 @@ fluent-toolbar::part(end) {
     --hljs-keyword: #dcc6e0;
 }
 
-/*
-    Override the `cursor: pointer` in the default styles from fluentui-blazor since
-    we don't have selection implemented and the pointer doesn't really make sense.
-    The `fluent-data-grid-row[role='row']` part added to the beginning is a bit of
-    a hack to get the specificity higher than the default style to avoid using
-    `!important` just in case there's a reason to to override further later.
-*/
-fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
-    cursor: auto;
+.fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {
+    cursor: auto !important;
 }
 
-.enable-row-click fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
-    cursor: pointer;
+.enable-row-click .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header'], .empty-content-row, .loading-content-row):hover td {
+    cursor: pointer !important;
 }
 
 [data-theme="light"] {
@@ -180,9 +175,14 @@ h1 {
          height: 130px;
     }
 
+    fluent-toolbar[orientation=horizontal].main-toolbar {
+        padding-left: calc(var(--design-unit) * 2px);
+        padding-right: calc(var(--design-unit) * 2px);
+    }
+
     /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
-        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px) 0;
         width: fit-content;
     }
 
@@ -195,16 +195,21 @@ h1 {
     }
 }
 
- @media (min-width: 768px) {
+@media (min-width: 768px) {
     #components-reconnect-modal {
         left: 30% !important;
         right: 30% !important;
         height: 105px;
     }
 
-     .page-header {
-         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
-     }
+    fluent-toolbar[orientation=horizontal].main-toolbar {
+        padding-left: calc(var(--design-unit) * 4.5px);
+        padding-right: calc(var(--design-unit) * 2px);
+    }
+
+    .page-header {
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 4.5px);
+    }
  }
 
 .datagrid-overflow-area,
@@ -218,19 +223,20 @@ h1 {
     overflow: auto;
 }
 
-fluent-data-grid .empty-content-cell,
-fluent-data-grid .loading-content-cell {
+.fluent-data-grid .empty-content-cell,
+.fluent-data-grid .loading-content-cell {
     padding: calc(var(--design-unit) * 5px);
     display: flex;
     align-items: center;
+    height: auto !important; /* override height in td style attribute */
+    justify-content: center;
 }
-
 /*
     Default LoadingContent template has align-items set to start, so the
     text doesn't line up with the spinner properly. It is set via inline style
     so we need to use !important to override it.
 */
-fluent-data-grid .loading-content-cell .stack-horizontal {
+.fluent-data-grid .loading-content-cell .stack-horizontal {
     align-items: center !important;
     column-gap: calc(var(--design-unit) * 2px) !important;
 }
@@ -240,8 +246,9 @@ fluent-data-grid .loading-content-cell .stack-horizontal {
 }
 
 .top-messagebar {
-    padding: calc(var(--design-unit) * 2px);
-    padding-bottom: 0;
+    padding: calc(var(--design-unit) * 4px);
+    padding-top: calc(var(--design-unit) * 2px);
+    padding-bottom: 0 !important;
 }
 
 .fluent-messagebar.intent-warning {
@@ -275,7 +282,7 @@ fluent-dialog fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
 
 /* But changing the stealth button's background in dialogs means the stealth buttons used as headers for grid cells
    now have the wrong background. So change that back */
-fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
+fluent-dialog td[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background: var(--fill-layer);
 }
 
@@ -285,11 +292,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     font-size: 12px;
 }
 
-fluent-data-grid-row {
-    align-items: center;
-}
-
-fluent-data-grid-cell .long-inner-content {
+td .long-inner-content {
     width: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -410,17 +413,17 @@ fluent-switch.table-switch::part(label) {
     If ShowHover is enabled on a FluentDataGrid, we need to tweak the way anchors and buttons
     are colored when a row is hovered
 */
-fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
-fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
-fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
-fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
     background-color: var(--datagrid-hover-color);
 }
 
-fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
-fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
-fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):hover,
-fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):hover {
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=lightweight]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=stealth]::part(control):hover {
     background-color: var(--fill-color);
 }
 
@@ -439,7 +442,7 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
     --fill-color: var(--neutral-layer-1);
 }
 
-.property-grid-container fluent-accordion fluent-data-grid {
+.property-grid-container fluent-accordion .fluent-data-grid {
     --datagrid-hover-color: var(--neutral-layer-1-hover);
 }
 
@@ -472,17 +475,17 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
     font-size: var(--type-ramp-plus-1-font-size);
 }
 
-.property-grid-container fluent-accordion fluent-data-grid-row:last-of-type {
+.property-grid-container fluent-accordion .fluent-data-grid-row:last-of-type {
     border-bottom: none;
 }
 
-.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=stealth]::part(control):not(:hover),
-.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=lightweight]::part(control):not(:hover) {
+.property-grid-container fluent-accordion .fluent-data-grid-row fluent-button[appearance=stealth]::part(control):not(:hover),
+.property-grid-container fluent-accordion .fluent-data-grid-row fluent-button[appearance=lightweight]::part(control):not(:hover) {
     background-color: var(--fill-color);
 }
 
-.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=stealth]::part(control):hover,
-.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=lightweight]::part(control):hover {
+.property-grid-container fluent-accordion .fluent-data-grid-row:is([row-type='header'],[row-type='sticky-header']) fluent-button[appearance=stealth]::part(control):hover,
+.property-grid-container fluent-accordion .fluent-data-grid-row:is([row-type='header'],[row-type='sticky-header']) fluent-button[appearance=lightweight]::part(control):hover {
     background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
 }
 
@@ -493,7 +496,7 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
 
 .total-items-footer {
     padding-top: calc(var(--design-unit) * 2.5px);
-    padding-left: calc(var(--design-unit) * 2.5px);
+    padding-left: calc(var(--design-unit) * 4.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
 }
 
@@ -508,10 +511,10 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
 
 /* Some of the data-columns (e.g. logs and details in the resource page)
    should not have ellipsis as this is unnecessary and a bit distracting.
-   !important is required to override the fluentui-blazor styling.
+
 */
-fluent-data-grid-cell.no-ellipsis {
-    text-overflow: unset !important;
+.fluent-data-grid .no-ellipsis {
+    text-overflow: unset;
 }
 
 .endpoint-overflow {
@@ -668,4 +671,84 @@ fluent-data-grid-cell.no-ellipsis {
 
 .empty-data::before {
     content: "-"
+}
+
+.fluent-data-grid {
+    height: auto !important; /* override height in table style attribute */
+}
+
+.main-grid-expand-container {
+    display: inline-block;
+    width: 18px;
+}
+
+.main-grid-expand-container svg {
+    transition: transform 0.1s linear;
+    pointer-events: none;
+}
+
+.main-grid-collapsed svg {
+    transform: rotate(0deg);
+}
+
+.main-grid-expanded svg {
+    transform: rotate(90deg);
+}
+
+.main-grid-expand-button {
+    width: 18px;
+    height: 24px;
+    min-width: 18px;
+    vertical-align: middle;
+}
+
+.main-grid .fluent-data-grid-row:not([row-type='sticky-header']) td.expand-col {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.main-grid .fluent-data-grid-row:not([row-type='sticky-header'], .empty-content-row) td:first-child:not(.expand-col) {
+    padding-left: calc(((var(--design-unit)* 3) + var(--focus-stroke-width) - var(--stroke-width) + 5)* 1px);
+}
+
+/* Line up the first column header with the content. TODO: A bit of a mess. See if it can be improved */
+.main-grid .column-header:not(.select-all):first-of-type {
+    padding-inline-start: calc(var(--design-unit)* 2px) !important;
+}
+.column-header:not(.select-all):first-of-type, .trace-view-grid .column-header:not(.select-all):first-of-type {
+    padding-inline-start: 0px !important;
+}
+
+.toolbar-left {
+    margin-left: 0;
+}
+
+.setting-subtext {
+    color: var(--foreground-settings-text);
+    font-size: var(--type-ramp-minus-1-font-size);
+    margin: 0;
+}
+
+.setting-title {
+    margin-bottom: 4px;
+    display: inline-block;
+}
+
+.volume-mount-type-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px
+}
+
+.clear-button::part(control) {
+    padding: 0 calc((10 + (var(--design-unit) * 2 * var(--density))) * 1px);
+}
+
+.language-select {
+    margin-bottom: 2px;
+    min-width: 235px;
+}
+
+.resources-filter-popup {
+    max-height: 400px;
+    overflow-y: auto;
 }

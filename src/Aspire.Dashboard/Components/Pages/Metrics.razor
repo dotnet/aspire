@@ -10,7 +10,26 @@
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    @{
+        string? additionalText;
+        if (PageViewModel.SelectedApplication.Id is { ReplicaSetName: { } replicaSetName })
+        {
+            additionalText = PageViewModel.SelectedInstrument is { } selectedInstrument
+                ? $"{replicaSetName} - {selectedInstrument.Name}"
+                : replicaSetName;
+        }
+        else
+        {
+            additionalText = null;
+        }
+    }
+
+    <ApplicationName
+        AdditionalText="@additionalText"
+        ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout
@@ -26,7 +45,12 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
+
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearMetrics" />
+
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
@@ -92,6 +116,7 @@
                                             Style="max-width:1100px;"
                                             Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
                                             GridTemplateColumns="3fr 5fr"
+                                            RowSize="DataGridRowSize.Medium"
                                             TGridItem="OtlpInstrumentSummary">
                                             <ChildContent>
                                                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
@@ -99,7 +124,7 @@
                                                         @context.Name
                                                     </FluentAnchor>
                                                 </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
+                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Tooltip="true" TooltipText="@(c => c.Description)" />
                                             </ChildContent>
                                         </FluentDataGrid>
                                     }

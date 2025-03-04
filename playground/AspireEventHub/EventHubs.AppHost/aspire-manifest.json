@@ -5,8 +5,8 @@
       "type": "azure.bicep.v0",
       "path": "ehstorage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "checkpoints": {
@@ -18,9 +18,13 @@
       "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
       "path": "eventhubns.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
+    },
+    "eventhub": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={eventhubns.outputs.eventHubsEndpoint};EntityPath=eventhub"
     },
     "consumer": {
       "type": "project.v0",
@@ -29,7 +33,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+        "ConnectionStrings__eventhub": "{eventhub.connectionString}",
         "ConnectionStrings__checkpoints": "{checkpoints.connectionString}"
       }
     },
@@ -42,7 +46,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+        "ConnectionStrings__eventhub": "{eventhub.connectionString}"
       },
       "bindings": {
         "http": {

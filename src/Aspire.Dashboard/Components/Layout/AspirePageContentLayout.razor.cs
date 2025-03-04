@@ -83,6 +83,7 @@ public partial class AspirePageContentLayout : ComponentBase
             {
                 Alignment = HorizontalAlignment.Center,
                 Title = MobileToolbarButtonText ?? ControlsStringsLoc[nameof(ControlsStrings.ChartContainerFiltersHeader)],
+                DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
                 Width = "100%",
                 Height = "90%",
                 Modal = false,

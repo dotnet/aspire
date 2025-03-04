@@ -413,4 +413,39 @@
   <data name="ActionStructuredLogsText" xml:space="preserve">
     <value>Structured logs</value>
   </data>
+  <data name="ResourceDetailsTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ResourceDetailsReferences" xml:space="preserve">
+    <value>References</value>
+  </data>
+  <data name="ResourceDetailsBackReferences" xml:space="preserve">
+    <value>Back references</value>
+  </data>
+  <data name="VolumePathColumnHeader" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="VolumeMountTypeColumnHeader" xml:space="preserve">
+    <value>Mount type</value>
+  </data>
+  <data name="ClearAllResources" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="ClearSelectedResource" xml:space="preserve">
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
+  </data>
+  <data name="ChartContainerOverflowDescription" xml:space="preserve">
+    <value>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="ChartContainerOverflowTitle" xml:space="preserve">
+    <value>Cardinality capping has been detected</value>
+  </data>
+  <data name="ChartContainerOverflowLink" xml:space="preserve">
+    <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
 </root>

@@ -4,7 +4,6 @@
 using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
-using Aspire.Hosting.Utils;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -125,7 +124,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {

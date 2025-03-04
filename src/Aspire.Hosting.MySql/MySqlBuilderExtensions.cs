@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -14,6 +14,7 @@ namespace Aspire.Hosting;
 public static class MySqlBuilderExtensions
 {
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
+    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
 
     /// <summary>
     /// Adds a MySQL server resource to the application model. For local development a container is used.
@@ -102,14 +103,11 @@ public static class MySqlBuilderExtensions
 
         containerName ??= $"{builder.Resource.Name}-phpmyadmin";
 
-        var configurationTempFileName = Path.GetTempFileName();
-
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                                 .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
-                                                .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
                                                 .ExcludeFromManifest();
 
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
@@ -125,47 +123,45 @@ public static class MySqlBuilderExtensions
             if (mySqlInstances.Count() == 1)
             {
                 var singleInstance = mySqlInstances.Single();
-                if (singleInstance.PrimaryEndpoint.IsAllocated)
+                var endpoint = singleInstance.PrimaryEndpoint;
+                phpMyAdminContainerBuilder.WithEnvironment(context =>
                 {
-                    var endpoint = singleInstance.PrimaryEndpoint;
-                    phpMyAdminContainerBuilder.WithEnvironment(context =>
-                    {
-                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
-                        context.EnvironmentVariables.Add("PMA_USER", "root");
-                        context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
-                    });
-                }
+                    // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                    // This will need to be refactored once updated service discovery APIs are available
+                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
+                    context.EnvironmentVariables.Add("PMA_USER", "root");
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                });
             }
             else
             {
-                using var stream = new FileStream(configurationTempFileName, FileMode.Create);
-                using var writer = new StreamWriter(stream);
+                var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
 
-                writer.WriteLine("<?php");
-                writer.WriteLine();
-                writer.WriteLine("$i = 0;");
-                writer.WriteLine();
-                foreach (var mySqlInstance in mySqlInstances)
+                try
                 {
-                    if (mySqlInstance.PrimaryEndpoint.IsAllocated)
+                    var aspireStore = e.Services.GetRequiredService<IAspireStore>();
+
+                    // Deterministic file path for the configuration file based on its content
+                    var configStoreFilename = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-config.user.inc.php", tempConfigFile);
+
+                    // Need to grant read access to the config file on unix like systems.
+                    if (!OperatingSystem.IsWindows())
                     {
-                        var endpoint = mySqlInstance.PrimaryEndpoint;
-                        writer.WriteLine("$i++;");
-                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.Resource.Name}:{endpoint.TargetPort}';");
-                        writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
-                        writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
-                        writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-                        writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
-                        writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
-                        writer.WriteLine();
+                        File.SetUnixFileMode(configStoreFilename, FileMode644);
+                    }
+
+                    phpMyAdminContainerBuilder.WithBindMount(configStoreFilename, "/etc/phpmyadmin/config.user.inc.php");
+                }
+                finally
+                {
+                    try
+                    {
+                        File.Delete(tempConfigFile);
+                    }
+                    catch
+                    {
                     }
                 }
-                writer.WriteLine("$cfg['DefaultServer'] = 1;");
-                writer.WriteLine("?>");
             }
 
             return Task.CompletedTask;
@@ -234,5 +230,36 @@ public static class MySqlBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
 
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+    }
+
+    private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)
+    {
+        // This temporary file is not used by the container, it will be copied and then deleted
+        var filePath = Path.GetTempFileName();
+
+        using var writer = new StreamWriter(filePath);
+
+        writer.WriteLine("<?php");
+        writer.WriteLine();
+        writer.WriteLine("$i = 0;");
+        writer.WriteLine();
+        foreach (var mySqlInstance in mySqlInstances)
+        {
+            var endpoint = mySqlInstance.PrimaryEndpoint;
+            writer.WriteLine("$i++;");
+            // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+            // This will need to be refactored once updated service discovery APIs are available
+            writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.Resource.Name}:{endpoint.TargetPort}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
+            writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
+            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
+            writer.WriteLine();
+        }
+        writer.WriteLine("$cfg['DefaultServer'] = 1;");
+        writer.WriteLine("?>");
+
+        return filePath;
     }
 }

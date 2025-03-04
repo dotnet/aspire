@@ -93,7 +93,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // Milvus container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 milvus1.WithDataBindMount(bindMountPath);
             }
 
@@ -130,8 +132,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter = builder2.AddParameter("pwd", password);
 
             var milvus2 = builder2.AddMilvus("milvus2", passwordParameter);
             var db2 = milvus2.AddDatabase("milvusdb2", dbname);

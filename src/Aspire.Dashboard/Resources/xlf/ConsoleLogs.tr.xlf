@@ -42,9 +42,29 @@
         <target state="translated">{0} konsol günlükleri</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsResourceCommands">
+        <source>Resource commands</source>
+        <target state="translated">Kaynak komutları</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Kaynak seç</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="translated">Konsol günlük ayarları</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="translated">Zaman damgalarını gizle</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="translated">Zaman damgalarını göster</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -55,6 +75,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Günlükler izleniyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="translated">İndirme günlükleri</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

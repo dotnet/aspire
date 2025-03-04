@@ -1,2 +1,0 @@
-#nullable enable
-static Aspire.Hosting.RabbitMQBuilderExtensions.WithManagementPlugin(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RabbitMQServerResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RabbitMQServerResource!>!

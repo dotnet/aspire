@@ -30,6 +30,9 @@ public partial class ResourceSelect
     [Parameter]
     public bool CanSelectGrouping { get; set; }
 
+    [Parameter]
+    public string? LabelClass { get; set; }
+
     private async Task SelectedResourceChangedCore()
     {
         await SelectedResourceChanged.InvokeAsync(SelectedResource);

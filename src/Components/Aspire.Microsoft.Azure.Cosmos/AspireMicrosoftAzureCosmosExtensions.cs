@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Microsoft.Azure.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -73,13 +73,15 @@ public static class AspireMicrosoftAzureCosmosExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            var cosmosConnectionInfo = CosmosUtils.ParseConnectionString(connectionString);
+
+            if (cosmosConnectionInfo.AccountEndpoint is not null)
             {
-                settings.AccountEndpoint = uri;
+                settings.AccountEndpoint = cosmosConnectionInfo.AccountEndpoint;
             }
             else
             {
-                settings.ConnectionString = connectionString;
+                settings.ConnectionString = cosmosConnectionInfo.ConnectionString;
             }
         }
 

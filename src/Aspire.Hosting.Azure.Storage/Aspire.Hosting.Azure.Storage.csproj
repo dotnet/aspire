@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)AzureStorageContainer_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>96</MinCodeCoverage>
-  </PropertyGroup>
-  
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" />
   </ItemGroup>

@@ -3,7 +3,9 @@
 @typeparam TItem where TItem : IPropertyGridItem
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+<FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                ColumnSortLabels="@_sortLabels"
+                HeaderCellAsButtonWithMenu="true"
                 ResizeType="DataGridResizeType.Discrete"
                 Items="@Items"
                 ItemKey="@ItemKey"
@@ -11,7 +13,9 @@
                 Style="width:100%"
                 GenerateHeader="@GenerateHeader"
                 GridTemplateColumns="@GridTemplateColumns"
-                ShowHover="true">
+                RowSize="DataGridRowSize.Medium"
+                ShowHover="true"
+                Class="@Class">
     <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
         <GridValue
             ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
@@ -30,7 +34,6 @@
             IsMasked="@context.IsValueMasked"
             IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
             TextVisualizerTitle="@context.Name"
-            ValueToCopy="@(context.ValueToCopy ?? context.Value)"
             ValueToVisualize="@(context.ValueToVisualize ?? context.Value)" />
         @ExtraValueContent(context)
     </AspireTemplateColumn>

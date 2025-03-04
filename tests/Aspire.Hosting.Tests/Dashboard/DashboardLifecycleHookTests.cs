@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
-using Aspire.Hosting.Codespaces;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
+using Aspire.Hosting.Devcontainers;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
@@ -101,10 +102,13 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         ResourceNotificationService resourceNotificationService,
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null,
-        IOptions<CodespacesOptions>? codespacesOptions = null
+        IOptions<CodespacesOptions>? codespacesOptions = null,
+        IOptions<DevcontainersOptions>? devcontainersOptions = null
         )
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
+        devcontainersOptions ??= Options.Create(new DevcontainersOptions());
+        var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
         return new DashboardLifecycleHook(
@@ -118,7 +122,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             loggerFactory ?? NullLoggerFactory.Instance,
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
-            rewriter
+            rewriter,
+            codespacesOptions,
+            devcontainersOptions,
+            settingsWriter
             );
     }
 

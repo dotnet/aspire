@@ -160,6 +160,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Some dimensions for the metric have been dropped by the OpenTelemetry SDK..
+        /// </summary>
+        public static string ChartContainerOverflowDescription {
+            get {
+                return ResourceManager.GetString("ChartContainerOverflowDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to For more information, see &lt;a href=&quot;{0}&quot; target=&quot;_blank&quot;&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;..
+        /// </summary>
+        public static string ChartContainerOverflowLink {
+            get {
+                return ResourceManager.GetString("ChartContainerOverflowLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cardinality capping has been detected.
+        /// </summary>
+        public static string ChartContainerOverflowTitle {
+            get {
+                return ResourceManager.GetString("ChartContainerOverflowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select filters.
         /// </summary>
         public static string ChartContainerSelectFilters {
@@ -192,6 +219,33 @@ namespace Aspire.Dashboard.Resources {
         public static string ChartContainerUnableToDisplay {
             get {
                 return ResourceManager.GetString("ChartContainerUnableToDisplay", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove all.
+        /// </summary>
+        public static string ClearAllResources {
+            get {
+                return ResourceManager.GetString("ClearAllResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove for resource.
+        /// </summary>
+        public static string ClearPendingSelectedResource {
+            get {
+                return ResourceManager.GetString("ClearPendingSelectedResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove for {0}.
+        /// </summary>
+        public static string ClearSelectedResource {
+            get {
+                return ResourceManager.GetString("ClearSelectedResource", resourceCulture);
             }
         }
         
@@ -565,6 +619,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Back references.
+        /// </summary>
+        public static string ResourceDetailsBackReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsBackReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourceDetailsEndpointsHeader {
@@ -583,11 +646,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to References.
+        /// </summary>
+        public static string ResourceDetailsReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource.
         /// </summary>
         public static string ResourceDetailsResourceHeader {
             get {
                 return ResourceManager.GetString("ResourceDetailsResourceHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type.
+        /// </summary>
+        public static string ResourceDetailsTypeHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsTypeHeader", resourceCulture);
             }
         }
         
@@ -912,6 +993,24 @@ namespace Aspire.Dashboard.Resources {
         public static string ViewLogsLink {
             get {
                 return ResourceManager.GetString("ViewLogsLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mount type.
+        /// </summary>
+        public static string VolumeMountTypeColumnHeader {
+            get {
+                return ResourceManager.GetString("VolumeMountTypeColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Path.
+        /// </summary>
+        public static string VolumePathColumnHeader {
+            get {
+                return ResourceManager.GetString("VolumePathColumnHeader", resourceCulture);
             }
         }
     }

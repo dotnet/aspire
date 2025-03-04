@@ -34,12 +34,14 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
         var expectedManifest = $$"""
             {
-              "type": "dockerfile.v0",
-              "path": "Dockerfile",
-              "context": "."
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile"
+              }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ToString());
+        Assert.Equal(expectedManifest, manifest.ToString(), ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
@@ -64,15 +66,18 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
         var expectedManifest = $$"""
             {
-              "type": "dockerfile.v0",
-              "path": "Dockerfile",
-              "context": ".",
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile"
+              },
               "env": {
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.Equal(expectedManifest, manifest.ToString(), ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
@@ -94,9 +99,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         await app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
+        await app.ResourceNotifications.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
 
         await app.StopAsync();
 
@@ -268,6 +271,18 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var requirementsPath = Path.Combine(projectDirectory, "requirements.txt");
         File.WriteAllText(requirementsPath, requirementsContent);
+
+        // This dockerfile doesn't *need* to work but it's a good sanity check.
+        var dockerFilePath = Path.Combine(projectDirectory, "Dockerfile");
+        File.WriteAllText(dockerFilePath,
+            """
+            FROM python:3.9
+            WORKDIR /app
+            COPY requirements.txt .
+            RUN pip install --no-cache-dir -r requirements.txt
+            COPY . .
+            CMD ["python", "main.py"]
+            """);
 
         var prepareVirtualEnvironmentStartInfo = new ProcessStartInfo()
         {

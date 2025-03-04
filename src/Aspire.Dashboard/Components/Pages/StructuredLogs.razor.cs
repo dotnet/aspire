@@ -31,6 +31,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
@@ -43,6 +44,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -105,26 +109,30 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
-        ViewModel.Count = request.Count;
+        ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
         var logs = ViewModel.GetLogs();
 
-        if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
+        if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
-            await MessageService.ShowMessageBarAsync(options =>
-            {
-                options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
-                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
-                options.Intent = MessageIntent.Info;
-                options.Section = "MessagesTop";
-                options.AllowDismiss = true;
-            });
+            TelemetryRepository.MaxLogLimitMessage = await DashboardUIHelpers.DisplayMaxLimitMessageAsync(
+                MessageService,
+                Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)],
+                string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount),
+                () => TelemetryRepository.MaxLogLimitMessage = null);
+
             TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
+        }
+        else if (!logs.IsFull && TelemetryRepository.MaxLogLimitMessage is { } message)
+        {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
-        // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+        // The workaround is to explicitly update and refresh the control.
+        _totalItemsCount = logs.TotalItemCount;
+        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
@@ -133,6 +141,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
         _gridColumns = [
             new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
             new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
@@ -278,6 +288,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
+            DismissTitle = DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
@@ -421,6 +432,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private Task ClearStructureLogs(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearStructuredLogs(key);
+        return Task.CompletedTask;
     }
 
     public class StructuredLogsPageViewModel

@@ -3,9 +3,9 @@ param location string = resourceGroup().location
 
 param sku string = 'Standard'
 
-param principalId string
-
 param principalType string
+
+param principalId string
 
 resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: take('sb-${uniqueString(resourceGroup().id)}', 50)
@@ -41,11 +41,6 @@ resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   parent: sb
 }
 
-resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-  name: 'topic2'
-  parent: sb
-}
-
 resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'subscription1'
   parent: topic1
@@ -56,7 +51,12 @@ resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@202
   parent: topic1
 }
 
-resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+  name: 'topic2'
+  parent: sb
+}
+
+resource topic2sub 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'subscription1'
   parent: topic2
 }

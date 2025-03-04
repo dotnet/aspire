@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
 
@@ -87,11 +88,35 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
             if (!connectionString.Contains(';'))
             {
                 FullyQualifiedNamespace = connectionString;
+                return;
             }
-            else
+
+            var connectionBuilder = new DbConnectionStringBuilder()
             {
-                ConnectionString = connectionString;
+                ConnectionString = connectionString
+            };
+
+            // Note: Strip out the EntityPath from the connection string in order
+            // to tell if we are left with just Endpoint.
+            // The EntityPath can contain a queue or topic name. And if it references a topic,
+            // it can contain {topic}/Subscriptions/{subscription}. See https://github.com/Azure/azure-sdk-for-net/pull/27070
+
+            if (connectionBuilder.TryGetValue("EntityPath", out var _))
+            {
+                connectionBuilder.Remove("EntityPath");
             }
+
+            if (connectionBuilder.Count == 1 &&
+                connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+            {
+                // if all that's left is Endpoint, it is a fully qualified namespace
+                FullyQualifiedNamespace = endpoint.ToString();
+                return;
+            }
+
+            // if we got here, it's a full connection string
+            // use the original connection string since connectionBuilder was modified above.
+            ConnectionString = connectionString;
         }
     }
 }

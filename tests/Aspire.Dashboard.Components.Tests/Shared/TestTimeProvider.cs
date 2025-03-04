@@ -10,13 +10,16 @@ public sealed class TestTimeProvider : BrowserTimeProvider
 {
     private TimeZoneInfo? _localTimeZone;
 
+    public DateTimeOffset UtcNow { get; set; }
+
     public TestTimeProvider() : base(NullLoggerFactory.Instance)
     {
+        UtcNow = new DateTimeOffset(2025, 12, 20, 23, 59, 59, TimeSpan.Zero);
     }
 
     public override DateTimeOffset GetUtcNow()
     {
-        return new DateTimeOffset(2025, 12, 20, 23, 59, 59, TimeSpan.Zero);
+        return UtcNow;
     }
 
     public override TimeZoneInfo LocalTimeZone => _localTimeZone ??= TimeZoneInfo.CreateCustomTimeZone(nameof(TestTimeProvider), TimeSpan.FromHours(1), nameof(TestTimeProvider), nameof(TestTimeProvider));

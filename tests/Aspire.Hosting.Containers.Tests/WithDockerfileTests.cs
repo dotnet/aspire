@@ -25,8 +25,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync(includeSecrets: true);
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame from env";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -51,7 +51,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     public async Task ContainerBuildLogsAreStreamedToAppHost()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         builder.Services.AddLogging(logging =>
         {
             logging.AddFakeLogging();
@@ -84,6 +83,85 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
+    [Theory]
+    [InlineData("testcontainer")]
+    [InlineData("TestContainer")]
+    [InlineData("test-Container")]
+    [InlineData("TEST-234-CONTAINER")]
+    public async Task AddDockerfileUsesLowercaseResourceNameAsImageName(string resourceName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddDockerfile(resourceName, tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+    }
+
+    [Theory]
+    [InlineData("testcontainer")]
+    [InlineData("TestContainer")]
+    [InlineData("test-Container")]
+    [InlineData("TEST-234-CONTAINER")]
+    public async Task WithDockerfileUsesLowercaseResourceNameAsImageName(string resourceName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer(resourceName, "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+    }
+
+    [Fact]
+    public async Task WithDockerfileUsesGeneratesDifferentHashForImageTagOnEachCall()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer("testcontainer", "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
+        var tag1 = containerImageAnnotation1.Tag;
+
+        dockerFile.WithDockerfile(tempContextPath, tempDockerfilePath);
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
+        var tag2 = containerImageAnnotation2.Tag;
+
+        Assert.NotEqual(tag1, tag2);
+    }
+
+    [Fact]
+    public async Task WithDockerfileGeneratedImageTagCanBeOverridden()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer("testcontainer", "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
+        var generatedTag = containerImageAnnotation1.Tag;
+
+        dockerFile.WithImageTag("latest");
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
+        var overriddenTag = containerImageAnnotation2.Tag;
+
+        Assert.NotEqual(generatedTag, overriddenTag);
+        Assert.Equal("latest", overriddenTag);
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
@@ -111,7 +189,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
         var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
+        var container = Assert.Single(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
         Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
@@ -161,8 +239,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -209,8 +287,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath, "runner")
                                .WithHttpEndpoint(targetPort: 80)
@@ -256,8 +334,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -302,8 +380,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                                .WithHttpEndpoint(targetPort: 80)
@@ -345,8 +423,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -416,8 +494,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                .WithHttpEndpoint(targetPort: 80)
@@ -504,87 +582,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
 
         Assert.Equal("contextPath", ex.ParamName);
-    }
-
-    [Fact]
-    public void WithDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var ex = Assert.Throws<DirectoryNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile("a/path/to/nowhere");
-        });
-    }
-
-    [Fact]
-    public void AddDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var ex = Assert.Throws<DirectoryNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", "a/path/to/nowhere");
-        });
-    }
-
-    [Fact]
-    public async Task WithDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync(createDockerfile: false);
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile(tempContextPath, string.Empty);
-        });
-    }
-
-    [Fact]
-    public async Task AddDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync(createDockerfile: false);
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", tempContextPath, string.Empty);
-        });
-    }
-
-    [Fact]
-    public async Task WithDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync();
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile(tempContextPath, "Notarealdockerfile");
-        });
-    }
-
-    [Fact]
-    public async Task AddDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync();
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", tempContextPath, "Notarealdockerfile");
-        });
     }
 
     [Fact]
@@ -753,8 +750,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
     {
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
+        await app.ResourceNotifications.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
     }
 
     private const string DefaultMessage = "aspire!";

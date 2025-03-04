@@ -3,20 +3,23 @@
   "resources": {
     "redis": {
       "type": "container.v0",
-      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
       "image": "docker.io/library/redis:7.4",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-redis-data",
+          "name": "redis.apphost-7855b85e05-redis-data",
           "target": "/data",
           "readOnly": false
         }
       ],
+      "env": {
+        "REDIS_PASSWORD": "{redis-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -40,7 +43,7 @@
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-garnet-data",
+          "name": "redis.apphost-7855b85e05-garnet-data",
           "target": "/data",
           "readOnly": false
         }
@@ -96,12 +99,30 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "redis-password": {
+      "type": "parameter.v0",
+      "value": "{redis-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
         }
       }
     }

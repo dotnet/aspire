@@ -108,43 +108,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.AppBuilder
-            .AddNodeApp("nodeapp", "fakePath")
-            .WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
-            .PublishAsDockerFile();
-        program.AppBuilder
-            .AddNpmApp("npmapp", "fakeDirectory");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        // NPM app should still be executable.v0
-        var npmapp = resources.GetProperty("npmapp");
-        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
-        Assert.DoesNotContain("\\", npmapp.GetProperty("workingDirectory").GetString());
-
-        // Node app should now be dockerfile.v0
-        var nodeapp = resources.GetProperty("nodeapp");
-        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
-        Assert.True(nodeapp.TryGetProperty("path", out _));
-        Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out var env));
-        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
-
-        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("targetPort").GetInt32());
-        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
-        Assert.Equal("{nodeapp.bindings.https.targetPort}", env.GetProperty("HTTPS_PORT").GetString());
-    }
-
-    [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
@@ -262,7 +225,7 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}", container.GetProperty("connectionString").GetString());
     }
 
     [Fact]
@@ -435,8 +398,16 @@ public class ManifestGenerationTests
                 },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "entrypoint": "/bin/sh",
+                  "args": [
+                    "-c",
+                    "redis-server --requirepass $REDIS_PASSWORD"
+                  ],
+                  "env": {
+                    "REDIS_PASSWORD": "{redis-password.value}"
+                  },
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -469,6 +440,22 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
+                },
+                "redis-password": {
+                  "type": "parameter.v0",
+                  "value": "{redis-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "special": false
+                        }
+                      }
+                    }
+                  }
                 },
                 "postgres-password": {
                   "type": "parameter.v0",

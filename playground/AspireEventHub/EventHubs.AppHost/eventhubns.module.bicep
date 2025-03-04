@@ -3,9 +3,9 @@ param location string = resourceGroup().location
 
 param sku string = 'Standard'
 
-param principalId string
-
 param principalType string
+
+param principalId string
 
 resource eventhubns 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: take('eventhubns-${uniqueString(resourceGroup().id)}', 256)
@@ -28,8 +28,8 @@ resource eventhubns_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignm
   scope: eventhubns
 }
 
-resource hub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
-  name: 'hub'
+resource eventhub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
+  name: 'eventhub'
   parent: eventhubns
 }
 

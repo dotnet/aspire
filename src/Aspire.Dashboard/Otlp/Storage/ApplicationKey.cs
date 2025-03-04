@@ -53,4 +53,14 @@ public readonly record struct ApplicationKey(string Name, string? InstanceId) : 
 
         return true;
     }
+
+    public override string ToString()
+    {
+        if (InstanceId == null)
+        {
+            return Name;
+        }
+
+        return $"{Name}-{InstanceId}";
+    }
 }

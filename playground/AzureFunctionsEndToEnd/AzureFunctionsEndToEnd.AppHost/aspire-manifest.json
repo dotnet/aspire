@@ -5,8 +5,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "queue": {
@@ -22,25 +22,50 @@
       "connectionString": "{eventhubs.outputs.eventHubsEndpoint}",
       "path": "eventhubs.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
+    },
+    "myhub": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={eventhubs.outputs.eventHubsEndpoint};EntityPath=myhub"
     },
     "messaging": {
       "type": "azure.bicep.v0",
       "connectionString": "{messaging.outputs.serviceBusEndpoint}",
       "path": "messaging.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
+    },
+    "myqueue": {
+      "type": "value.v0",
+      "connectionString": "{messaging.outputs.serviceBusEndpoint}"
+    },
+    "cosmosdb": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}",
+      "path": "cosmosdb.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "mydatabase": {
+      "type": "value.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}"
+    },
+    "mycontainer": {
+      "type": "value.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}"
     },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
       "path": "funcstorage67c6c.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "funcapp": {
@@ -52,19 +77,27 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "AzureFunctionsJobHost__telemetryMode": "OpenTelemetry",
         "ASPNETCORE_URLS": "http://\u002B:{funcapp.bindings.http.targetPort}",
         "AzureWebJobsStorage__blobServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "AzureWebJobsStorage__queueServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
-        "eventhubs__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "myhub__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__EventHubName": "myhub",
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
+        "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",
@@ -97,8 +130,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "ConnectionStrings__eventhubs": "{eventhubs.connectionString}",
+        "ConnectionStrings__myhub": "{myhub.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}",
+        "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
         "services__funcapp__http__0": "{funcapp.bindings.http.url}",

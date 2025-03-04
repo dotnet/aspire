@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text;
 using k8s.Models;
+using k8s.Autorest;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -20,18 +21,29 @@ internal sealed class TestKubernetesService : IKubernetesService
     public const int StartOfAutoPortRange = 52000;
 
     public ConcurrentQueue<CustomResource> CreatedResources { get; } = [];
+    public ConcurrentQueue<string> DeletedResources { get; } = [];
 
     private readonly List<Channel<(WatchEventType, CustomResource)>> _watchChannels = [];
     private readonly Func<CustomResource, string, Stream> _startStream;
+    private readonly bool _ignoreDeletes;
     private int _nextPort = StartOfAutoPortRange;
 
-    public TestKubernetesService(Func<CustomResource, string, Stream>? startStream = null)
+    public TestKubernetesService(Func<CustomResource, string, Stream>? startStream = null, bool ignoreDeletes = false)
     {
         _startStream = startStream ?? ((obj, logStreamType) => new MemoryStream(Encoding.UTF8.GetBytes($"Logs for {obj.Metadata.Name} ({logStreamType})")));
+        _ignoreDeletes = ignoreDeletes;
     }
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
     {
+        if (DeletedResources.Contains(name))
+        {
+            throw new HttpOperationException("Not found")
+            {
+                Response = new HttpResponseMessageWrapper(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.NotFound }, "Not found")
+            };
+        }
+
         var res = CreatedResources.OfType<T>().FirstOrDefault(r =>
             r.Metadata.Name == name &&
             string.Equals(r.Metadata.NamespaceProperty ?? string.Empty, namespaceParameter ?? string.Empty)
@@ -88,9 +100,24 @@ internal sealed class TestKubernetesService : IKubernetesService
         }
     }
 
-    public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
+    public async Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
     {
-        return GetAsync<T>(name, namespaceParameter, cancellationToken);
+        try
+        {
+            var resource = await GetAsync<T>(name, namespaceParameter, cancellationToken);
+            if (!_ignoreDeletes)
+            {
+                DeletedResources.Enqueue(name);
+            }
+            return resource;
+        }
+        catch (Exception ex)
+        {
+            throw new HttpOperationException(ex.Message)
+            {
+                Response = new HttpResponseMessageWrapper(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.NotFound }, ex.Message)
+            };
+        }
     }
 
     public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
@@ -142,5 +169,25 @@ internal sealed class TestKubernetesService : IKubernetesService
     public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource
     {
         return Task.FromResult(obj);
+    }
+
+    public Task StopServerAsync(string resourceCleanup = "Full", CancellationToken cancellation = default)
+    {
+        cancellation.ThrowIfCancellationRequested();
+
+        lock (CreatedResources)
+        {
+            foreach (var c in _watchChannels)
+            {
+                _ = c.Writer.TryComplete();
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task CleanupResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        return StopServerAsync("Full", cancellationToken);
     }
 }

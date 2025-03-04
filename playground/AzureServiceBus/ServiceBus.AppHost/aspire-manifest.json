@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "sbemulator": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}",
+      "path": "sbemulator.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
+    "sub1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
+    "worker": {
+      "type": "project.v0",
+      "path": "../ServiceBusWorker/ServiceBusWorker.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__sbemulator": "{sbemulator.connectionString}"
+      }
+    }
+  }
+}

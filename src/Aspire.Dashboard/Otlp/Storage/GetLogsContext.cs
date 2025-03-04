@@ -9,6 +9,6 @@ public sealed class GetLogsContext
 {
     public required ApplicationKey? ApplicationKey { get; init; }
     public required int StartIndex { get; init; }
-    public required int? Count { get; init; }
+    public required int Count { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
 }

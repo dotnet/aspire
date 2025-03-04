@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a command annotation for a resource.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Type = {Type}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ResourceCommandAnnotation : IResourceAnnotation
 {
     /// <summary>

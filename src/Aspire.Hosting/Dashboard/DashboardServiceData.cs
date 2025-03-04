@@ -45,6 +45,7 @@ internal sealed class DashboardServiceData : IDisposable
                     Urls = snapshot.Urls,
                     Volumes = snapshot.Volumes,
                     Environment = snapshot.EnvironmentVariables,
+                    Relationships = snapshot.Relationships,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,

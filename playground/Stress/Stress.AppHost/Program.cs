@@ -2,16 +2,34 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
-
-for (var i = 0; i < 10; i++)
+builder.Services.AddHealthChecks().AddAsyncCheck("health-test", async (ct) =>
 {
-    builder.AddTestResource($"test-{i:0000}");
+    await Task.Delay(5_000, ct);
+    return HealthCheckResult.Healthy();
+});
+
+for (var i = 0; i < 5; i++)
+{
+    var name = $"test-{i:0000}";
+    var rb = builder.AddTestResource(name);
+    IResource parent = rb.Resource;
+
+    for (int j = 0; j < 3; j++)
+    {
+        name = name + $"-n{j}";
+        var nestedRb = builder.AddNestedResource(name, parent);
+        parent = nestedRb.Resource;
+    }
 }
 
-var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null);
+// TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
+// See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
+var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null)
+    .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_METRICS_EMIT_OVERFLOW_ATTRIBUTE", "true");
 serviceBuilder.WithCommand(
     name: "icon-test",
     displayName: "Icon test",
@@ -43,6 +61,8 @@ serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get
 serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linked", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 
@@ -55,5 +75,19 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 // artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
+
+IResourceBuilder<IResource>? previousResourceBuilder = null;
+
+for (var i = 0; i < 10; i++)
+{
+    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}");
+    if (previousResourceBuilder != null)
+    {
+        resourceBuilder.WaitFor(previousResourceBuilder);
+        resourceBuilder.WithHealthCheck("health-test");
+    }
+
+    previousResourceBuilder = resourceBuilder;
+}
 
 builder.Build().Run();

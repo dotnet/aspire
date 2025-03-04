@@ -324,6 +324,231 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddExecutableResourceWithPublishAsDockerFileWithAppsInfrastructureAddsDeploymentTargetWithContainerAppToContainerResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var env = builder.AddParameter("env");
+
+        builder.AddExecutable("api", "node.exe", Environment.CurrentDirectory)
+               .PublishAsDockerFile()
+               .PublishAsAzureContainerApp((infra, app) =>
+               {
+                   app.Template.Containers[0].Value!.Env.Add(new ContainerAppEnvironmentVariable()
+                   {
+                       Name = "Hello",
+                       Value = env.AsProvisioningParameter(infra)
+                   });
+               });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "api_containerimage": "{api.containerImage}",
+            "env": "{env.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param outputs_azure_container_registry_endpoint string
+
+        param api_containerimage string
+
+        param env string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              registries: [
+                {
+                  server: outputs_azure_container_registry_endpoint
+                  identity: outputs_azure_container_registry_managed_identity_id
+                }
+              ]
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: api_containerimage
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                    {
+                      name: 'Hello'
+                      value: env
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task CanTweakContainerAppEnvironmentUsingPublishAsContainerAppOnExecutable()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        builder.AddExecutable("api", "node.exe", Environment.CurrentDirectory)
+               .PublishAsDockerFile();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "api_containerimage": "{api.containerImage}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param outputs_azure_container_registry_endpoint string
+
+        param api_containerimage string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              registries: [
+                {
+                  server: outputs_azure_container_registry_endpoint
+                  identity: outputs_azure_container_registry_managed_identity_id
+                }
+              ]
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: api_containerimage
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
     public async Task AddContainerAppsInfrastructureWithParameterReference()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -432,6 +657,89 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddContainerAppsEntrypointAndArgs()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        builder.AddContainer("api", "myimage")
+               .WithEntrypoint("/bin/sh")
+               .WithArgs("my", "args with space");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+    
+        param outputs_azure_container_registry_managed_identity_id string
+    
+        param outputs_managed_identity_client_id string
+    
+        param outputs_azure_container_apps_environment_id string
+    
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  command: [
+                    '/bin/sh'
+                  ]
+                  args: [
+                    'my'
+                    'args with space'
+                  ]
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
     public async Task ProjectWithManyReferenceTypes()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -439,10 +747,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         builder.AddAzureContainerAppsInfrastructure();
 
         // CosmosDB uses secret outputs
-        var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
+        var db = builder.AddAzureCosmosDB("mydb");
+        db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
         // Postgres uses secret outputs + a literal connection string
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
+
+        var rawCs = builder.AddConnectionString("cs");
 
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
@@ -462,7 +773,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             .WithReference(pgdb)
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
-            .WithEnvironment("Value", value);
+            .WithEnvironment("Value", value)
+            .WithEnvironment("CS", rawCs);
 
         project.WithEnvironment(context =>
         {
@@ -476,7 +788,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             context.EnvironmentVariables["TARGET_PORT"] = httpEp.Property(EndpointProperty.TargetPort);
             context.EnvironmentVariables["PORT"] = httpEp.Property(EndpointProperty.Port);
             context.EnvironmentVariables["HOST"] = httpEp.Property(EndpointProperty.Host);
+            context.EnvironmentVariables["HOSTANDPORT"] = httpEp.Property(EndpointProperty.HostAndPort);
             context.EnvironmentVariables["SCHEME"] = httpEp.Property(EndpointProperty.Scheme);
+            context.EnvironmentVariables["INTERNAL_HOSTANDPORT"] = internalEp.Property(EndpointProperty.HostAndPort);
         });
 
         using var app = builder.Build();
@@ -509,12 +823,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "api_roles_outputs_id": "{api-roles.outputs.id}",
             "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
             "api_containerport": "{api.containerPort}",
-            "mydb_secretoutputs": "{mydb.secretOutputs}",
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
             "pg_secretoutputs": "{pg.secretOutputs}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
+            "cs_connectionstring": "{cs.connectionString}",
             "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
@@ -549,18 +864,21 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param api_containerport string
 
-        param mydb_secretoutputs string
-
-        param outputs_azure_container_registry_managed_identity_id string
+        param mydb_outputs_connectionstring string
 
         param storage_outputs_blobendpoint string
 
         param pg_secretoutputs string
 
+        param outputs_azure_container_registry_managed_identity_id string
+
         @secure()
         param value0_value string
 
         param value1_value string
+
+        @secure()
+        param cs_connectionstring string
 
         param outputs_azure_container_apps_environment_default_domain string
 
@@ -570,17 +888,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param api_containerimage string
 
-        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: mydb_secretoutputs
-        }
-
         resource pg_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
           name: pg_secretoutputs
-        }
-
-        resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'connectionString'
-          parent: mydb_secretoutputs_kv
         }
 
         resource pg_secretoutputs_kv_db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
@@ -595,11 +904,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             configuration: {
               secrets: [
                 {
-                  name: 'connectionstrings--mydb'
-                  identity: outputs_azure_container_registry_managed_identity_id
-                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
-                }
-                {
                   name: 'connectionstrings--db'
                   identity: outputs_azure_container_registry_managed_identity_id
                   keyVaultUrl: pg_secretoutputs_kv_db_connectionString.properties.secretUri
@@ -611,6 +915,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'secret-value-1'
                   value: value0_value
+                }
+                {
+                  name: 'cs'
+                  value: cs_connectionstring
                 }
               ]
               activeRevisionsMode: 'Single'
@@ -665,7 +973,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     }
                     {
                       name: 'ConnectionStrings__mydb'
-                      secretRef: 'connectionstrings--mydb'
+                      value: mydb_outputs_connectionstring
                     }
                     {
                       name: 'ConnectionStrings__blobs'
@@ -686,6 +994,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     {
                       name: 'Value'
                       value: value1_value
+                    }
+                    {
+                      name: 'CS'
+                      secretRef: 'cs'
                     }
                     {
                       name: 'HTTP_EP'
@@ -712,8 +1024,16 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                       value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
                     }
                     {
+                      name: 'HOSTANDPORT'
+                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}:80'
+                    }
+                    {
                       name: 'SCHEME'
                       value: 'http'
+                    }
+                    {
+                      name: 'INTERNAL_HOSTANDPORT'
+                      value: 'api:8000'
                     }
                     {
                       name: 'AZURE_CLIENT_ID'
@@ -882,7 +1202,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task ConfigureCustomDomainsMutatesIngress()
+    public async Task ConfigureCustomDomainMutatesIngress()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -969,6 +1289,258 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   image: 'myimage:latest'
                   name: 'api'
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task ConfigureDuplicateCustomDomainMutatesIngress()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customDomain = builder.AddParameter("customDomain");
+        var initialCertificateName = builder.AddParameter("initialCertificateName");
+        var expectedCertificateName = builder.AddParameter("expectedCertificateName");
+
+        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 1111)
+            .PublishAsAzureContainerApp((module, c) =>
+            {
+                c.ConfigureCustomDomain(customDomain, initialCertificateName);
+                c.ConfigureCustomDomain(customDomain, expectedCertificateName);
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "initialCertificateName": "{initialCertificateName.value}",
+            "customDomain": "{customDomain.value}",
+            "expectedCertificateName": "{expectedCertificateName.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param initialCertificateName string
+
+        param customDomain string
+
+        param expectedCertificateName string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: 1111
+                transport: 'http'
+                customDomains: [
+                  {
+                    name: customDomain
+                    bindingType: (expectedCertificateName != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (expectedCertificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${expectedCertificateName}' : null
+                  }
+                ]
+              }
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task ConfigureMultipleCustomDomainsMutatesIngress()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customDomain1 = builder.AddParameter("customDomain1");
+        var certificateName1 = builder.AddParameter("certificateName1");
+
+        var customDomain2 = builder.AddParameter("customDomain2");
+        var certificateName2 = builder.AddParameter("certificateName2");
+
+        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 1111)
+            .PublishAsAzureContainerApp((module, c) =>
+            {
+                c.ConfigureCustomDomain(customDomain1, certificateName1);
+                c.ConfigureCustomDomain(customDomain2, certificateName2);
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "certificateName1": "{certificateName1.value}",
+            "customDomain1": "{customDomain1.value}",
+            "certificateName2": "{certificateName2.value}",
+            "customDomain2": "{customDomain2.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param certificateName1 string
+
+        param customDomain1 string
+
+        param certificateName2 string
+
+        param customDomain2 string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: 1111
+                transport: 'http'
+                customDomains: [
+                  {
+                    name: customDomain1
+                    bindingType: (certificateName1 != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName1 != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName1}' : null
+                  }
+                  {
+                    name: customDomain2
+                    bindingType: (certificateName2 != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName2 != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName2}' : null
+                  }
+                ]
+              }
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
                 }
               ]
               scale: {
@@ -1120,7 +1692,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         builder.AddAzureContainerAppsInfrastructure();
 
-        var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
+        var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
+        db.AddCosmosDatabase("db");
 
         builder.AddContainer("api", "image")
             .WithReference(db)

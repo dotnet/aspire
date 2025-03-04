@@ -2,4 +2,4 @@
 
 ## Usage
 
-Update [appsettings.json](./appsettings.json] to use your `SubscriptionId` and `ResourceGroup` to provision the Azure SignalR resource.
+Update [appsettings.json](./appsettings.json] to use your `SubscriptionId`, `ResourceGroup` and `Location` to provision the Azure SignalR resource.

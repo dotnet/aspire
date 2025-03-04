@@ -1,10 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace Aspire.Dashboard.Otlp.Storage;
 
+[DebuggerDisplay("Name = {Name}, ApplicationKey = {ApplicationKey}, SubscriptionId = {SubscriptionId}")]
 public sealed class Subscription : IDisposable
 {
+    private static int s_subscriptionId;
+
     private readonly Func<Task> _callback;
     private readonly ExecutionContext? _executionContext;
     private readonly TelemetryRepository _telemetryRepository;
@@ -13,9 +18,11 @@ public sealed class Subscription : IDisposable
     private readonly Action _unsubscribe;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
     private ILogger Logger => _telemetryRepository._otlpContext.Logger;
+    private readonly int _subscriptionId = Interlocked.Increment(ref s_subscriptionId);
 
     private DateTime? _lastExecute;
 
+    public int SubscriptionId => _subscriptionId;
     public ApplicationKey? ApplicationKey { get; }
     public SubscriptionType SubscriptionType { get; }
     public string Name { get; }

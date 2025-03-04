@@ -14,6 +14,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 

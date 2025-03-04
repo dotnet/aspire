@@ -41,26 +41,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
         ConfigureInfrastructure(infrastructure);
 
-        // WARNING: GetParameters currently returns more than one instance of the same
-        //          parameter. Its the only API that gives us what we need (a list of
-        //          parameters. Here we find all the distinct parameters by name and
-        //          put them into a dictionary for quick lookup so we don't need to scan
-        //          through the parameter enumerable each time.
-        var infrastructureParameters = infrastructure.GetParameters();
-        var distinctInfrastructureParameters = infrastructureParameters.DistinctBy(p => p.BicepIdentifier);
-        var distinctInfrastructureParametersLookup = distinctInfrastructureParameters.ToDictionary(p => p.BicepIdentifier);
-
-        foreach (var aspireParameter in this.Parameters)
-        {
-            if (distinctInfrastructureParametersLookup.ContainsKey(aspireParameter.Key))
-            {
-                continue;
-            }
-
-            var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
-            var parameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
-            infrastructure.Add(parameter);
-        }
+        EnsureParametersAlign(infrastructure);
 
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
@@ -89,5 +70,78 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         }
 
         return _generatedBicep;
+    }
+
+    /// <summary>
+    /// Encapsulates the logic for creating an existing or new <see cref="ProvisionableResource"/>
+    /// based on whether or not the <see cref="ExistingAzureResourceAnnotation" /> exists on the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of <see cref="ProvisionableResource"/> to produce.</typeparam>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that will contain the <see cref="ProvisionableResource"/>.</param>
+    /// <param name="createExisting">A callback to create the existing resource.</param>
+    /// <param name="createNew">A callback to create the new resource.</param>
+    /// <returns>The provisioned resource.</returns>
+    public static T CreateExistingOrNewProvisionableResource<T>(AzureResourceInfrastructure infrastructure, Func<string, BicepValue<string>, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
+        where T : ProvisionableResource
+    {
+        ArgumentNullException.ThrowIfNull(infrastructure);
+        ArgumentNullException.ThrowIfNull(createExisting);
+        ArgumentNullException.ThrowIfNull(createNew);
+
+        T provisionedResource;
+        if (infrastructure.AspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
+        {
+            var existingResourceName = existingAnnotation.Name is ParameterResource nameParameter
+                ? nameParameter.AsProvisioningParameter(infrastructure)
+                : new BicepValue<string>((string)existingAnnotation.Name);
+            provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
+            if (existingAnnotation.ResourceGroup is not null)
+            {
+                var existingResourceGroup = existingAnnotation.ResourceGroup is ParameterResource resourceGroupParameter
+                    ? resourceGroupParameter
+                    : existingAnnotation.ResourceGroup;
+                infrastructure.AspireResource.Scope = new(existingResourceGroup);
+            }
+        }
+        else
+        {
+            provisionedResource = createNew(infrastructure);
+        }
+        infrastructure.Add(provisionedResource);
+        return provisionedResource;
+    }
+
+    private void EnsureParametersAlign(AzureResourceInfrastructure infrastructure)
+    {
+        // WARNING: GetParameters currently returns more than one instance of the same
+        //          parameter. Its the only API that gives us what we need (a list of
+        //          parameters. Here we find all the distinct parameters by name and
+        //          put them into a dictionary for quick lookup so we don't need to scan
+        //          through the parameter enumerable each time.
+        var infrastructureParameters = infrastructure.GetParameters();
+        var distinctInfrastructureParameters = infrastructureParameters.DistinctBy(p => p.BicepIdentifier);
+        var distinctInfrastructureParametersLookup = distinctInfrastructureParameters.ToDictionary(p => p.BicepIdentifier);
+
+        foreach (var aspireParameter in this.Parameters)
+        {
+            if (distinctInfrastructureParametersLookup.ContainsKey(aspireParameter.Key))
+            {
+                continue;
+            }
+
+            var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
+            var parameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
+            infrastructure.Add(parameter);
+        }
+
+        // Add any "known" parameters the infrastructure is using to our Parameters
+        // (except for 'location' because that is always inferred and shouldn't be in the manifest)
+        foreach (var infrastructureParameter in distinctInfrastructureParameters)
+        {
+            if (KnownParameters.IsKnownParameterName(infrastructureParameter.BicepIdentifier) && infrastructureParameter.BicepIdentifier != KnownParameters.Location)
+            {
+                Parameters.TryAdd(infrastructureParameter.BicepIdentifier, null);
+            }
+        }
     }
 }

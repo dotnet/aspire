@@ -25,25 +25,32 @@ public static class AzureAppConfigurationExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var store = new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                SkuName = "standard",
-                DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(store);
+            var store = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
+                {
+                    var resource = AppConfigurationStore.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) => new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    SkuName = "standard",
+                    DisableLocalAuth = true,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, principalTypeParameter, principalIdParameter));
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

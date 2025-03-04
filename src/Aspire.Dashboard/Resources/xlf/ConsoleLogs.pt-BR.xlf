@@ -42,9 +42,29 @@
         <target state="translated">{0} logs do console</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsResourceCommands">
+        <source>Resource commands</source>
+        <target state="translated">Comandos de recursos</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Selecionar recurso</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="translated">Configurações de logs do console</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="translated">Ocultar carimbos de data/hora</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="translated">Mostrar carimbos de data/hora</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -55,6 +75,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Observando logs...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="translated">Baixar logs</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

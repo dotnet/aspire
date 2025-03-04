@@ -31,21 +31,22 @@
     },
     "cache": {
       "type": "container.v1",
-      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
+      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
       "image": "docker.io/library/redis:7.4",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "cache.module.bicep",
         "params": {
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
+          "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
+      "entrypoint": "/bin/sh",
       "args": [
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -54,6 +55,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "REDIS_PASSWORD": "{cache-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -65,11 +69,16 @@
     },
     "account": {
       "type": "azure.bicep.v0",
-      "connectionString": "{account.secretOutputs.connectionString}",
+      "connectionString": "{account.outputs.connectionString}",
       "path": "account.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalType": "",
+        "principalId": ""
       }
+    },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "{account.outputs.connectionString}"
     },
     "storage": {
       "type": "azure.bicep.v0",
@@ -107,8 +116,11 @@
           "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-          "account_secretoutputs": "{account.secretOutputs}",
+          "cache_password_value": "{cache-password.value}",
+          "account_outputs_connectionstring": "{account.outputs.connectionString}",
+          "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
@@ -148,6 +160,22 @@
       "path": "api-roles.module.bicep",
       "params": {
         "storage_outputs_name": "{storage.outputs.name}"
+      }
+    },
+    "cache-password": {
+      "type": "parameter.v0",
+      "value": "{cache-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
       }
     }
   }

@@ -26,30 +26,36 @@ public static class AzureSearchExtensions
 
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
-            var search = new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                SearchSkuName = SearchServiceSkuName.Basic,
-                ReplicaCount = 1,
-                PartitionCount = 1,
-                HostingMode = SearchServiceHostingMode.Default,
-                IsLocalAuthDisabled = true,
-                Tags = { { "aspire-resource-name", name } }
-            };
-            infrastructure.Add(search);
+            var search = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
+                {
+                    var resource = SearchService.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) => new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    SearchSkuName = SearchServiceSkuName.Basic,
+                    ReplicaCount = 1,
+                    PartitionCount = 1,
+                    HostingMode = SearchServiceHostingMode.Default,
+                    IsLocalAuthDisabled = true,
+                    Tags = { { "aspire-resource-name", name } }
+                });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
 
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, principalTypeParameter, principalIdParameter));
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, principalTypeParameter, principalIdParameter));
 
-            // TODO: The endpoint format should move into the CDK so we can maintain this
+            // TODO: The endpoint format should move into Azure.Provisioning so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))

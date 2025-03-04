@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
-        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <target state="translated">このコンテナーは永続的なものであり、アプリ ホスティング プロセスがシャットダウンしても停止されません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <target state="translated">リソースは実行中ですが、正常な状態ではありません。クリックして詳細を表示してください。</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -85,8 +85,8 @@
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
         <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
 For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
-        <target state="new">Container runtime was found but appears to be unhealthy. Ensure that it is running.
-For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
+        <target state="translated">コンテナー ランタイムが見つかりましたが、異常である可能性があります。実行中であることを確認してください。
+詳細については、https://aka.ms/dotnet/aspire/container-runtime-unhealthy を参照してください。</target>
         <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">

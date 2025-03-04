@@ -26,7 +26,14 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var keyVault = new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
+            var keyVault = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            (identifier, name) =>
+            {
+                var resource = KeyVaultService.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
+            },
+            (infrastructure) => new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -36,28 +43,26 @@ public static class AzureKeyVaultResourceExtensions
                         Family = KeyVaultSkuFamily.A,
                         Name = KeyVaultSkuName.Standard
                     },
-                    EnableRbacAuthorization = true
-                }
-            };
-            infrastructure.Add(keyVault);
+                    EnableRbacAuthorization = true,
+                },
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            });
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
                 Value = keyVault.Properties.VaultUri
             });
 
-            keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
-
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, principalTypeParameter, principalIdParameter));
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      // These ambient parameters are only available in development time.
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

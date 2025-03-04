@@ -1,17 +1,22 @@
 ﻿@page "/consolelogs"
 @page "/consolelogs/resource/{resourceName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout
-        AddNewlineOnToolbar="true"
-        @ref="@_contentLayout"
-        MainContentStyle="margin-top: 10px;"
-        MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectResourceToolbar)]">
+    <AspirePageContentLayout AddNewlineOnToolbar="true"
+                             @ref="@_contentLayout"
+                             MainContentStyle="margin-top: 10px;"
+                             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectResourceToolbar)]">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
         </PageTitleSection>
@@ -19,12 +24,48 @@
             <ResourceSelect Resources="_resources"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
-                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
+                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
+                            LabelClass="toolbar-left" />
+
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
+
+            @foreach (var command in _highlightedCommands)
+            {
+                <FluentButton Appearance="Appearance.Lightweight"
+                              Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                              Disabled="@(command.State == CommandViewModelState.Disabled)"
+                              OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                              Class="highlighted-command">
+                    @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
+                    {
+                        <FluentIcon Value="@icon" Width="16px" />
+                    }
+                    else
+                    {
+                        @command.DisplayName
+                    }
+                </FluentButton>
+            }
+
+            @if (_resourceMenuItems.Count > 0)
+            {
+                <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                                  Items="@_resourceMenuItems"
+                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+            }
+
             @if (ViewportInformation.IsDesktop)
             {
                 // This takes up too much horizontal space on mobile, so show on a new line on mobile
-                <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
+                <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]" slot="end">@PageViewModel.Status</FluentLabel>
             }
+
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.Settings())"
+                              Items="@_logsMenuItems"
+                              Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
+                              slot="end" />
         </ToolbarSection>
 
         <MobilePageTitleToolbarSection>
@@ -41,7 +82,7 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" />
+            <LogViewer LogEntries="@_logEntries" ShowTimestamp="@_showTimestamp" />
         </MainSection>
     </AspirePageContentLayout>
 </div>

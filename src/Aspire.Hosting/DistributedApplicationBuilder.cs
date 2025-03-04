@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Codespaces;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -20,6 +20,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting;
 
@@ -132,6 +135,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        _innerBuilder.Services.AddSingleton(TimeProvider.System);
+
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -152,6 +157,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
+        var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
+
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -159,6 +167,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -168,12 +177,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
-
-        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
-        {
-            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
-        });
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
@@ -204,6 +207,27 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
+        _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
+        {
+            // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
+            // from a failure in that case.
+            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnResourceUnavailable : WaitBehavior.WaitOnResourceUnavailable;
+        });
+        _innerBuilder.Services.AddSingleton<IAspireStore, AspireStore>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var aspireDir = configuration[AspireStore.AspireStorePathKeyName];
+
+            if (string.IsNullOrWhiteSpace(aspireDir))
+            {
+                throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
+            }
+
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
+        });
+
+        // Aspire CLI support
+        _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
 
         ConfigureHealthChecks();
 
@@ -274,10 +298,21 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
 
+            if (options.EnableResourceLogging)
+            {
+                // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
+                _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
+            }
+
+            // Orchestrator
+            _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+            _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
+
             // DCP stuff
-            _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+            _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
+            _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
+            _innerBuilder.Services.AddSingleton<DcpHost>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-            _innerBuilder.Services.AddHostedService<DcpHostService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
@@ -286,10 +321,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
-            // Codespaces
+            // Devcontainers & Codespaces
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
             _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
             _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
@@ -488,4 +526,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         return diagnosticListener;
     }
+
+    /// <summary>
+    /// Gets the metadata value for the specified key from the assembly metadata.
+    /// </summary>
+    /// <param name="assemblyMetadata">The assembly metadata.</param>
+    /// <param name="key">The key to look for.</param>
+    /// <returns>The metadata value if found; otherwise, null.</returns>
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
+        assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }

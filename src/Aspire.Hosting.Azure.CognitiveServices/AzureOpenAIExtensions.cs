@@ -26,23 +26,29 @@ public static class AzureOpenAIExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = "OpenAI",
-                Sku = new CognitiveServicesSku()
+            var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = "S0"
+                    var resource = CognitiveServicesAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Properties = new CognitiveServicesAccountProperties()
+                (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
-                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                    // Disable local auth for AOAI since managed identity is used
-                    DisableLocalAuth = true
-                },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(cogServicesAccount);
+                    Kind = "OpenAI",
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = "S0"
+                    },
+                    Properties = new CognitiveServicesAccountProperties()
+                    {
+                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                        // Disable local auth for AOAI since managed identity is used
+                        DisableLocalAuth = true
+                    },
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
@@ -50,7 +56,10 @@ public static class AzureOpenAIExtensions
             });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, principalTypeParameter, principalIdParameter));
 
             var resource = (AzureOpenAIResource)infrastructure.AspireResource;
@@ -97,8 +106,6 @@ public static class AzureOpenAIExtensions
 
         var resource = new AzureOpenAIResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

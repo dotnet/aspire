@@ -7,6 +7,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
 
@@ -22,6 +23,9 @@ public partial class StructuredLogActions : ComponentBase
 
     [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
@@ -54,7 +58,7 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, header, LogEntry.Message);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message);
             }
         });
     }

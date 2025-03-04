@@ -61,11 +61,6 @@ internal sealed class DcpOptions
     public string? ResourceNameSuffix { get; set; }
 
     /// <summary>
-    /// Whether to delete resources created by this application when the application is shut down.
-    /// </summary>
-    public bool DeleteResourcesOnShutdown { get; set; }
-
-    /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
     public bool RandomizePorts { get; set; }
@@ -74,7 +69,25 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
+    /// <summary>
+    /// The duration to wait for the container runtime to become healthy before aborting startup.
+    /// </summary>
+    /// <remarks>
+    /// A value of zero, which is the default value, indicates that the application will not wait for the container
+    /// runtime to become healthy.
+    /// If this property has a value greater than zero, the application will abort startup if the container runtime
+    /// does not become healthy within the specified timeout.
+    /// </remarks>
+    public TimeSpan ContainerRuntimeInitializationTimeout { get; set; }
+
     public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Whether to wait for resource cleanup to end when stopping DcpExecutor.
+    /// This guarantees that application resources (programs, transient containers etc.) are stopped
+    /// before DcpExecutor.StopAsync() returns. Default is false (resources are cleaned up asynchronously).
+    /// </summary>
+    public bool WaitForResourceCleanup { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -173,9 +186,10 @@ internal class ConfigureDefaultDcpOptions(
             options.ResourceNameSuffix = dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)];
         }
 
-        options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
+        options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+        options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

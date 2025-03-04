@@ -31,6 +31,9 @@ public sealed partial class LogViewer
     [Parameter]
     public LogEntries? LogEntries { get; set; } = null!;
 
+    [Parameter]
+    public bool ShowTimestamp { get; set; }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)

@@ -28,42 +28,56 @@ public static class AzureWebPubSubExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            // Supported values are Free_F1 Standard_S1 Premium_P1
-            var skuParameter = new ProvisioningParameter("sku", typeof(string))
-            {
-                Value = "Free_F1"
-            };
-            infrastructure.Add(skuParameter);
-
-            // Supported values are 1 2 5 10 20 50 100
-            var capacityParameter = new ProvisioningParameter("capacity", typeof(int))
-            {
-                Value = new BicepValue<int>(1)
-            };
-            infrastructure.Add(capacityParameter);
-
-            var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new BillingInfoSku()
+            var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = skuParameter,
-                    Capacity = capacityParameter
+                    var resource = WebPubSubService.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(service);
+                (infrastructure) =>
+                {
+                    // Supported values are Free_F1 Standard_S1 Premium_P1
+                    var skuParameter = new ProvisioningParameter("sku", typeof(string))
+                    {
+                        Value = "Free_F1"
+                    };
+                    infrastructure.Add(skuParameter);
+
+                    // Supported values are 1 2 5 10 20 50 100
+                    var capacityParameter = new ProvisioningParameter("capacity", typeof(int))
+                    {
+                        Value = new BicepValue<int>(1)
+                    };
+                    infrastructure.Add(capacityParameter);
+
+                    var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new BillingInfoSku()
+                        {
+                            Name = skuParameter,
+                            Capacity = capacityParameter
+                        },
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+                    return service;
+                }
+            );
 
             infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)
             {
                 var hubName = setting.Key;
-                
+
                 var hubBuilder = setting.Value;
                 var hubResource = hubBuilder;
                 var hub = new WebPubSubHub(Infrastructure.NormalizeBicepIdentifier(hubResource.Name))
@@ -108,8 +122,6 @@ public static class AzureWebPubSubExtensions
 
         var resource = new AzureWebPubSubResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -178,7 +190,7 @@ public static class AzureWebPubSubExtensions
 
         if (systemEvents != null)
         {
-            handler.SystemEvents = [..systemEvents];
+            handler.SystemEvents = [.. systemEvents];
         }
 
         if (authSettings != null)
