@@ -29,6 +29,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(builder.Resource, configureInfrastructure);
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+        azureSqlDatabase.WithManifestPublishingCallback(resource.WriteToManifest);
 
         if (useProvisioner)
         {

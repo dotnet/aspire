@@ -70,6 +70,7 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresResource(builder.Resource, configureInfrastructure);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
+                                                        .WithManifestPublishingCallback(resource.WriteToManifest)
                                                         .WithLoginAndPassword(builder.Resource);
 
         if (useProvisioner)

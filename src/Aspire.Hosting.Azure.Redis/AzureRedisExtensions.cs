@@ -57,7 +57,8 @@ public static class AzureRedisExtensions
         };
 
         var resource = new AzureRedisResource(builder.Resource, configureInfrastructure);
-        var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+        var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
+                                     .WithManifestPublishingCallback(resource.WriteToManifest);
 
         if (useProvisioner)
         {
