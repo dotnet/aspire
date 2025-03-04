@@ -19,17 +19,15 @@ param secretparam_value string
 
 param outputs_azure_container_registry_managed_identity_id string
 
-param outputs_managed_identity_client_id string
-
 param outputs_azure_container_apps_environment_id string
 
 param outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
-param certificatename_value string
+param certificateName string
 
-param customdomain_value string
+param customDomain string
 
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api'
@@ -53,9 +51,9 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'http'
         customDomains: [
           {
-            name: customdomain_value
-            bindingType: (certificatename_value != '') ? 'SniEnabled' : 'Disabled'
-            certificateId: (certificatename_value != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificatename_value}' : null
+            name: customDomain
+            bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
+            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
           }
         ]
       }

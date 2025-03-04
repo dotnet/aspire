@@ -1054,14 +1054,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.NotNull(moduleInfrastructure);
         var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
         var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
-        Assert.True(infrastructureParametersLookup.ContainsKey("skuname_value"));
+        Assert.True(infrastructureParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "path": "infrastructure1.module.bicep",
               "params": {
-                "skuname_value": "{skuName.value}"
+                "skuName": "{skuName.value}"
               }
             }
             """;
@@ -2145,7 +2145,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku_value
+                name: storagesku
               }
               properties: {
                 accessTier: 'Hot'
@@ -2306,7 +2306,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku_value
+                name: storagesku
               }
               properties: {
                 accessTier: 'Hot'
@@ -2466,7 +2466,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku_value
+                name: storagesku
               }
               properties: {
                 accessTier: 'Hot'
@@ -2620,17 +2620,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param principalType string
-            
+
             param principalId string
-            
+
             param storagesku string
-            
+
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku_value
+                name: storagesku
               }
               properties: {
                 accessTier: 'Hot'
@@ -2800,7 +2800,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 replicaCount: 1
               }
               sku: {
-                name: searchsku_value
+                name: searchSku
               }
               tags: {
                 'aspire-resource-name': 'search'

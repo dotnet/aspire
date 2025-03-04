@@ -120,13 +120,11 @@
           "account_outputs_connectionstring": "{account.outputs.connectionString}",
           "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-          "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "api_containerimage": "{api.containerImage}",
-          "certificatename_value": "{certificateName.value}",
-          "customdomain_value": "{customDomain.value}"
+          "certificateName": "{certificateName.value}",
+          "customDomain": "{customDomain.value}"
         }
       },
       "env": {

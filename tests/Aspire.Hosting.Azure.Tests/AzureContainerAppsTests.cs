@@ -368,7 +368,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
             "api_containerimage": "{api.containerImage}",
@@ -385,8 +384,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param location string = resourceGroup().location
 
         param outputs_azure_container_registry_managed_identity_id string
-
-        param outputs_managed_identity_client_id string
 
         param outputs_azure_container_apps_environment_id string
 
@@ -416,10 +413,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                   image: api_containerimage
                   name: 'api'
                   env: [
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: outputs_managed_identity_client_id
-                    }
                     {
                       name: 'Hello'
                       value: env
@@ -479,7 +472,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
             "api_containerimage": "{api.containerImage}"
@@ -495,8 +487,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param location string = resourceGroup().location
 
         param outputs_azure_container_registry_managed_identity_id string
-
-        param outputs_managed_identity_client_id string
 
         param outputs_azure_container_apps_environment_id string
 
@@ -523,12 +513,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   image: api_containerimage
                   name: 'api'
-                  env: [
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: outputs_managed_identity_client_id
-                    }
-                  ]
                 }
               ]
               scale: {
@@ -596,8 +580,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-            "value_value": "{value.value}",
-            "minreplicas_value": "{minReplicas.value}"
+            "value": "{value.value}",
+            "minReplicas": "{minReplicas.value}"
           }
         }
         """;
@@ -613,9 +597,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param outputs_azure_container_apps_environment_id string
 
-        param value_value string
+        param value string
 
-        param minreplicas_value string
+        param minReplicas string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -633,13 +617,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                   env: [
                     {
                       name: 'Parameter'
-                      value: value_value
+                      value: value
                     }
                   ]
                 }
               ]
               scale: {
-                minReplicas: minreplicas_value
+                minReplicas: minReplicas
               }
             }
           }
@@ -686,13 +670,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-    
+
         param outputs_azure_container_registry_managed_identity_id string
-    
-        param outputs_managed_identity_client_id string
-    
+
         param outputs_azure_container_apps_environment_id string
-    
+
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -712,12 +694,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                   args: [
                     'my'
                     'args with space'
-                  ]
-                  env: [
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: outputs_managed_identity_client_id
-                    }
                   ]
                 }
               ]
@@ -1243,8 +1219,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-            "certificatename_value": "{certificateName.value}",
-            "customdomain_value": "{customDomain.value}"
+            "certificateName": "{certificateName.value}",
+            "customDomain": "{customDomain.value}"
           }
         }
         """;
@@ -1260,9 +1236,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param outputs_azure_container_apps_environment_id string
 
-        param certificatename_value string
+        param certificateName string
 
-        param customdomain_value string
+        param customDomain string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -1276,9 +1252,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 transport: 'http'
                 customDomains: [
                   {
-                    name: customdomain_value
-                    bindingType: (certificatename_value != '') ? 'SniEnabled' : 'Disabled'
-                    certificateId: (certificatename_value != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificatename_value}' : null
+                    name: customDomain
+                    bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
                   }
                 ]
               }
@@ -1351,7 +1327,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "initialCertificateName": "{initialCertificateName.value}",
             "customDomain": "{customDomain.value}",
@@ -1368,8 +1343,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param location string = resourceGroup().location
 
         param outputs_azure_container_registry_managed_identity_id string
-
-        param outputs_managed_identity_client_id string
 
         param outputs_azure_container_apps_environment_id string
 
@@ -1404,12 +1377,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   image: 'myimage:latest'
                   name: 'api'
-                  env: [
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: outputs_managed_identity_client_id
-                    }
-                  ]
                 }
               ]
               scale: {
@@ -1474,7 +1441,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "certificateName1": "{certificateName1.value}",
             "customDomain1": "{customDomain1.value}",
@@ -1492,8 +1458,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param location string = resourceGroup().location
 
         param outputs_azure_container_registry_managed_identity_id string
-
-        param outputs_managed_identity_client_id string
 
         param outputs_azure_container_apps_environment_id string
 
@@ -1535,12 +1499,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   image: 'myimage:latest'
                   name: 'api'
-                  env: [
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: outputs_managed_identity_client_id
-                    }
-                  ]
                 }
               ]
               scale: {
