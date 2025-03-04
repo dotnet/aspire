@@ -81,7 +81,7 @@ public class AddValkeyTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={myValkey-password.value", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={myValkey-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
@@ -134,11 +134,11 @@ public class AddValkeyTests
                                    "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                                    "entrypoint": "/bin/sh",
                                    "args": [
-                                    "-c",
-                                    "valkey-server --requirepass $VALKEY_PASSWORD"
+                                     "-c",
+                                     "valkey-server --requirepass $VALKEY_PASSWORD"
                                    ],
                                    "env": {
-                                    "VALKEY_PASSWORD": "{myValkey-password.value}"
+                                     "VALKEY_PASSWORD": "{myValkey-password.value}"
                                    },
                                    "bindings": {
                                      "tcp": {
@@ -176,7 +176,7 @@ public class AddValkeyTests
                 "valkey-server --requirepass $VALKEY_PASSWORD"
               ],
               "env": {
-                "$VALKEY_PASSWORD": "{pass.value}"
+                "VALKEY_PASSWORD": "{pass.value}"
               },
               "bindings": {
                 "tcp": {
