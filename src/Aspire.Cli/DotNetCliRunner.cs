@@ -39,7 +39,7 @@ internal sealed class DotNetCliRunner
 
         if (args.Length > 0)
         {
-            startInfo.Arguments = string.Join(" ", args);
+            startInfo.ArgumentList = args;
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process
