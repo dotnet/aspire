@@ -58,17 +58,17 @@ public abstract class TelemetryEnabledComponentBase : ComponentBase
 
     protected override void OnParametersSet()
     {
-        PostRenderTelemetryAsync();
+        PostParametersSetTelemetryAsync();
 
         return;
 
-        void PostRenderTelemetryAsync()
+        void PostParametersSetTelemetryAsync()
         {
             var properties = GetTelemetryProperties();
             properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(ComponentId);
 
             var request = new PostOperationRequest(
-                TelemetryEventKeys.RenderComponent,
+                TelemetryEventKeys.ParametersSet,
                 TelemetryResult.Success,
                 null,
                 properties,
