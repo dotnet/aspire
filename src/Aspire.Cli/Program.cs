@@ -80,7 +80,7 @@ public class Program
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
-            var exitCode = await runner.RunAppHostAsync(effectiveAppHostProjectFile, [], ct).ConfigureAwait(false);
+            var exitCode = await runner.RunAppHostAsync(effectiveAppHostProjectFile, Array.Empty<string>(), ct).ConfigureAwait(false);
 
             return exitCode;
         });
