@@ -1,8 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param location string = resourceGroup().location
-
 param principalId string
 
 param principalType string
@@ -66,12 +64,6 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
         sharedKey: law.listKeys().primarySharedKey
       }
     }
-    workloadProfiles: [
-      {
-        name: 'consumption'
-        workloadProfileType: 'Consumption'
-      }
-    ]
   }
   tags: tags
 }

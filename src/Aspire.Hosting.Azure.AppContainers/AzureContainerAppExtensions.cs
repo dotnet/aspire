@@ -47,13 +47,6 @@ public static class AzureContainerAppExtensions
 
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, infra =>
         {
-            var locationParam = new ProvisioningParameter("location", typeof(string))
-            {
-                Value = BicepFunction.GetResourceGroup().Location
-            };
-
-            infra.Add(locationParam);
-
             var principalId = new ProvisioningParameter("principalId", typeof(string));
 
             infra.Add(principalId);
@@ -70,7 +63,6 @@ public static class AzureContainerAppExtensions
 
             var identity = new UserAssignedIdentity("mi")
             {
-                Location = locationParam,
                 Tags = tags
             };
 
@@ -78,7 +70,6 @@ public static class AzureContainerAppExtensions
 
             var containerRegistry = new ContainerRegistryService("acr")
             {
-                Location = locationParam,
                 Sku = new() { Name = ContainerRegistrySkuName.Basic },
                 Tags = tags
             };
@@ -97,7 +88,6 @@ public static class AzureContainerAppExtensions
 
             var laWorkspace = new OperationalInsightsWorkspace("law")
             {
-                Location = locationParam,
                 Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
                 Tags = tags
             };
@@ -105,7 +95,6 @@ public static class AzureContainerAppExtensions
 
             var containerAppEnvironment = new ContainerAppManagedEnvironment("cae")
             {
-                Location = locationParam,
                 WorkloadProfiles = [
                     new ContainerAppWorkloadProfile()
                 {
