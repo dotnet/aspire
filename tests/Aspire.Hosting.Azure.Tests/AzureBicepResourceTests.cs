@@ -2611,8 +2611,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
             """;
 
-        var m = storageManifest.ManifestNode.ToString();
-
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         var expectedBicep = """
