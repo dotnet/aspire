@@ -1146,7 +1146,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
-    /// <param name="endpointName">The name of the HTTP endpoint to send the request to when the command is invoked.</param>
+    /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
     /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
     /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
     /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
@@ -1225,6 +1225,12 @@ public static class ResourceBuilderExtensions
     /// is found on the resource, an exception will be thrown.
     /// </para>
     /// <para>
+    /// The supplied <paramref name="endpointSelector"/> may return an endpoint from a different resource to that which the command is being added to.
+    /// </para>
+    /// <para>
+    /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
+    /// </para>
+    /// <para>
     /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
@@ -1261,6 +1267,13 @@ public static class ResourceBuilderExtensions
 
         commandName ??= $"http-{method.Method.ToLowerInvariant()}-request";
 
+        var endpointResourceReady = false;
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(endpoint.Resource, (e, ct) =>
+        {
+            endpointResourceReady = true;
+            return Task.CompletedTask;
+        });
+
         builder.WithCommand(commandName, displayName,
             async context =>
             {
@@ -1279,19 +1292,22 @@ public static class ResourceBuilderExtensions
                 try
                 {
                     var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
+                    if (getCommandResult is not null)
+                    {
+                        return await getCommandResult(response).ConfigureAwait(false);
+                    }
+
                     response.EnsureSuccessStatusCode();
+                    return new ExecuteCommandResult { Success = true };
                 }
                 catch (Exception ex)
                 {
                     return new ExecuteCommandResult { Success = false, ErrorMessage = ex.Message };
                 }
-                return new ExecuteCommandResult { Success = true };
             },
-            updateStateContext => endpoint switch
-            {
-                { IsAllocated: true } => ResourceCommandState.Enabled,
-                _ => ResourceCommandState.Disabled
-            },
+            updateStateContext => endpoint.IsAllocated && endpointResourceReady
+                ? ResourceCommandState.Enabled
+                : ResourceCommandState.Disabled,
             displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
@@ -1311,10 +1327,15 @@ public static class ResourceBuilderExtensions
         => () =>
         {
             var endpoints = builder.Resource.GetEndpoints();
-            return (endpointNames is { Length: > 0 }
-                ? endpoints.FirstOrDefault(e => endpointNames.Contains(e.EndpointName, StringComparers.EndpointAnnotationName))
-                : endpoints.FirstOrDefault(e => s_httpSchemes.Contains(e.Scheme)))
+            EndpointReference? matchingEndpoint = null;
+            if (endpointNames is { Length: > 0 })
+            {
+                matchingEndpoint = endpoints.FirstOrDefault(e => endpointNames.Contains(e.EndpointName, StringComparers.EndpointAnnotationName));
+            }
+            matchingEndpoint ??= endpoints.FirstOrDefault(e => s_httpSchemes.Contains(e.Scheme))
                 ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
+
+            return matchingEndpoint;
         };
 
     /// <summary>
