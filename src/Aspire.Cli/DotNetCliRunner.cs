@@ -37,9 +37,9 @@ internal sealed class DotNetCliRunner
             CreateNoWindow = true
         };
 
-        if (args.Length > 0)
+        foreach (var a in args)
         {
-            startInfo.ArgumentList = args;
+            startInfo.ArgumentList.Add(a);
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process
