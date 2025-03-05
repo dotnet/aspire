@@ -7,5 +7,6 @@ public static class PlatformDetection
 {
     public static bool IsRunningOnBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
-    public static bool IsRunningOnCI => IsRunningOnBuildMachine || IsRunningOnHelix;
+    public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("GITHUB_JOB") is not null;
+    public static bool IsRunningOnCI => IsRunningOnBuildMachine || IsRunningOnHelix || IsRunningOnGithubActions;
 }
