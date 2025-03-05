@@ -272,6 +272,9 @@
     <value>Enable dashboard telemetry</value>
   </data>
   <data name="SettingsDialogTelemetryEnabledInfo" xml:space="preserve">
-    <value>When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard.</value>
+    <value>When enabled, Aspire will collect usage data and send it to Microsoft.</value>
+  </data>
+  <data name="SettingsDialogTelemetryInfoLinkText" xml:space="preserve">
+    <value>What's sent?</value>
   </data>
 </root>

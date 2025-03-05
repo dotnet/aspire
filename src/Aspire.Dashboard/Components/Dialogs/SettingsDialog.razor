@@ -53,7 +53,9 @@
                                 Value="@TelemetryService.IsTelemetryEnabled"
                                 ValueChanged="@OnTelemetryEnabledChangedAsync"/>
 
-                <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogTelemetryEnabledInfo)]</p>
+                <p class="setting-subtext">
+                    @Loc[nameof(Dialogs.SettingsDialogTelemetryEnabledInfo)] <a target="_blank" href="https://aka.ms/dotnet/aspire/dashboard-telemetry">@Loc[nameof(Dialogs.SettingsDialogTelemetryInfoLinkText)]</a>
+                </p>
             </div>
         }
 

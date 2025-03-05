@@ -447,11 +447,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to When enabled, Aspire will collect usage data and send it to Microsoft to help improve the Aspire Dashboard..
+        ///   Looks up a localized string similar to When enabled, Aspire will collect usage data and send it to Microsoft..
         /// </summary>
         public static string SettingsDialogTelemetryEnabledInfo {
             get {
                 return ResourceManager.GetString("SettingsDialogTelemetryEnabledInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to What&apos;s sent?.
+        /// </summary>
+        public static string SettingsDialogTelemetryInfoLinkText {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkText", resourceCulture);
             }
         }
         

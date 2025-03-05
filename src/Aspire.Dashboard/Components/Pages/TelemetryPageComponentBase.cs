@@ -38,11 +38,11 @@ public abstract class TelemetryPageComponentBase : ComponentBase
 
     protected override void OnParametersSet()
     {
-        _ = Task.Run(PostPageRenderTelemetryAsync);
+        PostPageRenderTelemetryAsync();
 
         return;
 
-        Task PostPageRenderTelemetryAsync()
+        void PostPageRenderTelemetryAsync()
         {
             var properties = GetPageProperties();
             properties[TelemetryPropertyKeys.DashboardPageId] = new AspireTelemetryProperty(PageId);
@@ -54,7 +54,7 @@ public abstract class TelemetryPageComponentBase : ComponentBase
                 properties,
                 _loadOperation?.Content?.Correlation is { } loadPageCorrelation ? [loadPageCorrelation] : null);
 
-            return TelemetryService.PostUserTaskAsync(request);
+            TelemetryService.PostUserTaskAsync(request);
         }
     }
 
@@ -63,7 +63,7 @@ public abstract class TelemetryPageComponentBase : ComponentBase
         if (_loadOperation?.Content is { OperationId: { } operationId })
         {
             _loadOperation = null;
-            _ = TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success));
+            TelemetryService.EndUserTaskAsync(new EndOperationRequest(operationId, TelemetryResult.Success));
         }
     }
 }
