@@ -25,7 +25,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : TelemetryPageComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
+public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     private sealed class ConsoleLogsSubscription
     {
@@ -105,7 +105,7 @@ public sealed partial class ConsoleLogs : TelemetryPageComponentBase, IAsyncDisp
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
-    protected override string PageId => DashboardUrls.ConsoleLogBasePath;
+    protected override string ComponentId => DashboardUrls.ConsoleLogBasePath;
 
     protected override async Task OnInitializedAsync()
     {
@@ -652,7 +652,7 @@ public sealed partial class ConsoleLogs : TelemetryPageComponentBase, IAsyncDisp
         return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
     }
 
-    protected override Dictionary<string, AspireTelemetryProperty> GetPageProperties()
+    protected override Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
     {
         return new Dictionary<string, AspireTelemetryProperty>
         {

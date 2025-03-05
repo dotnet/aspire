@@ -5,14 +5,14 @@ namespace Aspire.Dashboard.Telemetry;
 
 public static class TelemetryPropertyKeys
 {
-    private const string AspireDashboardPropertyPrefix = "Aspire.Dashboard";
+    private const string AspireDashboardPropertyPrefix = "Aspire.Dashboard.";
 
     // Default properties
-    public const string DashboardVersion = AspireDashboardPropertyPrefix + ".Version";
-    public const string DashboardBuildId = AspireDashboardPropertyPrefix + ".BuildId";
+    public const string DashboardVersion = AspireDashboardPropertyPrefix + "Version";
+    public const string DashboardBuildId = AspireDashboardPropertyPrefix + "BuildId";
 
-    public const string DashboardPageId = AspireDashboardPropertyPrefix + ".PageId";
+    public const string DashboardComponentId = AspireDashboardPropertyPrefix + "ComponentId";
 
-    public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + ".ConsoleLogs.ShowTimestamp";
-    public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + ".ConsoleLogs.ApplicationName";
+    public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + "ConsoleLogs.ShowTimestamp";
+    public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + "ConsoleLogs.ApplicationName";
 }

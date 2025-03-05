@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -96,9 +97,10 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
     }
 
-    private Task OnTelemetryEnabledChangedAsync(bool newValue)
+    private async Task OnTelemetryEnabledChangedAsync(bool newValue)
     {
-        return TelemetryService.SetTelemetryEnabledAsync(newValue);
+        var result = await TelemetryService.SetTelemetryEnabledAsync(newValue);
+        Debug.Assert(result, "It should be impossible to get to a state where users can toggle telemetry when it's unsupported.");
     }
 
     public void Dispose()

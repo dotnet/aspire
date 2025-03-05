@@ -5,6 +5,8 @@ namespace Aspire.Dashboard.Telemetry;
 
 public static class TelemetryEventKeys
 {
-    public const string NavigateToPage = "aspire/dashboard/navigate";
-    public const string PageRender = "aspire/dashboard/page/render";
+    private const string AspireDashboardEventPrefix = "aspire/dashboard/";
+
+    public const string InitializeComponent = AspireDashboardEventPrefix + "component/initialize";
+    public const string RenderComponent = AspireDashboardEventPrefix + "component/render";
 }

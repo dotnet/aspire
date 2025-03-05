@@ -271,7 +271,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, I
 
     private static HttpClient? CreateHttpClient(DebugSession debugSession)
     {
-        if (!SupportsTelemetry(debugSession, out var debugSessionUri, out var token, out var certData))
+        if (!HasDebugSession(debugSession, out var debugSessionUri, out var token, out var certData))
         {
             return null;
         }
@@ -289,7 +289,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, I
 
         return client;
 
-        static bool SupportsTelemetry(DebugSession debugSession, [NotNullWhen(true)] out Uri? debugSessionUri, [NotNullWhen(true)] out string? token, [NotNullWhen(true)] out byte[]? certData)
+        static bool HasDebugSession(DebugSession debugSession, [NotNullWhen(true)] out Uri? debugSessionUri, [NotNullWhen(true)] out string? token, [NotNullWhen(true)] out byte[]? certData)
         {
             if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null)
             {
