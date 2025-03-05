@@ -30,7 +30,7 @@ jobs:
       - name: Get list of tests
         env:
           CI: false
-        run: |
+        run: >
           ${{ matrix.dotnet_script }} build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
           /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
           /p:ContinuousIntegrationBuild=true
