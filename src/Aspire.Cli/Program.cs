@@ -163,8 +163,7 @@ public class Program
             "aspire-servicedefaults",
             "aspire-mstest",
             "aspire-nunit",
-            "aspire-xunit",
-            "aspire-nunit"
+            "aspire-xunit"
             ];
 
         var value = result.GetValueOrDefault<string>();
