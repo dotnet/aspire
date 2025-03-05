@@ -34,16 +34,6 @@ resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   tags: tags
 }
 
-module resources 'resources.bicep' = {
-  scope: rg
-  name: 'resources'
-  params: {
-    location: location
-    tags: tags
-    principalId: principalId
-  }
-}
-
 module account 'account/account.module.bicep' = {
   name: 'account'
   scope: rg
@@ -70,17 +60,5 @@ module storage 'storage/storage.module.bicep' = {
     principalId: resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
     principalType: 'ServicePrincipal'
   }
-}
-output MANAGED_IDENTITY_CLIENT_ID string = resources.outputs.MANAGED_IDENTITY_CLIENT_ID
-output MANAGED_IDENTITY_NAME string = resources.outputs.MANAGED_IDENTITY_NAME
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = resources.outputs.AZURE_LOG_ANALYTICS_WORKSPACE_NAME
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
-output AZURE_CONTAINER_REGISTRY_NAME string = resources.outputs.AZURE_CONTAINER_REGISTRY_NAME
-output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME
-output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
-output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
-output SERVICE_CACHE_VOLUME_AZURECONTAINERAPPSAPPHOSTA01EC9BC8DCACHEDATA_NAME string = resources.outputs.SERVICE_CACHE_VOLUME_AZURECONTAINERAPPSAPPHOSTA01EC9BC8DCACHEDATA_NAME
-output ACCOUNT_CONNECTIONSTRING string = account.outputs.connectionString
+}output ACCOUNT_CONNECTIONSTRING string = account.outputs.connectionString
 output STORAGE_BLOBENDPOINT string = storage.outputs.blobEndpoint
-output AZURE_VOLUMES_STORAGE_ACCOUNT string = resources.outputs.AZURE_VOLUMES_STORAGE_ACCOUNT
