@@ -215,6 +215,19 @@ public static class NatsBuilderExtensions
                             Hosts = [$"{natsEndpoint.Resource.Name}:{natsEndpoint.TargetPort}"]
                         };
 
+                        if (!string.IsNullOrEmpty(natsInstance.PasswordParameter?.Value))
+                        {
+                            nuiConnectionConfig.Auth = [
+                                new NuiConnectionAuth
+                                {
+                                    Active = true,
+                                    Mode = "auth_user_password",
+                                    Username = await natsInstance.UserNameReference.GetValueAsync(ct).ConfigureAwait(false),
+                                    Password = natsInstance.PasswordParameter?.Value
+                                }
+                            ];
+                        }
+
                         var client = httpClientFactory.CreateClient();
                         client.BaseAddress = new Uri($"{nuiEnpoint.Scheme}://{nuiEnpoint.Host}:{nuiEnpoint.Port}");
 
