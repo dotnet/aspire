@@ -14,6 +14,7 @@
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
+    <PackageId>Aspire.Cli</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
