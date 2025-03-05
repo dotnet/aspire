@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Model.Otlp;
+using Grpc.Core;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -43,6 +44,9 @@ public class OtlpSpan
 
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
+
+    private string? _cachedDisplaySummary;
+
     public OtlpSpan? GetParentSpan()
     {
         if (string.IsNullOrEmpty(ParentSpanId))
@@ -115,6 +119,65 @@ public class OtlpSpan
     private string DebuggerToString()
     {
         return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
+    }
+
+    public string GetDisplaySummary()
+    {
+        return _cachedDisplaySummary ??= BuildDisplaySummary(this);
+
+        static string BuildDisplaySummary(OtlpSpan span)
+        {
+            // Use attributes on the span to calculate a friendly summary.
+            // Optimize for common cases: HTTP, RPC, DATA, etc.
+            // Fall back to the span name if we can't find anything.
+            if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
+            {
+                if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
+                {
+                    var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
+                    var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
+
+                    return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
+                {
+                    var dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
+
+                    return $"DATA {dbSystem} {span.Name}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "rpc.system")))
+                {
+                    var rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
+                    var rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
+                    var rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
+
+                    if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
+
+                        var summary = $"RPC {rpcService}/{rpcMethod}";
+                        if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
+                        {
+                            summary += $" {statusCode}";
+                        }
+
+                        return summary;
+                    }
+
+                    return $"RPC {rpcService}/{rpcMethod}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "messaging.system")))
+                {
+                    var messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
+                    var messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
+                    var destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
+
+                    return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
+                }
+            }
+
+            return span.Name;
+        }
     }
 
     public static string? GetFieldValue(OtlpSpan span, string field)
