@@ -218,6 +218,31 @@
         ]
       }
     },
+    "XUnitVersion": {
+      "type": "parameter",
+      "description": "The version of xUnit to use.",
+      "displayName": "xUnit version",
+      "datatype": "choice",
+      "replaces": "XUnitVersion",
+      "choices": [
+        {
+          "choice": "v2",
+          "displayName": "v2",
+          "description": "Chooses xUnit v2 with VSTest"
+        },
+        {
+          "choice": "v3",
+          "displayName": "v3",
+          "description": "Chooses xUnit v3 with VSTest (Aspire version 9.1 and later only)"
+        },
+        {
+          "choice": "v3mtp",
+          "displayName": "v3 with MTP",
+          "description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.1 and later only)"
+        }
+      ],
+      "defaultValue": "v2"
+    },
     "hostIdentifier": {
       "type": "bind",
       "binding": "HostIdentifier"
@@ -253,6 +278,22 @@
           "description": "Creates an xUnit.net test project using the AppHost project."
         }
       ]
+    },
+    "TestFrameworkIsXUnit": {
+      "type": "generated",
+      "generator": "switch",
+      "parameters": {
+        "cases": [
+          {
+            "condition": "(TestFramework == xUnit.net)",
+            "value": "true"
+          },
+          {
+            "condition": "",
+            "value": "false"
+          }
+        ]
+      }
     },
     "appHostHttpPort": {
       "type": "parameter",
