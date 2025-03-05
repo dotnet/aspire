@@ -31,8 +31,8 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ matrix.dotnet_script }} build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj \
-          /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list \
+          ${{ matrix.dotnet_script }} build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+          /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
           /p:ContinuousIntegrationBuild=true
 
       - name: Generate tests matrix
