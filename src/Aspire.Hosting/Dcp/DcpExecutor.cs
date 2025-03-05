@@ -94,7 +94,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         _distributedApplicationOptions = distributedApplicationOptions;
         _options = options;
         _executionContext = executionContext;
-        _resourceState = new(model.Resources.ToDictionary(r => r.Name));
+        _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
