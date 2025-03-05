@@ -8,6 +8,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -104,6 +105,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddFluentUIComponents();
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        context.Services.AddScoped<IAspireTelemetryService, TestTelemetryService>();
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);

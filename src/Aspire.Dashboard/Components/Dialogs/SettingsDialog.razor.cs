@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -33,8 +35,13 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
-    protected override void OnInitialized()
+    [Inject]
+    public required IAspireTelemetryService TelemetryService { get; init; }
+
+    protected override async Task OnInitializedAsync()
     {
+        await TelemetryService.InitializeAsync();
+        
         // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
         _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
 
@@ -90,6 +97,12 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         TelemetryRepository.ClearAllSignals();
 
         await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
+    }
+
+    private async Task OnTelemetryEnabledChangedAsync(bool newValue)
+    {
+        var result = await TelemetryService.SetTelemetryEnabledAsync(newValue);
+        Debug.Assert(result, "It should be impossible to get to a state where users can toggle telemetry when it's unsupported.");
     }
 
     public void Dispose()

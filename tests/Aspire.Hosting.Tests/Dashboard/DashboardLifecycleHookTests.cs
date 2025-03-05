@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -97,6 +98,49 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
     }
 
+    [Theory]
+    [InlineData("http://localhost", "1234", "cert")]
+    [InlineData(null, null, null)]
+    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionAddress, string? debugSessionToken, string? debugSessionCert)
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configurationBuilder = new ConfigurationBuilder();
+
+        if (debugSessionAddress is not null)
+        {
+            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_PORT", debugSessionAddress)]);
+        }
+
+        if (debugSessionToken is not null)
+        {
+            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_TOKEN", debugSessionToken)]);
+        }
+
+        if (debugSessionCert is not null)
+        {
+            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_SERVER_CERTIFICATE", debugSessionCert)]);
+        }
+
+        var configuration = configurationBuilder.Build();
+        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration);
+
+        var model = new DistributedApplicationModel(new ResourceCollection());
+
+        // Act
+        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+        var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
+        var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
+        await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger()).DefaultTimeout();
+
+        // Assert
+        Assert.Equal(debugSessionAddress, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionAddressName.EnvVarName));
+        Assert.Equal(debugSessionToken, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTokenName.EnvVarName));
+        Assert.Equal(debugSessionCert, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName));
+    }
+
     private static DashboardLifecycleHook CreateHook(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
@@ -113,7 +157,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         return new DashboardLifecycleHook(
             configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll", DashboardUrl = "http://localhost", OtlpHttpEndpointUrl = "http://localhost" }),
             NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
@@ -182,7 +226,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     {
         public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return Task.FromResult(string.Empty);
         }
     }
 
@@ -194,6 +238,21 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         public void StopApplication()
         {
+        }
+    }
+
+    private sealed class TestServiceProvider : IServiceProvider
+    {
+        public static IServiceProvider Instance { get; } = new TestServiceProvider();
+
+        public object? GetService(Type serviceType)
+        {
+            if (serviceType == typeof(DistributedApplicationModel))
+            {
+                return new DistributedApplicationModel(new ResourceCollection());
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(serviceType));
         }
     }
 }

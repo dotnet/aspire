@@ -171,6 +171,8 @@
     <PackageVersion Include="Azure.Identity" Version="1.13.2" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- VS telemetry package for dashboard telemetry -->
+    <PackageVersion Include="Microsoft.VisualStudio.Telemetry" Version="17.14.2" />
   </ItemGroup>
 
   <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used. -->

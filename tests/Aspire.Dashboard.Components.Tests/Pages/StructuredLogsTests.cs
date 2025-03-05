@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
@@ -187,6 +188,7 @@ public partial class StructuredLogsTests : TestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddScoped<IAspireTelemetryService, TestTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

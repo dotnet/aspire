@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
@@ -179,6 +180,7 @@ public partial class TraceDetailsTests : TestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddScoped<IAspireTelemetryService, TestTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
