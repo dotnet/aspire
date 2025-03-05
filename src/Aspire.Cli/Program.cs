@@ -5,15 +5,25 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli;
 
 public class Program
 {
-    private static IHost BuildApplication()
+    private static IHost BuildApplication(ParseResult parseResult)
     {
         var builder = Host.CreateApplicationBuilder();
+
+        var debugOption = parseResult.GetValue<bool>("--debug");
+
+        if (!debugOption)
+        {
+            builder.Logging.ClearProviders();
+        }
+
         builder.Services.AddTransient<AppHostRunner>();
+        builder.Services.AddTransient<DotNetCliRunner>();
         var app = builder.Build();
         return app;
     }
@@ -21,8 +31,12 @@ public class Program
     private static RootCommand GetRootCommand()
     {
         var rootCommand = new RootCommand(".NET Aspire CLI");
+        var debugOption = new Option<bool>("--debug", "-d");
+        debugOption.Recursive = true;
+        rootCommand.Options.Add(debugOption);
         ConfigureDevCommand(rootCommand);
         ConfigurePackCommand(rootCommand);
+        ConfigureNewCommand(rootCommand);
         return rootCommand;
     }
 
@@ -73,7 +87,7 @@ public class Program
         command.Options.Add(projectOption);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication();
+            using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var runner = app.Services.GetRequiredService<AppHostRunner>();
@@ -116,7 +130,7 @@ public class Program
         command.Options.Add(outputPath);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication();
+            using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var runner = app.Services.GetRequiredService<AppHostRunner>();
@@ -128,6 +142,38 @@ public class Program
             var exitCode = await runner.RunAppHostAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
 
             return exitCode;
+        });
+
+        parentCommand.Subcommands.Add(command);
+    }
+
+    private static void ConfigureNewCommand(Command parentCommand)
+    {
+        var command = new Command("new", "Create a new .NET Aspire-related project.");
+
+        var templateArgument = new Argument<string>("template");
+        command.Arguments.Add(templateArgument);
+
+        command.SetAction(async (parseResult, ct) => {
+            using var app = BuildApplication(parseResult);
+            _ = app.RunAsync(ct).ConfigureAwait(false);
+
+            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
+            var templateInstallExitCode = await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", "*-*", true, ct).ConfigureAwait(false);
+
+            if (templateInstallExitCode != 0)
+            {
+                return ExitCodeConstants.FailedToInstallTemplates;
+            }
+
+            var newProjectExitCode = await cliRunner.NewProjectAsync(ct).ConfigureAwait(false);
+
+            if (newProjectExitCode != 0)
+            {
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+
+            return 0;
         });
 
         parentCommand.Subcommands.Add(command);
