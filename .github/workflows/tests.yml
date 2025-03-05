@@ -40,7 +40,7 @@ jobs:
         shell: pwsh
         env:
           CI: false
-        run:
+        run: |
           $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
           $lines = Get-Content $filePath
           $jsonObject = @{
