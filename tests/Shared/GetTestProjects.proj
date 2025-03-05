@@ -32,8 +32,8 @@
     </MSBuild>
 
     <ItemGroup>
-      <ProjectRunTestsOnGithubActions Remove="@(ProjectRunTestsOnGithubActions)" Condition="'%(Identity)' != 'true'" />
-      <ProjectRunTestsOnGithubActions ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(MSBuildSourceProjectFile)').Replace('Aspire.', '').Replace('.Tests', ''))" />
+      <ProjectRunTestsOnGithubActions Remove="@(ProjectRunTestsOnGithubActions)" Condition="'%(RunTestsOnGithubActions)' != 'true'" />
+      <ProjectRunTestsOnGithubActions ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(Identity)').Replace('Aspire.', '').Replace('.Tests', ''))" />
     </ItemGroup>
 
     <Error Condition="@(ProjectRunTestsOnGithubActions->Count()) == 0" Text="Could not find any test projects" />

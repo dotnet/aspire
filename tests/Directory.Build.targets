@@ -68,7 +68,11 @@
                       Overwrite="true" />
   </Target>
 
-  <Target Name="GetRunTestsOnGithubActions" Returns="$(RunTestsOnGithubActions)" />
+  <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
+    <ItemGroup>
+      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunTestsOnGithubActions)" />
+    </ItemGroup>
+  </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>
