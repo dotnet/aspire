@@ -102,7 +102,7 @@ public class AppContainersPublicApiTests
     public void PublishAsAzureContainerAppForProjectShouldThrowWhenConfigureIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddProject<Projects.ServiceA>("project");
+        var project = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true);
         Action<AzureResourceInfrastructure, ContainerApp> configure = null!;
 
         var action = () => project.PublishAsAzureContainerApp(configure);
@@ -154,5 +154,10 @@ public class AppContainersPublicApiTests
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(certificateName), exception.ParamName);
+    }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
     }
 }

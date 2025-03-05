@@ -13,19 +13,29 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Bicep resource.
 /// </summary>
-/// <param name="name">Name of the resource. This will be the name of the deployment.</param>
-/// <param name="templateFile">The path to the bicep file.</param>
-/// <param name="templateString">A bicep snippet.</param>
-/// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
-public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) :
-    Resource(name),
-    IAzureResource
+public class AzureBicepResource : Resource, IAzureResource
 {
-    internal string? TemplateFile { get; } = templateFile;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AzureBicepResource"/> class.
+    /// </summary>
+    /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
+    /// <param name="templateFile">The path to the bicep file.</param>
+    /// <param name="templateString">A bicep snippet.</param>
+    /// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
+    public AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) : base(name)
+    {
+        TemplateFile = templateFile;
+        TemplateString = templateString;
+        TemplateResourceName = templateResourceName;
 
-    internal string? TemplateString { get; set; } = templateString;
+        Annotations.Add(new ManifestPublishingCallbackAnnotation(WriteToManifest));
+    }
 
-    internal string? TemplateResourceName { get; } = templateResourceName;
+    internal string? TemplateFile { get; }
+
+    internal string? TemplateString { get; set; }
+
+    internal string? TemplateResourceName { get; }
 
     /// <summary>
     /// Parameters that will be passed into the bicep template.

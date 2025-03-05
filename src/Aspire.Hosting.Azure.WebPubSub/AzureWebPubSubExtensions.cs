@@ -124,8 +124,7 @@ public static class AzureWebPubSubExtensions
         };
 
         var resource = new AzureWebPubSubResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
