@@ -29,7 +29,8 @@ public static class EntityFrameworkMigrationExtensions
                                     context.Args.Add("--connection");
                                     context.Args.Add(builder);
                                   })
-                                  .WaitFor((IResourceBuilder<IResource>)builder);
+                                  .WaitFor((IResourceBuilder<IResource>)builder)
+                                  .WithParentRelationship(builder);
         return builder;
     }
 }
