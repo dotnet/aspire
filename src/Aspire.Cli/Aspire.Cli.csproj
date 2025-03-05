@@ -15,6 +15,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
     <PackageId>Aspire.Cli</PackageId>
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
