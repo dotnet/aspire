@@ -23,42 +23,64 @@ on:
 jobs:
 
   _:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          include:
+            - os: ubuntu-latest
+              dotnet_script: ./dotnet.sh
+              build_script: ./build.sh
+            - os: windows-latest
+              dotnet_script: .\dotnet.cmd
+              build_script: .\build.cmd
     timeout-minutes: 60
-    name: ${{ inputs.testShortName }}
+    name: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Trust HTTPS development certificate
-        run: ./dotnet.sh dev-certs https --trust
+        if: matrix.os == 'Linux'
+        run: ${{ matrix.dotnet_script }} dev-certs https --trust
 
       - name: Verify Docker is running
+        # nested docker containers not supported on windows
+        if: matrix.os == 'Linux'
         run: docker info
 
       - name: Install Azure Functions Core Tools
-        if: inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure'
+        if: runner.os == 'Linux' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Compute test project path
         id: compute_project_path
+        shell: pwsh
         env:
           CI: false
         # Convert the shortname of the test to a project path in tests/
         run: |
-          export OPTION_A=${{ github.workspace }}/tests/Aspire.${{ inputs.testShortName }}.Tests/Aspire.${{ inputs.testShortName }}.Tests.csproj; \
-          export OPTION_B=${{ github.workspace }}/tests/${{ inputs.testShortName }}.Tests/${{ inputs.testShortName }}.Tests.csproj; \
-          echo TEST_PROJECT_PATH=$(test -f $OPTION_A && echo $OPTION_A || echo $OPTION_B); \
-          echo TEST_PROJECT_PATH=$(test -f $OPTION_A && echo $OPTION_A || echo $OPTION_B) >> $GITHUB_ENV
+          $testShortName = "${{ inputs.testShortName }}"
+          $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
+          $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
+
+          if (Test-Path -Path $projectPath1) {
+              $projectPath = $projectPath1
+          } elseif (Test-Path -Path $projectPath2) {
+              $projectPath = $projectPath2
+          } else {
+              Write-Error "No matching project path found."
+              exit 1
+          }
+
+          echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
 
       - name: Build test project
-        id: build_t
         env:
           CI: false
         run: |
-          ./build.sh -restore -ci -build -projects $TEST_PROJECT_PATH
+          ${{ matrix.build_script }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -66,7 +88,7 @@ jobs:
         env:
           CI: false
         run: |
-          ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+          ${{ matrix.dotnet_script }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
       - name: Run tests
         id: run-tests
@@ -74,24 +96,23 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-        run: |
-
-          ./dotnet.sh test $TEST_PROJECT_PATH \
-            /p:ContinuousIntegrationBuild=true \
-            -s eng/testing/.runsettings \
-            --logger "console;verbosity=normal" \
-            --logger "trx" \
-            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
-            --blame \
-            --blame-hang-timeout ${{ inputs.testHangTimeout }} \
-            --blame-crash \
-            --results-directory testresults \
-            --no-restore \
-            --no-build \
-            ${{ inputs.extraTestArgs }} \
-            -- \
-            RunConfiguration.CollectSourceInformation=true \
-            RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
+        run: >
+          ${{ matrix.dotnet_script }} test ${{ env.TEST_PROJECT_PATH }}
+          /p:ContinuousIntegrationBuild=true
+          -s eng/testing/.runsettings
+          -l "console;verbosity=normal"
+          -l "trx"
+          -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
+          "--blame"
+          --blame-hang-timeout ${{ inputs.testHangTimeout }}
+          --blame-crash
+          --results-directory testresults
+          --no-restore
+          --no-build
+          ${{ inputs.extraTestArgs }}
+          --
+          RunConfiguration.CollectSourceInformation=true
+          RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
 
       # Save the result of the previous steps - success or failure
       # in the form of a file result-success/result-failure -{name}.rst
@@ -107,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-job-result-${{ inputs.testShortName }}
+          name: test-job-result-${{ inputs.testShortName }}-${{ matrix.os }}
           path: result-*.rst
 
       - name: Dump docker info
@@ -118,16 +139,11 @@ jobs:
           docker volume ls
           docker network ls
 
-      - name: Upload bin log artifact
+      - name: Upload logs, and test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: binlog-${{ inputs.testShortName }}
-          path: "**/*.binlog"
-
-      - name: Upload test results artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: testresults-${{ inputs.testShortName }}
-          path: testresults/**
+          name: logs-${{ inputs.testShortName }}-${{ matrix.os }}
+          path: |
+            **/*.binlog
+            testresults/**
