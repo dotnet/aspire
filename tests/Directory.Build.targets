@@ -12,8 +12,9 @@
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
+    <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnGithubActions>
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true' or '$(RunTestsOnGithubActions)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,7 +37,7 @@
   </Target>
 
   <!-- Used for running one helix job per test class -->
-  <Target Name="_ExtractTestClassNames"
+  <Target Name="ExtractTestClassNames"
           Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
           BeforeTargets="ZipTestArchive">
 
@@ -65,6 +66,8 @@
                       Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
   </Target>
+
+  <Target Name="GetRunTestsOnGithubActions" Returns="$(RunTestsOnGithubActions)" />
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>
