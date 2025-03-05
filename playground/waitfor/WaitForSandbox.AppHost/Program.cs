@@ -12,16 +12,13 @@ var db = builder.AddAzurePostgresFlexibleServer("pg")
                         c.WithHostPort(15551);
                     });
                 })
-                .AddDatabase("db");
-
-var dbsetup = builder.AddProject<Projects.WaitForSandbox_DbSetup>("dbsetup")
-                     .WithReference(db).WaitFor(db);
+                .AddDatabase("db")
+                .WithEntityFrameworkMigrations(new Projects.WaitForSandbox_ApiService());
 
 var backend = builder.AddProject<Projects.WaitForSandbox_ApiService>("api")
                      .WithExternalHttpEndpoints()
                      .WithHttpHealthCheck("/health")
                      .WithReference(db).WaitFor(db)
-                     .WaitForCompletion(dbsetup)
                      .WithReplicas(2);
 
 builder.AddProject<Projects.WaitFor_Frontend>("frontend")

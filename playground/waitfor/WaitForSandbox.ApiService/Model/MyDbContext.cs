@@ -3,7 +3,7 @@
 
 using Microsoft.EntityFrameworkCore;
 
-namespace WaitForSandbox.Common;
+namespace WaitForSandbox.ApiService.Model;
 
 public class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(options)
 {
