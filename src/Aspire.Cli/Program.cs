@@ -147,12 +147,58 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
+    private static void ValidateProjectTemplate(ArgumentResult result)
+    {
+        // TODO: We need to integrate with the template engine to interrogate
+        //       the list of available templates. For now we will just hard-code
+        //       the acceptable options.
+        //
+        //       Once we integrate with template engine we will also be able to
+        //       interrogate the various options and add them. For now we will 
+        //       keep it simple.
+        string[] validTemplates = [
+            "aspire-starter",
+            "aspire",
+            "aspire-apphost",
+            "aspire-servicedefaults",
+            "aspire-mstest",
+            "aspire-nunit",
+            "aspire-xunit",
+            "aspire-nunit"
+            ];
+
+        var value = result.GetValueOrDefault<string>();
+
+        if (value is null)
+        {
+            // This is OK, for now we will use the default
+            // template of aspire-starter, but we might
+            // be able to do more intelligent selection in the
+            // future based on what is already in the working directory.
+            return;
+        }
+
+        if (value is { } templateName && !validTemplates.Contains(templateName))
+        {
+
+            result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
+            return;
+        }
+    }
+
     private static void ConfigureNewCommand(Command parentCommand)
     {
         var command = new Command("new", "Create a new .NET Aspire-related project.");
-
         var templateArgument = new Argument<string>("template");
+        templateArgument.Validators.Add(ValidateProjectTemplate);
+        templateArgument.Arity = ArgumentArity.ZeroOrOne;
         command.Arguments.Add(templateArgument);
+
+        var nameOption = new Option<string>("--name", "-n");
+        command.Options.Add(nameOption);
+
+        var outputOption = new Option<string?>("--output", "-o");
+        command.Options.Add(outputOption);
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
@@ -166,7 +212,28 @@ public class Program
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
 
-            var newProjectExitCode = await cliRunner.NewProjectAsync(ct).ConfigureAwait(false);
+            var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
+
+            if (parseResult.GetValue<string>("--output") is not { } outputPath)
+            {
+                outputPath = Environment.CurrentDirectory;
+            }
+            else
+            {
+                outputPath = Path.GetFullPath(outputPath);
+            }
+
+            if (parseResult.GetValue<string>("--name") is not { } name)
+            {
+                var outputPathDirectoryInfo = new DirectoryInfo(outputPath);
+                name = outputPathDirectoryInfo.Name;
+            }
+
+            var newProjectExitCode = await cliRunner.NewProjectAsync(
+                templateName,
+                name,
+                outputPath,
+                ct).ConfigureAwait(false);
 
             if (newProjectExitCode != 0)
             {

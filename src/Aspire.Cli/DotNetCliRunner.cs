@@ -23,9 +23,9 @@ internal sealed class DotNetCliRunner
         return await ExecuteAsync(cliArgs, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<int> NewProjectAsync(CancellationToken cancellationToken)
+    public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken)
     {
-        string[] cliArgs = ["new", "aspire-starter", "--name", "HelloAspire"];
+        string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath];
         return await ExecuteAsync(cliArgs, cancellationToken).ConfigureAwait(false);
     }
 
