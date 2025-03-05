@@ -179,7 +179,6 @@ public class Program
 
         if (value is { } templateName && !validTemplates.Contains(templateName))
         {
-
             result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
             return;
         }
