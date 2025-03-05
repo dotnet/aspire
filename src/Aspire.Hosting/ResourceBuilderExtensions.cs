@@ -1140,6 +1140,184 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a command to the resource that when invoked sends an HTTP request to the specified endpoint and path.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="path">The path to send the request to when the command is invoked.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="endpointName">The name of the HTTP endpoint to send the request to when the command is invoked.</param>
+    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
+    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
+    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
+    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="displayDescription">
+    /// Optional description of the command, to be shown in the UI.
+    /// Could be used as a tooltip. May be localized.
+    /// </param>
+    /// <param name="confirmationMessage">
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconVariant">The icon variant.</param>
+    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
+        this IResourceBuilder<TResource> builder,
+        string path,
+        string displayName,
+        [EndpointName] string? endpointName = null,
+        HttpMethod? method = null,
+        Func<HttpRequestMessage, Task>? configureRequest = null,
+        Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
+        string? commandName = null,
+        string? displayDescription = null,
+        string? confirmationMessage = null,
+        string? iconName = null,
+        IconVariant? iconVariant = null,
+        bool isHighlighted = false)
+        where TResource : IResourceWithEndpoints
+        => builder.WithHttpCommand(
+            path: path,
+            displayName: displayName,
+            endpointSelector: endpointName is not null
+                ? PreferredEndpointSelector(builder, [endpointName])
+                : PreferredEndpointSelector(builder, s_httpSchemes),
+            method: method,
+            confirmationMessage: confirmationMessage,
+            iconName: iconName,
+            commandName: commandName,
+            isHighlighted: isHighlighted);
+
+    /// <summary>
+    /// Adds a command to the resource that when invoked sends an HTTP request to the specified endpoint and path.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="path">The path to send the request to when the command is invoked.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="endpointSelector">A callback that selects the HTTP endpoint to send the request to when the command is invoked.</param>
+    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
+    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
+    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
+    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="displayDescription">
+    /// Optional description of the command, to be shown in the UI.
+    /// Could be used as a tooltip. May be localized.
+    /// </param>
+    /// <param name="confirmationMessage">
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconVariant">The icon variant.</param>
+    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException"></exception>
+    /// <remarks>
+    /// <para>
+    /// The command will be added to the resource represented by <paramref name="builder"/>.
+    /// </para>
+    /// <para>
+    /// If no <paramref name="endpointSelector"/> is specified, the first HTTP endpoint found on the resource will be used.
+    /// HTTP endpoints with an <c>https</c> scheme are preferred over those with an <c>http</c> scheme. If no HTTP endpoint
+    /// is found on the resource, an exception will be thrown.
+    /// </para>
+    /// <para>
+    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// </para>
+    /// <para>
+    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// before the request is sent.
+    /// </para>
+    /// <para>
+    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
+        this IResourceBuilder<TResource> builder,
+        string path,
+        string displayName,
+        Func<EndpointReference>? endpointSelector = null,
+        HttpMethod? method = null,
+        Func<HttpRequestMessage, Task>? configureRequest = null,
+        Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
+        string? commandName = null,
+        string? displayDescription = null,
+        string? confirmationMessage = null,
+        string? iconName = null,
+        IconVariant? iconVariant = null,
+        bool isHighlighted = false)
+        where TResource : IResourceWithEndpoints
+    {
+        method ??= HttpMethod.Post;
+
+        endpointSelector ??= PreferredEndpointSelector(builder);
+
+        var endpoint = endpointSelector()
+            ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no HTTP endpoint was found.");
+
+        commandName ??= $"http-{method.Method.ToLowerInvariant()}-request";
+
+        builder.WithCommand(commandName, displayName,
+            async context =>
+            {
+                if (!endpoint.IsAllocated)
+                {
+                    return new ExecuteCommandResult { Success = false, ErrorMessage = "Endpoints are not yet allocated." };
+                }
+
+                var uri = new UriBuilder(endpoint.Url) { Path = path }.Uri;
+                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+                var request = new HttpRequestMessage(method, uri);
+                if (configureRequest is not null)
+                {
+                    await configureRequest(request).ConfigureAwait(false);
+                }
+                try
+                {
+                    var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
+                }
+                catch (Exception ex)
+                {
+                    return new ExecuteCommandResult { Success = false, ErrorMessage = ex.Message };
+                }
+                return new ExecuteCommandResult { Success = true };
+            },
+            updateStateContext => endpoint switch
+            {
+                { IsAllocated: true } => ResourceCommandState.Enabled,
+                _ => ResourceCommandState.Disabled
+            },
+            displayDescription: displayDescription,
+            confirmationMessage: confirmationMessage,
+            iconName: iconName,
+            iconVariant: IconVariant.Regular,
+            isHighlighted: isHighlighted);
+
+        return builder;
+    }
+
+    // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
+    // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
+    // if found.
+    private static readonly string[] s_httpSchemes = ["https", "http"];
+
+    private static Func<EndpointReference> PreferredEndpointSelector<TResource>(IResourceBuilder<TResource> builder, string[]? endpointNames = null)
+        where TResource : IResourceWithEndpoints
+        => () =>
+        {
+            var endpoints = builder.Resource.GetEndpoints();
+            return (endpointNames is { Length: > 0 }
+                ? endpoints.FirstOrDefault(e => endpointNames.Contains(e.EndpointName, StringComparers.EndpointAnnotationName))
+                : endpoints.FirstOrDefault(e => s_httpSchemes.Contains(e.Scheme)))
+                ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
+        };
+
+    /// <summary>
     /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a relationship.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
