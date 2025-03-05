@@ -84,12 +84,15 @@ internal sealed class AzureProvisioner(
             return;
         }
 
+        var publisherSupportsRoleAssignments = serviceProvider.GetService<PublisherSupportsRoleAssignmentsService>() is not null;
+
         // set the ProvisioningBuildOptions on the resource, if necessary
         foreach (var r in azureResources)
         {
             if (r.AzureResource is AzureProvisioningResource provisioningResource)
             {
                 provisioningResource.ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions;
+                provisioningResource.PublisherSupportsRoleAssignments = publisherSupportsRoleAssignments;
             }
         }
 

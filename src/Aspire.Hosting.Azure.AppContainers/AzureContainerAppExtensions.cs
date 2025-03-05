@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -17,6 +18,7 @@ public static class AzureContainerAppExtensions
     /// <param name="builder">The distributed application builder.</param>
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
     {
+        builder.Services.TryAddSingleton<PublisherSupportsRoleAssignmentsService>();
         builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
 
         return builder;

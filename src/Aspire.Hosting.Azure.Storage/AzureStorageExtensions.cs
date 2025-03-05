@@ -66,19 +66,16 @@ public static class AzureStorageExtensions
             };
             infrastructure.Add(blobs);
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments) &&
-                defaultRoleAssignments.Roles.Any())
+            if (!infrastructure.AspireResource.PublisherSupportsRoleAssignments)
             {
                 var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
                 infrastructure.Add(principalTypeParameter);
                 var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
                 infrastructure.Add(principalIdParameter);
 
-                foreach (var role in defaultRoleAssignments.Roles)
-                {
-                    infrastructure.Add(storageAccount.CreateRoleAssignment(new(role.Id), principalTypeParameter, principalIdParameter));
-                }
-
+                infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, principalTypeParameter, principalIdParameter));
+                infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, principalTypeParameter, principalIdParameter));
+                infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, principalTypeParameter, principalIdParameter));
             }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
@@ -91,10 +88,6 @@ public static class AzureStorageExtensions
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithDefaultRoleAssignments(
-                        StorageBuiltInRole.StorageBlobDataContributor,
-                        StorageBuiltInRole.StorageTableDataContributor,
-                        StorageBuiltInRole.StorageQueueDataContributor)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -346,44 +339,44 @@ public static class AzureStorageExtensions
         return builder.WithAnnotation(new RoleAssignmentAnnotation(destination, CreateRoleDefinitions(role)));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="roles"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)
-    {
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
-    }
+    ///// <summary>
+    ///// 
+    ///// </summary>
+    ///// <param name="builder"></param>
+    ///// <param name="roles"></param>
+    ///// <returns></returns>
+    //public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)
+    //{
+    //    return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
+    //}
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureStorageResource> RemoveDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder)
-    {
-        return WithDefaultRoleAssignments(builder, defaults => defaults.Clear());
-    }
+    ///// <summary>
+    ///// 
+    ///// </summary>
+    ///// <param name="builder"></param>
+    ///// <returns></returns>
+    //public static IResourceBuilder<AzureStorageResource> RemoveDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder)
+    //{
+    //    return WithDefaultRoleAssignments(builder, defaults => defaults.Clear());
+    //}
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="callback"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, Action<List<StorageBuiltInRole>> callback)
-    {
-        builder.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var annotation);
+    ///// <summary>
+    ///// 
+    ///// </summary>
+    ///// <param name="builder"></param>
+    ///// <param name="callback"></param>
+    ///// <returns></returns>
+    //public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, Action<List<StorageBuiltInRole>> callback)
+    //{
+    //    builder.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var annotation);
 
-        // Return the list of default roles if they exist, otherwise return an empty list.
-        var roles = annotation?.Roles.Select(r => new StorageBuiltInRole(r.Id)).ToList() ?? [];
+    //    // Return the list of default roles if they exist, otherwise return an empty list.
+    //    var roles = annotation?.Roles.Select(r => new StorageBuiltInRole(r.Id)).ToList() ?? [];
 
-        callback(roles);
+    //    callback(roles);
 
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
-    }
+    //    return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
+    //}
 
     private static IReadOnlyList<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<StorageBuiltInRole> role)
     {

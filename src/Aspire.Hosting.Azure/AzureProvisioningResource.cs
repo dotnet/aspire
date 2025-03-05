@@ -29,6 +29,11 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// <summary>
     /// 
     /// </summary>
+    public bool PublisherSupportsRoleAssignments { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
