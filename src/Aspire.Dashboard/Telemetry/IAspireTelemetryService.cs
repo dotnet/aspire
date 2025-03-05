@@ -16,6 +16,11 @@ public interface IAspireTelemetryService
     Task InitializeAsync();
 
     /// <summary>
+    /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
+    /// </summary>
+    bool IsTelemetryInitialized { get; }
+
+    /// <summary>
     /// Whether telemetry is supported in the current environment. This will be false if the user is not running in a debug session or if the debug session has telemetry opted-out.
     /// In VS/VSC, this means the current instance of the IDE.
     /// </summary>

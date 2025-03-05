@@ -18,6 +18,7 @@ public sealed class AspireTelemetryService(IOptions<DashboardOptions> options, I
     private bool? _serverTelemetryEnabled;
     private bool? _telemetryEnabled;
 
+    public bool IsTelemetryInitialized => _serverTelemetryEnabled is not null && _telemetryEnabled is not null;
     public bool IsTelemetrySupported => _serverTelemetryEnabled ?? throw new ArgumentNullException(nameof(_serverTelemetryEnabled), "InitializeAsync has not been called yet");
     public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
 

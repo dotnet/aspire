@@ -38,8 +38,10 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required IAspireTelemetryService TelemetryService { get; init; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await TelemetryService.InitializeAsync();
+        
         // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
         _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
 

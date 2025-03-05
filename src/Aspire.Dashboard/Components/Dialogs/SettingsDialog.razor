@@ -46,7 +46,7 @@
             </div>
         </div>
 
-        @if (TelemetryService.IsTelemetrySupported)
+        @if (TelemetryService is { IsTelemetryInitialized: true, IsTelemetrySupported: true })
         {
             <div>
                 <FluentCheckbox Label="@Loc[nameof(Dialogs.SettingsDialogEnableTelemetry)]"
