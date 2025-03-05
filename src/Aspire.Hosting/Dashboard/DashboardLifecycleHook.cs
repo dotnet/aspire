@@ -268,6 +268,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             {
                 context.EnvironmentVariables[DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName] = sessionCertificate;
             }
+            if (options.TelemetryEnabled is { } telemetryEnabled)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionTelemetryEnabledName.EnvVarName] = telemetryEnabled;
+            }
 
             if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {

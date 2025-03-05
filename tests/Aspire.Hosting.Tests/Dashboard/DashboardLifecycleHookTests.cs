@@ -99,9 +99,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData("http://localhost", "1234", "cert")]
-    [InlineData(null, null, null)]
-    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionAddress, string? debugSessionToken, string? debugSessionCert)
+    [InlineData("http://localhost", "1234", "cert", true)]
+    [InlineData("http://localhost", "1234", "cert", false)]
+    [InlineData(null, null, null, null)]
+    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionAddress, string? debugSessionToken, string? debugSessionCert, bool? telemetryEnabled)
     {
         // Arrange
         var resourceLoggerService = new ResourceLoggerService();
@@ -124,7 +125,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         }
 
         var configuration = configurationBuilder.Build();
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration);
+        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, telemetryEnabled: telemetryEnabled);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
 
@@ -139,6 +140,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(debugSessionAddress, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionAddressName.EnvVarName));
         Assert.Equal(debugSessionToken, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTokenName.EnvVarName));
         Assert.Equal(debugSessionCert, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName));
+        Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryEnabledName.EnvVarName, null), out var b) ? b : null);
     }
 
     private static DashboardLifecycleHook CreateHook(
@@ -147,8 +149,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null,
         IOptions<CodespacesOptions>? codespacesOptions = null,
-        IOptions<DevcontainersOptions>? devcontainersOptions = null
-        )
+        IOptions<DevcontainersOptions>? devcontainersOptions = null,
+        bool? telemetryEnabled = null)
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         devcontainersOptions ??= Options.Create(new DevcontainersOptions());
@@ -157,7 +159,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         return new DashboardLifecycleHook(
             configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll", DashboardUrl = "http://localhost", OtlpHttpEndpointUrl = "http://localhost" }),
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll", DashboardUrl = "http://localhost", OtlpHttpEndpointUrl = "http://localhost", TelemetryEnabled = telemetryEnabled}),
             NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
