@@ -26,18 +26,20 @@
                      Exclude="@(_TestProjectsToExclude)" />
     </ItemGroup>
 
+    <!-- this returns an item list of [true, true, false...] with %(MSBuildSourceProjectFile) set -->
     <MSBuild Projects="@(_TestProjects)" Targets="GetRunTestsOnGithubActions">
-      <Output TaskParameter="TargetOutputs" ItemName="ProjectsToTest" />
+      <Output TaskParameter="TargetOutputs" ItemName="ProjectRunTestsOnGithubActions" />
     </MSBuild>
 
-    <Error Condition="@(ProjectsToTest->Count()) == 0" Text="Could not find any test projects" />
-
     <ItemGroup>
-      <ProjectsToTest ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(MSBuildSourceProjectFile)').Replace('Aspire.', '').Replace('.Tests', ''))" />
+      <ProjectRunTestsOnGithubActions Remove="@(ProjectRunTestsOnGithubActions)" Condition="'%(Identity)' != 'true'" />
+      <ProjectRunTestsOnGithubActions ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(MSBuildSourceProjectFile)').Replace('Aspire.', '').Replace('.Tests', ''))" />
     </ItemGroup>
 
+    <Error Condition="@(ProjectRunTestsOnGithubActions->Count()) == 0" Text="Could not find any test projects" />
+
     <WriteLinesToFile File="$(TestsListOutputPath)"
-                      Lines="@(ProjectsToTest->'%(ShortName)')"
+                      Lines="@(ProjectRunTestsOnGithubActions->'%(ShortName)')"
                       Overwrite="true" />
   </Target>
 

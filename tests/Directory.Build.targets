@@ -14,6 +14,7 @@
 
     <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnGithubActions>
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
+    <!-- this is for pipeline tests -->
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true' or '$(RunTestsOnGithubActions)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
