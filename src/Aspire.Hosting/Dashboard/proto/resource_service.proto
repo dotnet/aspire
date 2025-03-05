@@ -131,6 +131,9 @@ message Url {
     // Determines if this url shows up in the details view only by default.
     // If true, the url will not be shown in the list of urls in the top level resources view.
     bool is_internal = 3;
+    // Indicates if this URL is inactive. A non-running resource may still return inactive URLs.
+    // If true, the inactive url will not be shown in the dashboard.
+    bool is_inactive = 4;
 }
 
 // Data about a volume mounted to a container.
