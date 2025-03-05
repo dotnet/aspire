@@ -26,8 +26,7 @@ public static class AzureBicepResourceExtensions
 
         var path = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, bicepFile));
         var resource = new AzureBicepResource(name, templateFile: path, templateString: null);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -42,8 +41,7 @@ public static class AzureBicepResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureBicepResource(name, templateFile: null, templateString: bicepContent);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>

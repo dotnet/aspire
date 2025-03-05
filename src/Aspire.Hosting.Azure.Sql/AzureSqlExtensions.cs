@@ -85,8 +85,7 @@ public static class AzureSqlExtensions
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
-        var azureSqlServer = builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        var azureSqlServer = builder.AddResource(resource);
 
         return azureSqlServer;
     }

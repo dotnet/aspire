@@ -121,8 +121,7 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
