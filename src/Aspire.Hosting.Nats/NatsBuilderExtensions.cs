@@ -187,6 +187,7 @@ public static class NatsBuilderExtensions
                                                  .WithImage(NatsContainerImageTags.NuiImage, NatsContainerImageTags.NuiTag)
                                                  .WithImageRegistry(NatsContainerImageTags.NuiRegistry)
                                                  .WithHttpEndpoint(targetPort: 31311, name: "http")
+                                                 .WithVolume(VolumeNameGenerator.Generate(builder, "db"), "/db")
                                                  .ExcludeFromManifest();
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) =>
