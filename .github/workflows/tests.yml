@@ -20,10 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Generate tests matrix
         id: generate_test_matrix
         env:
