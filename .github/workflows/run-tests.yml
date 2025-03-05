@@ -40,16 +40,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trust HTTPS development certificate
-        if: matrix.os == 'Linux'
+        if: matrix.os == 'ubuntu-latest'
         run: ${{ matrix.dotnet_script }} dev-certs https --trust
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
-        if: matrix.os == 'Linux'
+        if: matrix.os == 'ubuntu-latest'
         run: docker info
 
       - name: Install Azure Functions Core Tools
-        if: runner.os == 'Linux' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
+        if: matrix.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
