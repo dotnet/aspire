@@ -11,3 +11,9 @@ The helix CI job builds `tests/helix/send-to-helix-ci.proj`, which in turns buil
 2. `dotnet build tests\workloads.proj`
 
 .. which results in `artifacts\bin\dotnet-tests` which has a sdk (version from `global.json`) with the `aspire` workload installed using packs from `artifacts/packages`.
+
+## Controlling test runs on CI
+
+- Tests on PRs run in github actions. Individual test projects can be disabled for PRs with the property `$(RunTestsOnGithubActions)` which defaults to `true`.
+
+- Tests for rolling builds run on the build machine, and helix. Use `$(RunTestsOnHelix)` which defaults to `true`. If set to `false` then it would run on the build machine. But to skip the tests completely set `$(SkipTests)=true` also.
