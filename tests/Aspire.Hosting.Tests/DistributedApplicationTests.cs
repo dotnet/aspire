@@ -155,7 +155,7 @@ public class DistributedApplicationTests
     public async Task ExplicitStart_StartResource()
     {
         const string testName = "explicit-start-resource";
-        using var testProgram = CreateTestProgram(testName);
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-servicea";
@@ -174,6 +174,18 @@ public class DistributedApplicationTests
         // On start, one resource won't be started and the other is waiting on it.
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // Inactive URLs should be populated on non-started resources.
+        Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5156", u.Url);
+            Assert.True(u.IsInactive);
+        });
+        Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.True(u.IsInactive);
+        });
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
