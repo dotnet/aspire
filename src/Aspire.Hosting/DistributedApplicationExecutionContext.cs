@@ -44,7 +44,7 @@ public class DistributedApplicationExecutionContext
     /// Constructs a <see cref="DistributedApplicationExecutionContext" /> with a callback to retrieve the <see cref="IServiceProvider" />.
     /// </summary>
     /// <param name="options">Options for <see cref="DistributedApplicationExecutionContext"/>.</param>
-    public DistributedApplicationExecutionContext(DistributedApplicationExecutionContextOptions options) : this(options.Operation, options.PublisherName)
+    public DistributedApplicationExecutionContext(DistributedApplicationExecutionContextOptions options) : this(options.Operation, options.PublisherName ?? "manifest")
     {
         _options = options;
     }
