@@ -10,9 +10,7 @@ public class TestTelemetryService : IAspireTelemetryService
     public Task InitializeAsync() => Task.CompletedTask;
 
     public bool IsTelemetryInitialized { get; } = true;
-    public bool IsTelemetrySupported { get; } = true;
     public bool IsTelemetryEnabled { get; } = true;
-    public Task<bool> SetTelemetryEnabledAsync(bool enabled) => Task.FromResult(enabled);
 
     public Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request) => Task.FromResult<ITelemetryResponse<StartOperationResponse>?>(null);
 

@@ -16,7 +16,7 @@ internal class DashboardOptions
     public string? OtlpHttpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
-    public bool? TelemetryEnabled { get; set; }
+    public bool? TelemetryOptOut { get; set; }
 }
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
@@ -33,8 +33,8 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
 
-        options.TelemetryEnabled = bool.TryParse(configuration["DOTNET_DASHBOARD_ENABLE_TELEMETRY"], out var telemetryEnabled)
-            ? telemetryEnabled
+        options.TelemetryOptOut = bool.TryParse(configuration["DOTNET_DASHBOARD_TELEMETRY_OPTOUT"], out var telemetryOptOut)
+            ? !telemetryOptOut
             : null;
     }
 }

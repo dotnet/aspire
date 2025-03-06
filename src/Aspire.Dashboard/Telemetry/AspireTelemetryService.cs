@@ -1,13 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -15,42 +13,34 @@ namespace Aspire.Dashboard.Telemetry;
 public sealed class AspireTelemetryService : IAspireTelemetryService
 {
     private readonly Lazy<HttpClient?> _httpClient;
-    private bool? _telemetrySupported;
     private bool? _telemetryEnabled;
-    private readonly IOptions<DashboardOptions> _options;
-    private readonly ILocalStorage _localStorage;
     private readonly ITelemetrySender _telemetrySender;
     private readonly ILogger<AspireTelemetryService> _logger;
 
-    public AspireTelemetryService(IOptions<DashboardOptions> options,
-        ILocalStorage localStorage,
-        AspireTelemetryService.ITelemetrySender telemetrySender,
+    public AspireTelemetryService(
+        IOptions<DashboardOptions> options,
+        ITelemetrySender telemetrySender,
         ILogger<AspireTelemetryService> logger)
     {
-        _options = options;
-        _localStorage = localStorage;
         _telemetrySender = telemetrySender;
         _logger = logger;
         _httpClient = new Lazy<HttpClient?>(() => CreateHttpClient(options.Value.DebugSession));
     }
 
-    public bool IsTelemetryInitialized => _telemetrySupported is not null && _telemetryEnabled is not null;
-    public bool IsTelemetrySupported => _telemetrySupported ?? throw new ArgumentNullException(nameof(_telemetrySupported), "InitializeAsync has not been called yet");
+    public bool IsTelemetryInitialized => _telemetryEnabled is not null;
     public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
 
     public async Task InitializeAsync()
     {
         _logger.LogDebug("Initializing telemetry service.");
 
-        if (_telemetrySupported is not null)
+        if (_telemetryEnabled is not null)
         {
             return;
         }
 
-        _telemetrySupported = await GetTelemetrySupportedAsync(_httpClient.Value, _telemetrySender, _logger).ConfigureAwait(false);
-        _telemetryEnabled = await GetTelemetryEnabledAsync(_telemetrySupported.Value, _options, _localStorage).ConfigureAwait(false);
-
-        _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}. Telemetry supported: {TelemetrySupported}", _telemetryEnabled, _telemetrySupported);
+        _telemetryEnabled = await GetTelemetrySupportedAsync(_httpClient.Value, _telemetrySender, _logger).ConfigureAwait(false);
+        _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
 
         // Post session property values after initialization, if telemetry has been enabled.
         if (_telemetryEnabled is true)
@@ -60,23 +50,6 @@ public sealed class AspireTelemetryService : IAspireTelemetryService
         }
 
         return;
-
-        static async Task<bool> GetTelemetryEnabledAsync(bool serverTelemetryEnabled, IOptions<DashboardOptions> options, ILocalStorage localStorage)
-        {
-            if (serverTelemetryEnabled is not true)
-            {
-                return false;
-            }
-
-            var storageResult = await localStorage.GetUnprotectedAsync<TelemetrySettings>(BrowserStorageKeys.DashboardTelemetrySettings).ConfigureAwait(false);
-            if (storageResult.Value is { } telemetrySettings)
-            {
-                return telemetrySettings.IsEnabled;
-            }
-
-            return true;
-
-        }
 
         static async Task<bool> GetTelemetrySupportedAsync(HttpClient? client, ITelemetrySender sender, ILogger<AspireTelemetryService> logger)
         {
@@ -106,19 +79,6 @@ public sealed class AspireTelemetryService : IAspireTelemetryService
                 return false;
             }
         }
-    }
-
-    public async Task<bool> SetTelemetryEnabledAsync(bool enabled)
-    {
-        Debug.Assert(_telemetrySupported is not null);
-        if (_telemetrySupported is false)
-        {
-            return false;
-        }
-
-        _telemetryEnabled = enabled;
-        await _localStorage.SetUnprotectedAsync(BrowserStorageKeys.DashboardTelemetrySettings, new TelemetrySettings(IsEnabled: enabled)).ConfigureAwait(false);
-        return true;
     }
 
     public async Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request)
@@ -293,7 +253,7 @@ public sealed class AspireTelemetryService : IAspireTelemetryService
     private async Task<HttpClient?> GetHttpClientAsync()
     {
         await this.InitializeAsync().ConfigureAwait(false);
-        if (_httpClient.Value is null || _telemetrySupported is false || _telemetryEnabled is false)
+        if (_httpClient.Value is null || _telemetryEnabled is false)
         {
             return null;
         }
@@ -327,7 +287,7 @@ public sealed class AspireTelemetryService : IAspireTelemetryService
             [NotNullWhen(true)] out string? token,
             [NotNullWhen(true)] out byte[]? certData)
         {
-            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryEnabled is not false)
+            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
             {
                 debugSessionUri = new Uri($"https://{debugSession.Address}");
                 token = debugSession.Token;

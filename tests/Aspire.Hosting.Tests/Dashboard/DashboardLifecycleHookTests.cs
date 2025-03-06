@@ -140,7 +140,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(debugSessionAddress, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionAddressName.EnvVarName));
         Assert.Equal(debugSessionToken, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTokenName.EnvVarName));
         Assert.Equal(debugSessionCert, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName));
-        Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryEnabledName.EnvVarName, null), out var b) ? b : null);
+        Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName, null), out var b) ? b : null);
     }
 
     private static DashboardLifecycleHook CreateHook(
@@ -159,7 +159,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         return new DashboardLifecycleHook(
             configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll", DashboardUrl = "http://localhost", OtlpHttpEndpointUrl = "http://localhost", TelemetryEnabled = telemetryEnabled}),
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll", DashboardUrl = "http://localhost", OtlpHttpEndpointUrl = "http://localhost", TelemetryOptOut = telemetryEnabled}),
             NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),

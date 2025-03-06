@@ -65,7 +65,7 @@ public partial class LoginTests : TestContext
         Services.AddSingleton<IDashboardClient>(new TestDashboardClient());
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        Services.AddScoped<IAspireTelemetryService, TestTelemetryService>();
+        Services.AddSingleton<IAspireTelemetryService, TestTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

@@ -4,7 +4,6 @@
 using System.Net;
 using System.Text.Json;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -18,11 +17,10 @@ public class TelemetryServiceTests
     [Fact]
     public async Task CreateTelemetryService_WithoutValidDebugSession_ShowsTelemetryUnsupported()
     {
-        var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions()), new TestLocalStorage(null), []);
+        var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions()), []);
         await telemetryService.InitializeAsync();
 
         Assert.True(telemetryService.IsTelemetryInitialized);
-        Assert.False(telemetryService.IsTelemetrySupported);
         Assert.False(telemetryService.IsTelemetryEnabled);
     }
 
@@ -36,20 +34,19 @@ public class TelemetryServiceTests
                 Address = "http://localhost:5000",
                 ServerCertificate = string.Empty,
                 Token = "test",
-                TelemetryEnabled = false
+                TelemetryOptOut = true
             }
-        }), new TestLocalStorage(null), [new HttpResponseMessage(HttpStatusCode.NotFound)]);
+        }), [new HttpResponseMessage(HttpStatusCode.NotFound)]);
 
         await telemetryService.InitializeAsync();
 
         Assert.True(telemetryService.IsTelemetryInitialized);
-        Assert.False(telemetryService.IsTelemetrySupported);
         Assert.False(telemetryService.IsTelemetryEnabled);
     }
 
     [Theory]
     [MemberData(nameof(CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData))]
-    public async Task CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported(HttpResponseMessage? telemetryEnabledResponse, HttpResponseMessage? startTelemetryResponse, bool? localStorageTelemetryOptOutValue, bool expectedTelemetrySupported, bool expectedTelemetryEnabled)
+    public async Task CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported(HttpResponseMessage? telemetryEnabledResponse, HttpResponseMessage? startTelemetryResponse, bool expectedTelemetryEnabled)
     {
         var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions
         {
@@ -59,37 +56,33 @@ public class TelemetryServiceTests
                 ServerCertificate = string.Empty,
                 Token = "test"
             }
-        }), new TestLocalStorage(localStorageTelemetryOptOutValue), [telemetryEnabledResponse, startTelemetryResponse]);
+        }), [telemetryEnabledResponse, startTelemetryResponse]);
 
         await telemetryService.InitializeAsync();
 
         Assert.True(telemetryService.IsTelemetryInitialized);
-        Assert.Equal(expectedTelemetrySupported, telemetryService.IsTelemetrySupported);
         Assert.Equal(expectedTelemetryEnabled, telemetryService.IsTelemetryEnabled);
     }
 
-    public static TheoryData<HttpResponseMessage?, HttpResponseMessage?, bool?, bool, bool> CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData()
+    public static TheoryData<HttpResponseMessage?, HttpResponseMessage?, bool> CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData()
     {
-        return new TheoryData<HttpResponseMessage?, HttpResponseMessage?, bool?, bool, bool>
+        return new TheoryData<HttpResponseMessage?, HttpResponseMessage?, bool>
         {
             // No result (connection refused)
-            { null, null, null, false, false },
+            { null, null, false },
             // 404 (old version of VS/VSC)
-            { new HttpResponseMessage(HttpStatusCode.NotFound), null, null, false, false},
+            { new HttpResponseMessage(HttpStatusCode.NotFound), null, false},
             // 200 OK but false (telemetry not supported)
-            { new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: false))) }, null, null, false, false },
-            // 200 OK but true (telemetry supported, no saved telemetry opt-in value)
-            { new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: true))) }, new HttpResponseMessage(HttpStatusCode.OK), null, true, true },
-            // 200 OK but true (telemetry supported, saved telemetry opt-in value is false)
-            { new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: true))) }, new HttpResponseMessage(HttpStatusCode.OK), false, true, false },
+            { new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: false))) }, null, false },
+            // 200 OK but true (telemetry supported)
+            { new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: true))) }, new HttpResponseMessage(HttpStatusCode.OK), true },
         };
     }
 
-    private static AspireTelemetryService CreateTelemetryService(TestDashboardOptions options, TestLocalStorage localStorage, IEnumerable<HttpResponseMessage?> responseMessages)
+    private static AspireTelemetryService CreateTelemetryService(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
     {
         return new AspireTelemetryService(
             options,
-            localStorage,
             new TestTelemetrySender(
                 new Queue<HttpResponseMessage?>(responseMessages)),
             new Logger<AspireTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
@@ -115,43 +108,8 @@ public class TelemetryServiceTests
         }
     }
 
-    public class TestDashboardOptions(DashboardOptions value) : IOptions<Configuration.DashboardOptions>
+    public class TestDashboardOptions(DashboardOptions value) : IOptions<DashboardOptions>
     {
         public DashboardOptions Value { get; } = value;
-    }
-
-    public class TestLocalStorage(bool? value) : ILocalStorage
-    {
-        private bool? _currentValue = value;
-        public Task<StorageResult<TValue>> GetAsync<TValue>(string key) => FromResult<TValue>();
-
-        public Task SetAsync<TValue>(string key, TValue value)
-        {
-            _currentValue = bool.Parse(JsonSerializer.Serialize(value));
-            return Task.CompletedTask;
-        }
-
-        public Task<StorageResult<TValue>> GetUnprotectedAsync<TValue>(string key) => FromResult<TValue>();
-
-        public Task SetUnprotectedAsync<TValue>(string key, TValue value)
-        {
-            _currentValue = bool.Parse(JsonSerializer.Serialize(value));
-            return Task.CompletedTask;
-        }
-
-        private Task<StorageResult<TValue>> FromResult<TValue>()
-        {
-            if (typeof(TValue) != typeof(AspireTelemetryService.TelemetrySettings))
-            {
-                throw new ArgumentException("Invalid type");
-            }
-
-            if (_currentValue is null)
-            {
-                return Task.FromResult(new StorageResult<TValue>(false, default));
-            }
-
-            return Task.FromResult(new StorageResult<TValue>(_currentValue.Value, JsonSerializer.Deserialize<TValue>(JsonSerializer.Serialize(new AspireTelemetryService.TelemetrySettings(IsEnabled: _currentValue.Value)))));
-        }
     }
 }

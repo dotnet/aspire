@@ -306,5 +306,5 @@ public sealed class DebugSession
     public string? Address { get; set; }
     public string? Token { get; set; }
     public string? ServerCertificate { get; set; }
-    public bool? TelemetryEnabled { get; set; }
+    public bool? TelemetryOptOut { get; set; }
 }

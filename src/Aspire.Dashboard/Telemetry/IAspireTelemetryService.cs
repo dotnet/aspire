@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Telemetry;
 public interface IAspireTelemetryService
 {
     /// <summary>
-    /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="IsTelemetrySupported"/> and <see cref="IsTelemetryEnabled"/> are set
+    /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="IsTelemetryEnabled"/> is set
     /// by making a request to the debug session, if one exists.
     /// </summary>
     Task InitializeAsync();
@@ -20,30 +20,17 @@ public interface IAspireTelemetryService
     bool IsTelemetryInitialized { get; }
 
     /// <summary>
-    /// Whether telemetry is supported in the current environment. This will be false if the user is not running in a debug session or if the debug session has telemetry opted-out.
-    /// In VS/VSC, this means the current instance of the IDE.
-    /// </summary>
-    bool IsTelemetrySupported { get; }
-
-    /// <summary>
     /// Whether telemetry is enabled in the current environment. This will be false if:
     /// <list type="bullet">
-    /// <item><see cref="IsTelemetrySupported"/> is false</item>
-    /// <item>the user has previously opted-out of dashboard telemetry in the current browser (uses localStorage)</item>
-    /// <item>the user opts-out of telemetry in the current circuit (by calling <see cref="SetTelemetryEnabledAsync"/>)</item>
+    /// <item>The user is not running the Aspire dashboard through a supported IDE version</item>
+    /// <item>The dashboard resource contains a telemetry opt-out config entry</item>
+    /// <item>The IDE instance has opted out of telemetry</item>
     /// </list>
     /// </summary>
     bool IsTelemetryEnabled { get; }
 
     /// <summary>
-    /// Sets the telemetry enabled state for the current circuit. This will not affect debug session telemetry opt-out, and will be persisted to localStorage.
-    /// </summary>
-    /// <param name="enabled"></param>
-    /// <returns>Whether the state was successfully updated. False if <see cref="IsTelemetrySupported"/> is false.</returns>
-    Task<bool> SetTelemetryEnabledAsync(bool enabled);
-
-    /// <summary>
-    /// Begin a long-running user operation. Preference this over <see cref="PostOperationAsync"/>. If an explicit user task caused this operation to start,
+    /// Begin a long-running user operation. Prefer this over <see cref="PostOperationAsync"/>. If an explicit user task caused this operation to start,
     /// use <see cref="StartUserTaskAsync"/> instead. Duration will be automatically calculated and the end event posted after <see cref="EndOperationAsync"/> is called.
     /// </summary>
     Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request);
@@ -65,13 +52,13 @@ public interface IAspireTelemetryService
     Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request);
 
     /// <summary>
-    /// Performs a short-lived operation. Preference this method over <see cref="StartOperationAsync"/> and <see cref="EndOperationAsync"/> if the operation is contained within a single method.
+    /// Performs a short-lived operation. Prefer this method over <see cref="StartOperationAsync"/> and <see cref="EndOperationAsync"/> if the operation is contained within a single method.
     /// Use <see cref="PerformUserTaskAsync"/> if the operation is a user task.
     /// </summary>
     Task PerformOperationAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
 
     /// <summary>
-    /// Performs a short-lived user task. Preference this method over <see cref="StartUserTaskAsync"/> and <see cref="EndUserTaskAsync"/> if the operation is contained within a single method.
+    /// Performs a short-lived user task. Prefer this method over <see cref="StartUserTaskAsync"/> and <see cref="EndUserTaskAsync"/> if the operation is contained within a single method.
     /// </summary>
     Task PerformUserTaskAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
 

@@ -381,7 +381,7 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
-        Services.AddScoped<IAspireTelemetryService, TestTelemetryService>();
+        Services.AddSingleton<IAspireTelemetryService, TestTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

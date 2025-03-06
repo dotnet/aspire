@@ -447,7 +447,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to When enabled, Aspire will collect usage data and send it to Microsoft..
+        ///   Looks up a localized string similar to Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft..
         /// </summary>
         public static string SettingsDialogTelemetryEnabledInfo {
             get {

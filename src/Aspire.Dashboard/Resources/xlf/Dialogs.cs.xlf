@@ -218,8 +218,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryEnabledInfo">
-        <source>When enabled, Aspire will collect usage data and send it to Microsoft.</source>
-        <target state="new">When enabled, Aspire will collect usage data and send it to Microsoft.</target>
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="new">Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
