@@ -12,11 +12,22 @@ public class DistributedApplicationExecutionContext
     /// Constructs a <see cref="DistributedApplicationExecutionContext" /> without a callback to retrieve the <see cref="IServiceProvider" />.
     /// </summary>
     /// <param name="operation">The operation being performed in this invocation of the AppHost.</param>
+    /// <remarks>
+    /// This constructor is used for internal testing purposes.
+    /// </remarks>
+    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation) : this(operation, "manifest")
+    {
+    }
+
+    /// <summary>
+    /// Constructs a <see cref="DistributedApplicationExecutionContext" /> without a callback to retrieve the <see cref="IServiceProvider" />.
+    /// </summary>
+    /// <param name="operation">The operation being performed in this invocation of the AppHost.</param>
     /// <param name="publisherName">The name of the publisher being used for the publish operation. This corresponds to publishers added via the <see cref="PublisherDistributedApplicationBuilderExtensions.AddPublisher{T}(IDistributedApplicationBuilder, string)"/> extension method.</param>
     /// <remarks>
     /// This constructor is used for internal testing purposes.
     /// </remarks>
-    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation, string? publisherName = "manifest")
+    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation, string publisherName)
     {
         Operation = operation;
         PublisherName = publisherName;
