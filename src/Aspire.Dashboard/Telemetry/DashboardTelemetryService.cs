@@ -42,7 +42,7 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         {
             _dashboardTelemetrySender = telemetrySender;
         }
-        else if (CreateHttpClient(_options.Value.DebugSession) is not { } client)
+        else if (!HasDebugSession(_options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
         {
             _telemetryEnabled = false;
             _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", false);
@@ -50,7 +50,7 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }
         else
         {
-            _dashboardTelemetrySender = new DashboardTelemetrySender(client);
+            _dashboardTelemetrySender = new DashboardTelemetrySender(CreateHttpClient(debugSessionUri, token, certData));
         }
 
         _telemetryEnabled = await GetTelemetrySupportedAsync(_dashboardTelemetrySender, _logger).ConfigureAwait(false);
@@ -64,6 +64,42 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }
 
         return;
+
+        static HttpClient CreateHttpClient(Uri debugSessionUri, string token, byte[] certData)
+        {
+            var cert = new X509Certificate2(certData);
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, c, _, _) => cert.Equals(c)
+            };
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = debugSessionUri,
+                DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" }, { "User-Agent", "Aspire Dashboard" } }
+            };
+
+            return client;
+        }
+
+        static bool HasDebugSession(
+            DebugSession debugSession,
+            [NotNullWhen(true)] out Uri? debugSessionUri,
+            [NotNullWhen(true)] out string? token,
+            [NotNullWhen(true)] out byte[]? certData)
+        {
+            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
+            {
+                debugSessionUri = new Uri($"https://{debugSession.Address}");
+                token = debugSession.Token;
+                certData = Convert.FromBase64String(debugSession.ServerCertificate);
+                return true;
+            }
+
+            debugSessionUri = null;
+            token = null;
+            certData = null;
+            return false;
+        }
 
         static async Task<bool> GetTelemetrySupportedAsync(IDashboardTelemetrySender sender, ILogger<DashboardTelemetryService> logger)
         {
@@ -257,47 +293,6 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
             await EndOperationAsync(new EndOperationRequest(operationId, operationResult.Result, operationResult.ErrorMessage)).ConfigureAwait(false);
         });
-    }
-
-    private static HttpClient? CreateHttpClient(DebugSession debugSession)
-    {
-        if (!HasDebugSession(debugSession, out var debugSessionUri, out var token, out var certData))
-        {
-            return null;
-        }
-
-        var cert = new X509Certificate2(certData);
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (_, c, _, _) => cert.Equals(c)
-        };
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = debugSessionUri,
-            DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" }, { "User-Agent", "Aspire Dashboard" } }
-        };
-
-        return client;
-
-        static bool HasDebugSession(
-            DebugSession debugSession,
-            [NotNullWhen(true)] out Uri? debugSessionUri,
-            [NotNullWhen(true)] out string? token,
-            [NotNullWhen(true)] out byte[]? certData)
-        {
-            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
-            {
-                debugSessionUri = new Uri($"https://{debugSession.Address}");
-                token = debugSession.Token;
-                certData = Convert.FromBase64String(debugSession.ServerCertificate);
-                return true;
-            }
-
-            debugSessionUri = null;
-            token = null;
-            certData = null;
-            return false;
-        }
     }
 
     private static class TelemetryEndpoints
