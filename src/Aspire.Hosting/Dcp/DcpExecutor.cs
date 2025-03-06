@@ -902,6 +902,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
                 try
                 {
+                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                    // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                    foreach (var er in executables)
+                    {
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable) er.DcpResource, s))).ConfigureAwait(false);
+                    }
+
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
 
                     foreach (var er in executables)
@@ -1167,6 +1174,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
             foreach (var cr in containerResources)
             {
+                // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container) cr.DcpResource, s))).ConfigureAwait(false);
+
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
                     await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
