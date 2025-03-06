@@ -268,7 +268,6 @@ public class DistributedApplicationTests
 
         await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-
     }
 
     [Fact]
