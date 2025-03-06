@@ -28,7 +28,6 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
@@ -82,24 +81,6 @@ internal sealed class AzureProvisioner(
         if (azureResources.Count == 0)
         {
             return;
-        }
-
-        var options = provisioningOptions.Value;
-        if (options.IncludeDefaultRoleAssignments)
-        {
-            // If the app is using IncludeDefaultRoleAssignments, then we need to ensure that
-            // there are no role assignment annotations in the app model because they won't be honored otherwise.
-            EnsureNoRoleAssignmentAnnotations(appModel);
-        }
-
-        // set the ProvisioningBuildOptions on the resource, if necessary
-        foreach (var r in azureResources)
-        {
-            if (r.AzureResource is AzureProvisioningResource provisioningResource)
-            {
-                provisioningResource.ProvisioningBuildOptions = options.ProvisioningBuildOptions;
-                provisioningResource.IncludeDefaultRoleAssignments = options.IncludeDefaultRoleAssignments;
-            }
         }
 
         // TODO: Make this more general purpose
@@ -189,17 +170,6 @@ internal sealed class AzureProvisioner(
             logger,
             azureResources,
             cancellationToken), cancellationToken);
-    }
-
-    private static void EnsureNoRoleAssignmentAnnotations(DistributedApplicationModel appModel)
-    {
-        foreach (var resource in appModel.Resources)
-        {
-            if (resource.HasAnnotationOfType<RoleAssignmentAnnotation>())
-            {
-                throw new InvalidOperationException("The application model does not support role assignments. Ensure you are using a publisher that supports role assignments, for example AddAzureContainerAppsInfrastructure.");
-            }
-        }
     }
 
     private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)

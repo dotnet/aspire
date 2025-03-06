@@ -43,7 +43,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_ENDPOINT,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID);
 
-        var roleAssignments = new List<AzureBicepResource>();
+        var additionalBicepModules = new List<AzureBicepResource>();
 
         foreach (var r in appModel.Resources)
         {
@@ -57,19 +57,19 @@ internal sealed class AzureContainerAppsInfrastructure(
                 continue;
             }
 
-            var (containerApp, containerAppRoleAssignments) = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
+            var (containerApp, additionalModules) = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
 
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
 
-            if (containerAppRoleAssignments is { })
+            if (additionalModules is { })
             {
-                roleAssignments.AddRange(containerAppRoleAssignments);
+                additionalBicepModules.AddRange(additionalModules);
             }
         }
 
-        foreach (var roleAssignment in roleAssignments)
+        foreach (var additionalModule in additionalBicepModules)
         {
-            appModel.Resources.Add(roleAssignment);
+            appModel.Resources.Add(additionalModule);
         }
     }
 
@@ -91,7 +91,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
-        public async Task<(AzureBicepResource AppResource, List<AzureBicepResource>? RoleAssignments)> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        public async Task<(AzureBicepResource AppResource, List<AzureBicepResource>? AdditionalModules)> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
@@ -158,8 +158,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
-
-            public List<IAzureResource> AzureResourceReferences { get; } = [];
 
             public (BicepOutputReference Id, BicepOutputReference ClientId)? UserAssignedIdentity { get; set; }
 
@@ -278,35 +276,13 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            public void ProcessRoleAssignments()
+            private void ProcessRoleAssignments()
             {
-                var processedResources = new HashSet<string>();
-
-                // First we process per reference role assignments
                 if (resource.TryGetAnnotationsOfType<RoleAssignmentAnnotation>(out var roleAssignments))
                 {
                     foreach (var g in roleAssignments.GroupBy(r => r.Target))
                     {
-                        if (!processedResources.Add(g.Key.Name))
-                        {
-                            continue;
-                        }
-
                         RoleAssignments[g.Key] = g.SelectMany(r => r.Roles);
-                    }
-                }
-
-                // Then we process default role assignments for the target azure resource
-                foreach (var a in AzureResourceReferences.OfType<AzureProvisioningResource>())
-                {
-                    if (!processedResources.Add(a.Name))
-                    {
-                        continue;
-                    }
-
-                    if (a.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults))
-                    {
-                        RoleAssignments[a] = defaults.Roles;
                     }
                 }
             }
@@ -317,7 +293,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 {
                     ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
                 };
-                roleAssignmentsResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(roleAssignmentsResource.WriteToManifest));
 
                 var existingResourceRoleAssignments = new List<AzureBicepResource>();
                 foreach (var (a, roles) in RoleAssignments.Where(kvp => kvp.Key.IsExisting()))
@@ -328,7 +303,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                     {
                         ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
                     };
-                    existingResourceRoleAssignmentsResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(existingResourceRoleAssignmentsResource.WriteToManifest));
 
                     if (a.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
                         existingAnnotation.ResourceGroup is not null)
@@ -413,14 +387,12 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
             {
+                ProcessRoleAssignments();
                 ProcessEndpoints();
                 ProcessVolumes();
 
                 await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
                 await ProcessArgumentsAsync(executionContext, cancellationToken).ConfigureAwait(false);
-
-                // Process the role assignments based on references
-                ProcessRoleAssignments();
             }
 
             private void ProcessEndpoints()
@@ -811,35 +783,21 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 if (value is ConnectionStringReference cs)
                 {
-                    if (cs.Resource is IAzureResource ar)
-                    {
-                        AzureResourceReferences.Add(ar);
-                    }
-
                     return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is IResourceWithConnectionString csrs)
                 {
-                    if (csrs is IAzureResource ar)
-                    {
-                        AzureResourceReferences.Add(ar);
-                    }
-
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is BicepOutputReference output)
                 {
-                    AzureResourceReferences.Add(output.Resource);
-
                     return (AllocateParameter(output, secretType: secretType), secretType);
                 }
 
                 if (value is BicepSecretOutputReference secretOutputReference)
                 {
-                    AzureResourceReferences.Add(secretOutputReference.Resource);
-
                     if (parent is null)
                     {
                         return (AllocateKeyVaultSecretUriReference(secretOutputReference), SecretType.KeyVault);

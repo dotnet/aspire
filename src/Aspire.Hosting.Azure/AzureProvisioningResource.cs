@@ -28,12 +28,6 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     public ProvisioningBuildOptions? ProvisioningBuildOptions { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the Azure resource should include default role assignments
-    /// in the Bicep template.
-    /// </summary>
-    public bool IncludeDefaultRoleAssignments { get; set; } = true;
-
-    /// <summary>
     /// 
     /// </summary>
     /// <param name="name"></param>

@@ -24,5 +24,5 @@ public sealed class AzureProvisioningOptions
     /// Gets or sets a value indicating whether Azure resources should include default role assignments
     /// in their bicep templates.
     /// </summary>
-    public bool IncludeDefaultRoleAssignments { get; set; } = true;
+    public bool UseDefaultRoleAssignments { get; set; } = true;
 }

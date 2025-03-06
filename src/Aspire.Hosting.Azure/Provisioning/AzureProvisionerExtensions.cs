@@ -22,6 +22,7 @@ public static class AzureProvisionerExtensions
     /// </summary>
     public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
     {
+        builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
         builder.Services.TryAddLifecycleHook<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
