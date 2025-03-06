@@ -1,55 +1,29 @@
-# Aspire.Hosting.Kubernetes library
+# Aspire.Hosting.Docker library
 
-Provides core extensions to the .NET Aspire hosting model for Azure services.
+Provides publishing extensions to .NET Aspire for Docker Compose.
 
 ## Getting started
 
-### Prerequisites
-
-- Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Kubernetes Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the .NET Aspire Docker Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Kubernetes
+dotnet add package Aspire.Hosting.Docker
 ```
-
-## Configure Azure Provisioning for local development
-
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
-for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
-to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
-automatically.
-
-```json
-{
-    "Azure": {
-      "SubscriptionId": "<your subscription id>",
-      "ResourceGroupPrefix": "<prefix for the resource group>",
-      "Location": "<azure location>"
-    }
-}
-```
-
-> NOTE: Developers must have Owner access to the target subscription so that role assignments
-> can be configured for the provisioned resources.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a resource based on a Bicep template:
+Then, in the _Program.cs_ file of `AppHost`, register the publisher:
 
 ```csharp
-var bicepResource = builder.AddBicepTemplate("bicep", "template.bicep")
-                           .WithParameter("parametername", "parametervalue");
+builder.AddPublisher<DockerComposePublisher>("docker-compose");
 });
-
 ```
 
-## Additional documentation
-
-* https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview
+```shell
+aspire publish -t docker-compose -o artifacts
+```
 
 ## Feedback & contributing
 
