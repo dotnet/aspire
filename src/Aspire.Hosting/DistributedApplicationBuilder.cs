@@ -172,7 +172,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
+            { } publisher => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, publisher),
             _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
 
