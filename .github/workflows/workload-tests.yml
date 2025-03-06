@@ -45,7 +45,7 @@ jobs:
           CI: false
         run: |
           $inputFilePath = "${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list"
-          $lines = Get-Content $filePath
+          $lines = Get-Content $inputFilePath
 
           $prefix = "Aspire.Workload.Tests."
           $lines = Get-Content $inputFilePath | ForEach-Object {
