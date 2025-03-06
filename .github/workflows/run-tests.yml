@@ -9,6 +9,7 @@ on:
         required: true
         type: string
       testProjectPath:
+        # relative the repo root
         required: false
         type: string
       testSessionTimeoutMs:
@@ -71,7 +72,7 @@ jobs:
           $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
 
           if (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {
-              $projectPath = $overrideTestProjectPath
+              $projectPath = "${{ github.workspace }}/$overrideTestProjectPath"
           } elseif (Test-Path -Path $projectPath1) {
               $projectPath = $projectPath1
           } elseif (Test-Path -Path $projectPath2) {
