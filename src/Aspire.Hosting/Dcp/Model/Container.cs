@@ -372,6 +372,10 @@ internal static class ContainerState
 
     // Unknown means for some reason container state is unavailable.
     public const string Unknown = "Unknown";
+
+    // Indicates that the container start is blocked because the container runtime isn't healthy.
+    // Startup will resume once the runtime has recovered.
+    public const string RuntimeUnhealthy = "RuntimeUnhealthy";
 }
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
