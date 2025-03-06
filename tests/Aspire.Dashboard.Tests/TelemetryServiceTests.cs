@@ -108,6 +108,10 @@ public class TelemetryServiceTests
         {
             return [];
         }
+
+        public void Dispose()
+        {
+        }
     }
 
     public class TestDashboardOptions(DashboardOptions value) : IOptions<DashboardOptions>
