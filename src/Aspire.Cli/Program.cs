@@ -128,7 +128,14 @@ public class Program
         catch (Exception ex)
         {
             Debug.WriteLine(ex.Message);
-            AnsiConsole.MarkupLine("[red bold]The --project option was not specified and no *.csproj files were detected.[/]");
+            if (projectFilePaths.Length > 1)
+            {
+                AnsiConsole.MarkupLine("[red bold]The --project option was not specified and multiple *.csproj files were detected.[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red bold]The --project option was not specified and no *.csproj files were detected.[/]");
+            }
             return new FileInfo(Environment.CurrentDirectory);
         };
     }
