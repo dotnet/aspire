@@ -50,7 +50,7 @@ jobs:
           "tests_matrix=$jsonString"
           "tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
-  _:
+  test:
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_tests
     strategy:
