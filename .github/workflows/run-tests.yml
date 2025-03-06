@@ -31,13 +31,15 @@ jobs:
         matrix:
           include:
             - os: ubuntu-latest
+              name: linux
               dotnet_script: ./dotnet.sh
               build_script: ./build.sh
             - os: windows-latest
+              name: windows
               dotnet_script: .\dotnet.cmd
               build_script: .\build.cmd
     timeout-minutes: 60
-    name: ${{ matrix.os }}
+    name: ${{ matrix.name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
