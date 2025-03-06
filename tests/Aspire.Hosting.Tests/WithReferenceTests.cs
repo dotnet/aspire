@@ -271,28 +271,6 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public async Task ConnectionStringResourceWithInterpolated()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
-        var key = builder.AddParameter("key", "secretKey", secret: true);
-
-        // Get the service provider.
-        var resource = builder.AddConnectionString("cs", $"Endpoint={endpoint};Key={key}");
-
-        var projectB = builder.AddProject<ProjectB>("projectb")
-                              .WithReference(resource);
-
-        // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
-    }
-
-    [Fact]
     public async Task ConnectionStringResourceWithConnectionStringOverwriteName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

@@ -100,8 +100,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
             };
 
-            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
-
             if (context.RoleAssignments.Count > 0)
             {
                 var (roleAssignmentsResource, existingResourceRoleAssignments) = context.CreateRoleAssignmentResources(provisioningOptions);

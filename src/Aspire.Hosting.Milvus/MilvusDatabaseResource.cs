@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.Milvus;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -16,7 +18,7 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     /// <summary>
     /// Gets the parent Milvus container resource.
     /// </summary>
-    public MilvusServerResource Parent { get; } = parent;
+    public MilvusServerResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Milvus database.
@@ -27,5 +29,11 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = databaseName;
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 }

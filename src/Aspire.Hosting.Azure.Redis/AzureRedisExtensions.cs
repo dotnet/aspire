@@ -24,13 +24,13 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: false);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: false);
 
     [Obsolete]
     private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -83,9 +83,7 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: true);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure Cache for Redis resource to the application model.
@@ -117,11 +115,13 @@ public static class AzureRedisExtensions
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -149,6 +149,8 @@ public static class AzureRedisExtensions
         this IResourceBuilder<AzureRedisCacheResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -185,8 +187,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(
-        this IResourceBuilder<AzureRedisCacheResource> builder)
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 

@@ -18,6 +18,8 @@ public static class AzureContainerAppExtensions
     /// <param name="builder">The distributed application builder.</param>
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         // ensure AzureProvisioning is added first so it's lifecycle hook runs before AzureContainerAppsInfrastructure
         builder.AddAzureProvisioning();
 

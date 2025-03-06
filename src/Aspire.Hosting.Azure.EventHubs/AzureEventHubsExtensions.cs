@@ -2,15 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
-using AzureProvisioning = Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json.Nodes;
-using Aspire.Hosting;
+using AzureProvisioning = Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting;
 
@@ -30,6 +30,9 @@ public static class AzureEventHubsExtensions
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
         this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
@@ -87,8 +90,7 @@ public static class AzureEventHubsExtensions
         };
 
         var resource = new AzureEventHubsResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -100,6 +102,9 @@ public static class AzureEventHubsExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddHub)} instead to add an Azure Event Hub.")]
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddHub(name);
 
         return builder;
@@ -115,7 +120,7 @@ public static class AzureEventHubsExtensions
     public static IResourceBuilder<AzureEventHubResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, string? hubName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the hub name if it's not provided
         hubName ??= name;
@@ -149,10 +154,13 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the Event Hub Consumer Group resource.</param>
     /// <param name="groupName">The name of the Consumer Group. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubConsumerGroupResource> AddConsumerGroup(this IResourceBuilder<AzureEventHubResource> builder, [ResourceName] string name, string? groupName = null)
+    public static IResourceBuilder<AzureEventHubConsumerGroupResource> AddConsumerGroup(
+        this IResourceBuilder<AzureEventHubResource> builder,
+        [ResourceName] string name,
+        string? groupName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the group name if it's not provided
         groupName ??= name;
@@ -193,6 +201,8 @@ public static class AzureEventHubsExtensions
     /// </example>
     public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.Resource.IsEmulator)
         {
             throw new InvalidOperationException("The Azure Event Hubs resource is already configured to run as an emulator.");
@@ -360,7 +370,11 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null)
-        => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly: false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly: false);
+    }
 
     /// <summary>
     /// Adds a named volume for the data folder to an Azure Event Hubs emulator resource.
@@ -369,7 +383,11 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
+    }
 
     /// <summary>
     /// Configures the host port for the Azure Event Hubs emulator is exposed on instead of using randomly assigned port.
@@ -380,6 +398,8 @@ public static class AzureEventHubsExtensions
     [Obsolete("Use WithHostPort instead.")]
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return WithHostPort(builder, port);
     }
 
@@ -391,6 +411,8 @@ public static class AzureEventHubsExtensions
     /// <returns>Azure Event Hubs emulator resource builder.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithHostPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("emulator", endpoint =>
         {
             endpoint.Port = port;
@@ -405,6 +427,9 @@ public static class AzureEventHubsExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)
