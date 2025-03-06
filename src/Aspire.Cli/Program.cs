@@ -3,9 +3,11 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli;
 
@@ -111,8 +113,24 @@ public class Program
         }
 
         var projectFilePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-        var projectFilePath = projectFilePaths.Single();
-        return new FileInfo(projectFilePath);
+        try 
+        {
+            var projectFilePath = projectFilePaths?.Single();
+            if (projectFilePath is null)
+            {
+                throw new InvalidOperationException("No project file found.");
+            }
+            else {
+                return new FileInfo(projectFilePath);
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+            AnsiConsole.MarkupLine("[red bold]The --project option was not specified and no *.csproj files were detected.[/]");
+            return new FileInfo(Environment.CurrentDirectory);
+        };
     }
 
     private static void ConfigurePackCommand(Command parentCommand)
