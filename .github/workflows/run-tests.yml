@@ -49,7 +49,7 @@ jobs:
         if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
         env:
           CI: false
-        run: ./build.sh -restore -build -ci -pack -testnobuild /bl
+        run: ${{ matrix.build_script }} -restore -build -ci -pack -testnobuild /bl
 
       - name: Install sdk for workload testing
         if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
