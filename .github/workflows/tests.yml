@@ -44,7 +44,7 @@ jobs:
           $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
           $lines = Get-Content $filePath
           $jsonObject = @{
-              "shortname" = $lines
+              "shortname" = $lines | Sort-Object
           }
           $jsonString = ConvertTo-Json $jsonObject -Compress
           "tests_matrix=$jsonString"
