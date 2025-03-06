@@ -165,8 +165,8 @@
     },
     "XUnitVersion": {
       "type": "parameter",
-      "description": "The version of xUnit to use.",
-      "displayName": "xUnit version",
+      "description": "The version of xUnit.net to use.",
+      "displayName": "xUnit.net version",
       "datatype": "choice",
       "replaces": "XUnitVersion",
       "choices": [

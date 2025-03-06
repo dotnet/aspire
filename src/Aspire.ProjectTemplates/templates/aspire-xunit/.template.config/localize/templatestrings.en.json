@@ -27,7 +27,7 @@
   "symbols/AspireVersionNet9/choices/9.2/description": "Chooses .NET Aspire 9.2",
   "symbols/AspireVersionNet9/choices/9.1/displayName": "9.1",
   "symbols/AspireVersionNet9/choices/9.1/description": "Chooses .NET Aspire 9.1",
-  "symbols/XUnitVersion/description": "The version of xUnit to use.",
+  "symbols/XUnitVersion/description": "The version of xUnit.net to use.",
   "symbols/XUnitVersion/displayName": "xUnit version",
   "symbols/XUnitVersion/choices/v2/displayName": "v2",
   "symbols/XUnitVersion/choices/v2/description": "Chooses xUnit v2 with VSTest",
