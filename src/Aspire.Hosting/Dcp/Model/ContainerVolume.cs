@@ -48,3 +48,36 @@ internal sealed class ContainerVolumeStatus : V1Status
     [JsonPropertyName("state")]
     public string? State { get; set; }
 }
+
+/// <summary>
+/// Represents a Docker/Podman volume that will be referenced by application Container(s).
+/// </summary>
+internal sealed class ContainerVolume : CustomResource<ContainerVolumeSpec, ContainerVolumeStatus>
+{
+    /// <summary>
+    /// Create a new <see cref="ContainerVolume"/> resource.
+    /// </summary>
+    /// <param name="spec">The <see cref="ContainerVolumeSpec"/> describing the new resource</param>
+    [JsonConstructor]
+    public ContainerVolume(ContainerVolumeSpec spec) : base(spec) { }
+
+    /// <summary>
+    /// Create a new <see cref="ContainerVolume"/> resource.
+    /// </summary>
+    public static ContainerVolume Create(string name, string volumeName, bool persistent = true)
+    {
+        var containerVolume = new ContainerVolume(new ContainerVolumeSpec
+        {
+            Name = volumeName,
+            Persistent = persistent,
+        })
+        {
+            Kind = Dcp.ContainerVolumeKind,
+            ApiVersion = Dcp.GroupVersion.ToString()
+        };
+        containerVolume.Metadata.Name = name;
+        containerVolume.Metadata.NamespaceProperty = string.Empty;
+
+        return containerVolume;
+    }
+}
