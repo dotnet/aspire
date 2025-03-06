@@ -30,13 +30,16 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
             {
                 while (_channel.Reader.TryRead(out var operation))
                 {
-                    var (guids, requestFunc) = operation;
+                    var (propertyIds, requestFunc) = operation;
                     try
                     {
                         var result = await requestFunc(client, GetResponseProperty).ConfigureAwait(false);
-                        foreach (var (guid, value) in guids.Zip(result))
+
+                        // Each property id corresponds to a value that hasn't yet been received from the telemetry server.
+                        // We need to associate with values received so that they can be retrieved by future requests that may be referencing these values (using these guids)
+                        foreach (var (propertyId, value) in propertyIds.Zip(result))
                         {
-                            _responsePropertyMap[guid] = value;
+                            _responsePropertyMap[propertyId] = value;
                         }
                     }
                     catch (Exception ex)
@@ -72,15 +75,15 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
     {
         Debug.Assert(generatedGuids >= 0, "guidsNeeded must be >= 0");
 
-        var guids = new List<Guid>();
+        var propertyIds = new List<Guid>();
         for (var i = 0; i < generatedGuids; i++)
         {
-            guids.Add(Guid.NewGuid());
+            propertyIds.Add(Guid.NewGuid());
         }
 
-        _channel.Writer.TryWrite((guids, requestFunc));
+        _channel.Writer.TryWrite((propertyIds, requestFunc));
 
-        return guids;
+        return propertyIds;
     }
 
     public void Dispose()
