@@ -35,7 +35,7 @@ public class Program
         debugOption.Recursive = true;
         rootCommand.Options.Add(debugOption);
         ConfigureDevCommand(rootCommand);
-        ConfigurePackCommand(rootCommand);
+        ConfigurePublishCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
         return rootCommand;
     }
