@@ -275,6 +275,6 @@
     <value>When enabled, Aspire will collect usage data and send it to Microsoft.</value>
   </data>
   <data name="SettingsDialogTelemetryInfoLinkText" xml:space="preserve">
-    <value>What's sent?</value>
+    <value>Why?</value>
   </data>
 </root>

@@ -223,8 +223,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
-        <source>What's sent?</source>
-        <target state="new">What's sent?</target>
+        <source>Why?</source>
+        <target state="new">Why?</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

@@ -456,7 +456,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to What&apos;s sent?.
+        ///   Looks up a localized string similar to Why?.
         /// </summary>
         public static string SettingsDialogTelemetryInfoLinkText {
             get {
