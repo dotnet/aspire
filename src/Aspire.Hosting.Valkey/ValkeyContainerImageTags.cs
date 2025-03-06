@@ -11,6 +11,6 @@ internal static class ValkeyContainerImageTags
     /// <remarks>valkey/valkey</remarks>
     public const string Image = "valkey/valkey";
 
-    /// <remarks>8.0</remarks>
-    public const string Tag = "8.0";
+    /// <remarks>8.1</remarks>
+    public const string Tag = "8.1";
 }
