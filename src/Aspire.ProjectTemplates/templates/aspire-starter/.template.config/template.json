@@ -274,7 +274,7 @@
         },
         {
           "choice": "v3mtp",
-          "displayName": "v3 with MTP",
+          "displayName": "v3 with Microsoft Test Platform",
           "description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.1 and later only)"
         }
       ],
