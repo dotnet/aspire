@@ -24,10 +24,9 @@ var cosmosDb = builder.AddAzureCosmosDB("account")
 cosmosDb.AddCosmosDatabase("db");
 
 // Testing a connection string
-var blobs = builder.AddAzureStorage("storage")
-                   .RemoveDefaultRoleAssignments()
-                   .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
-                   .AddBlobs("blobs");
+var storage = builder.AddAzureStorage("storage")
+                     .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+var blobs = storage.AddBlobs("blobs");
 
 // Testing docker files
 
@@ -37,7 +36,7 @@ builder.AddDockerfile("pythonapp", "AppWithDocker");
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs)
-       .WithRoleAssignments(blobs, StorageBuiltInRole.StorageBlobDataContributor)
+       .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
        .WithReference(redis)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)

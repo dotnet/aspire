@@ -1085,6 +1085,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         output id string = api_identity.id
 
         output clientId string = api_identity.properties.clientId
+
+        output principalId string = api_identity.properties.principalId
         """;
 
         output.WriteLine(rolesBicep);
@@ -2309,13 +2311,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var storageName = builder.AddParameter("storageName");
         var storageRG = builder.AddParameter("storageRG");
 
-        var blobs = builder.AddAzureStorage("storage")
-            .PublishAsExisting(storageName, storageRG)
-            .RemoveDefaultRoleAssignments()
-            .AddBlobs("blobs");
+        var storage = builder.AddAzureStorage("storage")
+            .PublishAsExisting(storageName, storageRG);
+        var blobs = storage.AddBlobs("blobs");
 
         builder.AddProject<Project>("api", launchProfileName: null)
-               .WithRoleAssignments(blobs, StorageBuiltInRole.StorageBlobDataReader);
+               .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);
 
         using var app = builder.Build();
 

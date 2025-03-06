@@ -25,3 +25,5 @@ resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignm
 output id string = api_identity.id
 
 output clientId string = api_identity.properties.clientId
+
+output principalId string = api_identity.properties.principalId

@@ -19,4 +19,10 @@ public sealed class AzureProvisioningOptions
     /// functionality for building Azure resources.
     /// </summary>
     public ProvisioningBuildOptions ProvisioningBuildOptions { get; } = new ProvisioningBuildOptions();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Azure resources should include default role assignments
+    /// in their bicep templates.
+    /// </summary>
+    public bool IncludeDefaultRoleAssignments { get; set; } = true;
 }
