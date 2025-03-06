@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
-using Microsoft.VisualStudio.Telemetry;
 
 namespace Aspire.Dashboard.Components.Pages;
 
