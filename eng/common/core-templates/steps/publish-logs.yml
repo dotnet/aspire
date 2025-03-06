@@ -56,3 +56,4 @@ steps:
       artifactName: PostBuildLogs
       continueOnError: true
       condition: always()
+      retryCountOnTaskFailure: 10 # for any logs being locked
