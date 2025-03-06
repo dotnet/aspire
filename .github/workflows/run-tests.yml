@@ -42,6 +42,13 @@ jobs:
     timeout-minutes: 60
     name: ${{ matrix.name }}
     steps:
+      - name: Validate arguments
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrEmpty("${{ inputs.testShortName }}")) {
+            Write-Error "Error: testShortName is required."
+          exit 1
+
       - name: Checkout code
         uses: actions/checkout@v4
 
