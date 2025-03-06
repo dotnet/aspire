@@ -43,13 +43,4 @@ public static class AzureProvisionerExtensions
         builder.Services.AddKeyedSingleton<IAzureResourceProvisioner, TProvisioner>(typeof(TResource));
         return builder;
     }
-
-    internal static IDistributedApplicationBuilder AddResourceEnumerator<TResource>(this IDistributedApplicationBuilder builder,
-        Func<ResourceGroupResource, IAsyncEnumerable<TResource>> getResources,
-        Func<TResource, IDictionary<string, string>> getTags)
-        where TResource : ArmResource
-    {
-        builder.Services.AddSingleton<IAzureResourceEnumerator>(new AzureResourceEnumerator<TResource>(getResources, getTags));
-        return builder;
-    }
 }
