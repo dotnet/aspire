@@ -12,7 +12,7 @@ public class DistributedApplicationExecutionContextOptions
     /// Constructs a <see cref="DistributedApplicationExecutionContextOptions" />.
     /// </summary>
     /// <param name="operation">Indicates whether the AppHost is running in Publish mode or Run mode.</param>
-    public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation)
+    public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation) : this(operation, null)
     {
     }
 
