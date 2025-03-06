@@ -5,8 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
