@@ -79,16 +79,16 @@ public class TelemetryServiceTests
         };
     }
 
-    private static AspireTelemetryService CreateTelemetryService(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
+    private static DashboardTelemetryService CreateTelemetryService(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
     {
-        return new AspireTelemetryService(
+        return new DashboardTelemetryService(
             options,
-            new TestTelemetrySender(
+            new TestDashboardTelemetrySender(
                 new Queue<HttpResponseMessage?>(responseMessages)),
-            new Logger<AspireTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
+            new Logger<DashboardTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
     }
 
-    public class TestTelemetrySender(Queue<HttpResponseMessage?> messages) : AspireTelemetryService.ITelemetrySender
+    public class TestDashboardTelemetrySender(Queue<HttpResponseMessage?> messages) : IDashboardTelemetrySender
     {
         public Task<HttpResponseMessage> MakeRequestAsync(HttpClient client, Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
         {

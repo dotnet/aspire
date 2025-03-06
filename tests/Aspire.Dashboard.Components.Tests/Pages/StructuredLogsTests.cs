@@ -188,7 +188,7 @@ public partial class StructuredLogsTests : TestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        Services.AddSingleton<IAspireTelemetryService, TestTelemetryService>();
+        Services.AddSingleton<IDashboardTelemetryService, TestTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

@@ -35,7 +35,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required IAspireTelemetryService TelemetryService { get; init; }
+    public required IDashboardTelemetryService TelemetryService { get; init; }
 
     protected override async Task OnInitializedAsync()
     {

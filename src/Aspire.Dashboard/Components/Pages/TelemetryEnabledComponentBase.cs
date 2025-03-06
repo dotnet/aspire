@@ -22,7 +22,7 @@ public abstract class TelemetryEnabledComponentBase : ComponentBase
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required IAspireTelemetryService TelemetryService { get; init; }
+    public required IDashboardTelemetryService TelemetryService { get; init; }
 
     protected abstract string ComponentId { get; }
 

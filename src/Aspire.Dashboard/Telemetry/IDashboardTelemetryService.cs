@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public interface IAspireTelemetryService
+public interface IDashboardTelemetryService
 {
     /// <summary>
     /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="IsTelemetryEnabled"/> is set

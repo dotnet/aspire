@@ -656,7 +656,7 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
     {
         return new Dictionary<string, AspireTelemetryProperty>
         {
-            { TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty) },
+            { TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii) },
             { TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting) }
         };
     }

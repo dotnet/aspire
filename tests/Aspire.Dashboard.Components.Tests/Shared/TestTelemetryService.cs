@@ -5,7 +5,7 @@ using Aspire.Dashboard.Telemetry;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
 
-public class TestTelemetryService : IAspireTelemetryService
+public class TestTelemetryService : IDashboardTelemetryService
 {
     public Task InitializeAsync() => Task.CompletedTask;
 
