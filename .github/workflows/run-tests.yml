@@ -22,6 +22,9 @@ on:
 
 jobs:
 
+  # This job is named "_" so the combined job name shown in github checks
+  # is like `Integration Tests / _ / Hosting`
+  # instead of `Integration Tests / test / Hosting`
   _:
     runs-on: ${{ matrix.os }}
     strategy:
