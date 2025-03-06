@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text.Json;
 using System.Threading.Channels;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -12,12 +11,19 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
 {
     private readonly HttpClient _httpClient;
 
-    private readonly Channel<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)> _channel = Channel.CreateUnbounded<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)>();
+    private readonly Channel<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)> _channel;
     private readonly ConcurrentDictionary<Guid, object> _responsePropertyMap = [];
 
-    public DashboardTelemetrySender(HttpClient client, ILogger<IDashboardTelemetryService> logger)
+    public DashboardTelemetrySender(HttpClient client, ILogger<DashboardTelemetryService> logger)
     {
+        _channel = Channel.CreateBounded<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)>(new BoundedChannelOptions(1000)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true
+        });
+
         _httpClient = client;
+
         _ = Task.Run(async () =>
         {
             while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
@@ -33,25 +39,23 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
                             _responsePropertyMap[guid] = value;
                         }
                     }
-                    catch (Exception ex) when (ex is HttpRequestException or JsonException or ArgumentException)
+                    catch (Exception ex)
                     {
-                        logger.LogWarning("Failed to make telemetry request: {ExceptionMessage}", ex.Message);
-                    }
-
-                    continue;
-
-                    object GetResponseProperty(Guid guid)
-                    {
-                        if (!_responsePropertyMap.TryGetValue(guid, out var value))
-                        {
-                            throw new ArgumentException("Response property not found, maybe a dependent telemetry request failed?", nameof(guid));
-                        }
-
-                        return value;
+                        logger.LogWarning(ex, "Failed to send telemetry request.");
                     }
                 }
             }
         });
+    }
+
+    private object GetResponseProperty(Guid propertyId)
+    {
+        if (!_responsePropertyMap.TryGetValue(propertyId, out var value))
+        {
+            throw new InvalidOperationException($"Response property not found. Id: {propertyId}");
+        }
+
+        return value;
     }
 
     public Task<HttpResponseMessage> GetTelemetryEnabledAsync()
@@ -77,5 +81,11 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         _channel.Writer.TryWrite((guids, requestFunc));
 
         return guids;
+    }
+
+    public void Dispose()
+    {
+        _httpClient.Dispose();
+        _channel.Writer.Complete();
     }
 }

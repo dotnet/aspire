@@ -15,7 +15,7 @@ public interface IComponentWithTelemetry
 {
     public Guid? InitializeCorrelation { get; set; }
     public NavigationManager NavigationManager { get; }
-    public IDashboardTelemetryService TelemetryService { get; }
+    public DashboardTelemetryService TelemetryService { get; }
 
     public string ComponentId { get; }
     public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties() => [];

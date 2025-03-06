@@ -12,27 +12,33 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public sealed class DashboardTelemetryService : IDashboardTelemetryService
+public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options, ILogger<DashboardTelemetryService> logger) : IDisposable
 {
     private bool? _telemetryEnabled;
     private IDashboardTelemetrySender? _dashboardTelemetrySender;
-    private readonly IOptions<DashboardOptions> _options;
-    private readonly ILogger<DashboardTelemetryService> _logger;
 
-    public DashboardTelemetryService(
-        IOptions<DashboardOptions> options,
-        ILogger<DashboardTelemetryService> logger)
-    {
-        _options = options;
-        _logger = logger;
-    }
-
+    /// <summary>
+    /// Whether the telemetry service has been initialized. This will be true if <see cref="DashboardTelemetryService.InitializeAsync"/> has completed.
+    /// </summary>
     public bool IsTelemetryInitialized => _telemetryEnabled is not null;
+
+    /// <summary>
+    /// Whether telemetry is enabled in the current environment. This will be false if:
+    /// <list type="bullet">
+    /// <item>The user is not running the Aspire dashboard through a supported IDE version</item>
+    /// <item>The dashboard resource contains a telemetry opt-out config entry</item>
+    /// <item>The IDE instance has opted out of telemetry</item>
+    /// </list>
+    /// </summary>
     public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
 
+    /// <summary>
+    /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="DashboardTelemetryService.IsTelemetryEnabled"/> is set
+    /// by making a request to the debug session, if one exists.
+    /// </summary>
     public async Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null)
     {
-        _logger.LogDebug("Initializing telemetry service.");
+        logger.LogDebug("Initializing telemetry service.");
 
         if (_telemetryEnabled is not null)
         {
@@ -43,19 +49,19 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         {
             _dashboardTelemetrySender = telemetrySender;
         }
-        else if (!HasDebugSession(_options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
+        else if (!HasDebugSession(options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
         {
             _telemetryEnabled = false;
-            _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", false);
+            logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", false);
             return;
         }
         else
         {
-            _dashboardTelemetrySender = new DashboardTelemetrySender(CreateHttpClient(debugSessionUri, token, certData), _logger);
+            _dashboardTelemetrySender = new DashboardTelemetrySender(CreateHttpClient(debugSessionUri, token, certData), logger);
         }
 
-        _telemetryEnabled = await GetTelemetrySupportedAsync(_dashboardTelemetrySender, _logger).ConfigureAwait(false);
-        _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
+        _telemetryEnabled = await GetTelemetrySupportedAsync(_dashboardTelemetrySender, logger).ConfigureAwait(false);
+        logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
 
         // Post session property values after initialization, if telemetry has been enabled.
         if (_telemetryEnabled is true)
@@ -129,6 +135,10 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }
     }
 
+    /// <summary>
+    /// Begin a long-running user operation. Prefer this over <see cref="DashboardTelemetryService.PostOperation"/>. If an explicit user task caused this operation to start,
+    /// use <see cref="DashboardTelemetryService.StartUserTask"/> instead. Duration will be automatically calculated and the end event posted after <see cref="DashboardTelemetryService.EndOperation"/> is called.
+    /// </summary>
     public (Guid OperationIdToken, Guid CorrelationToken) StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -152,6 +162,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         return (guids[0], guids[1]);
     }
 
+    /// <summary>
+    /// Ends a long-running operation. This will post the end event and calculate the duration.
+    /// </summary>
     public void EndOperation(Guid operationId, TelemetryResult result, string? errorMessage = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -162,6 +175,10 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         });
     }
 
+    /// <summary>
+    /// Begin a long-running user task. This will post the start event and calculate the duration.
+    /// Duration will be automatically calculated and the end event posted after <see cref="DashboardTelemetryService.EndUserTask"/> is called.
+    /// </summary>
     public (Guid OperationIdToken, Guid CorrelationToken) StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -185,6 +202,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         return (guids[0], guids[1]);
     }
 
+    /// <summary>
+    /// Ends a long-running user task. This will post the end event and calculate the duration.
+    /// </summary>
     public void EndUserTask(Guid operationId, TelemetryResult result, string? errorMessage = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -195,6 +215,11 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         });
     }
 
+    /// <summary>
+    /// Posts a short-lived operation. If duration needs to be calculated, use <see cref="DashboardTelemetryService.StartOperation"/> and <see cref="DashboardTelemetryService.EndOperation"/> instead.
+    /// If an explicit user task caused this operation to start, use <see cref="DashboardTelemetryService.PostUserTask"/> instead.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
+    /// </summary>
     public Guid PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -215,6 +240,10 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }).Single();
     }
 
+    /// <summary>
+    /// Posts a short-lived user task. If duration needs to be calculated, use <see cref="DashboardTelemetryService.StartUserTask"/> and <see cref="DashboardTelemetryService.EndUserTask"/> instead.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
+    /// </summary>
     public Guid PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -235,6 +264,10 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }).Single();
     }
 
+    /// <summary>
+    /// Posts a fault event.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
+    /// </summary>
     public Guid PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -255,6 +288,11 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }).Single();
     }
 
+    /// <summary>
+    /// Posts an asset event. This is used to track events that are related to a specific asset, whose correlations can be sent along with other events.
+    /// Currently not used.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
+    /// </summary>
     public Guid PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<Guid>? correlatedWith = null)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -275,6 +313,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         }).Single();
     }
 
+    /// <summary>
+    /// Post a session property.
+    /// </summary>
     public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -286,6 +327,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         });
     }
 
+    /// <summary>
+    /// Post a session recurring property.
+    /// </summary>
     public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -297,6 +341,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         });
     }
 
+    /// <summary>
+    /// Currently not used.
+    /// </summary>
     public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties)
     {
         Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
@@ -308,6 +355,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
         });
     }
 
+    /// <summary>
+    /// Gets identifying properties for the telemetry session.
+    /// </summary>
     public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties()
     {
         return new Dictionary<string, AspireTelemetryProperty>
@@ -315,6 +365,11 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
             { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
             { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
         };
+    }
+
+    public void Dispose()
+    {
+        _dashboardTelemetrySender?.Dispose();
     }
 }
 

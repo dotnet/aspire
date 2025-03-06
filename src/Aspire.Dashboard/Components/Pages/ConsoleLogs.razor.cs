@@ -79,7 +79,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required IDashboardTelemetryService TelemetryService { get; init; }
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }

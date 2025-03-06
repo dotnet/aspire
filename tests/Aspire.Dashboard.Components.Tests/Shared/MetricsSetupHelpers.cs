@@ -90,7 +90,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();
-        context.Services.AddSingleton<IDashboardTelemetryService, TestTelemetryService>();
+        context.Services.AddSingleton<DashboardTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

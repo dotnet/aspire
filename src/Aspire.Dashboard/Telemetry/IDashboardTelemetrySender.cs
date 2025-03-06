@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Telemetry;
 
-public interface IDashboardTelemetrySender
+public interface IDashboardTelemetrySender : IDisposable
 {
     public Task<HttpResponseMessage> GetTelemetryEnabledAsync();
 
