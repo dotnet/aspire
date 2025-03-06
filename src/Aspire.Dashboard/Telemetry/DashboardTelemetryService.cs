@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -12,25 +13,23 @@ namespace Aspire.Dashboard.Telemetry;
 
 public sealed class DashboardTelemetryService : IDashboardTelemetryService
 {
-    private readonly Lazy<HttpClient?> _httpClient;
     private bool? _telemetryEnabled;
-    private readonly IDashboardTelemetrySender _dashboardTelemetrySender;
+    private IDashboardTelemetrySender? _dashboardTelemetrySender;
+    private readonly IOptions<DashboardOptions> _options;
     private readonly ILogger<DashboardTelemetryService> _logger;
 
     public DashboardTelemetryService(
         IOptions<DashboardOptions> options,
-        IDashboardTelemetrySender dashboardTelemetrySender,
         ILogger<DashboardTelemetryService> logger)
     {
-        _dashboardTelemetrySender = dashboardTelemetrySender;
+        _options = options;
         _logger = logger;
-        _httpClient = new Lazy<HttpClient?>(() => CreateHttpClient(options.Value.DebugSession));
     }
 
     public bool IsTelemetryInitialized => _telemetryEnabled is not null;
     public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null)
     {
         _logger.LogDebug("Initializing telemetry service.");
 
@@ -39,7 +38,22 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
             return;
         }
 
-        _telemetryEnabled = await GetTelemetrySupportedAsync(_httpClient.Value, _dashboardTelemetrySender, _logger).ConfigureAwait(false);
+        if (telemetrySender is not null)
+        {
+            _dashboardTelemetrySender = telemetrySender;
+        }
+        else if (CreateHttpClient(_options.Value.DebugSession) is not { } client)
+        {
+            _telemetryEnabled = false;
+            _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", false);
+            return;
+        }
+        else
+        {
+            _dashboardTelemetrySender = new DashboardTelemetrySender(client);
+        }
+
+        _telemetryEnabled = await GetTelemetrySupportedAsync(_dashboardTelemetrySender, _logger).ConfigureAwait(false);
         _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
 
         // Post session property values after initialization, if telemetry has been enabled.
@@ -51,16 +65,11 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
         return;
 
-        static async Task<bool> GetTelemetrySupportedAsync(HttpClient? client, IDashboardTelemetrySender sender, ILogger<DashboardTelemetryService> logger)
+        static async Task<bool> GetTelemetrySupportedAsync(IDashboardTelemetrySender sender, ILogger<DashboardTelemetryService> logger)
         {
-            if (client is null)
-            {
-                return false;
-            }
-
             try
             {
-                var response = await sender.MakeRequestAsync(client, c => c.GetAsync(TelemetryEndpoints.TelemetryEnabled)).ConfigureAwait(false);
+                var response = await sender.MakeRequestAsync(c => c.GetAsync(TelemetryEndpoints.TelemetryEnabled)).ConfigureAwait(false);
                 var isTelemetryEnabled = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
 
                 if (!isTelemetryEnabled)
@@ -69,10 +78,10 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
                 }
 
                 // start the actual telemetry session
-                var telemetryStartedStatusCode = (await sender.MakeRequestAsync(client, c => c.PostAsync(TelemetryEndpoints.TelemetryStart, content: null)).ConfigureAwait(false)).StatusCode;
+                var telemetryStartedStatusCode = (await sender.MakeRequestAsync(c => c.PostAsync(TelemetryEndpoints.TelemetryStart, content: null)).ConfigureAwait(false)).StatusCode;
                 return telemetryStartedStatusCode is HttpStatusCode.OK;
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex) when (ex is HttpRequestException or JsonException)
             {
                 // If the request fails, we've been given an invalid server address and should assume telemetry is unsupported.
                 logger.LogDebug("Failed to request whether telemetry is supported: {ExceptionMessage}", ex.Message);
@@ -83,12 +92,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartOperation, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartOperation, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
             new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
@@ -96,23 +105,23 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, request)).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
     public async Task<ITelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartUserTask, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartUserTask, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<StartOperationResponse>(response.StatusCode, await response.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false)) :
             new TelemetryResponse<StartOperationResponse>(response.StatusCode, null);
@@ -120,12 +129,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, request)).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -141,12 +150,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostOperation, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostOperation, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -154,12 +163,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostUserTaskAsync(PostOperationRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostUserTask, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostUserTask, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -167,12 +176,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostFaultAsync(PostFaultRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostFault, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostFault, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -180,12 +189,12 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostAssetAsync(PostAssetRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostAsset, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostAsset, request)).ConfigureAwait(false);
         return response.IsSuccessStatusCode
             ? new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, await response.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false)) :
             new TelemetryResponse<TelemetryEventCorrelation>(response.StatusCode, null);
@@ -193,34 +202,34 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
     public async Task<ITelemetryResponse?> PostPropertyAsync(PostPropertyRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostProperty, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostProperty, request)).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
     public async Task<ITelemetryResponse?> PostRecurringPropertyAsync(PostPropertyRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostRecurringProperty, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostRecurringProperty, request)).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
     public async Task<ITelemetryResponse?> PostCommandLineFlagsAsync(PostCommandLineFlagsRequest request)
     {
-        if (await GetHttpClientAsync().ConfigureAwait(false) is not { } client)
+        if (_dashboardTelemetrySender is null)
         {
             return null;
         }
 
-        var response = await _dashboardTelemetrySender.MakeRequestAsync(client, c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request)).ConfigureAwait(false);
+        var response = await _dashboardTelemetrySender.MakeRequestAsync(c => c.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request)).ConfigureAwait(false);
         return new TelemetryResponse(response.StatusCode);
     }
 
@@ -248,17 +257,6 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
 
             await EndOperationAsync(new EndOperationRequest(operationId, operationResult.Result, operationResult.ErrorMessage)).ConfigureAwait(false);
         });
-    }
-
-    private async Task<HttpClient?> GetHttpClientAsync()
-    {
-        await this.InitializeAsync().ConfigureAwait(false);
-        if (_httpClient.Value is null || _telemetryEnabled is false)
-        {
-            return null;
-        }
-
-        return _httpClient.Value;
     }
 
     private static HttpClient? CreateHttpClient(DebugSession debugSession)
@@ -320,14 +318,9 @@ public sealed class DashboardTelemetryService : IDashboardTelemetryService
     }
 }
 
-public interface IDashboardTelemetrySender
+public class DashboardTelemetrySender(HttpClient client) : IDashboardTelemetrySender
 {
-    Task<HttpResponseMessage> MakeRequestAsync(HttpClient client, Func<HttpClient, Task<HttpResponseMessage>> requestFunc);
-}
-
-public class DashboardTelemetrySender : IDashboardTelemetrySender
-{
-    public Task<HttpResponseMessage> MakeRequestAsync(HttpClient client, Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
+    public Task<HttpResponseMessage> MakeRequestAsync(Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
     {
         return requestFunc(client);
     }

@@ -17,8 +17,7 @@ public class TelemetryServiceTests
     [Fact]
     public async Task CreateTelemetryService_WithoutValidDebugSession_ShowsTelemetryUnsupported()
     {
-        var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions()), []);
-        await telemetryService.InitializeAsync();
+        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions()), []);
 
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.False(telemetryService.IsTelemetryEnabled);
@@ -27,7 +26,7 @@ public class TelemetryServiceTests
     [Fact]
     public async Task CreateTelemetryService_WithValidDebugSession_ButTelemetryDisabled_ShowsTelemetryUnsupported()
     {
-        var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions
+        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions
         {
             DebugSession = new DebugSession
             {
@@ -38,8 +37,6 @@ public class TelemetryServiceTests
             }
         }), [new HttpResponseMessage(HttpStatusCode.NotFound)]);
 
-        await telemetryService.InitializeAsync();
-
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.False(telemetryService.IsTelemetryEnabled);
     }
@@ -48,7 +45,7 @@ public class TelemetryServiceTests
     [MemberData(nameof(CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData))]
     public async Task CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported(HttpResponseMessage? telemetryEnabledResponse, HttpResponseMessage? startTelemetryResponse, bool expectedTelemetryEnabled)
     {
-        var telemetryService = CreateTelemetryService(new TestDashboardOptions(new DashboardOptions
+        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions
         {
             DebugSession = new DebugSession
             {
@@ -57,8 +54,6 @@ public class TelemetryServiceTests
                 Token = "test"
             }
         }), [telemetryEnabledResponse, startTelemetryResponse]);
-
-        await telemetryService.InitializeAsync();
 
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.Equal(expectedTelemetryEnabled, telemetryService.IsTelemetryEnabled);
@@ -79,18 +74,17 @@ public class TelemetryServiceTests
         };
     }
 
-    private static DashboardTelemetryService CreateTelemetryService(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
+    private static async Task<DashboardTelemetryService> CreateTelemetryServiceAsync(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
     {
-        return new DashboardTelemetryService(
-            options,
-            new TestDashboardTelemetrySender(
-                new Queue<HttpResponseMessage?>(responseMessages)),
-            new Logger<DashboardTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
+        var telemetryService = new DashboardTelemetryService(options, new Logger<DashboardTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
+        await telemetryService.InitializeAsync(new TestDashboardTelemetrySender(new Queue<HttpResponseMessage?>(responseMessages)));
+
+        return telemetryService;
     }
 
     public class TestDashboardTelemetrySender(Queue<HttpResponseMessage?> messages) : IDashboardTelemetrySender
     {
-        public Task<HttpResponseMessage> MakeRequestAsync(HttpClient client, Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
+        public Task<HttpResponseMessage> MakeRequestAsync(Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
         {
             // If we don't care about any future response, just return OK
             if (messages.Count == 0)

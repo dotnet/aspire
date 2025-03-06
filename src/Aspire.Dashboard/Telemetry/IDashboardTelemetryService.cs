@@ -12,7 +12,7 @@ public interface IDashboardTelemetryService
     /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="IsTelemetryEnabled"/> is set
     /// by making a request to the debug session, if one exists.
     /// </summary>
-    Task InitializeAsync();
+    Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null);
 
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
@@ -103,6 +103,11 @@ public interface IDashboardTelemetryService
     /// Gets identifying properties for the telemetry session.
     /// </summary>
     Dictionary<string, AspireTelemetryProperty> GetDefaultProperties();
+}
+
+public interface IDashboardTelemetrySender
+{
+    Task<HttpResponseMessage> MakeRequestAsync(Func<HttpClient, Task<HttpResponseMessage>> requestFunc);
 }
 
 public interface ITelemetryResponse
