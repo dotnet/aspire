@@ -46,7 +46,7 @@
             </div>
         </div>
 
-        @if (TelemetryService is { IsTelemetryInitialized: true })
+        @if (TelemetryService is { IsTelemetryInitialized: true, IsTelemetryEnabled: true })
         {
             <div>
                 <p class="setting-subtext">
