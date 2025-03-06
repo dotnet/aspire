@@ -65,7 +65,7 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [_]
+    needs: [test]
     steps:
       # get all the test-job-result* artifacts into a single directory
       - uses: actions/download-artifact@v4
