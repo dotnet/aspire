@@ -8,6 +8,9 @@ on:
       testShortName:
         required: true
         type: string
+      testProjectPath:
+        required: false
+        type: string
       testSessionTimeoutMs:
         required: false
         type: string
@@ -61,13 +64,15 @@ jobs:
         shell: pwsh
         env:
           CI: false
-        # Convert the shortname of the test to a project path in tests/
         run: |
           $testShortName = "${{ inputs.testShortName }}"
+          $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
           $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
           $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
 
-          if (Test-Path -Path $projectPath1) {
+          if (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {
+              $projectPath = $overrideTestProjectPath
+          } elseif (Test-Path -Path $projectPath1) {
               $projectPath = $projectPath1
           } elseif (Test-Path -Path $projectPath2) {
               $projectPath = $projectPath2
