@@ -66,11 +66,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.tests_matrix) }}
     with:
-      testShortName: ${{ matrix.tests.shortname }}
+      testShortName: ${{ matrix.shortname }}
       testProjectPath: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
-      extraTestArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.tests.shortname }}"
+      extraTestArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.shortname }}"
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
