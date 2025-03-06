@@ -12,12 +12,12 @@ public interface IDashboardTelemetryService
     /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="IsTelemetryEnabled"/> is set
     /// by making a request to the debug session, if one exists.
     /// </summary>
-    Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null);
+    public Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null);
 
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
     /// </summary>
-    bool IsTelemetryInitialized { get; }
+    public bool IsTelemetryInitialized { get; }
 
     /// <summary>
     /// Whether telemetry is enabled in the current environment. This will be false if:
@@ -27,92 +27,96 @@ public interface IDashboardTelemetryService
     /// <item>The IDE instance has opted out of telemetry</item>
     /// </list>
     /// </summary>
-    bool IsTelemetryEnabled { get; }
+    public bool IsTelemetryEnabled { get; }
 
     /// <summary>
-    /// Begin a long-running user operation. Prefer this over <see cref="PostOperationAsync"/>. If an explicit user task caused this operation to start,
-    /// use <see cref="StartUserTaskAsync"/> instead. Duration will be automatically calculated and the end event posted after <see cref="EndOperationAsync"/> is called.
+    /// Begin a long-running user operation. Prefer this over <see cref="PostOperation"/>. If an explicit user task caused this operation to start,
+    /// use <see cref="StartUserTask"/> instead. Duration will be automatically calculated and the end event posted after <see cref="EndOperation"/> is called.
     /// </summary>
-    Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request);
+    public (Guid OperationIdToken, Guid CorrelationToken) StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null);
 
     /// <summary>
     /// Ends a long-running operation. This will post the end event and calculate the duration.
     /// </summary>
-    Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request);
+    public void EndOperation(Guid operationId, TelemetryResult result, string? errorMessage = null);
 
     /// <summary>
     /// Begin a long-running user task. This will post the start event and calculate the duration.
-    /// Duration will be automatically calculated and the end event posted after <see cref="EndUserTaskAsync"/> is called.
+    /// Duration will be automatically calculated and the end event posted after <see cref="EndUserTask"/> is called.
     /// </summary>
-    Task<ITelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request);
+    public (Guid OperationIdToken, Guid CorrelationToken) StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null);
 
     /// <summary>
     /// Ends a long-running user task. This will post the end event and calculate the duration.
     /// </summary>
-    Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request);
+    public void EndUserTask(Guid operationId, TelemetryResult result, string? errorMessage = null);
 
     /// <summary>
-    /// Performs a short-lived operation. Prefer this method over <see cref="StartOperationAsync"/> and <see cref="EndOperationAsync"/> if the operation is contained within a single method.
-    /// Use <see cref="PerformUserTaskAsync"/> if the operation is a user task.
+    /// Posts a short-lived operation. If duration needs to be calculated, use <see cref="StartOperation"/> and <see cref="EndOperation"/> instead.
+    /// If an explicit user task caused this operation to start, use <see cref="PostUserTask"/> instead.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    Task PerformOperationAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
+    public Guid PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null);
 
     /// <summary>
-    /// Performs a short-lived user task. Prefer this method over <see cref="StartUserTaskAsync"/> and <see cref="EndUserTaskAsync"/> if the operation is contained within a single method.
+    /// Posts a short-lived user task. If duration needs to be calculated, use <see cref="StartUserTask"/> and <see cref="EndUserTask"/> instead.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    Task PerformUserTaskAsync(StartOperationRequest request, Func<Task<OperationResult>> func);
-
-    /// <summary>
-    /// Posts a short-lived operation. If duration needs to be calculated, use <see cref="StartOperationAsync"/> and <see cref="EndOperationAsync"/> instead.
-    /// If an explicit user task caused this operation to start, use <see cref="PostUserTaskAsync"/> instead.
-    /// </summary>
-    Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request);
-
-    /// <summary>
-    /// Posts a short-lived user task. If duration needs to be calculated, use <see cref="StartUserTaskAsync"/> and <see cref="EndUserTaskAsync"/> instead.
-    /// </summary>
-    Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostUserTaskAsync(PostOperationRequest request);
+    public Guid PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null);
 
     /// <summary>
     /// Posts a fault event.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostFaultAsync(PostFaultRequest request);
+    public Guid PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null);
 
     /// <summary>
     /// Posts an asset event. This is used to track events that are related to a specific asset, whose correlations can be sent along with other events.
     /// Currently not used.
+    /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostAssetAsync(PostAssetRequest request);
+    public Guid PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<Guid>? correlatedWith = null);
 
     /// <summary>
     /// Post a session property.
     /// </summary>
-    Task<ITelemetryResponse?> PostPropertyAsync(PostPropertyRequest request);
+    public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue);
 
     /// <summary>
     /// Post a session recurring property.
     /// </summary>
-    Task<ITelemetryResponse?> PostRecurringPropertyAsync(PostPropertyRequest request);
+    public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue);
 
     /// <summary>
     /// Currently not used.
     /// </summary>
-    Task<ITelemetryResponse?> PostCommandLineFlagsAsync(PostCommandLineFlagsRequest request);
+    public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties);
 
     /// <summary>
     /// Gets identifying properties for the telemetry session.
     /// </summary>
-    Dictionary<string, AspireTelemetryProperty> GetDefaultProperties();
+    public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties();
 }
 
 public interface IDashboardTelemetrySender
 {
-    Task<HttpResponseMessage> MakeRequestAsync(Func<HttpClient, Task<HttpResponseMessage>> requestFunc);
+    public Task<HttpResponseMessage> GetTelemetryEnabledAsync();
+
+    public Task<HttpResponseMessage> StartTelemetrySessionAsync();
+
+    /// <summary>
+    /// Posts telemetry to the server.
+    /// </summary>
+    /// <param name="generatedGuids">If the request will be returning properties (such as correlation or operation id) that other telemetry events need to reference *before* this request
+    /// completes, a dummy guid will be generated for the number of specified properties and correlated after completion.</param>
+    /// <param name="requestFunc">A function containing as inputs 1) the inner http client, and 2) a function that maps Guids to their property value, or throws if not available.</param>
+    /// <returns></returns>
+    public List<Guid> MakeRequest(int generatedGuids, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>> requestFunc);
 }
 
 public interface ITelemetryResponse
 {
-    HttpStatusCode StatusCode { get; }
+    public HttpStatusCode StatusCode { get; }
 }
 
 public interface ITelemetryResponse<out T> : ITelemetryResponse

@@ -7,36 +7,60 @@ namespace Aspire.Dashboard.Components.Tests.Shared;
 
 public class TestTelemetryService : IDashboardTelemetryService
 {
-    public Task InitializeAsync() => Task.CompletedTask;
+    public Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null) => Task.CompletedTask;
 
-    public bool IsTelemetryInitialized { get; } = true;
-    public bool IsTelemetryEnabled { get; } = true;
+    public bool IsTelemetryInitialized => true;
+    public bool IsTelemetryEnabled => true;
 
-    public Task<ITelemetryResponse<StartOperationResponse>?> StartOperationAsync(StartOperationRequest request) => Task.FromResult<ITelemetryResponse<StartOperationResponse>?>(null);
+    public (Guid OperationIdToken, Guid CorrelationToken) StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
+    {
+        return (Guid.NewGuid(), Guid.NewGuid());
+    }
 
-    public Task<ITelemetryResponse?> EndOperationAsync(EndOperationRequest request) => Task.FromResult<ITelemetryResponse?>(null);
+    public void EndOperation(Guid operationId, TelemetryResult result, string? errorMessage = null)
+    {
+    }
 
-    public Task<ITelemetryResponse<StartOperationResponse>?> StartUserTaskAsync(StartOperationRequest request) => Task.FromResult<ITelemetryResponse<StartOperationResponse>?>(null);
+    public (Guid OperationIdToken, Guid CorrelationToken) StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
+    {
+        return (Guid.NewGuid(), Guid.NewGuid());
+    }
 
-    public Task<ITelemetryResponse?> EndUserTaskAsync(EndOperationRequest request) => Task.FromResult<ITelemetryResponse?>(null);
+    public void EndUserTask(Guid operationId, TelemetryResult result, string? errorMessage = null)
+    {
+    }
 
-    public Task PerformOperationAsync(StartOperationRequest request, Func<Task<OperationResult>> func) => Task.CompletedTask;
+    public Guid PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    {
+        return Guid.NewGuid();
+    }
 
-    public Task PerformUserTaskAsync(StartOperationRequest request, Func<Task<OperationResult>> func) => Task.CompletedTask;
+    public Guid PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    {
+        return Guid.NewGuid();
+    }
 
-    public Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostOperationAsync(PostOperationRequest request) => Task.FromResult<ITelemetryResponse<TelemetryEventCorrelation>?>(null);
+    public Guid PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    {
+        return Guid.NewGuid();
+    }
 
-    public Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostUserTaskAsync(PostOperationRequest request) => Task.FromResult<ITelemetryResponse<TelemetryEventCorrelation>?>(null);
+    public Guid PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<Guid>? correlatedWith = null)
+    {
+        return Guid.NewGuid();
+    }
 
-    public Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostFaultAsync(PostFaultRequest request) => Task.FromResult<ITelemetryResponse<TelemetryEventCorrelation>?>(null);
+    public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue)
+    {
+    }
 
-    public Task<ITelemetryResponse<TelemetryEventCorrelation>?> PostAssetAsync(PostAssetRequest request) => Task.FromResult<ITelemetryResponse<TelemetryEventCorrelation>?>(null);
+    public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue)
+    {
+    }
 
-    public Task<ITelemetryResponse?> PostPropertyAsync(PostPropertyRequest request) => Task.FromResult<ITelemetryResponse?>(null);
-
-    public Task<ITelemetryResponse?> PostRecurringPropertyAsync(PostPropertyRequest request) => Task.FromResult<ITelemetryResponse?>(null);
-
-    public Task<ITelemetryResponse?> PostCommandLineFlagsAsync(PostCommandLineFlagsRequest request) => Task.FromResult<ITelemetryResponse?>(null);
+    public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties)
+    {
+    }
 
     public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties() => [];
 }

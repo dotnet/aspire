@@ -17,7 +17,7 @@ public class TelemetryServiceTests
     [Fact]
     public async Task CreateTelemetryService_WithoutValidDebugSession_ShowsTelemetryUnsupported()
     {
-        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions()), []);
+        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions()));
 
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.False(telemetryService.IsTelemetryEnabled);
@@ -35,7 +35,7 @@ public class TelemetryServiceTests
                 Token = "test",
                 TelemetryOptOut = true
             }
-        }), [new HttpResponseMessage(HttpStatusCode.NotFound)]);
+        }), new HttpResponseMessage(HttpStatusCode.NotFound));
 
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.False(telemetryService.IsTelemetryEnabled);
@@ -53,7 +53,7 @@ public class TelemetryServiceTests
                 ServerCertificate = string.Empty,
                 Token = "test"
             }
-        }), [telemetryEnabledResponse, startTelemetryResponse]);
+        }), telemetryEnabledResponse, startTelemetryResponse);
 
         Assert.True(telemetryService.IsTelemetryInitialized);
         Assert.Equal(expectedTelemetryEnabled, telemetryService.IsTelemetryEnabled);
@@ -74,31 +74,39 @@ public class TelemetryServiceTests
         };
     }
 
-    private static async Task<DashboardTelemetryService> CreateTelemetryServiceAsync(TestDashboardOptions options, IEnumerable<HttpResponseMessage?> responseMessages)
+    private static async Task<DashboardTelemetryService> CreateTelemetryServiceAsync(TestDashboardOptions options, HttpResponseMessage? telemetryEnabledResponse = null, HttpResponseMessage? startTelemetrySessionResponse = null)
     {
         var telemetryService = new DashboardTelemetryService(options, new Logger<DashboardTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
-        await telemetryService.InitializeAsync(new TestDashboardTelemetrySender(new Queue<HttpResponseMessage?>(responseMessages)));
+        await telemetryService.InitializeAsync(new TestDashboardTelemetrySender(telemetryEnabledResponse, startTelemetrySessionResponse));
 
         return telemetryService;
     }
 
-    public class TestDashboardTelemetrySender(Queue<HttpResponseMessage?> messages) : IDashboardTelemetrySender
+    public class TestDashboardTelemetrySender(HttpResponseMessage? telemetryEnabledResponse, HttpResponseMessage? startTelemetrySessionResponse) : IDashboardTelemetrySender
     {
-        public Task<HttpResponseMessage> MakeRequestAsync(Func<HttpClient, Task<HttpResponseMessage>> requestFunc)
+        public Task<HttpResponseMessage> GetTelemetryEnabledAsync()
         {
-            // If we don't care about any future response, just return OK
-            if (messages.Count == 0)
+            if (telemetryEnabledResponse is null)
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                throw new HttpRequestException("No response provided");
             }
 
-            var message = messages.Dequeue();
-            if (message is null)
+            return Task.FromResult(telemetryEnabledResponse);
+        }
+
+        public Task<HttpResponseMessage> StartTelemetrySessionAsync()
+        {
+            if (startTelemetrySessionResponse is null)
             {
-                throw new HttpRequestException("Simulated failed request");
+                throw new HttpRequestException("No response provided");
             }
 
-            return Task.FromResult(message);
+            return Task.FromResult(startTelemetrySessionResponse);
+        }
+
+        public List<Guid> MakeRequest(int generatedGuids, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>> requestFunc)
+        {
+            return [];
         }
     }
 

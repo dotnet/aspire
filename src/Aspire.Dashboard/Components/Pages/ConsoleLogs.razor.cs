@@ -25,7 +25,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
+public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     private sealed class ConsoleLogsSubscription
     {
@@ -75,6 +75,12 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required IDashboardTelemetryService TelemetryService { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -105,16 +111,12 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
-    protected override string ComponentId => DashboardUrls.ConsoleLogBasePath;
-
     protected override async Task OnInitializedAsync()
     {
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
-
-        await base.OnInitializedAsync();
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
@@ -151,6 +153,10 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
+
+        await this.InitializeComponentTelemetryAsync();
+
+        return;
 
         async Task TrackResourceSnapshotsAsync()
         {
@@ -236,8 +242,6 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
             return;
         }
 
-        await base.OnParametersSetAsync();
-
         UpdateMenuButtons();
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
@@ -281,6 +285,8 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
                 LoadLogs(newConsoleLogsSubscription);
             }
         }
+
+        this.PostParametersSetTelemetry();
     }
 
     private void UpdateMenuButtons()
@@ -652,7 +658,11 @@ public sealed partial class ConsoleLogs : TelemetryEnabledComponentBase, IAsyncD
         return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
     }
 
-    protected override Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
+    // IComponentWithTelemetry
+    public string ComponentId => DashboardUrls.ConsoleLogBasePath;
+    public Guid? InitializeCorrelation { get; set; }
+
+    public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
     {
         return new Dictionary<string, AspireTelemetryProperty>
         {
