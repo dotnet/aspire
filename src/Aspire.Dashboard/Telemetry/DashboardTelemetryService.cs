@@ -141,7 +141,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public (Guid OperationIdToken, Guid CorrelationToken) StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return (Guid.Empty, Guid.Empty);
+        }
+
         var guids = _dashboardTelemetrySender.MakeRequest(2, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
@@ -167,7 +171,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void EndOperation(Guid operationId, TelemetryResult result, string? errorMessage = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return;
+        }
+
         _dashboardTelemetrySender.MakeRequest(0, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
@@ -181,7 +189,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public (Guid OperationIdToken, Guid CorrelationToken) StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return (Guid.Empty, Guid.Empty);
+        }
+
         var guids = _dashboardTelemetrySender.MakeRequest(2, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
@@ -207,7 +219,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void EndUserTask(Guid operationId, TelemetryResult result, string? errorMessage = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return;
+        }
+
         _dashboardTelemetrySender.MakeRequest(0, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
@@ -222,7 +238,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public Guid PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return Guid.Empty;
+        }
+
         return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
@@ -246,7 +266,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public Guid PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return Guid.Empty;
+        }
+
         return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
@@ -270,7 +294,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public Guid PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return Guid.Empty;
+        }
+
         return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
         {
             var request = new PostFaultRequest(
@@ -295,7 +323,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public Guid PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<Guid>? correlatedWith = null)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return Guid.Empty;
+        }
+
         return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
         {
             var request = new PostAssetRequest(
@@ -318,7 +350,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return;
+        }
+
         _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
@@ -332,7 +368,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return;
+        }
+
         _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
@@ -346,7 +386,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties)
     {
-        Debug.Assert(_dashboardTelemetrySender is not null, "Telemetry sender is not initialized");
+        if (_dashboardTelemetrySender is null)
+        {
+            return;
+        }
+
         _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
         {
             var request = new PostCommandLineFlagsRequest(flagPrefixes, additionalProperties);

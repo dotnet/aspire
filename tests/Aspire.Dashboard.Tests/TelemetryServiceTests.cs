@@ -41,6 +41,26 @@ public class TelemetryServiceTests
         Assert.False(telemetryService.IsTelemetryEnabled);
     }
 
+    [Fact]
+    public async Task CreateTelemetryService_NoSender_ReturnsCorrectValuesAndDoesNotThrow()
+    {
+        var telemetryService = await CreateTelemetryServiceAsync(new TestDashboardOptions(new DashboardOptions
+        {
+            DebugSession = new DebugSession
+            {
+                Address = "http://localhost:5000",
+                ServerCertificate = string.Empty,
+                Token = "test",
+                TelemetryOptOut = true
+            }
+        }), initializeWithSender: false);
+
+        Assert.True(telemetryService.IsTelemetryInitialized);
+        Assert.False(telemetryService.IsTelemetryEnabled);
+
+        Assert.Equal(Guid.Empty, telemetryService.PostFault(string.Empty, string.Empty, FaultSeverity.Crash));
+    }
+
     [Theory]
     [MemberData(nameof(CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData))]
     public async Task CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported(HttpResponseMessage? telemetryEnabledResponse, HttpResponseMessage? startTelemetryResponse, bool expectedTelemetryEnabled)
@@ -74,10 +94,10 @@ public class TelemetryServiceTests
         };
     }
 
-    private static async Task<DashboardTelemetryService> CreateTelemetryServiceAsync(TestDashboardOptions options, HttpResponseMessage? telemetryEnabledResponse = null, HttpResponseMessage? startTelemetrySessionResponse = null)
+    private static async Task<DashboardTelemetryService> CreateTelemetryServiceAsync(TestDashboardOptions options, HttpResponseMessage? telemetryEnabledResponse = null, HttpResponseMessage? startTelemetrySessionResponse = null, bool initializeWithSender = true)
     {
         var telemetryService = new DashboardTelemetryService(options, new Logger<DashboardTelemetryService>(new TestLoggerFactory(new TestSink(), true)));
-        await telemetryService.InitializeAsync(new TestDashboardTelemetrySender(telemetryEnabledResponse, startTelemetrySessionResponse));
+        await telemetryService.InitializeAsync(initializeWithSender ? new TestDashboardTelemetrySender(telemetryEnabledResponse, startTelemetrySessionResponse) : null);
 
         return telemetryService;
     }
