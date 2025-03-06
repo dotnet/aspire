@@ -45,6 +45,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build with packages
+        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+        env:
+          CI: false
+        run: ./build.sh -restore -build -ci -pack -testnobuild /bl
+
+      - name: Install sdk for workload testing
+        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+        env:
+          CI: false
+        run: >
+          ${{ matrix.dotnet_script }} build ${{ github.workspace }}/tests/workloads.proj
+          /p:SkipPackageCheckForWorkloadTesting=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
       - name: Trust HTTPS development certificate
         if: matrix.os == 'ubuntu-latest'
         run: ${{ matrix.dotnet_script }} dev-certs https --trust
