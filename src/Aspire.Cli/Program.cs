@@ -115,9 +115,9 @@ public class Program
         return new FileInfo(projectFilePath);
     }
 
-    private static void ConfigurePackCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand)
     {
-        var command = new Command("pack", "Pack a .NET Aspire AppHost project.");
+        var command = new Command("publish", "Publish a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);

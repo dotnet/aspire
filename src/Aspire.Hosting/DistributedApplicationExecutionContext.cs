@@ -19,12 +19,6 @@ public class DistributedApplicationExecutionContext
     public DistributedApplicationExecutionContext(DistributedApplicationOperation operation, string? publisherName = "manifest")
     {
         Operation = operation;
-
-        if (publisherName is not null && operation != DistributedApplicationOperation.Publish)
-        {
-            throw new ArgumentException("PublisherName can only be set when Operation is set to Publish.", nameof(publisherName));
-        }
-
         PublisherName = publisherName;
     }
 

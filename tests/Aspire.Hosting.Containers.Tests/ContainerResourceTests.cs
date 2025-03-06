@@ -118,7 +118,7 @@ public class ContainerResourceTests
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://c1:1234", arg), // this is the container hostname
-            arg => Assert.Equal("connectionString", arg));
+            arg => AssertPublisherName can only be set when Operation is set to Publish..Equal("connectionString", arg));
 
         var manifest = await ManifestUtils.GetManifest(c2.Resource);
 
