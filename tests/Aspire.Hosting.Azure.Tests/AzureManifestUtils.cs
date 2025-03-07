@@ -10,14 +10,17 @@ namespace Aspire.Hosting.Utils;
 
 public sealed class AzureManifestUtils
 {
-    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource)
+    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource, bool skipPreparer = false)
     {
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext);
-        IResourceCollection resources = (IResourceCollection)Activator.CreateInstance(
-            typeof(IResourceCollection).Assembly.GetType("Aspire.Hosting.ApplicationModel.ResourceCollection")!)!;
-        resources.Add(resource);
-        await azurePreparer.BeforeStartAsync(new DistributedApplicationModel(resources));
+        if (!skipPreparer)
+        {
+            var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+            var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext);
+            IResourceCollection resources = (IResourceCollection)Activator.CreateInstance(
+                typeof(IResourceCollection).Assembly.GetType("Aspire.Hosting.ApplicationModel.ResourceCollection")!)!;
+            resources.Add(resource);
+            await azurePreparer.BeforeStartAsync(new DistributedApplicationModel(resources));
+        }
 
         string manifestDir = Directory.CreateTempSubdirectory(resource.Name).FullName;
         var manifestNode = await ManifestUtils.GetManifest(resource, manifestDir);

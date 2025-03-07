@@ -1841,7 +1841,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (_, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (_, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
         var expectedBicep =
         """
