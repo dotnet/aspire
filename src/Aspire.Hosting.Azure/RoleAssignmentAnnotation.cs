@@ -6,11 +6,11 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// 
+/// Specifies the roles that the current resource should be assigned to the target resource.
 /// </summary>
-/// <param name="target"></param>
-/// <param name="roles"></param>
-public class RoleAssignmentAnnotation(AzureProvisioningResource target, IReadOnlyList<RoleDefinition> roles) : IResourceAnnotation
+/// <param name="target">The Azure resource that the current resource will interact with.</param>
+/// <param name="roles">The roles that the current resource should be assigned to <paramref name="target"/>.</param>
+public class RoleAssignmentAnnotation(AzureProvisioningResource target, IReadOnlySet<RoleDefinition> roles) : IResourceAnnotation
 {
     /// <summary>
     /// 
@@ -20,5 +20,5 @@ public class RoleAssignmentAnnotation(AzureProvisioningResource target, IReadOnl
     /// <summary>
     /// 
     /// </summary>
-    public IReadOnlyList<RoleDefinition> Roles { get; } = roles;
+    public IReadOnlySet<RoleDefinition> Roles { get; } = roles;
 }

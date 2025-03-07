@@ -7,13 +7,17 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
-// Prepares Azure resources for provisioning and publish
+/// <summary>
+/// Prepares Azure resources for provisioning and publish.
+///
+/// This includes preparing role assignment annotations for Azure resources.
+/// </summary>
 internal sealed class AzureResourcePreparer(
     IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext
     ) : IDistributedApplicationLifecycleHook
 {
-    private static List<(IResource Resource, IAzureResource AzureResource)> GetAzureResourcesFromAppModel(DistributedApplicationModel appModel)
+    internal static List<(IResource Resource, IAzureResource AzureResource)> GetAzureResourcesFromAppModel(DistributedApplicationModel appModel)
     {
         // Some resources do not derive from IAzureResource but can be handled
         // by the Azure provisioner because they have the AzureBicepResourceAnnotation
@@ -43,10 +47,9 @@ internal sealed class AzureResourcePreparer(
         return azureResources;
     }
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var azureResources = GetAzureResourcesFromAppModel(appModel);
-
         if (azureResources.Count == 0)
         {
             return;
@@ -147,7 +150,7 @@ internal sealed class AzureResourcePreparer(
                         else
                         {
                             // in PublishMode, we copy the default role assignments to the compute resource
-                            resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, [.. defaults.Roles]));
+                            resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, defaults.Roles));
                         }
                     }
                 }

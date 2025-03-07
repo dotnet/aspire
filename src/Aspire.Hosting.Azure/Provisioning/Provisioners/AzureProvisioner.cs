@@ -42,49 +42,18 @@ internal sealed class AzureProvisioner(
 
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    private static List<(IResource Resource, IAzureResource AzureResource)> GetAzureResourcesFromAppModel(DistributedApplicationModel appModel)
-    {
-        // Some resources do not derive from IAzureResource but can be handled
-        // by the Azure provisioner because they have the AzureBicepResourceAnnotation
-        // which holds a reference to the surrogate AzureBicepResource which implements
-        // IAzureResource and can be used by the Azure Bicep Provisioner.
-
-        var azureResources = new List<(IResource, IAzureResource)>();
-        foreach (var resource in appModel.Resources)
-        {
-            if (resource.IsContainer())
-            {
-                continue;
-            }
-            else if (resource is IAzureResource azureResource)
-            {
-                // If we are dealing with an Azure resource then we just return it.
-                azureResources.Add((resource, azureResource));
-            }
-            else if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
-            {
-                // If we aren't an Azure resource and there is no surrogate, return null for
-                // the Azure resource in the tuple (we'll filter it out later.
-                azureResources.Add((resource, annotation.Resource));
-            }
-        }
-
-        return azureResources;
-    }
-
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var azureResources = GetAzureResourcesFromAppModel(appModel);
-
-        if (azureResources.Count == 0)
+        // AzureProvisioner only applies to RunMode
+        if (executionContext.IsPublishMode)
         {
             return;
         }
 
-        // TODO: Make this more general purpose
-        if (executionContext.IsPublishMode)
+        var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(appModel);
+        if (azureResources.Count == 0)
         {
             return;
         }

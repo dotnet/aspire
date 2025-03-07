@@ -6,10 +6,18 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// The set of role assignments that have been applied to an Azure resource
-/// and should be generated in its bicep template.
+/// Represents the role assignments that have been applied to an Azure resource
+/// and should be included in its Bicep template.
 /// </summary>
-/// <param name="roles">The list of role assignments to generate in the resource's bicep template.</param>
+/// <param name="roles">The role assignments to generate in the resource's Bicep template.</param>
+/// <remarks>
+/// <see cref="AppliedRoleAssignmentsAnnotation"/> are used when the entire application utilizes a single managed identity.
+/// For instance, during local development provisioning, all resources will use the same managed identity,
+/// which is the currently logged-in developer.
+/// 
+/// When using provisioning infrastructure that supports targeted role assignments (e.g., AddAzureContainerAppsInfrastructure),
+/// <see cref="AppliedRoleAssignmentsAnnotation"/> are not used.
+/// </remarks>
 public class AppliedRoleAssignmentsAnnotation(HashSet<RoleDefinition> roles) : IResourceAnnotation
 {
     /// <summary>

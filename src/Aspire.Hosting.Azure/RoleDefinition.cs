@@ -4,10 +4,8 @@
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// 
+/// Represents a role definition within an Azure resource.
 /// </summary>
-/// <param name="Id"></param>
-/// <param name="Description"></param>
-
-// REVIEW: This should be part of the Azure.Provisioning APIs
-public record struct RoleDefinition(string Id, string Description);
+/// <param name="Id">The unique identifier for the role definition.</param>
+/// <param name="Name">The name of the role definition.</param>
+public record struct RoleDefinition(string Id, string Name);

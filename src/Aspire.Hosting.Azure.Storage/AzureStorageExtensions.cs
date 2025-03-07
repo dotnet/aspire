@@ -320,15 +320,30 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// 
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Storage account.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="destination"></param>
-    /// <param name="roles"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<T> WithRoleAssignments<T>(this IResourceBuilder<T> builder,
-        IResourceBuilder<AzureStorageResource> destination, params StorageBuiltInRole[] roles)
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="destination">The target Azure Storage account.</param>
+    /// <param name="roles">The built-in storage roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Adds the StorageBlobDataContributor role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var storage = builder.AddAzureStorage("storage");
+    /// var blobs = storage.AddBlobs("blobs");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
+    ///   .WithReference(blobs);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureStorageResource> destination,
+        params StorageBuiltInRole[] roles)
         where T : IResource
     {
         return builder.WithAnnotation(new RoleAssignmentAnnotation(destination.Resource, CreateRoleDefinitions(roles)));
@@ -339,8 +354,6 @@ public static class AzureStorageExtensions
         return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
     }
 
-    private static IReadOnlyList<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<StorageBuiltInRole> roles)
-    {
-        return [.. roles.Select(r => new RoleDefinition(r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
-    }
+    private static HashSet<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<StorageBuiltInRole> roles) =>
+        [.. roles.Select(r => new RoleDefinition(r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
 }

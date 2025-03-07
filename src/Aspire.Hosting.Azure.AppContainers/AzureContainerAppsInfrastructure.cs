@@ -331,7 +331,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     infra.Add(provisionable);
                     foreach (var role in roles)
                     {
-                        var roleAssignment = CreateRoleAssignment(prefix, provisionable, role.Id, role.Description, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                        var roleAssignment = CreateRoleAssignment(prefix, provisionable, role.Id, role.Name, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
                         infra.Add(roleAssignment);
                     }
                 }
@@ -352,14 +352,14 @@ internal sealed class AzureContainerAppsInfrastructure(
                 infra.Add(provisionable);
                 foreach (var role in roles)
                 {
-                    var roleAssignment = CreateRoleAssignment(prefix, provisionable, role.Id, role.Description, appIdentityId, RoleManagementPrincipalType.ServicePrincipal, appIdentityPrincipalId);
+                    var roleAssignment = CreateRoleAssignment(prefix, provisionable, role.Id, role.Name, appIdentityId, RoleManagementPrincipalType.ServicePrincipal, appIdentityPrincipalId);
                     infra.Add(roleAssignment);
                 }
             }
 
-            public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string roleId, string roleDescription, BicepValue<string> userAssignedIdentityId, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
+            public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string roleId, string roleName, BicepValue<string> userAssignedIdentityId, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
             {
-                var raName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_{roleDescription}");
+                var raName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_{roleName}");
                 var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
 
                 return new RoleAssignment(raName)
