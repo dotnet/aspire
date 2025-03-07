@@ -50,6 +50,9 @@ jobs:
             exit 1
           }
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Trust HTTPS development certificate
         if: matrix.os == 'ubuntu-latest'
         run: ${{ matrix.dotnet_script }} dev-certs https --trust
@@ -81,9 +84,6 @@ jobs:
         # nested docker containers not supported on windows
         if: matrix.os == 'ubuntu-latest'
         run: docker info
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Build with packages
         if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
