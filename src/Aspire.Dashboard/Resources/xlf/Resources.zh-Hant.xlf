@@ -82,6 +82,11 @@
         <target state="translated">動作</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesChangeViewOptions">
+        <source>View options</source>
+        <target state="new">View options</target>
+        <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="translated">容器引數</target>
