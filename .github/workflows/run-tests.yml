@@ -53,32 +53,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Trust HTTPS development certificate
+      - name: Trust HTTPS development certificate (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: ${{ matrix.dotnet_script }} dev-certs https --trust
 
-      - name: Trust HTTPS development certificate
+      - name: Trust HTTPS development certificate (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           dotnet dev-certs https --clean
-          # on windows `dotnet dev-certs https shows a dialog, so instead install the certificate with powershell
-          # Generate new certificate.
-          dotnet dev-certs https
-
-          # Export the new certificate into a file.
-          $pfxPath = "$(Get-Location)\dotnet-dev-cert-https.pfx"
-          dotnet dev-certs https --export-path $pfxPath
-
-          # Import the certificate to the machine-wide certificate store.
-          Import-Certificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My
-
-          # Clean up.
-          Remove-Item $pfxPath -Force
-
-          # Validate new certificate. Unfortunately, "dotnet dev-certs https --check --trust" still reports the
-          # certificate as not trusted.
+          New-SelfSignedCertificate -FriendlyName &'ASP.NET Core HTTPS development certificate&' -DnsName @(&'localhost&') -Subject &'CN = localhost&' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm sha256 -CertStoreLocation &'Cert:\CurrentUser\My&' -TextExtension @(&'2.5.29.37={text}1.3.6.1.5.5.7.3.1&',&'1.3.6.1.4.1.311.84.1.1={hex}02&',&'2.5.29.19={text}&') -KeyUsage DigitalSignature,KeyEncipherment"
           dotnet dev-certs https --check --verbose
+
+      #- name: Trust HTTPS development certificate (Windows)
+        #if: matrix.os == 'windows-latest'
+        #shell: pwsh
+        #run: |
+          #dotnet dev-certs https --clean
+          ## on windows `dotnet dev-certs https shows a dialog, so instead install the certificate with powershell
+          ## Generate new certificate.
+          #dotnet dev-certs https
+
+          ## Export the new certificate into a file.
+          #$pfxPath = "$(Get-Location)\dotnet-dev-cert-https.pfx"
+          #dotnet dev-certs https --export-path $pfxPath
+
+          ## Import the certificate to the machine-wide certificate store.
+          #Import-Certificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My
+
+          ## Clean up.
+          #Remove-Item $pfxPath -Force
+
+          ## Validate new certificate. Unfortunately, "dotnet dev-certs https --check --trust" still reports the
+          ## certificate as not trusted.
+          #dotnet dev-certs https --check --verbose
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
