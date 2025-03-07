@@ -14,7 +14,7 @@ internal sealed class DistributedApplicationRunner(DistributedApplicationExecuti
     {
         if (executionContext.IsPublishMode)
         {
-            return serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest").PublishAsync(model, stoppingToken);
+            return serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>(executionContext.PublisherName).PublishAsync(model, stoppingToken);
         }
 
         return Task.CompletedTask;
