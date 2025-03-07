@@ -1103,7 +1103,7 @@ public static class ResourceBuilderExtensions
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
     /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -1161,10 +1161,43 @@ public static class ResourceBuilderExtensions
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
     /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The command will be added to the resource represented by <paramref name="builder"/>.
+    /// </para>
+    /// <para>
+    /// If <paramref name="endpointName"/> is specified, the request will be sent to the endpoint with that name on the resource represented by <paramref name="builder"/>.
+    /// If an endpoint with that name is not found, or the endpoint with that name is not an HTTP endpoint, an exception will be thrown.
+    /// </para>
+    /// <para>
+    /// If no <paramref name="endpointName"/> is specified, the first HTTP endpoint found on the resource will be used.
+    /// HTTP endpoints with an <c>https</c> scheme are preferred over those with an <c>http</c> scheme. If no HTTP endpoint
+    /// is found on the resource, an exception will be thrown.
+    /// </para>
+    /// <para>
+    /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
+    /// </para>
+    /// <para>
+    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// </para>
+    /// <para>
+    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
+    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// </para>
+    /// <para>
+    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// before the request is sent.
+    /// </para>
+    /// <para>
+    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -1219,7 +1252,7 @@ public static class ResourceBuilderExtensions
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
     /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -1354,9 +1387,9 @@ public static class ResourceBuilderExtensions
         where TResource : IResourceWithEndpoints
         => () =>
         {
-            // If endpointNames is supplied, find a matching endpoint using those names and if not found throw an exception,
+            // If endpointNames is supplied, find a matching endpoint using those names and if not an HTTP endpoint or not found throw an exception,
             // otherwise use the first HTTP endpoint (preferring HTTPS over HTTP),
-            // then throw an exception if no endpoint is found.
+            // otherwise throw an exception if no endpoint is found.
 
             var endpoints = builder.Resource.GetEndpoints();
             EndpointReference? matchingEndpoint = null;
@@ -1368,6 +1401,10 @@ public static class ResourceBuilderExtensions
                     matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, name, StringComparisons.EndpointAnnotationName));
                     if (matchingEndpoint is not null)
                     {
+                        if (!s_httpSchemes.Contains(matchingEndpoint.Scheme, StringComparers.EndpointAnnotationUriScheme))
+                        {
+                            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint with name '{matchingEndpoint.EndpointName}' and scheme '{matchingEndpoint.Scheme}' is not an HTTP endpoint.");
+                        }
                         return matchingEndpoint;
                     }
                 }
