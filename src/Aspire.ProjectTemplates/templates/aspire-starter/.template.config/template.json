@@ -259,7 +259,7 @@
       "description": "The version of xUnit.net to use.",
       "displayName": "xUnit.net version",
       "datatype": "choice",
-      "isEnabled": "TestFramework == xUnit.net",
+      "isEnabled": "(TestFramework == 'xUnit.net')",
       "replaces": "XUnitVersion",
       "choices": [
         {
