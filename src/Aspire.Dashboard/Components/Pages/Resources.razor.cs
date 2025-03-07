@@ -196,6 +196,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
         _isLoading = false;
 
+        return;
+
         async Task SubscribeResourcesAsync()
         {
             var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
