@@ -3,13 +3,14 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Kubernetes;
 
 /// <summary>
 /// TODO
 /// </summary>
-public sealed class KubernetesPublisher : IDistributedApplicationPublisher
+public sealed class KubernetesPublisher(IOptions<KubernetesPublisherOptions> options) : IDistributedApplicationPublisher
 {
     /// <summary>
     /// TODO
@@ -19,6 +20,7 @@ public sealed class KubernetesPublisher : IDistributedApplicationPublisher
     /// <returns></returns>
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
+        _ = options;
         return Task.CompletedTask;
     }
 }

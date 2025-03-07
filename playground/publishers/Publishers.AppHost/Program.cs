@@ -1,15 +1,24 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Kubernetes;
+// using Aspire.Hosting.Azure;
+// using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Docker;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPublisher<KubernetesPublisher>("k8s");
-builder.AddPublisher<AzureContainerAppsPublisher>("aca");
-builder.AddPublisher<DockerComposePublisher>("docker-compose");
+builder.AddDockerCompose("docker-compose", options => {
+    options.DefaultContainerRegistry = "override.azurecr.io";
+    // Do stuff here.
+});
+
+// builder.AddKubernetes("k8s", options => {
+//     // Do stuff here.
+// });
+
+// builder.AddAzureContainerApps("aca", options => {
+//     // Do stuff here.
+// });
 
 var db = builder.AddAzurePostgresFlexibleServer("pg")
                 .WithPasswordAuthentication()

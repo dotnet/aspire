@@ -3,13 +3,14 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
 /// TODO
 /// </summary>
-public sealed class DockerComposePublisher : IDistributedApplicationPublisher
+public sealed class DockerComposePublisher(IOptions<DockerComposePublisherOptions> options) : IDistributedApplicationPublisher
 {
     /// <summary>
     /// TODO
@@ -19,6 +20,7 @@ public sealed class DockerComposePublisher : IDistributedApplicationPublisher
     /// <returns></returns>
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
+        _ = options;
         return Task.CompletedTask;
     }
 }

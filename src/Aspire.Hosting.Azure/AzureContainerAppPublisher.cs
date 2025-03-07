@@ -3,13 +3,14 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// TODO
 /// </summary>
-public sealed class AzureContainerAppsPublisher : IDistributedApplicationPublisher
+public sealed class AzureContainerAppsPublisher(IOptions<AzureContainerAppsPublisherOptions> options) : IDistributedApplicationPublisher
 {
     /// <summary>
     /// TODO
@@ -19,6 +20,7 @@ public sealed class AzureContainerAppsPublisher : IDistributedApplicationPublish
     /// <returns></returns>
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
+        _ = options;
         return Task.CompletedTask;
     }
 }
