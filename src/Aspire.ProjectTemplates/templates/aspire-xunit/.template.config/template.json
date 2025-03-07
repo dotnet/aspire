@@ -178,7 +178,7 @@
         {
           "choice": "v3",
           "displayName": "v3",
-          "description": "Chooses xUnit v3 with VSTest (Aspire version 9.1 and later only)"
+          "description": "Chooses xUnit.net v3 with VSTest (Aspire version 9.1 and later only)"
         },
         {
           "choice": "v3mtp",
