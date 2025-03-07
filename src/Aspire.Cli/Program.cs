@@ -120,7 +120,8 @@ public class Program
             {
                 throw new InvalidOperationException("No project file found.");
             }
-            else {
+            else
+            {
                 return new FileInfo(projectFilePath);
             }
             
