@@ -173,7 +173,7 @@
         {
           "choice": "v2",
           "displayName": "v2",
-          "description": "Chooses xUnit v2 with VSTest"
+          "description": "Chooses xUnit.net v2 with VSTest"
         },
         {
           "choice": "v3",
