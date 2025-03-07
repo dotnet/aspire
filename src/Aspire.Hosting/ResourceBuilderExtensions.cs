@@ -1365,14 +1365,11 @@ public static class ResourceBuilderExtensions
                     return CommandResults.Failure(ex);
                 }
             },
-            updateState: context =>
-            {
-                return targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
-            },
+            updateState: context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled,
             displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
-            iconVariant: IconVariant.Regular,
+            iconVariant: iconVariant,
             isHighlighted: isHighlighted);
 
         return builder;
