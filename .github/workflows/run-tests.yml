@@ -70,6 +70,9 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
+          # install the dev cert
+          dotnet dev-certs https
+
           # Thanks for @ damianedwards
           #
           # Define the OID of the certificate you want to trust
@@ -95,7 +98,7 @@ jobs:
 
               Write-Host "Certificate successfully added to Trusted Root Certification Authorities."
           } else {
-              Write-Host "Certificate with OID $oid not found."
+              Write-Error "Certificate with OID $oid not found."
           }
 
           # Close the source store
