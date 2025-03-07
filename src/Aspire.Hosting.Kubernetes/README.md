@@ -18,7 +18,6 @@ Then, in the _Program.cs_ file of `AppHost`, register the publisher:
 
 ```csharp
 builder.AddPublisher<KubernetesPublisher>("k8s");
-});
 ```
 
 ```shell
