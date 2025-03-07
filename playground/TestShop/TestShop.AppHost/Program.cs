@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDb = builder.AddPostgres("postgres")
@@ -21,6 +23,20 @@ basketCache.WithRedisCommander(c =>
 
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
                           .WithReference(catalogDb);
+
+if (builder.Environment.IsDevelopment())
+{
+    var resetDbKey = Guid.NewGuid().ToString();
+    catalogDbApp.WithEnvironment("DatabaseResetKey", resetDbKey)
+                .WithHttpCommand("/reset-db", "Reset Database",
+                    confirmationMessage: "Are you sure you want to reset the catalog database?",
+                    iconName: "DatabaseLightning",
+                    configureRequest: request =>
+                    {
+                        request.Headers.Add("Authorization", $"Key {resetDbKey}");
+                        return Task.CompletedTask;
+                    });
+}
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)

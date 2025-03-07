@@ -8,7 +8,6 @@ using Aspire.Hosting.Publishing;
 using HealthChecks.Uris;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -1190,9 +1189,13 @@ public static class ResourceBuilderExtensions
                 : PreferredEndpointSelector(builder, s_httpSchemes),
             method: method,
             httpClientName: httpClientName,
+            configureRequest: configureRequest,
+            getCommandResult: getCommandResult,
+            commandName: commandName,
+            displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
-            commandName: commandName,
+            iconVariant: iconVariant,
             isHighlighted: isHighlighted);
 
     /// <summary>
@@ -1257,7 +1260,7 @@ public static class ResourceBuilderExtensions
         this IResourceBuilder<TResource> builder,
         string path,
         string displayName,
-        Func<EndpointReference>? endpointSelector = null,
+        Func<EndpointReference>? endpointSelector,
         HttpMethod? method = null,
         string? httpClientName = null,
         Func<HttpRequestMessage, Task>? configureRequest = null,
@@ -1275,14 +1278,26 @@ public static class ResourceBuilderExtensions
         endpointSelector ??= PreferredEndpointSelector(builder);
 
         var endpoint = endpointSelector()
-            ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no HTTP endpoint was found.");
+            ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
 
-        commandName ??= $"http-{method.Method.ToLowerInvariant()}-request";
+        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}";
 
-        var endpointResourceReady = false;
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(endpoint.Resource, (e, ct) =>
+        var targetRunning = false;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
         {
-            endpointResourceReady = true;
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            var watchTask = Task.Run(async () =>
+            {
+                await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
+                {
+                    if (resourceEvent.Resource == endpoint.Resource)
+                    {
+                        var resourceState = resourceEvent.Snapshot.State?.Text;
+                        targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                    }
+                }
+            }, ct);
+
             return Task.CompletedTask;
         });
 
@@ -1317,9 +1332,10 @@ public static class ResourceBuilderExtensions
                     return CommandResults.Failure(ex);
                 }
             },
-            updateStateContext => endpoint.IsAllocated && endpointResourceReady
-                ? ResourceCommandState.Enabled
-                : ResourceCommandState.Disabled,
+            updateState: context =>
+            {
+                return targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+            },
             displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
@@ -1338,9 +1354,9 @@ public static class ResourceBuilderExtensions
         where TResource : IResourceWithEndpoints
         => () =>
         {
-            // If endpointNames is supplied, try to find a matching endpoint using those names first,
-            // then fallback to using the first HTTP endpoint (preferring HTTPS over HTTP), and finally throw an exception
-            // if no endpoint is found.
+            // If endpointNames is supplied, find a matching endpoint using those names and if not found throw an exception,
+            // otherwise use the first HTTP endpoint (preferring HTTPS over HTTP),
+            // then throw an exception if no endpoint is found.
 
             var endpoints = builder.Resource.GetEndpoints();
             EndpointReference? matchingEndpoint = null;
@@ -1352,9 +1368,13 @@ public static class ResourceBuilderExtensions
                     matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, name, StringComparisons.EndpointAnnotationName));
                     if (matchingEndpoint is not null)
                     {
-                        break;
+                        return matchingEndpoint;
                     }
                 }
+
+                // No endpoint found with the specified names
+                var endpointNamesString = string.Join(", ", endpointNames);
+                throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no endpoint was found matching one of the specified names: {endpointNamesString}");
             }
 
             foreach (var scheme in s_httpSchemes)
@@ -1362,16 +1382,11 @@ public static class ResourceBuilderExtensions
                 matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, scheme, StringComparisons.EndpointAnnotationUriScheme));
                 if (matchingEndpoint is not null)
                 {
-                    break;
+                    return matchingEndpoint;
                 }
             }
 
-            if (matchingEndpoint is null)
-            {
-                throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
-            }
-
-            return matchingEndpoint;
+            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
         };
 
     /// <summary>
