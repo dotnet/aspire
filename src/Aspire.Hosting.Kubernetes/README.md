@@ -9,7 +9,7 @@ Provides publishing extensions to .NET Aspire for Kubernetes.
 In your AppHost project, install the .NET Aspire Kubernetes Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Docker
+dotnet add package Aspire.Hosting.Kubernetes
 ```
 
 ## Usage example
