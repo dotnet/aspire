@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Kubernetes;
 
 /// <summary>
-/// Extensions for adding a Docker Compose publisher to the application model.
+/// Extensions for adding a Kubernetes publisher to the application model.
 /// </summary>
 public static class KubernetesPublisherExtensions
 {
