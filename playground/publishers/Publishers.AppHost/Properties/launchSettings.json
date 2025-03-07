@@ -44,7 +44,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher azure-container-apps --output-path publish/azure-container-apps",
+      "commandLineArgs": "--publisher azure-container-apps",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
@@ -56,7 +56,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher k8s --output-path publish/k8s --default-container-registry foo.azurecr.io",
+      "commandLineArgs": "--publisher k8s --output-path publish/k8s",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
@@ -68,7 +68,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher docker-compose --output-path publish/docker-compose --default-container-registry foo.azurecr.io",
+      "commandLineArgs": "--publisher docker-compose --output-path publish/docker-compose",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",

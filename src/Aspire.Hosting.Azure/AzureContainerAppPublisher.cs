@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
@@ -10,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// TODO
 /// </summary>
-public sealed class AzureContainerAppsPublisher(IOptions<AzureContainerAppsPublisherOptions> options) : IDistributedApplicationPublisher
+internal sealed class AzureContainerAppsPublisher([ServiceKey]string name, IOptionsMonitor<AzureContainerAppsPublisherOptions> options) : IDistributedApplicationPublisher
 {
     /// <summary>
     /// TODO
@@ -20,7 +21,7 @@ public sealed class AzureContainerAppsPublisher(IOptions<AzureContainerAppsPubli
     /// <returns></returns>
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        _ = options;
+        _ = options.Get(name);
         return Task.CompletedTask;
     }
 }

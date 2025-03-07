@@ -3,7 +3,9 @@
 
 // using Aspire.Hosting.Azure;
 // using Aspire.Hosting.Kubernetes;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Docker;
+using Aspire.Hosting.Kubernetes;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -12,13 +14,13 @@ builder.AddDockerCompose("docker-compose", options => {
     // Do stuff here.
 });
 
-// builder.AddKubernetes("k8s", options => {
-//     // Do stuff here.
-// });
+builder.AddKubernetes("k8s", options => {
+    // Do stuff here.
+});
 
-// builder.AddAzureContainerApps("aca", options => {
-//     // Do stuff here.
-// });
+builder.AddAzureContainerApps("aca", options => {
+    // Do stuff here.
+});
 
 var db = builder.AddAzurePostgresFlexibleServer("pg")
                 .WithPasswordAuthentication()

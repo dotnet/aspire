@@ -26,13 +26,10 @@ public static class PublisherDistributedApplicationBuilderExtensions
         // TODO: We need to add validation here since this needs to be something we refer to on the CLI.
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, TPublisher>(name);
 
-        // The reason why all publisher options are bound to the same "Publishing" configuration
-        // section is that we expect a lot of overlap in the set of options that they provide. For
-        // example we might have multiple publishers that need the notion of a container registry
-        // from which they pull container images (useful for Docker Compose and Kubernetes). Another
-        // example of a common publishing setting would be output path.
-        builder.Services.Configure<TPublisherOptions>(builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));
-        builder.Services.Configure<TPublisherOptions>(options =>
+        builder.Services.Configure<TPublisherOptions>("name", configureOptions!);
+
+        builder.Services.Configure<TPublisherOptions>(name, builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));
+        builder.Services.Configure<TPublisherOptions>(name, options =>
         {
             configureOptions?.Invoke(options);
         });
