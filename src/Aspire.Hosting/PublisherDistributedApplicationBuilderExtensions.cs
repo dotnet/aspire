@@ -14,12 +14,24 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <summary>
     /// Adds a publisher to the distributed application for use by the Aspire CLI.
     /// </summary>
-    /// <typeparam name="T">The type of the publisher.</typeparam>
+    /// <typeparam name="TPublisher">The type of the publisher.</typeparam>
+    /// <typeparam name="TPublisherOptions">The type of the publisher.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>. </param>
     /// <param name="name">The name of the publisher.</param>
-    public static void AddPublisher<T>(this IDistributedApplicationBuilder builder, string name) where T: class, IDistributedApplicationPublisher
+    /// <param name="configureOptions">Callback to configure options for the publisher.</param>
+    public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
+        where TPublisher: class, IDistributedApplicationPublisher
+        where TPublisherOptions: class
     {
         // TODO: We need to add validation here since this needs to be something we refer to on the CLI.
-        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, T>(name);
+        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, TPublisher>(name);
+
+        builder.Services.Configure<TPublisherOptions>("name", configureOptions!);
+
+        builder.Services.Configure<TPublisherOptions>(name, builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));
+        builder.Services.Configure<TPublisherOptions>(name, options =>
+        {
+            configureOptions?.Invoke(options);
+        });
     }
 }
