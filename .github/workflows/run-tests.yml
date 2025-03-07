@@ -58,6 +58,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
+          dotnet dev-certs https --clean
           # on windows `dotnet dev-certs https shows a dialog, so instead install the certificate with powershell
           # Generate new certificate.
           dotnet dev-certs https
