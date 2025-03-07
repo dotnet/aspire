@@ -8,7 +8,9 @@ using Aspire.Hosting.Publishing;
 using HealthChecks.Uris;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -1148,6 +1150,7 @@ public static class ResourceBuilderExtensions
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
     /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
+    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
     /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
     /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
     /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
@@ -1169,6 +1172,7 @@ public static class ResourceBuilderExtensions
         string displayName,
         [EndpointName] string? endpointName = null,
         HttpMethod? method = null,
+        string? httpClientName = null,
         Func<HttpRequestMessage, Task>? configureRequest = null,
         Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
@@ -1185,6 +1189,7 @@ public static class ResourceBuilderExtensions
                 ? PreferredEndpointSelector(builder, [endpointName])
                 : PreferredEndpointSelector(builder, s_httpSchemes),
             method: method,
+            httpClientName: httpClientName,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
             commandName: commandName,
@@ -1199,6 +1204,7 @@ public static class ResourceBuilderExtensions
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointSelector">A callback that selects the HTTP endpoint to send the request to when the command is invoked.</param>
     /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
+    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
     /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
     /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
     /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
@@ -1234,6 +1240,11 @@ public static class ResourceBuilderExtensions
     /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
+    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
+    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// </para>
+    /// <para>
     /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
     /// before the request is sent.
     /// </para>
@@ -1248,6 +1259,7 @@ public static class ResourceBuilderExtensions
         string displayName,
         Func<EndpointReference>? endpointSelector = null,
         HttpMethod? method = null,
+        string? httpClientName = null,
         Func<HttpRequestMessage, Task>? configureRequest = null,
         Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
@@ -1283,7 +1295,7 @@ public static class ResourceBuilderExtensions
                 }
 
                 var uri = new UriBuilder(endpoint.Url) { Path = path }.Uri;
-                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName ?? Options.DefaultName);
                 var request = new HttpRequestMessage(method, uri);
                 if (configureRequest is not null)
                 {
@@ -1298,11 +1310,11 @@ public static class ResourceBuilderExtensions
                     }
 
                     response.EnsureSuccessStatusCode();
-                    return new ExecuteCommandResult { Success = true };
+                    return CommandResults.Success();
                 }
                 catch (Exception ex)
                 {
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = ex.Message };
+                    return CommandResults.Failure(ex);
                 }
             },
             updateStateContext => endpoint.IsAllocated && endpointResourceReady
@@ -1326,14 +1338,38 @@ public static class ResourceBuilderExtensions
         where TResource : IResourceWithEndpoints
         => () =>
         {
+            // If endpointNames is supplied, try to find a matching endpoint using those names first,
+            // then fallback to using the first HTTP endpoint (preferring HTTPS over HTTP), and finally throw an exception
+            // if no endpoint is found.
+
             var endpoints = builder.Resource.GetEndpoints();
             EndpointReference? matchingEndpoint = null;
+
             if (endpointNames is { Length: > 0 })
             {
-                matchingEndpoint = endpoints.FirstOrDefault(e => endpointNames.Contains(e.EndpointName, StringComparers.EndpointAnnotationName));
+                foreach (var name in endpointNames)
+                {
+                    matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, name, StringComparisons.EndpointAnnotationName));
+                    if (matchingEndpoint is not null)
+                    {
+                        break;
+                    }
+                }
             }
-            matchingEndpoint ??= endpoints.FirstOrDefault(e => s_httpSchemes.Contains(e.Scheme))
-                ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
+
+            foreach (var scheme in s_httpSchemes)
+            {
+                matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, scheme, StringComparisons.EndpointAnnotationUriScheme));
+                if (matchingEndpoint is not null)
+                {
+                    break;
+                }
+            }
+
+            if (matchingEndpoint is null)
+            {
+                throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as it has no HTTP endpoints.");
+            }
 
             return matchingEndpoint;
         };

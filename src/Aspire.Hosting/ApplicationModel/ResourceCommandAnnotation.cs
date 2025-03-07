@@ -122,7 +122,19 @@ public static class CommandResults
     /// <summary>
     /// Produces a success result.
     /// </summary>
-    public static ExecuteCommandResult Success() => new ExecuteCommandResult { Success = true };
+    public static ExecuteCommandResult Success() => new() { Success = true };
+
+    /// <summary>
+    /// Produces an unsuccessful result with an error message.
+    /// </summary>
+    /// <param name="errorMessage">An optional error message.</param>
+    public static ExecuteCommandResult Failure(string? errorMessage = null) => new() { Success = false, ErrorMessage = errorMessage };
+
+    /// <summary>
+    /// Produces an unsuccessful result from an <see cref="Exception"/>. <see cref="Exception.Message"/> is used as the error message.
+    /// </summary>
+    /// <param name="exception">The exception to get the error message from.</param>
+    public static ExecuteCommandResult Failure(Exception exception) => Failure(exception.Message);
 }
 
 /// <summary>
