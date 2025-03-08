@@ -39,7 +39,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        if (PlaywrightProvider.HasPlaywrightSupport)
+        if (PlaywrightProvider.HasPlaywrightSupport && RequiresSSLCertificateAttribute.IsSupported)
         {
             await using (var context = await CreateNewBrowserContextAsync())
             {
@@ -65,11 +65,8 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
 
             try
             {
-                if (RequiresSSLCertificateAttribute.IsSupported)
-                {
-                    var page = await project.OpenDashboardPageAsync(context);
-                    await CheckDashboardHasResourcesAsync(page, []);
-                }
+                var page = await project.OpenDashboardPageAsync(context);
+                await CheckDashboardHasResourcesAsync(page, []);
             }
             finally
             {

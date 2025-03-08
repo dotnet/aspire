@@ -7,13 +7,10 @@ namespace Aspire.Components.Common.Tests;
 
 [TraitDiscoverer("Aspire.Components.Common.Tests.RequiresSSLCertificateDiscoverer", "Aspire.Components.Common.Tests")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
-public class RequiresSSLCertificateAttribute : Attribute, ITraitAttribute
+public class RequiresSSLCertificateAttribute(string? reason = null) : Attribute, ITraitAttribute
 {
-    public static bool IsSupported => !OperatingSystem.IsWindows();
+    // Not supported on Windows CI
+    public static bool IsSupported => !PlatformDetection.IsRunningOnCI || !OperatingSystem.IsWindows();
 
-    public string? Reason { get; init; }
-    public RequiresSSLCertificateAttribute(string? reason = null)
-    {
-        Reason = reason;
-    }
+    public string? Reason { get; init; } = reason;
 }
