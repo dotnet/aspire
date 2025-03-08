@@ -12,4 +12,9 @@ public sealed class DockerComposePublisherOptions
     /// The container registry to use.
     /// </summary>
     public string? DefaultContainerRegistry { get; set; }
+
+    /// <summary>
+    /// Gets or sets the file system path where the generated docker-compose.yaml file will be saved.
+    /// </summary>
+    public string OutputPath { get; set; } = null!;
 }
