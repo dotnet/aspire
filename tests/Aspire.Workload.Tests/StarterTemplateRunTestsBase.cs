@@ -7,9 +7,11 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
 using System.Net.Http.Json;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Workload.Tests;
 
+[RequiresSSLCertificate]
 public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClassFixture<T> where T : TemplateAppFixture
 {
     protected readonly T _testFixture;

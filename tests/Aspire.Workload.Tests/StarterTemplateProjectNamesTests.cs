@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -25,6 +26,7 @@ public abstract class StarterTemplateProjectNamesTests : WorkloadTestsBase
 
     [Theory]
     [MemberData(nameof(ProjectNamesWithTestType_TestData))]
+    [RequiresSSLCertificate("Needs dashboard, web front end access")]
     public async Task StarterTemplateWithTest_ProjectNames(string prefix)
     {
         string id = $"{prefix}-{_testType}";
