@@ -18,6 +18,12 @@
       "isVisible": true,
       "persistenceScope": "shared",
       "persistenceScopeName": "aspireTemplates"
+    },
+    {
+      "id": "XUnitVersion",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
     }
   ],
   "unsupportedHosts": [

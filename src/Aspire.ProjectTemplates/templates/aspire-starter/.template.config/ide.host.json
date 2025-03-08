@@ -27,6 +27,12 @@
       "persistenceScopeName": "aspireTemplates"
     },
     {
+      "id": "XUnitVersion",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    },
+    {
       "id": "UseRedisCache",
       "isVisible": true,
       "persistenceScope": "templateGroup"
