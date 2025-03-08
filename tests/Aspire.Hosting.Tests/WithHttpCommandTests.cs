@@ -301,7 +301,7 @@ public class WithHttpCommandTests
         // Act/Assert
         await app.StartAsync().WaitAsync(s_startTimeout);
 
-        await app.ResourceNotifications.WaitForResourceAsync("servicea", KnownResourceStates.Starting).WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceAsync("servicea", KnownResourceStates.Starting).WaitAsync(s_healthyTimeout);
 
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
