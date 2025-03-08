@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Class to parse container references (e.g. "mcr.microsoft.com/dotnet/sdk:8.0")
 /// </summary>
-internal partial class ContainerReferenceParser
+internal sealed partial class ContainerReferenceParser
 {
     public static ContainerReference Parse(string input)
     {

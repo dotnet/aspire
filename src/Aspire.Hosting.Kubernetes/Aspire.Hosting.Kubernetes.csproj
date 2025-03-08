@@ -7,11 +7,16 @@
     <PackageTags>aspire hosting kubernetes</PackageTags>
     <Description>Kubernetes publishing for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Utils\ContainerReferenceParser.cs" />
   </ItemGroup>
 
 </Project>
