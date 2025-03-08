@@ -170,6 +170,40 @@ public class WithHttpCommandTests
     }
 
     [Fact]
+    public async Task WithHttpCommand_UsesEndpointSelector()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("servicea");
+        var callbackCalled = false;
+        var serviceB = builder.AddProject<Projects.ServiceA>("serviceb")
+            .WithHttpCommand("/status/200", "Do The Thing", commandName: "mycommand",
+            endpointSelector: () =>
+            {
+                callbackCalled = true;
+                return serviceA.GetEndpoint("http");
+            });
+        var command = serviceB.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = serviceB.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.True(callbackCalled);
+    }
+
+    [Fact]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
