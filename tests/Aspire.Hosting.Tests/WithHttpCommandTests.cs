@@ -67,6 +67,75 @@ public class WithHttpCommandTests
     }
 
     [Fact]
+    public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
+    {
+        // Arrange
+        var callbackCalled = false;
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithHttpCommand("/status/200", "Do The Thing",
+                commandName: "mycommand",
+                configureRequest: hrm =>
+                {
+                    callbackCalled = true;
+                    return Task.CompletedTask;
+                });
+        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = resourceBuilder.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.True(callbackCalled);
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
+    {
+        // Arrange
+        var callbackCalled = false;
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithHttpCommand("/status/200", "Do The Thing",
+                commandName: "mycommand",
+                getCommandResult: response =>
+                {
+                    callbackCalled = true;
+                    return Task.FromResult(CommandResults.Failure("A test error message"));
+                });
+        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = resourceBuilder.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.True(callbackCalled);
+        Assert.False(result.Success);
+        Assert.Equal("A test error message", result.ErrorMessage);
+    }
+
+    [Fact]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
