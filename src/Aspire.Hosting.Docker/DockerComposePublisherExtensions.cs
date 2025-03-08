@@ -17,6 +17,5 @@ public static class DockerComposePublisherExtensions
     public static void AddDockerCompose(this IDistributedApplicationBuilder builder, string name, Action<DockerComposePublisherOptions>? configureOptions = null)
     {
         builder.AddPublisher<DockerComposePublisher, DockerComposePublisherOptions>(name, configureOptions);
-
     }
 }
