@@ -8,6 +8,18 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
+    public static partial class ConnectionStringBuilderExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, string name, ApplicationModel.ReferenceExpression connectionStringExpression) { throw null; }
+    }
+
+    public sealed partial class ConnectionStringResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithoutLifetime
+    {
+        public ConnectionStringResource(string name, ApplicationModel.ReferenceExpression connectionStringExpression) : base(default!) { }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+    }
+
     public static partial class ContainerResourceBuilderExtensions
     {
         public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag) { throw null; }
@@ -54,6 +66,9 @@ namespace Aspire.Hosting
             where T : ApplicationModel.ContainerResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithImage<T>(this ApplicationModel.IResourceBuilder<T> builder, string image, string? tag = null)
+            where T : ApplicationModel.ContainerResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithImagePullPolicy<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.ImagePullPolicy pullPolicy)
             where T : ApplicationModel.ContainerResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithImageRegistry<T>(this ApplicationModel.IResourceBuilder<T> builder, string? registry)
@@ -172,6 +187,8 @@ namespace Aspire.Hosting
     {
         public DistributedApplicationExecutionContext(DistributedApplicationExecutionContextOptions options) { }
 
+        public DistributedApplicationExecutionContext(DistributedApplicationOperation operation, string publisherName) { }
+
         public DistributedApplicationExecutionContext(DistributedApplicationOperation operation) { }
 
         public bool IsPublishMode { get { throw null; } }
@@ -180,14 +197,20 @@ namespace Aspire.Hosting
 
         public DistributedApplicationOperation Operation { get { throw null; } }
 
+        public string? PublisherName { get { throw null; } set { } }
+
         public System.IServiceProvider ServiceProvider { get { throw null; } }
     }
 
     public partial class DistributedApplicationExecutionContextOptions
     {
+        public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation, string? publisherName = null) { }
+
         public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation) { }
 
         public DistributedApplicationOperation Operation { get { throw null; } }
+
+        public string? PublisherName { get { throw null; } }
 
         public System.IServiceProvider? ServiceProvider { get { throw null; } set { } }
     }
@@ -369,6 +392,12 @@ namespace Aspire.Hosting
         public string? LaunchProfileName { get { throw null; } set { } }
     }
 
+    public static partial class PublisherDistributedApplicationBuilderExtensions
+    {
+        public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, System.Action<TPublisherOptions>? configureOptions = null)
+            where TPublisher : class, Publishing.IDistributedApplicationPublisher where TPublisherOptions : class { }
+    }
+
     public static partial class ResourceBuilderExtensions
     {
         public static ApplicationModel.IResourceBuilder<T> AsHttp2Service<T>(this ApplicationModel.IResourceBuilder<T> builder)
@@ -407,7 +436,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithConnectionStringRedirection<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceWithConnectionString resource)
             where T : ApplicationModel.IResourceWithConnectionString { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<T> WithEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null)
+        public static ApplicationModel.IResourceBuilder<T> WithEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null, System.Net.Sockets.ProtocolType? protocol = null)
+            where T : ApplicationModel.IResourceWithEndpoints { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, int? port, int? targetPort, string? scheme, string? name, string? env, bool isProxied, bool? isExternal)
             where T : ApplicationModel.IResourceWithEndpoints { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, string endpointName, System.Action<ApplicationModel.EndpointAnnotation> callback, bool createIfNotExists = true)
@@ -631,6 +663,12 @@ namespace Aspire.Hosting.ApplicationModel
         public string? SHA256 { get { throw null; } set { } }
 
         public string? Tag { get { throw null; } set { } }
+    }
+
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}")]
+    public sealed partial class ContainerImagePullPolicyAnnotation : IResourceAnnotation
+    {
+        public required ImagePullPolicy ImagePullPolicy { get { throw null; } set { } }
     }
 
     public enum ContainerLifetime
@@ -1004,6 +1042,13 @@ namespace Aspire.Hosting.ApplicationModel
         Filled = 1
     }
 
+    public enum ImagePullPolicy
+    {
+        Default = 0,
+        Always = 1,
+        Missing = 2
+    }
+
     public partial interface IManifestExpressionProvider
     {
         string ValueExpression { get; }
@@ -1064,6 +1109,10 @@ namespace Aspire.Hosting.ApplicationModel
     }
 
     public partial interface IResourceWithEnvironment : IResource
+    {
+    }
+
+    public partial interface IResourceWithoutLifetime : IResource
     {
     }
 
@@ -1207,7 +1256,7 @@ namespace Aspire.Hosting.ApplicationModel
         public abstract void WriteToManifest(Publishing.ManifestPublishingContext context);
     }
 
-    public partial class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
+    public partial class ParameterResource : Resource, IResourceWithoutLifetime, IResource, IManifestExpressionProvider, IValueProvider
     {
         public ParameterResource(string name, System.Func<ParameterDefault?, string> callback, bool secret = false) : base(default!) { }
 
@@ -1271,6 +1320,9 @@ namespace Aspire.Hosting.ApplicationModel
 
             public void AppendFormatted<T>(T valueProvider)
                 where T : IValueProvider, IManifestExpressionProvider { }
+
+            public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+                where T : IResource, IValueProvider, IManifestExpressionProvider { }
 
             public readonly void AppendLiteral(string value) { }
         }
@@ -1529,6 +1581,7 @@ namespace Aspire.Hosting.ApplicationModel
     [System.Diagnostics.DebuggerDisplay("{Url}", Name = "{Name}")]
     public sealed partial record UrlSnapshot(string Name, string Url, bool IsInternal)
     {
+        public bool IsInactive { get { throw null; } init { } }
     }
 
     [System.Diagnostics.DebuggerDisplay("{Source}", Name = "{Target}")]

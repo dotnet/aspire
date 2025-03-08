@@ -170,6 +170,15 @@ namespace Aspire.Hosting.Azure
         public object ResourceGroup { get { throw null; } }
     }
 
+    public static partial class AzureContainerAppsPublisherExtensions
+    {
+        public static void AddAzureContainerApps(this IDistributedApplicationBuilder builder, string name, System.Action<AzureContainerAppsPublisherOptions>? configureOptions = null) { }
+    }
+
+    public sealed partial class AzureContainerAppsPublisherOptions
+    {
+    }
+
     public sealed partial class AzureProvisioningOptions
     {
         public global::Azure.Provisioning.ProvisioningBuildOptions ProvisioningBuildOptions { get { throw null; } }
