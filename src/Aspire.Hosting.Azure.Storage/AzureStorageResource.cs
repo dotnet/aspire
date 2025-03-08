@@ -85,12 +85,8 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public override ProvisionableResource GetExistingResource(BicepValue<string> name)
+    /// <inheritdoc/>
+    public override ProvisionableResource CreateExistingResource(BicepValue<string> name)
     {
         var account = StorageAccount.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
         account.Name = name;
