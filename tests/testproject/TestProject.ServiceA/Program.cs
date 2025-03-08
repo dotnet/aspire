@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");
-app.MapPost("/", () => "Hello World!");
+app.MapGet("/get-only", () => Results.Ok());
 app.MapPost("/status/{statusCode:int}", (int statusCode) => Results.StatusCode(statusCode));
 app.MapGet("/pid", () => Environment.ProcessId);
 

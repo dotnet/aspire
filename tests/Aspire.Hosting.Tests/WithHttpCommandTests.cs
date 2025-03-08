@@ -66,6 +66,109 @@ public class WithHttpCommandTests
         Assert.True(command.IsHighlighted);
     }
 
+    [InlineData(200, true)]
+    [InlineData(201, true)]
+    [InlineData(400, false)]
+    [InlineData(401, false)]
+    [InlineData(403, false)]
+    [InlineData(404, false)]
+    [InlineData(500, false)]
+    [Theory]
+    public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithHttpCommand($"/status/{statusCode}", "Do The Thing", commandName: "mycommand");
+        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = resourceBuilder.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.Equal(expectSuccess, result.Success);
+    }
+
+    [InlineData(null, false)] // Default method is POST
+    [InlineData("get", true)]
+    [InlineData("post", false)]
+    [Theory]
+    public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
+    {
+        // Arrange
+        var method = httpMethod is not null ? new HttpMethod(httpMethod) : null;
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithHttpCommand("/get-only", "Do The Thing", method: method, commandName: "mycommand");
+        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = resourceBuilder.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.Equal(expectSuccess, result.Success);
+    }
+
+    [Fact]
+    public async Task WithHttpCommand_UsesNamedHttpClient()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var trackingMessageHandler = new TrackingHttpMessageHandler();
+        builder.Services.AddHttpClient("commandclient")
+            .AddHttpMessageHandler((sp) => trackingMessageHandler);
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", httpClientName: "commandclient");
+        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
+
+        // Act
+        var app = builder.Build();
+        await app.StartAsync().WaitAsync(s_startTimeout);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
+
+        var context = new ExecuteCommandContext
+        {
+            ResourceName = resourceBuilder.Resource.Name,
+            ServiceProvider = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+        var result = await command.ExecuteCommand(context);
+
+        // Assert
+        Assert.True(trackingMessageHandler.Called);
+    }
+
+    private sealed class TrackingHttpMessageHandler : DelegatingHandler
+    {
+        public bool Called { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Called = true;
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
+
     [Fact]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
