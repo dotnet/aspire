@@ -5,17 +5,13 @@
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting kubernetes</PackageTags>
-    <Description>Kubernetes publishing for .NET Aspire.</Description>
+    <Description>Yaml support for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.Yaml\Aspire.Hosting.Yaml.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Utils\ContainerReferenceParser.cs" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

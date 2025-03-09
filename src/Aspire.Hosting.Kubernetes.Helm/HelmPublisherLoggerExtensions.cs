@@ -3,15 +3,9 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Kubernetes;
+namespace Aspire.Hosting.Kubernetes.Helm;
 
-/// <summary>
-/// Provides a set of extension methods for interacting with ANSI console
-/// functionality within the Kubernetes hosting context.
-/// This static class facilitates additional behaviors or utility methods
-/// that extend the base ANSI console capabilities.
-/// </summary>
-internal static partial class KubernetesPublisherLoggerExtensions
+internal static partial class HelmPublisherLoggerExtensions
 {
     [LoggerMessage(LogLevel.Warning, "{ResourceName} with type '{ResourceType}' is not supported by this publisher")]
     internal static partial void NotSupportedResourceWarning(this ILogger logger, string resourceName, string resourceType);
@@ -24,10 +18,4 @@ internal static partial class KubernetesPublisherLoggerExtensions
 
     [LoggerMessage(LogLevel.Information, "Successfully generated Helm Chart output in '{OutputPath}'")]
     internal static partial void FinishGeneratingHelmChart(this ILogger logger, string outputPath);
-
-    [LoggerMessage(LogLevel.Information, "Generating Kustomize output")]
-    internal static partial void StartGeneratingKustomize(this ILogger logger);
-
-    [LoggerMessage(LogLevel.Information, "Successfully generated Kustomize output in '{OutputPath}'")]
-    internal static partial void FinishGeneratingKustomize(this ILogger logger, string outputPath);
 }
