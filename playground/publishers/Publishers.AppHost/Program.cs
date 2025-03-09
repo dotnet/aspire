@@ -5,7 +5,8 @@
 // using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Docker;
-using Aspire.Hosting.Kubernetes;
+using Aspire.Hosting.Kubernetes.Helm;
+using Aspire.Hosting.Kubernetes.Kustomize;
 
 var builder = DistributedApplication.CreateBuilder(args);
 

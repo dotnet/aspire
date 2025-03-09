@@ -4,28 +4,36 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
-/// TODO
+/// Represents a publisher that generates a Docker Compose 'docker-compose.yaml' file for a distributed application.
 /// </summary>
+/// <remarks>
+/// This publisher is used when deploying distributed applications with Docker Compose. It converts the application's
+/// model into Docker Compose artifacts, which are written to the output path specified in the options.
+/// </remarks>
 internal sealed class DockerComposePublisher(
     [ServiceKey]string name,
     IOptionsMonitor<DockerComposePublisherOptions> options,
     ILogger<DockerComposePublisher> logger,
-    IHostApplicationLifetime lifetime,
     DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
 {
     /// <summary>
-    /// TODO
+    /// Publishes a distributed application model using the Docker Compose publisher implementation.
     /// </summary>
-    /// <param name="model"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="model">
+    /// The distributed application model to be published.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Propagates notification that the operation should be canceled.
+    /// </param>
+    /// <returns>
+    /// A task that represents the asynchronous publishing operation.
+    /// </returns>
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         var publisherOptions = options.Get(name);
@@ -40,7 +48,5 @@ internal sealed class DockerComposePublisher(
         var context = new DockerComposePublishingContext(executionContext, publisherOptions.OutputPath, logger, cancellationToken);
 
         await context.WriteModel(model).ConfigureAwait(false);
-
-        lifetime.StopApplication();
     }
 }
