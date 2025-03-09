@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,9 +28,6 @@ namespace Aspire.Hosting.Kubernetes.Helm;
 /// <param name="logger">
 /// Logger instance for capturing debug, info, warnings, or error logs during the publish workflow.
 /// </param>
-/// <param name="lifetime">
-/// Represents the host application's lifetime, enabling the publisher to react to start and stop operations.
-/// </param>
 /// <param name="executionContext">
 /// Provides contextual information about the application, allowing coordination for distributed application operations.
 /// </param>
@@ -45,7 +41,6 @@ internal sealed class HelmPublisher(
     [ServiceKey]string name,
     IOptionsMonitor<HelmPublisherOptions> options,
     ILogger<HelmPublisher> logger,
-    IHostApplicationLifetime lifetime,
     DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
 {
     /// <summary>
@@ -68,7 +63,5 @@ internal sealed class HelmPublisher(
         var context = new HelmPublishingContext(executionContext, publisherOptions.OutputPath, logger, cancellationToken);
 
         await context.WriteModel(model).ConfigureAwait(false);
-
-        lifetime.StopApplication();
     }
 }

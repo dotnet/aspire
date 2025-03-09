@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -31,9 +30,6 @@ namespace Aspire.Hosting.Kubernetes.Kustomize;
 /// <param name="logger">
 /// Logger instance to provide diagnostics and logging capabilities.
 /// </param>
-/// <param name="lifetime">
-/// Application lifetime instance used to signal application shutdown upon completion of publishing.
-/// </param>
 /// <param name="executionContext">
 /// Contextual information describing the distributed application execution state.
 /// </param>
@@ -45,7 +41,6 @@ internal sealed class KustomizePublisher(
     [ServiceKey]string name,
     IOptionsMonitor<KustomizePublisherOptions> options,
     ILogger<KustomizePublisher> logger,
-    IHostApplicationLifetime lifetime,
     DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
 {
     /// <summary>
@@ -68,7 +63,5 @@ internal sealed class KustomizePublisher(
         var context = new KustomizePublishingContext(executionContext, publisherOptions.OutputPath, logger, cancellationToken);
 
         await context.WriteModel(model).ConfigureAwait(false);
-
-        lifetime.StopApplication();
     }
 }
