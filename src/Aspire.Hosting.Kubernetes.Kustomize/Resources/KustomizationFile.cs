@@ -62,7 +62,8 @@ public sealed class KustomizationFile : YamlObject
     /// <returns>The current instance of <see cref="KustomizationFile"/> to allow method chaining.</returns>
     public KustomizationFile AddResource(string resourcePath)
     {
-        (Get(KustomizeYamlKeys.Resources) as YamlArray)?.Add(new YamlValue(resourcePath));
+        var resources = GetOrCreate<YamlArray>(KustomizeYamlKeys.Resources);
+        resources.Add(new YamlValue(resourcePath));
         return this;
     }
 
@@ -74,7 +75,8 @@ public sealed class KustomizationFile : YamlObject
     /// <returns>The updated <see cref="KustomizationFile"/> instance.</returns>
     public KustomizationFile AddPatch(string patchPath)
     {
-        (Get(KustomizeYamlKeys.PatchesStrategicMerge) as YamlArray)?.Add(new YamlValue(patchPath));
+        var patches = GetOrCreate<YamlArray>(KustomizeYamlKeys.PatchesStrategicMerge);
+        patches.Add(new YamlValue(patchPath));
         return this;
     }
 
@@ -99,7 +101,8 @@ public sealed class KustomizationFile : YamlObject
             literalsArr.Add(new YamlValue($"{k}={v}"));
         }
         mapObj.Add("literals", literalsArr);
-        (Get(KustomizeYamlKeys.ConfigMapGenerator) as YamlArray)?.Add(mapObj);
+        var resources = GetOrCreate<YamlArray>(KustomizeYamlKeys.ConfigMapGenerator);
+        resources.Add(mapObj);
         return this;
     }
 }

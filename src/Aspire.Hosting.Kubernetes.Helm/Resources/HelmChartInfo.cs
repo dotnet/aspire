@@ -78,7 +78,8 @@ public sealed class HelmChartInfo : YamlObject
         depObj.Add(HelmYamlKeys.Name, new YamlValue(name));
         depObj.Add(HelmYamlKeys.Version, new YamlValue(version));
         depObj.Add("repository", new YamlValue(repo));
-        (Get(HelmYamlKeys.Dependencies) as YamlArray)?.Add(depObj);
+        var dependencies = GetOrCreate<YamlArray>(HelmYamlKeys.Dependencies);
+        dependencies.Add(depObj);
         return this;
     }
 }

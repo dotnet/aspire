@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Utils\ContainerReferenceParser.cs" />
+    <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Shared\ContainerReferenceParser.cs" />
+    <Compile Include="$(SharedDir)PublishingExtensions.cs" Link="Shared\PublishingExtensions.cs" />
+    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
   </ItemGroup>
 
 </Project>

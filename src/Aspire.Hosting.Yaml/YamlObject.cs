@@ -59,6 +59,25 @@ public class YamlObject : YamlNode
     public YamlNode? Get(string key) => Properties.GetValueOrDefault(key);
 
     /// <summary>
+    /// Retrieves the node associated with the specified key or creates a new instance of the specified type if the key is not present.
+    /// </summary>
+    /// <typeparam name="T">The type of <see cref="YamlNode"/> to retrieve or create. Must be a subclass of <see cref="YamlNode"/> and have a parameterless constructor.</typeparam>
+    /// <param name="key">The key associated with the desired YAML node.</param>
+    /// <returns>The existing node if found and of the correct type, or a newly created node of the specified type.</returns>
+    public T GetOrCreate<T>(string key)
+        where T : YamlNode, new()
+    {
+        if (Get(key) is T existing)
+        {
+            return existing;
+        }
+
+        var newNode = new T();
+        Replace(key, newNode);
+        return newNode;
+    }
+
+    /// <summary>
     /// Writes the current YAML object to the specified <see cref="YamlWriter"/>.
     /// </summary>
     /// <param name="writer">The <see cref="YamlWriter"/> instance to which the YAML content should be serialized.</param>
