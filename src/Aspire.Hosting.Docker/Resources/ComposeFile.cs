@@ -21,10 +21,6 @@ public sealed class ComposeFile : YamlObject
     /// </summary>
     public ComposeFile()
     {
-        Add(DockerComposeYamlKeys.Services, new YamlObject());
-        Add(DockerComposeYamlKeys.Networks, new YamlObject());
-        Add(DockerComposeYamlKeys.Volumes, new YamlObject());
-        Add(DockerComposeYamlKeys.Profiles, new YamlObject());
     }
 
     /// <summary>
@@ -70,19 +66,8 @@ public sealed class ComposeFile : YamlObject
     /// <returns>The current instance of <see cref="ComposeFile"/> for method chaining.</returns>
     public ComposeFile AddService(string serviceName, ComposeService service)
     {
-        (Get(DockerComposeYamlKeys.Services) as YamlObject)?.Add(serviceName, service);
-        return this;
-    }
-
-    /// <summary>
-    /// Replaces an existing service in the Compose file with a new service configuration.
-    /// </summary>
-    /// <param name="serviceName">The name of the service to be replaced.</param>
-    /// <param name="service">The new service configuration to replace the existing one.</param>
-    /// <returns>The updated <see cref="ComposeFile"/> instance with the replaced service.</returns>
-    public ComposeFile ReplaceService(string serviceName, ComposeService service)
-    {
-        (Get(DockerComposeYamlKeys.Services) as YamlObject)?.Replace(serviceName, service);
+        var services = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Services);
+        services.Add(serviceName, service);
         return this;
     }
 
@@ -92,7 +77,8 @@ public sealed class ComposeFile : YamlObject
     /// <returns>Returns the updated ComposeFile instance with the new network added.</returns>
     public ComposeFile AddNetwork(string networkName, YamlObject network)
     {
-        (Get(DockerComposeYamlKeys.Networks) as YamlObject)?.Add(networkName, network);
+        var networks = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Networks);
+        networks.Add(networkName, network);
         return this;
     }
 
@@ -104,7 +90,8 @@ public sealed class ComposeFile : YamlObject
     /// <returns>The updated <see cref="ComposeFile"/> instance.</returns>
     public ComposeFile AddVolume(string volumeName, YamlObject volume)
     {
-        (Get(DockerComposeYamlKeys.Volumes) as YamlObject)?.Add(volumeName, volume);
+        var volumes = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Volumes);
+        volumes.Add(volumeName, volume);
         return this;
     }
 
@@ -114,7 +101,8 @@ public sealed class ComposeFile : YamlObject
     /// <returns>The updated ComposeFile instance.</returns>
     public ComposeFile AddProfile(string profileName, YamlObject profile)
     {
-        (Get(DockerComposeYamlKeys.Profiles) as YamlObject)?.Add(profileName, profile);
+        var profiles = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Profiles);
+        profiles.Add(profileName, profile);
         return this;
     }
 }

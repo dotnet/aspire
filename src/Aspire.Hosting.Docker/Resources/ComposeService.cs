@@ -18,12 +18,21 @@ public sealed class ComposeService : YamlObject
     /// <summary>
     /// Represents a service definition in a Docker Compose YAML file.
     /// </summary>
-    public ComposeService(string image)
+    public ComposeService(string name)
     {
-        Add(DockerComposeYamlKeys.Image, new YamlValue(image));
-        Add(DockerComposeYamlKeys.Ports, new YamlArray());
-        Add(DockerComposeYamlKeys.Environment, new YamlObject());
+        Add(DockerComposeYamlKeys.ContainerName, new YamlValue(name));
     }
+
+    /// <summary>
+    /// Gets the name of the Docker Compose service.
+    /// </summary>
+    /// <remarks>
+    /// This property retrieves the container name specified in the Docker Compose configuration.
+    /// If the name is not explicitly set, it returns an empty string.
+    /// </remarks>
+    public string? Name => Get(DockerComposeYamlKeys.ContainerName) is YamlValue name ?
+        name.Value.ToString() :
+        throw new DistributedApplicationException("Container name not set.");
 
     /// <summary>
     /// Adds a port mapping to the service configuration in the Docker Compose YAML.
@@ -37,7 +46,8 @@ public sealed class ComposeService : YamlObject
     /// </returns>
     public ComposeService AddPort(string portMapping)
     {
-        (Get(DockerComposeYamlKeys.Ports) as YamlArray)?.Add(new YamlValue(portMapping));
+        var ports = GetOrCreate<YamlArray>(DockerComposeYamlKeys.Ports);
+        ports.Add(new YamlValue(portMapping));
         return this;
     }
 
@@ -49,7 +59,31 @@ public sealed class ComposeService : YamlObject
     /// <returns>The current instance of <see cref="ComposeService"/> for method chaining.</returns>
     public ComposeService AddEnvironmentVariable(string key, string value)
     {
-        (Get(DockerComposeYamlKeys.Environment) as YamlObject)?.Add(key, new YamlValue(value));
+        var env = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Environment);
+        env.Add(key, new YamlValue(value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a command to the service configuration in a Docker Compose file.
+    /// </summary>
+    /// <param name="value">The command to add to the service configuration.</param>
+    /// <returns>The updated <see cref="ComposeService"/> instance.</returns>
+    public ComposeService AddCommand(string value)
+    {
+        var commands = GetOrCreate<YamlArray>(DockerComposeYamlKeys.Command);
+        commands.Add(new YamlValue(value));
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the image property of the Docker Compose service.
+    /// </summary>
+    /// <param name="value">The name of the Docker image to set for the service.</param>
+    /// <returns>The current instance of <see cref="ComposeService"/> to allow chaining of methods.</returns>
+    public ComposeService WithImage(string value)
+    {
+        Replace(DockerComposeYamlKeys.Image, new YamlValue(value));
         return this;
     }
 }
