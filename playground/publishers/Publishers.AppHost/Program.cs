@@ -14,7 +14,11 @@ builder.AddDockerCompose("docker-compose", options => {
     // Do stuff here.
 });
 
-builder.AddKubernetes("k8s", options => {
+builder.AddHelm("helm", options => {
+    // Do stuff here.
+});
+
+builder.AddKustomize("kustomize", options => {
     // Do stuff here.
 });
 
