@@ -5,10 +5,11 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class WithHttpCommandTests
+public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 {
     private static readonly TimeSpan s_startTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan s_healthyTimeout = TimeSpan.FromSeconds(60);
@@ -17,7 +18,7 @@ public class WithHttpCommandTests
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddContainer("name", "image")
             .WithHttpEndpoint()
             .WithHttpCommand("/some-path", "Do The Thing");
@@ -41,7 +42,7 @@ public class WithHttpCommandTests
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithCustomValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddContainer("name", "image")
             .WithHttpEndpoint()
             .WithHttpCommand("/some-path", "Do The Thing",
@@ -77,7 +78,7 @@ public class WithHttpCommandTests
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand($"/status/{statusCode}", "Do The Thing", commandName: "mycommand");
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
@@ -107,7 +108,7 @@ public class WithHttpCommandTests
     {
         // Arrange
         var method = httpMethod is not null ? new HttpMethod(httpMethod) : null;
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/get-only", "Do The Thing", method: method, commandName: "mycommand");
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
@@ -133,7 +134,7 @@ public class WithHttpCommandTests
     public async Task WithHttpCommand_UsesNamedHttpClient()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var trackingMessageHandler = new TrackingHttpMessageHandler();
         builder.Services.AddHttpClient("commandclient")
             .AddHttpMessageHandler((sp) => trackingMessageHandler);
@@ -173,7 +174,7 @@ public class WithHttpCommandTests
     public async Task WithHttpCommand_UsesEndpointSelector()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var serviceA = builder.AddProject<Projects.ServiceA>("servicea");
         var callbackCalled = false;
@@ -208,7 +209,7 @@ public class WithHttpCommandTests
     {
         // Arrange
         var callbackCalled = false;
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
@@ -242,7 +243,7 @@ public class WithHttpCommandTests
     {
         // Arrange
         var callbackCalled = false;
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
@@ -276,7 +277,7 @@ public class WithHttpCommandTests
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var markHealthy = false;
         builder.Services.AddHealthChecks()
@@ -301,7 +302,7 @@ public class WithHttpCommandTests
         // Act/Assert
         await app.StartAsync().WaitAsync(s_startTimeout);
 
-        await app.ResourceNotifications.WaitForResourceAsync("servicea", KnownResourceStates.Starting).WaitAsync(s_healthyTimeout);
+        await app.ResourceNotifications.WaitForResourceAsync("servicea", KnownResourceStates.Starting).WaitAsync(s_startTimeout);
 
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
