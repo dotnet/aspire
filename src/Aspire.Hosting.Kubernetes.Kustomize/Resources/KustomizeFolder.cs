@@ -84,38 +84,34 @@ public sealed class KustomizeFolder
         var kustomObj = KustomizationFile.FromYaml(kustomContent);
 
         var folder = new KustomizeFolder();
+
         // copy existing top-level fields
         folder.Kustomization.Replace(KustomizeYamlKeys.Resources, kustomObj.Get(KustomizeYamlKeys.Resources) ?? new YamlArray());
         folder.Kustomization.Replace(KustomizeYamlKeys.PatchesStrategicMerge, kustomObj.Get(KustomizeYamlKeys.PatchesStrategicMerge) ?? new YamlArray());
         folder.Kustomization.Replace(KustomizeYamlKeys.ConfigMapGenerator, kustomObj.Get(KustomizeYamlKeys.ConfigMapGenerator) ?? new YamlArray());
 
-        // load resource references that exist
+        // load resource references
         if (folder.Kustomization.Get(KustomizeYamlKeys.Resources) is YamlArray resourcesList)
         {
-            // Reflection for now, will add a get item array method soon...
-            var field = typeof(YamlArray).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null)
+            foreach (var node in resourcesList.Items)
             {
-                if (field.GetValue(resourcesList) is List<YamlNode> itemsList)
+                switch (node)
                 {
-                    foreach (var node in itemsList)
+                    case YamlValue pathVal:
                     {
-                        if (node is YamlValue pathVal)
+                        var filePath = pathVal.Value.ToString();
+                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            var filePath = pathVal.Value.ToString();
-
-                            if (filePath != null)
+                            var fullPath = Path.Combine(folderPath, filePath);
+                            if (File.Exists(fullPath))
                             {
-                                var fullPath = Path.Combine(folderPath, filePath);
-
-                                if (File.Exists(fullPath))
-                                {
-                                    var yaml = File.ReadAllText(fullPath);
-                                    var resObj = KustomResource.FromYaml(filePath, yaml);
-                                    folder.Resources.Add(resObj);
-                                }
+                                var yaml = File.ReadAllText(fullPath);
+                                var resObj = KustomResource.FromYaml(filePath, yaml);
+                                folder.Resources.Add(resObj);
                             }
                         }
+
+                        break;
                     }
                 }
             }

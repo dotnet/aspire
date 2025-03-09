@@ -12,6 +12,14 @@ public class YamlArray : YamlNode
     private readonly List<YamlNode> _items = [];
 
     /// <summary>
+    /// Gets the collection of <see cref="YamlNode"/> objects contained within the YAML array.
+    /// </summary>
+    /// <value>
+    /// A read-only list of <see cref="YamlNode"/> objects that make up the current YAML array.
+    /// </value>
+    public IReadOnlyList<YamlNode> Items => _items;
+
+    /// <summary>
     /// Adds a specified <see cref="YamlNode"/> to the current YAML array.
     /// </summary>
     /// <param name="value">The <see cref="YamlNode"/> to be added to the array.</param>
