@@ -16,8 +16,8 @@ internal sealed class DistributedApplicationRunner(IHostApplicationLifetime life
         {
             var publisher = serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>(executionContext.PublisherName);
             await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
+            lifetime.StopApplication();
         }
 
-        lifetime.StopApplication();
     }
 }
