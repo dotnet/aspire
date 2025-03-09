@@ -170,7 +170,7 @@ public static class MongoDBBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder for Mongo Express.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
-    /// <returns>The resource builder for PGAdmin.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoExpressContainerResource> WithHostPort(this IResourceBuilder<MongoExpressContainerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
