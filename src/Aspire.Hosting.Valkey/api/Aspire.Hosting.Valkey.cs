@@ -10,7 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class ValkeyBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder, string name, int? port = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder, string name, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.ValkeyResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.ValkeyResource> builder, string source, bool isReadOnly = false) { throw null; }
 
@@ -24,9 +26,13 @@ namespace Aspire.Hosting.ApplicationModel
 {
     public partial class ValkeyResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
+        public ValkeyResource(string name, ParameterResource password) : base(default!, default) { }
+
         public ValkeyResource(string name) : base(default!, default) { }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ParameterResource? PasswordParameter { get { throw null; } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
     }
