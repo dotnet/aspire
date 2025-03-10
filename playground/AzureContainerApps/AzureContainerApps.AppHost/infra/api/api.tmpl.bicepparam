@@ -1,0 +1,12 @@
+using './api.module.bicep'
+
+param account_outputs_connectionstring = '{{ .Env.ACCOUNT_CONNECTIONSTRING }}'
+param api_containerimage = '{{ .Image }}'
+param api_containerport = '{{ targetPortOrDefault 8080 }}'
+param cache_password_value = '{{ securedParameter "cache_password" }}'
+param infra_outputs_azure_container_apps_environment_id = '{{ .Env.INFRA_AZURE_CONTAINER_APPS_ENVIRONMENT_ID }}'
+param infra_outputs_azure_container_registry_endpoint = '{{ .Env.INFRA_AZURE_CONTAINER_REGISTRY_ENDPOINT }}'
+param infra_outputs_azure_container_registry_managed_identity_id = '{{ .Env.INFRA_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}'
+param infra_outputs_managed_identity_client_id = '{{ .Env.INFRA_MANAGED_IDENTITY_CLIENT_ID }}'
+param secretparam_value = '{{ securedParameter "secretparam" }}'
+param storage_outputs_blobendpoint = '{{ .Env.STORAGE_BLOBENDPOINT }}'

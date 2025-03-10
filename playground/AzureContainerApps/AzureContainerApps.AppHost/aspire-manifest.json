@@ -2,7 +2,12 @@
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "infra": {
-      "error": "This resource does not support generation in the manifest."
+      "type": "azure.bicep.v0",
+      "path": "infra.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
     },
     "customDomain": {
       "type": "parameter.v0",
