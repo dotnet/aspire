@@ -14,6 +14,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
@@ -24,7 +25,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
+public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     private sealed class ConsoleLogsSubscription
     {
@@ -54,9 +55,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; init; }
-
-    [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
@@ -76,6 +74,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -149,6 +153,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
+
+        await this.InitializeComponentTelemetryAsync();
+
+        return;
 
         async Task TrackResourceSnapshotsAsync()
         {
@@ -277,6 +285,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 LoadLogs(newConsoleLogsSubscription);
             }
         }
+
+        this.PostParametersSetTelemetry();
     }
 
     private void UpdateMenuButtons()
@@ -646,5 +656,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
         return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
+    }
+
+    // IComponentWithTelemetry
+    public string ComponentId => DashboardUrls.ConsoleLogBasePath;
+    public Guid? InitializeCorrelation { get; set; }
+
+    public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii) },
+            { TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting) }
+        };
     }
 }
