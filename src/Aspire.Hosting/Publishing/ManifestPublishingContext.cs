@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -482,7 +484,24 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var env = await ExecutionContext.GetEnvironmentalVariablesForResource(resource, cancellationToken: CancellationToken).ConfigureAwait(false);
+        var env = new Dictionary<string, (object, string)>();
+
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            ExecutionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
+
+                if (unprocessed is not null && processed is not null)
+                {
+                    env[key] = (unprocessed, processed);
+                }
+            },
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (env.Count > 0)
         {
@@ -508,7 +527,24 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        var args = await ExecutionContext.GetCommandLineArgumentsForResource(resource, cancellationToken: CancellationToken).ConfigureAwait(false);
+        var args = new List<(object, string)>();
+
+        await resource.ProcessArgumentValuesAsync(
+            ExecutionContext,
+            (unprocessed, expression, ex, _) =>
+            {
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
+
+                if (unprocessed is not null && expression is not null)
+                {
+                    args.Add((unprocessed, expression));
+                }
+            },
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (args.Count > 0)
         {

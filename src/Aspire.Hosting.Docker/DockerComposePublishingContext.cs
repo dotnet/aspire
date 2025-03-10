@@ -56,24 +56,24 @@ internal sealed class DockerComposePublishingContext(
     {
         var composeFile = new ComposeFile(publisherOptions.ExistingNetworkName);
 
-        foreach (var r in model.Resources)
+        foreach (var resource in model.Resources)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) &&
+            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) &&
                 lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
             {
                 continue;
             }
 
-            if (!r.IsContainer() && r is not ProjectResource)
+            if (!resource.IsContainer() && resource is not ProjectResource)
             {
                 continue;
             }
 
-            var composeServiceContext = await ProcessResourceAsync(r).ConfigureAwait(false);
+            var composeServiceContext = await ProcessResourceAsync(resource).ConfigureAwait(false);
 
             var composeService = composeServiceContext.BuildComposeService();
 
-            composeFile.AddService(r.Name.ToLowerInvariant(), composeService);
+            composeFile.AddService(resource.Name.ToLowerInvariant(), composeService);
         }
 
         var composeOutput = composeFile.ToYamlString();
@@ -99,6 +99,7 @@ internal sealed class DockerComposePublishingContext(
         private record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
 
         private readonly Dictionary<object, string> _allocatedParameters = [];
+        private readonly Dictionary<string, string> _allocatableParameters = [];
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
         public IResource Resource => resource;
@@ -171,7 +172,7 @@ internal sealed class DockerComposePublishingContext(
             ProcessVolumes();
 
             await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
-            await ProcessArgumentsAsync(executionContext, cancellationToken).ConfigureAwait(false);
+            await ProcessArgumentsAsync(cancellationToken).ConfigureAwait(false);
         }
 
         private void ProcessEndpoints()
@@ -243,10 +244,6 @@ internal sealed class DockerComposePublishingContext(
                     // it will default to the targetPort
                     (_, null, { } _) => null,
 
-                    // Let the tool infer the default http and https ports
-                    ("http", null, null) => null,
-                    ("https", null, null) => null,
-
                     // Other schemes just allocate a port
                     _ => composePublishingContext.PortAllocator.AllocatePort(),
                 };
@@ -279,52 +276,14 @@ internal sealed class DockerComposePublishingContext(
                     })
                 .ToList();
 
-            // Get all http only groups
-            var httpOnlyEndpoints = endpointsByTargetPort.Where(g => g.IsHttpOnly).OrderBy(g => g.Index).ToArray();
-
-            // Do we only have one?
-            var httpIngress = httpOnlyEndpoints.Length == 1 ? httpOnlyEndpoints[0] : null;
-
-            if (httpIngress is null)
+            foreach (var endpointsByPort in endpointsByTargetPort)
             {
-                // We have more than one, pick prefer external one
-                var externalHttp = httpOnlyEndpoints.Where(g => g.External).ToArray();
-
-                if (externalHttp.Length == 1)
+                foreach (var e in endpointsByPort.Endpoints)
                 {
-                    httpIngress = externalHttp[0];
-                }
-                else if (httpOnlyEndpoints.Length > 0)
-                {
-                    httpIngress = httpOnlyEndpoints[0];
-                }
-            }
+                    var port = e.Port.GetValueOrDefault();
+                    var targetPort = e.TargetPort ?? e.Port.GetValueOrDefault();
 
-            if (httpIngress is not null)
-            {
-                // We're processed the http ingress, remove it from the list
-                endpointsByTargetPort.Remove(httpIngress);
-
-                var targetPort = httpIngress.Port ?? (resource is ProjectResource ? null : 80);
-
-                foreach (var e in httpIngress.Endpoints)
-                {
-                    var port = e.Port.GetValueOrDefault(targetPort.GetValueOrDefault(80));
-
-                    _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, true, httpIngress.External);
-                }
-            }
-
-            foreach (var g in endpointsByTargetPort)
-            {
-                if (g.Port is null)
-                {
-                    throw new NotSupportedException("Container port is required for all endpoints");
-                }
-
-                foreach (var e in g.Endpoints)
-                {
-                    _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
+                    _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, false, e.IsExternal);
                 }
             }
 
@@ -333,7 +292,7 @@ internal sealed class DockerComposePublishingContext(
             static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
         }
 
-        private async Task ProcessArgumentsAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        private async Task ProcessArgumentsAsync(CancellationToken cancellationToken)
         {
             if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
             {
@@ -346,7 +305,7 @@ internal sealed class DockerComposePublishingContext(
 
                 foreach (var arg in context.Args)
                 {
-                    var value = await ProcessValueAsync(arg, executionContext, cancellationToken).ConfigureAwait(false);
+                    var value = await ProcessValueAsync(arg).ConfigureAwait(false);
 
                     if (value is not string str)
                     {
@@ -358,8 +317,7 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext,
-            CancellationToken cancellationToken)
+        private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
             if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
             {
@@ -372,11 +330,28 @@ internal sealed class DockerComposePublishingContext(
 
                 foreach (var kv in context.EnvironmentVariables)
                 {
-                    var value = await ProcessValueAsync(kv.Value, executionContext, cancellationToken).ConfigureAwait(false);
+                    var value = await ProcessValueAsync(kv.Value).ConfigureAwait(false);
 
                     EnvironmentVariables.Add(new ComposeEnvironmentVariable(kv.Key, value.ToString()));
                 }
+
+                if (resource is ProjectResource)
+                {
+                    SetUpAspNetCoreUrlsForProject();
+                }
             }
+        }
+
+        private void SetUpAspNetCoreUrlsForProject()
+        {
+            var httpEndpoint = _endpointMapping["http"];
+            var httpsEndpoint = _endpointMapping["https"];
+            var value = $"http://+:{httpEndpoint.Port}";
+            if (httpsEndpoint.Port != httpEndpoint.Port)
+            {
+                value += $";https://+:{httpsEndpoint.Port}";
+            }
+            EnvironmentVariables.Add(new ComposeEnvironmentVariable("ASPNETCORE_URLS", value));
         }
 
         private static void ProcessVolumes()
@@ -405,95 +380,99 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private async Task<object> ProcessValueAsync(
-            object value,
-            DistributedApplicationExecutionContext executionContext,
-            CancellationToken cancellationToken)
+        private async Task<object> ProcessValueAsync(object value)
         {
-            if (value is string s)
+            while (true)
             {
-                return s;
-            }
-
-            if (value is EndpointReference ep)
-            {
-                var context = ep.Resource == resource
-                    ? this
-                    : await composePublishingContext.ProcessResourceAsync(ep.Resource)
-                        .ConfigureAwait(false);
-
-                var mapping = context._endpointMapping[ep.EndpointName];
-
-                var url = GetValue(mapping, EndpointProperty.Url);
-
-                return url;
-            }
-
-            if (value is ParameterResource param)
-            {
-                return AllocateParameter(param) ?? throw new InvalidOperationException("Parameter name is null");
-            }
-
-            if (value is ConnectionStringReference cs)
-            {
-                return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            if (value is IResourceWithConnectionString csrs)
-            {
-                return await ProcessValueAsync(
-                        csrs.ConnectionStringExpression, executionContext, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            if (value is EndpointReferenceExpression epExpr)
-            {
-                var context = epExpr.Endpoint.Resource == resource
-                    ? this
-                    : await composePublishingContext
-                        .ProcessResourceAsync(epExpr.Endpoint.Resource).ConfigureAwait(false);
-
-                var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
-
-                var val = GetValue(mapping, epExpr.Property);
-
-                return val;
-            }
-
-            if (value is ReferenceExpression expr)
-            {
-                // Special case simple expressions
-                if (expr is {Format: "{0}", ValueProviders.Count: 1})
+                if (value is string s)
                 {
-                    return await ProcessValueAsync(expr.ValueProviders[0], executionContext, cancellationToken)
-                        .ConfigureAwait(false);
+                    return s;
                 }
 
-                var args = new object[expr.ValueProviders.Count];
-                var index = 0;
-
-                foreach (var vp in expr.ValueProviders)
+                if (value is EndpointReference ep)
                 {
-                    var val = await ProcessValueAsync(vp, executionContext, cancellationToken) // pass parent, and handle.
-                        .ConfigureAwait(false);
+                    var context = ep.Resource == resource
+                        ? this
+                        : await composePublishingContext.ProcessResourceAsync(ep.Resource)
+                            .ConfigureAwait(false);
 
-                    args[index++] = val;
+                    var mapping = context._endpointMapping[ep.EndpointName];
+
+                    var url = GetValue(mapping, EndpointProperty.Url);
+
+                    return url;
                 }
 
-                return args;
+                if (value is ParameterResource param)
+                {
+                    return AllocateParameter(param) ?? throw new InvalidOperationException("Parameter name is null");
+                }
 
+                if (value is ConnectionStringReference cs)
+                {
+                    value = cs.Resource.ConnectionStringExpression;
+                    continue;
+                }
+
+                if (value is IResourceWithConnectionString csrs)
+                {
+                    value = csrs.ConnectionStringExpression;
+                    continue;
+                }
+
+                if (value is EndpointReferenceExpression epExpr)
+                {
+                    var context = epExpr.Endpoint.Resource == resource
+                        ? this
+                        : await composePublishingContext.ProcessResourceAsync(epExpr.Endpoint.Resource).ConfigureAwait(false);
+
+                    var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
+
+                    var val = GetValue(mapping, epExpr.Property);
+
+                    return val;
+                }
+
+                if (value is ReferenceExpression expr)
+                {
+                    // Special case simple expressions
+                    if (expr is {Format: "{0}", ValueProviders.Count: 1})
+                    {
+                        value = expr.ValueProviders[0];
+                        continue;
+                    }
+
+                    var args = new object[expr.ValueProviders.Count];
+                    var index = 0;
+
+                    foreach (var vp in expr.ValueProviders)
+                    {
+                        var val = await ProcessValueAsync(vp).ConfigureAwait(false);
+
+                        args[index++] = val ?? throw new InvalidOperationException("Value is null");
+                    }
+
+                    return args;
+                }
+
+                // todo: ideally we should have processed all resources that we can before getting here...
+                // This is probably going to include removing the resource from the model if its not processable during publishing in Docker - BicepResources?
+                // The problem there is that we'd need to take reference on Azure hosting for that.
+                // Approach: Maybe we filter the incoming resources and remove the ones that are not processable?
+                if (value is IManifestExpressionProvider r)
+                {
+                    composePublishingContext.Logger.NotSupportedResourceWarning(nameof(value), r.GetType().Name);
+                }
+
+                return value; // todo: we need to never get here really...
             }
-
-            return value;
         }
 
-        private string? AllocateParameter(IManifestExpressionProvider parameter)
+        private string AllocateParameter(IManifestExpressionProvider parameter)
         {
             if (!_allocatedParameters.TryGetValue(parameter, out var parameterName))
             {
-                parameterName = parameter.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_")
-                    .ToLowerInvariant();
+                parameterName = parameter.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
 
                 if (parameterName[0] == '_')
                 {
@@ -503,13 +482,13 @@ internal sealed class DockerComposePublishingContext(
                 _allocatedParameters[parameter] = parameterName;
             }
 
-            if (!_allocatedParameters.TryGetValue(parameterName, out var provisioningParameter))
+            if (!_allocatableParameters.TryGetValue(parameterName, out var allocatableParameter))
             {
-                // _allocatedParameters[parameterName] = provisioningParameter;
+                _allocatableParameters[parameterName] = string.Empty;
             }
 
             Parameters[parameterName] = parameter;
-            return provisioningParameter;
+            return allocatableParameter ?? _allocatableParameters[parameterName];
         }
 
         private void SetEntryPoint(ComposeService composeService)
