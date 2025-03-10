@@ -1,0 +1,119 @@
+name: Workload
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup_for_template_tests:
+    name: Setup for template tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          include:
+            - os: ubuntu-latest
+            - os: windows-latest
+    outputs:
+      tests_matrix_win: ${{ steps.generate_test_matrix.outputs.tests_matrix_ubuntu-latest }}
+      tests_matrix_lin: ${{ steps.generate_test_matrix.outputs.tests_matrix_windows-latest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Generate list of tests
+        env:
+          CI: false
+        run: >
+            dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+            "/t:Build;ExtractTestClassNames"
+            /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+            -p:ExtractTestClassNamesForHelix=true
+            -p:ArchiveTests=true
+            -p:ExtractTestClassNamesPrefix=Aspire.Workload.Tests
+
+      - name: Generate tests matrix
+        id: generate_test_matrix
+        shell: pwsh
+        env:
+          CI: false
+        run: |
+          $inputFilePath = "${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list"
+          $lines = Get-Content $inputFilePath
+
+          $prefix = "Aspire.Workload.Tests."
+          $lines = Get-Content $inputFilePath | ForEach-Object {
+              $_ -replace "^$prefix", ""
+          }
+
+          $jsonObject = @{
+              "shortname" = $lines | Sort-Object
+          }
+          $jsonString = ConvertTo-Json $jsonObject -Compress
+          "tests_matrix${{ matrix.os }}=$jsonString"
+          "tests_matrix${{ matrix.os }}=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
+
+  #test_w:
+    ## :LAST: :FIXME: Check that every particular test needs to really run on that OS!!
+    ## Maybe store the two lists separately and then matrix
+    ## or pass the OS as an argument to the test job, and it can decide using the tests list for that OS
+    #uses: ./.github/workflows/run-tests.yml
+    #needs: setup_for_template_tests
+    #strategy:
+      #fail-fast: false
+      #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.tests_matrix_ubuntu-latest) }}
+    #with:
+      #testShortName: ${{ matrix.shortname }}
+      #testProjectPath: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      #testSessionTimeoutMs: 1200000
+      #testHangTimeout: 12m
+      #OS: ubuntu-latest
+      #extraTestArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.shortname }}"
+
+  test_l:
+    # :LAST: :FIXME: Check that every particular test needs to really run on that OS!!
+    # Maybe store the two lists separately and then matrix
+    # or pass the OS as an argument to the test job, and it can decide using the tests list for that OS
+    uses: ./.github/workflows/run-tests.yml
+    needs: setup_for_template_tests
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.tests_matrix_windows-latest) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      testProjectPath: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      testSessionTimeoutMs: 1200000
+      testHangTimeout: 12m
+      #OS: windows-latest
+    os_matrix: ${{ '{"include": [{"name": "FooBar", "windows-latest":"true", "ubuntu-latest":"false"}]}' }}
+      extraTestArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.shortname }}"
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [test]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
