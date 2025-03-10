@@ -101,6 +101,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+    private bool _showResourceTypeColumn;
 
     // Filters in the resource popup
     // Internal for tests
@@ -160,7 +161,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", IsVisible: () => _showResourceTypeColumn),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
             new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
@@ -396,6 +397,28 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 Icon = new Icons.Regular.Size16.EyeOff()
             });
         }
+
+        if (_showResourceTypeColumn)
+        {
+
+             _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleResourceType,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesHideTypes)],
+                Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
+        else
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleResourceType,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesShowTypes)],
+                Icon = new Icons.Regular.Size16.Eye()
+            });
+        }
     }
 
     private bool HasCollapsedResources()
@@ -618,6 +641,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         }
 
         await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
+        await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
+    }
+
+    private async Task OnToggleResourceType()
+    {
+        _showResourceTypeColumn = !_showResourceTypeColumn;
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }

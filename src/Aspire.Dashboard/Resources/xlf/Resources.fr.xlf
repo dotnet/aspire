@@ -197,6 +197,11 @@
         <target state="new">Zoom out</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="new">Hide resource types</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">Aucun filtre</target>
@@ -205,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">État</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="new">Show resource types</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

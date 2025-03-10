@@ -758,3 +758,8 @@ fluent-switch.table-switch::part(label) {
 fluent-tooltip[anchor="dialog_close"] > div {
     word-break: keep-all;
 }
+
+.resource-icon {
+    vertical-align: text-bottom;
+}
+
