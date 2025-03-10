@@ -22,7 +22,7 @@ public sealed class ComposeNetwork : YamlObject
     /// <returns>The current <see cref="ComposeNetwork"/> instance with the updated driver property.</returns>
     public ComposeNetwork SetDriver(string driver)
     {
-        Add("driver", new YamlValue(driver));
+        Add(DockerComposeYamlKeys.Driver, new YamlValue(driver));
         return this;
     }
 
@@ -32,7 +32,7 @@ public sealed class ComposeNetwork : YamlObject
     /// <returns>The current <see cref="ComposeNetwork"/> instance with the external property set to true.</returns>
     public ComposeNetwork SetExternal()
     {
-        Add("external", new YamlValue(true));
+        Add(DockerComposeYamlKeys.External, new YamlValue(true));
         return this;
     }
 }

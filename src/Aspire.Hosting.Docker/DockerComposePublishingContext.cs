@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Yaml;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -73,6 +74,8 @@ internal sealed class DockerComposePublishingContext(
 
             var composeService = composeServiceContext.BuildComposeService();
 
+            HandleComposeFileVolumes(composeServiceContext, composeFile);
+
             composeFile.AddService(resource.Name.ToLowerInvariant(), composeService);
         }
 
@@ -94,6 +97,24 @@ internal sealed class DockerComposePublishingContext(
         return context;
     }
 
+    private static void HandleComposeFileVolumes(ComposeServiceContext composeServiceContext, ComposeFile composeFile)
+    {
+        foreach (var volume in composeServiceContext.Volumes.Where(volume => volume.Type != ContainerMountType.BindMount))
+        {
+            var composeFileVolumes = composeFile.GetOrCreate<YamlObject>(DockerComposeYamlKeys.Volumes);
+
+            if (composeFileVolumes.ContainsKey(volume.Source!))
+            {
+                continue;
+            }
+
+            var newVolume = new ComposeVolume(external: volume.External);
+            newVolume.SetLocalDriver();
+
+            composeFileVolumes.Add(volume.Source!, newVolume);
+        }
+    }
+
     private sealed class ComposeServiceContext(IResource resource, DockerComposePublishingContext composePublishingContext)
     {
         private record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
@@ -103,11 +124,8 @@ internal sealed class DockerComposePublishingContext(
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
         public IResource Resource => resource;
-
         public List<ComposeEnvironmentVariable> EnvironmentVariables { get; } = [];
-
         public List<ComposeCommand> Args { get; } = [];
-
         public Dictionary<string, object> Parameters { get; } = [];
 
         public List<ComposeVolume> Volumes { get; } = [];
@@ -124,9 +142,23 @@ internal sealed class DockerComposePublishingContext(
             SetEntryPoint(composeService);
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
             AddPorts(composeService);
+            AddVolumes(composeService);
             SetContainerImage(containerImageName, composeService);
 
             return composeService;
+        }
+
+        private void AddVolumes(ComposeService composeService)
+        {
+            if (Volumes.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var volume in Volumes)
+            {
+                composeService.AddVolume(volume);
+            }
         }
 
         private void AddPorts(ComposeService composeService)
@@ -235,9 +267,24 @@ internal sealed class DockerComposePublishingContext(
                 }
             }
         }
-        private static void ProcessVolumes()
+        private void ProcessVolumes()
         {
-            // not implemented
+            if (!resource.TryGetContainerMounts(out var mounts))
+            {
+                return;
+            }
+
+            foreach (var volume in mounts)
+            {
+                if (volume.Source is null || volume.Target is null)
+                {
+                    throw new InvalidOperationException("Volume source and target must be set");
+                }
+
+                var composeVolume = new ComposeVolume(volume.Source, volume.Target, volume.Type, volume.IsReadOnly);
+
+                Volumes.Add(composeVolume);
+            }
         }
 
         private string GetValue(EndpointMapping mapping, EndpointProperty property)

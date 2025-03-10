@@ -43,6 +43,10 @@ var backend = builder.AddProject<Projects.Publishers_ApiService>("api")
                      .WaitForCompletion(dbsetup)
                      .WithReplicas(2);
 
+// need a container to test.
+builder.AddSqlServer("sqlserver")
+        .WithDataVolume("sqlserver-data");
+
 builder.AddProject<Projects.Publishers_Frontend>("frontend")
        .WithReference(backend).WaitFor(backend);
 

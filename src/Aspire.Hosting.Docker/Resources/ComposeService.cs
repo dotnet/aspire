@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yaml;
 
 namespace Aspire.Hosting.Docker.Resources;
@@ -20,8 +21,8 @@ public sealed class ComposeService : YamlObject
     /// </summary>
     public ComposeService(string name, string? existingNetworkName = null)
     {
+        Name = name;
         Add(DockerComposeYamlKeys.ContainerName, new YamlValue(name));
-
         SetDefaultNetwork(existingNetworkName);
     }
 
@@ -32,9 +33,7 @@ public sealed class ComposeService : YamlObject
     /// This property retrieves the container name specified in the Docker Compose configuration.
     /// If the name is not explicitly set, it returns an empty string.
     /// </remarks>
-    public string? Name => Get(DockerComposeYamlKeys.ContainerName) is YamlValue name ?
-        name.Value.ToString() :
-        throw new DistributedApplicationException("Container name not set.");
+    public string Name { get; }
 
     /// <summary>
     /// Adds a port mapping to the service configuration in the Docker Compose YAML.
@@ -112,6 +111,31 @@ public sealed class ComposeService : YamlObject
     {
         var commands = GetOrCreate<ComposeServiceCommands>(DockerComposeYamlKeys.Command);
         commands.Add(value);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a volume configuration to the service in the Docker Compose setup.
+    /// </summary>
+    /// <param name="source">The source path of the volume on the host machine.</param>
+    /// <param name="target">The target path within the container where the volume will be mounted.</param>
+    /// <param name="type">The type of volume to be mounted, such as BindMount or Volume.</param>
+    /// <returns>The updated <see cref="ComposeService"/> instance, allowing for fluent configuration.</returns>
+    public ComposeService AddVolume(string source, string target, ContainerMountType type)
+    {
+        AddVolume(new ComposeVolume(source, target, type));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a volume to the Compose service.
+    /// </summary>
+    /// <param name="value">The volume to be added to the Compose service.</param>
+    /// <returns>The updated <see cref="ComposeService"/> instance.</returns>
+    public ComposeService AddVolume(ComposeVolume value)
+    {
+        var volumes = GetOrCreate<ComposeServiceVolumes>(DockerComposeYamlKeys.Volumes);
+        volumes.Add(value);
         return this;
     }
 
