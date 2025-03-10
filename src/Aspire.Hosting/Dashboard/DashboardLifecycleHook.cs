@@ -255,6 +255,20 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // via the ILogger.
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
 
+            // Details for contacting AspireServer in an IDE debug session.
+            if (configuration["DEBUG_SESSION_PORT"] is { Length: > 0 } sessionPort)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionAddressName.EnvVarName] = sessionPort;
+            }
+            if (configuration["DEBUG_SESSION_TOKEN"] is { Length: > 0 } sessionToken)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionTokenName.EnvVarName] = sessionToken;
+            }
+            if (configuration["DEBUG_SESSION_SERVER_CERTIFICATE"] is { Length: > 0 } sessionCertificate)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName] = sessionCertificate;
+            }
+
             if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
                 return;
