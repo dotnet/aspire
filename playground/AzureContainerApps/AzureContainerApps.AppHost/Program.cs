@@ -7,7 +7,7 @@ using Azure.Provisioning.AppContainers;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddContainerAppEnvironment()
+builder.AddContainerAppEnvironment("infra")
        .ConfigureInfrastructure(infra =>
        {
            var env = infra.GetProvisionableResources().OfType<ContainerAppManagedEnvironment>().Single();

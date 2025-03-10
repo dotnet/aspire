@@ -39,7 +39,7 @@ public static class AzureContainerAppExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name = "resources")
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
         builder.AddAzureContainerAppsInfrastructure();
 
@@ -59,6 +59,7 @@ public static class AzureContainerAppExtensions
             {
                 Value = new BicepDictionary<string>()
             };
+
             infra.Add(tags);
 
             var identity = new UserAssignedIdentity("mi")
@@ -191,7 +192,6 @@ public static class AzureContainerAppExtensions
             });
         });
 
-        return builder.AddResource(containerAppEnvResource)
-                      .WithManifestPublishingCallback(containerAppEnvResource.WriteToManifest);
+        return builder.AddResource(containerAppEnvResource);
     }
 }

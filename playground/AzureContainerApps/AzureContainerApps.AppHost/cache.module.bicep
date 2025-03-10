@@ -6,11 +6,11 @@ param cache_volumes_0_storage string
 @secure()
 param cache_password_value string
 
-param resources_outputs_azure_container_registry_managed_identity_id string
+param infra_outputs_azure_container_registry_managed_identity_id string
 
-param resources_outputs_managed_identity_client_id string
+param infra_outputs_managed_identity_client_id string
 
-param resources_outputs_azure_container_apps_environment_id string
+param infra_outputs_azure_container_apps_environment_id string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'cache'
@@ -30,7 +30,7 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
       }
     }
-    environmentId: resources_outputs_azure_container_apps_environment_id
+    environmentId: infra_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -50,7 +50,7 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: resources_outputs_managed_identity_client_id
+              value: infra_outputs_managed_identity_client_id
             }
           ]
           volumeMounts: [
@@ -76,7 +76,7 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${resources_outputs_azure_container_registry_managed_identity_id}': { }
+      '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }

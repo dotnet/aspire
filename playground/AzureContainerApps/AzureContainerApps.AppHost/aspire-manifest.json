@@ -1,13 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "resources": {
-      "type": "azure.bicep.v0",
-      "path": "resources.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalType": ""
-      }
+    "infra": {
+      "error": "This resource does not support generation in the manifest."
     },
     "customDomain": {
       "type": "parameter.v0",
@@ -47,9 +42,9 @@
         "params": {
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
           "cache_password_value": "{cache-password.value}",
-          "resources_outputs_azure_container_registry_managed_identity_id": "{resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "resources_outputs_managed_identity_client_id": "{resources.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-          "resources_outputs_azure_container_apps_environment_id": "{resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+          "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "infra_outputs_managed_identity_client_id": "{infra.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
       "entrypoint": "/bin/sh",
@@ -111,10 +106,10 @@
         "type": "azure.bicep.v0",
         "path": "pythonapp.module.bicep",
         "params": {
-          "resources_outputs_azure_container_registry_managed_identity_id": "{resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "resources_outputs_managed_identity_client_id": "{resources.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-          "resources_outputs_azure_container_apps_environment_id": "{resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-          "resources_outputs_azure_container_registry_endpoint": "{resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "infra_outputs_managed_identity_client_id": "{infra.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "pythonapp_containerimage": "{pythonapp.containerImage}"
         }
       }
@@ -131,10 +126,10 @@
           "cache_password_value": "{cache-password.value}",
           "account_outputs_connectionstring": "{account.outputs.connectionString}",
           "secretparam_value": "{secretparam.value}",
-          "resources_outputs_azure_container_registry_managed_identity_id": "{resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "resources_outputs_managed_identity_client_id": "{resources.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-          "resources_outputs_azure_container_apps_environment_id": "{resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-          "resources_outputs_azure_container_registry_endpoint": "{resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "infra_outputs_managed_identity_client_id": "{infra.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "api_containerimage": "{api.containerImage}"
         }
       },
