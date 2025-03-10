@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -33,8 +34,13 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
-    protected override void OnInitialized()
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
+
+    protected override async Task OnInitializedAsync()
     {
+        await TelemetryService.InitializeAsync();
+
         // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
         _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
 
