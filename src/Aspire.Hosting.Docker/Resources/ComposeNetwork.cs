@@ -16,17 +16,6 @@ namespace Aspire.Hosting.Docker.Resources;
 public sealed class ComposeNetwork : YamlObject
 {
     /// <summary>
-    /// Represents a Docker Compose network resource, providing a way to configure network-specific settings.
-    /// </summary>
-    /// <remarks>
-    /// The <see cref="ComposeNetwork"/> class enables the creation and configuration of a Docker Compose network
-    /// using key-value pairs for properties such as the network driver. This class extends the functionality of
-    /// the <see cref="YamlObject"/>, allowing seamless integration and manipulation of YAML configurations that
-    /// represent a Docker Compose network.
-    /// </remarks>
-    public ComposeNetwork() { }
-
-    /// <summary>
     /// Sets the driver property for the current ComposeNetwork instance.
     /// </summary>
     /// <param name="driver">The name of the network driver to set.</param>
@@ -34,6 +23,16 @@ public sealed class ComposeNetwork : YamlObject
     public ComposeNetwork SetDriver(string driver)
     {
         Add("driver", new YamlValue(driver));
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the external property for the current ComposeNetwork instance.
+    /// </summary>
+    /// <returns>The current <see cref="ComposeNetwork"/> instance with the external property set to true.</returns>
+    public ComposeNetwork SetExternal()
+    {
+        Add("external", new YamlValue(true));
         return this;
     }
 }
