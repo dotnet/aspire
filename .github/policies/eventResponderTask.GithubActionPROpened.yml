@@ -28,6 +28,7 @@ configuration:
           label: 'Closed Github-Action PR'
       - closeIssue
       description: Close and label Github-Action PRs
+      triggerOwnActions: true
     - if:
       - payloadType: Pull_Request
       - isAction:
@@ -41,3 +42,4 @@ configuration:
           label: 'Re-opened Github-Action PR'
       - reopenIssue
       description: Reopen closed Github-Action PRs
+      triggerOwnActions: true
