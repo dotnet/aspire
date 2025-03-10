@@ -5,7 +5,8 @@
 // using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Docker;
-using Aspire.Hosting.Kubernetes;
+using Aspire.Hosting.Kubernetes.Helm;
+using Aspire.Hosting.Kubernetes.Kustomize;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -14,7 +15,11 @@ builder.AddDockerCompose("docker-compose", options => {
     // Do stuff here.
 });
 
-builder.AddKubernetes("k8s", options => {
+builder.AddHelm("helm", options => {
+    // Do stuff here.
+});
+
+builder.AddKustomize("kustomize", options => {
     // Do stuff here.
 });
 

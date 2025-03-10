@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Represents the options for publishing an application.
 /// </summary>
-public sealed class PublishingOptions
+public class PublishingOptions
 {
     /// <summary>
     /// The name of the publishing configuration section in the appsettings.json file.
