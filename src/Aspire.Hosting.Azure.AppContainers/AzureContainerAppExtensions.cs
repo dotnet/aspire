@@ -25,7 +25,7 @@ public static class AzureContainerAppExtensions
 
         // AzureContainerAppsInfrastructure will handle adding role assignments,
         // so Azure resources don't need to add the default role assignments themselves
-        builder.Services.Configure<AzureProvisioningOptions>(o => o.UseDefaultRoleAssignments = false);
+        builder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
 
         builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
 

@@ -21,8 +21,12 @@ public sealed class AzureProvisioningOptions
     public ProvisioningBuildOptions ProvisioningBuildOptions { get; } = new ProvisioningBuildOptions();
 
     /// <summary>
-    /// Gets or sets a value indicating whether Azure resources should include default role assignments
-    /// in their bicep templates.
+    /// Gets or sets a value indicating whether the Azure compute infrastructure supports specific role assignments
+    /// from an application to an Azure resource.
     /// </summary>
-    public bool UseDefaultRoleAssignments { get; set; } = true;
+    /// <remarks>
+    /// Setting this to true will disable the Azure resources from generating default role assignments
+    /// in their bicep templates.
+    /// </remarks>
+    public bool SupportsTargetedRoleAssignments { get; set; }
 }

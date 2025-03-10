@@ -296,7 +296,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 return (identityAndRolesResource, existingResourceRoleAssignments);
             }
 
-            // resources that aren't already existing can be created in the same module as the container app's managed identity
+            // role assignments to resources that aren't already existing can be created in the same module as the container app's managed identity
             private IEnumerable<KeyValuePair<AzureProvisioningResource, IEnumerable<RoleDefinition>>> GetInlineRoleAssignments() =>
                 RoleAssignments.Where(kvp => !kvp.Key.IsExisting());
 
@@ -327,6 +327,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 infra.Add(new ProvisioningOutput("principalId", typeof(string)) { Value = userAssignedIdentity.PrincipalId });
             }
 
+            // existing resources need to be referenced in separate modules so the Scope can be set correctly
             private List<AzureBicepResource> CreateExistingResourceRoleAssignments(AzureProvisioningOptions provisioningOptions, AzureProvisioningResource containerAppIdentityResource)
             {
                 var existingResourceRoleAssignments = new List<AzureBicepResource>();

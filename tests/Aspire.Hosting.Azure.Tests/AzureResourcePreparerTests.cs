@@ -125,6 +125,33 @@ public class AzureResourcePreparerTests
         }
     }
 
+    [Fact]
+    public async Task FindsAzureReferencesFromArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+
+        // the project doesn't WithReference or WithRoleAssignments, so it should get the default role assignments
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithArgs(context =>
+            {
+                context.Args.Add("--azure-blobs");
+                context.Args.Add(blobs.Resource.ConnectionStringExpression);
+            });
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.True(storage.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultAssignments));
+
+        Assert.True(api.Resource.TryGetLastAnnotation<RoleAssignmentAnnotation>(out var apiRoleAssignments));
+        Assert.Equal(storage.Resource, apiRoleAssignments.Target);
+        Assert.Equal(defaultAssignments.Roles, apiRoleAssignments.Roles);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 

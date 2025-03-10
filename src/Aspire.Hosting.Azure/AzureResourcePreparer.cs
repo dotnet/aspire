@@ -26,14 +26,14 @@ internal sealed class AzureResourcePreparer(
         }
 
         var options = provisioningOptions.Value;
-        if (options.UseDefaultRoleAssignments)
+        if (!options.SupportsTargetedRoleAssignments)
         {
-            // If the app is using UseDefaultRoleAssignments, then we need to ensure that
+            // If the app infrastructure does not support targeted role assignments, then we need to ensure that
             // there are no role assignment annotations in the app model because they won't be honored otherwise.
             EnsureNoRoleAssignmentAnnotations(appModel);
         }
 
-        await BuildRoleAssignmentAnnotations(appModel, options.UseDefaultRoleAssignments, cancellationToken).ConfigureAwait(false);
+        await BuildRoleAssignmentAnnotations(appModel, options.SupportsTargetedRoleAssignments, cancellationToken).ConfigureAwait(false);
 
         // set the ProvisioningBuildOptions on the resource, if necessary
         foreach (var r in azureResources)
@@ -86,11 +86,11 @@ internal sealed class AzureResourcePreparer(
         }
     }
 
-    private async Task BuildRoleAssignmentAnnotations(DistributedApplicationModel appModel, bool useDefaultRoleAssignments, CancellationToken cancellationToken)
+    private async Task BuildRoleAssignmentAnnotations(DistributedApplicationModel appModel, bool supportsTargetedRoleAssignments, CancellationToken cancellationToken)
     {
-        if (useDefaultRoleAssignments)
+        if (!supportsTargetedRoleAssignments)
         {
-            // for useDefaultRoleAssignments, just copy all the default role assignments to applied role assignments
+            // when the app infrastructure doesn't support targeted role assignments, just copy all the default role assignments to applied role assignments
             foreach (var resource in appModel.Resources)
             {
                 if (resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments))
@@ -101,7 +101,7 @@ internal sealed class AzureResourcePreparer(
         }
         else
         {
-            // when not using default role assignments, walk the resource graph and
+            // when the app infrastructure supports targeted role assignments, walk the resource graph and
             // - if in RunMode
             //   - If a compute resource has RoleAssignmentAnnotations, add them to AppliedRoleAssignmentsAnnotation on the referenced Azure resource
             //   - if the resource doesn't, copy the DefaultRoleAssignments to AppliedRoleAssignmentsAnnotation
@@ -160,6 +160,8 @@ internal sealed class AzureResourcePreparer(
 
     private async Task<HashSet<IAzureResource>> GetAzureReferences(IResource resource, CancellationToken cancellationToken)
     {
+        HashSet<IAzureResource> azureReferences = [];
+
         if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
         {
             var context = new EnvironmentCallbackContext(executionContext, cancellationToken: cancellationToken);
@@ -169,16 +171,28 @@ internal sealed class AzureResourcePreparer(
                 await c.Callback(context).ConfigureAwait(false);
             }
 
-            HashSet<IAzureResource> azureReferences = [];
             foreach (var kv in context.EnvironmentVariables)
             {
                 ProcessAzureReferences(azureReferences, kv.Value);
             }
-
-            return azureReferences;
         }
 
-        return [];
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
+        {
+            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+
+            foreach (var c in commandLineArgsCallbackAnnotations)
+            {
+                await c.Callback(context).ConfigureAwait(false);
+            }
+
+            foreach (var arg in context.Args)
+            {
+                ProcessAzureReferences(azureReferences, arg);
+            }
+        }
+
+        return azureReferences;
     }
 
     private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object value)

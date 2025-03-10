@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
@@ -41,7 +42,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -128,7 +129,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -223,7 +224,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -358,7 +359,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -462,7 +463,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -569,7 +570,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -665,7 +666,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var expectedBicep =
         """
@@ -786,8 +787,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
-        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 
         var m = manifest.ToString();
 
@@ -1121,7 +1122,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1210,7 +1211,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1319,7 +1320,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1433,7 +1434,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1547,7 +1548,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1690,7 +1691,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -1841,7 +1842,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (_, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
+        var (_, bicep) = await GetManifestWithBicep(resource);
 
         var expectedBicep =
         """
@@ -1922,7 +1923,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -2011,7 +2012,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -2107,7 +2108,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -2196,7 +2197,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         var m = manifest.ToString();
 
@@ -2334,9 +2335,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.NotNull(resource);
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource);
-        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles);
-        var (rolesStorageManifest, rolesStorageBicep) = await AzureManifestUtils.GetManifestWithBicep(projRolesStorage);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (rolesStorageManifest, rolesStorageBicep) = await GetManifestWithBicep(projRolesStorage);
 
         var expectedManifest =
             """
@@ -2618,6 +2619,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal($"The endpoint 'https' is an https endpoint and must use port 443", ex.Message);
     }
+
+    private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
+        AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
