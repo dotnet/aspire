@@ -489,7 +489,7 @@ public static class AzureServiceBusExtensions
         });
 
         ServiceBusClient? serviceBusClient = null;
-        string? queueOrTopicName = null;
+        Resource? queueOrTopic= null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
@@ -505,9 +505,9 @@ public static class AzureServiceBusExtensions
             var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
-            queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
+            queueOrTopic =
+                builder.Resource.Queues.FirstOrDefault()
+                ?? (Resource?)builder.Resource.Topics.FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
@@ -521,7 +521,7 @@ public static class AzureServiceBusExtensions
               healthCheckKey,
               sp => new ServiceBusHealthCheck(
                   () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
-                  () => queueOrTopicName),
+                  () => queueOrTopic),
               failureStatus: default,
               tags: default,
               timeout: default));

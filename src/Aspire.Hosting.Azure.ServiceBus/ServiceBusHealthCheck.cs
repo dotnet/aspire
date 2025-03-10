@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -13,9 +14,9 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 internal sealed class ServiceBusHealthCheck : IHealthCheck
 {
     private readonly Func<ServiceBusClient> _clientFactory;
-    private readonly Func<string?> _nameFactory;
+    private readonly Func<Resource?> _nameFactory;
 
-    public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<string?> nameFactory)
+    public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<Resource?> nameFactory)
     {
         ArgumentNullException.ThrowIfNull(clientFactory);
         ArgumentNullException.ThrowIfNull(nameFactory);
@@ -38,9 +39,22 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
 
             var queueOrTopicName = _nameFactory();
 
-            if (!string.IsNullOrWhiteSpace(queueOrTopicName))
+            if (queueOrTopicName is null)
             {
-                var receiver = serviceBusClient.CreateReceiver(queueOrTopicName);
+                return HealthCheckResult.Healthy();
+            }
+
+            if (queueOrTopicName is AzureServiceBusQueueResource azureServiceBusQueueResource)
+            {
+                var receiver = serviceBusClient.CreateReceiver(azureServiceBusQueueResource.QueueName);
+                await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            if (queueOrTopicName is AzureServiceBusTopicResource azureServiceBusTopicResource
+                && azureServiceBusTopicResource.Subscriptions.Count != 0)
+            {
+                var receiver = serviceBusClient.CreateReceiver(azureServiceBusTopicResource.TopicName,
+                    azureServiceBusTopicResource.Subscriptions[0].SubscriptionName);
+
                 await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
