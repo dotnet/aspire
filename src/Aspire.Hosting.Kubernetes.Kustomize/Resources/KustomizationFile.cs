@@ -21,9 +21,9 @@ public sealed class KustomizationFile : YamlObject
     /// </summary>
     public KustomizationFile()
     {
+        Add(KustomizeYamlKeys.ApiVersion, new YamlValue("kustomize.config.k8s.io/v1beta1"));
+        Add(KustomizeYamlKeys.Kind, new YamlValue("Kustomization"));
         Add(KustomizeYamlKeys.Resources, new YamlArray());
-        Add(KustomizeYamlKeys.PatchesStrategicMerge, new YamlArray());
-        Add(KustomizeYamlKeys.ConfigMapGenerator, new YamlArray());
     }
 
     /// <summary>

@@ -18,4 +18,7 @@ internal static partial class KustomizePublisherLoggerExtensions
 
     [LoggerMessage(LogLevel.Information, "Successfully generated Kustomize output in '{OutputPath}'")]
     internal static partial void FinishGeneratingKustomize(this ILogger logger, string outputPath);
+
+    [LoggerMessage(LogLevel.Warning, "Failed to get container image for resource '{ResourceName}', it will be skipped in the output.")]
+    internal static partial void FailedToGetContainerImage(this ILogger logger, string resourceName);
 }
