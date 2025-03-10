@@ -1,0 +1,44 @@
+# Github will not trigger github actions on PRs that were themselves created by a github action.
+# We use github actions to run tests on PRs, and to backport PRs from one branch to another.
+# A workaround for that behavior is to close & re-open such PRs, so that the last action is not by the Github-Action bot.
+# This policy enacts that workaround.
+
+id: eventResponderTask.GithubActionPROpened
+name: Close and re-open PRs opened via Github Action
+description: Closes and re-open PRs opened via Github Action
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+    - if:
+      - payloadType: Pull_Request
+      - isAction:
+          action: Opened
+      - isActivitySender:
+          user: github-actions[bot]
+          issueAuthor: False
+      - not:
+          hasLabel:
+            label: 'Re-opened Github-Action PR'
+      then:
+      - addLabel:
+          label: 'Closed Github-Action PR'
+      - closeIssue
+      description: Close and label Github-Action PRs
+    - if:
+      - payloadType: Pull_Request
+      - isAction:
+          action: Closed
+      - hasLabel:
+          label: 'Closed Github-Action PR'
+      then:
+      - removeLabel:
+          label: 'Closed Github-Action PR'
+      - addLabel:
+          label: 'Re-opened Github-Action PR'
+      - reopenIssue
+      description: Reopen closed Github-Action PRs
+      triggerOnOwnActions: true
