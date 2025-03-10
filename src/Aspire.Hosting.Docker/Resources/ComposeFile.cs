@@ -75,7 +75,7 @@ public sealed class ComposeFile : YamlObject
     /// <param name="networkName">The name of the network to be added. This serves as the key for the network definition.</param>
     /// <param name="network">The network definition as a YamlObject, specifying the properties of the network.</param>
     /// <returns>Returns the updated ComposeFile instance with the new network added.</returns>
-    public ComposeFile AddNetwork(string networkName, YamlObject network)
+    public ComposeFile AddNetwork(string networkName, ComposeNetwork network)
     {
         var networks = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Networks);
         networks.Add(networkName, network);
@@ -88,21 +88,10 @@ public sealed class ComposeFile : YamlObject
     /// <param name="volumeName">The name of the volume to add.</param>
     /// <param name="volume">The volume configuration as a <see cref="YamlObject"/>.</param>
     /// <returns>The updated <see cref="ComposeFile"/> instance.</returns>
-    public ComposeFile AddVolume(string volumeName, YamlObject volume)
+    public ComposeFile AddVolume(string volumeName, ComposeVolume volume)
     {
         var volumes = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Volumes);
         volumes.Add(volumeName, volume);
-        return this;
-    }
-
-    /// Adds a profile to the Compose file.
-    /// <param name="profileName">The name of the profile to add.</param>
-    /// <param name="profile">The profile represented as a YamlObject.</param>
-    /// <returns>The updated ComposeFile instance.</returns>
-    public ComposeFile AddProfile(string profileName, YamlObject profile)
-    {
-        var profiles = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Profiles);
-        profiles.Add(profileName, profile);
         return this;
     }
 }

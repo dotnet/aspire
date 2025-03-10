@@ -46,8 +46,23 @@ public sealed class ComposeService : YamlObject
     /// </returns>
     public ComposeService AddPort(string portMapping)
     {
-        var ports = GetOrCreate<YamlArray>(DockerComposeYamlKeys.Ports);
-        ports.Add(new YamlValue(portMapping));
+        AddPort(new ComposePort(portMapping));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a port mapping to the Docker Compose service definition.
+    /// </summary>
+    /// <param name="portMapping">
+    /// The port mapping to add in the format "hostPort:containerPort".
+    /// </param>
+    /// <returns>
+    /// The current <see cref="ComposeService"/> instance, allowing for method chaining.
+    /// </returns>
+    public ComposeService AddPort(ComposePort portMapping)
+    {
+        var ports = GetOrCreate<ComposeServicePorts>(DockerComposeYamlKeys.Ports);
+        ports.Add(portMapping);
         return this;
     }
 
@@ -59,8 +74,19 @@ public sealed class ComposeService : YamlObject
     /// <returns>The current instance of <see cref="ComposeService"/> for method chaining.</returns>
     public ComposeService AddEnvironmentVariable(string key, string value)
     {
-        var env = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Environment);
-        env.Add(key, new YamlValue(value));
+        AddEnvironmentVariable(new ComposeEnvironmentVariable(key, value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the Compose service configuration.
+    /// </summary>
+    /// <param name="variable">The environment variable instance.</param>
+    /// <returns>The updated <see cref="ComposeService"/> instance, allowing for chaining of additional methods.</returns>
+    public ComposeService AddEnvironmentVariable(ComposeEnvironmentVariable variable)
+    {
+        var env = GetOrCreate<ComposeServiceEnvironment>(DockerComposeYamlKeys.Environment);
+        env.AddEnvironmentalVariable(variable);
         return this;
     }
 
@@ -71,8 +97,19 @@ public sealed class ComposeService : YamlObject
     /// <returns>The updated <see cref="ComposeService"/> instance.</returns>
     public ComposeService AddCommand(string value)
     {
-        var commands = GetOrCreate<YamlArray>(DockerComposeYamlKeys.Command);
-        commands.Add(new YamlValue(value));
+        AddCommand(new ComposeCommand(value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a command to the Compose service's command configuration.
+    /// </summary>
+    /// <param name="value">The command to be added to the Compose service.</param>
+    /// <returns>The updated <c>ComposeService</c> instance with the added command.</returns>
+    public ComposeService AddCommand(ComposeCommand value)
+    {
+        var commands = GetOrCreate<ComposeServiceCommands>(DockerComposeYamlKeys.Command);
+        commands.Add(value);
         return this;
     }
 
@@ -84,6 +121,19 @@ public sealed class ComposeService : YamlObject
     public ComposeService WithImage(string value)
     {
         Replace(DockerComposeYamlKeys.Image, new YamlValue(value));
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the entrypoint for the service in the Docker Compose configuration.
+    /// </summary>
+    /// <param name="value">The entrypoint command for the service.</param>
+    /// <returns>
+    /// The updated <see cref="ComposeService"/> instance with the specified entrypoint configured.
+    /// </returns>
+    public ComposeService WithEntrypoint(string value)
+    {
+        Replace(DockerComposeYamlKeys.Entrypoint, new YamlValue(value));
         return this;
     }
 }

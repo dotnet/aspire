@@ -13,5 +13,6 @@ internal static class DockerComposeYamlKeys
     internal const string Ports = "ports";
     internal const string Environment = "environment";
     internal const string Command = "command";
-    internal const string ContainerName = "containerName";
+    internal const string Entrypoint = "entrypoint";
+    internal const string ContainerName = "container_name";
 }

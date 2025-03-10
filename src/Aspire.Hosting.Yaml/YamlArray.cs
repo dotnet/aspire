@@ -47,7 +47,7 @@ public class YamlArray : YamlNode
         writer.WriteStartArray();
         foreach (var item in _items)
         {
-            item.WriteTo(writer);
+            writer.WriteArrayItem(item);
         }
         writer.WriteEndArray();
     }
