@@ -34,6 +34,9 @@ schedules:
       include:
       - main
       - release/*
+      exclude:
+      - "*preview*"
+      - "*rc*"
     always: true
 
 jobs:
