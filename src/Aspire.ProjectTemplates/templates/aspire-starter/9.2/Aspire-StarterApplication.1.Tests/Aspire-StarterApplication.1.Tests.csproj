@@ -7,8 +7,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <!--#if (TestFrameworkIsXUnit) -->
-    <UseMicrosoftTestingPlatformRunner Condition=" '$(XUnitVersion)' != 'v2' ">true</UseMicrosoftTestingPlatformRunner>
-    <TestingPlatformDotnetTestSupport Condition=" '$(XUnitVersion)' != 'v2' ">true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner Condition=" $(XUnitVersion) == 'v3mtp' ">true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport Condition=" $(XUnitVersion) == 'v3mtp' ">true</TestingPlatformDotnetTestSupport>
     <!--#endif-->
   </PropertyGroup>
 
@@ -26,7 +26,7 @@
     <PackageReference Include="NUnit.Analyzers" Version="4.2.0" Condition=" $(TestFramework) == 'NUnit' " />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" Condition=" $(TestFramework) == 'NUnit' " />
     <!--#if (TestFrameworkIsXUnit) -->
-    <PackageReference Include="xunit" Version="2.9.2"  Condition=" $(XUnitVersion) == 'v2' "/>
+    <PackageReference Include="xunit" Version="2.9.3"  Condition=" $(XUnitVersion) == 'v2' "/>
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" Condition=" $(TestFramework) == 'xUnit.net' " />
     <PackageReference Include="xunit.v3" Version="2.0.0" Condition=" $(XUnitVersion) == 'v3' " />
     <PackageReference Include="xunit.v3" Version="2.0.0" Condition=" $(XUnitVersion) == 'v3mtp' " />

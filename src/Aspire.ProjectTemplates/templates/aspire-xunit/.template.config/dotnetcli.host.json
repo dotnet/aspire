@@ -17,7 +17,7 @@
       "XUnitVersion": {
         "shortName": "",
         "longName": "xunit-version",
-        "defaultValue": "v3"
+        "defaultValue": "v2"
       },
       "skipRestore": {
         "longName": "no-restore",
