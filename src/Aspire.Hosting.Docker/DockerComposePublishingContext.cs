@@ -182,114 +182,13 @@ internal sealed class DockerComposePublishingContext(
                 return;
             }
 
-            var endpointsList = endpoints.ToList();
-
-            // Only http, https, and tcp are supported
-            var unsupportedEndpoints = endpointsList.Where(e => e.UriScheme is not ("tcp" or "http" or "https")).ToArray();
-
-            if (unsupportedEndpoints.Length > 0)
+            foreach (var endpoint in endpoints)
             {
-                throw new NotSupportedException(
-                    $"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.");
+                var port = endpoint.Port ?? composePublishingContext.PortAllocator.AllocatePort();
+                composePublishingContext.PortAllocator.AddUsedPort(port);
+                var targetPort = endpoint.TargetPort ?? port;
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, port, targetPort, false, endpoint.IsExternal);
             }
-
-            var endpointIndexMap = new Dictionary<string, int>();
-
-            // This is used to determine if an endpoint should be treated as the Default endpoint.
-            // Endpoints can come from 3 different sources (in this order):
-            // 1. Kestrel configuration
-            // 2. Default endpoints added by the framework
-            // 3. Explicitly added endpoints
-            // But wherever they come from, we treat the first one as Default, for each scheme.
-            var httpSchemesEncountered = new HashSet<string>();
-
-            // Allocate ports for the endpoints
-            foreach (var endpoint in endpointsList)
-            {
-                endpointIndexMap[endpoint.Name] = endpointIndexMap.Count;
-
-                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
-                {
-                    // The port was specified so use it
-                    (_, _, { } target, _) => target,
-
-                    // Container resources get their default listening port from the exposed port.
-                    (ContainerResource, _, null, { } port) => port,
-
-                    // Check whether the project view this endpoint as Default (for its scheme).
-                    // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource _, { } uriScheme, null, _) when IsHttpScheme(uriScheme) &&
-                                                                           !httpSchemesEncountered.Contains(uriScheme) => null,
-
-                    // Allocate a dynamic port
-                    _ => composePublishingContext.PortAllocator.AllocatePort(),
-                };
-
-                // We only keep track of schemes for project resources, since we don't want
-                // a non-project scheme to affect what project endpoints are considered default.
-                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
-                {
-                    httpSchemesEncountered.Add(endpoint.UriScheme);
-                }
-
-                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
-                {
-                    // Exposed port and target port are the same, we don't need to mention the exposed port
-                    (_, { } p0, { } p1) when p0 == p1 => null,
-
-                    // Port was specified, so use it
-                    (_, { } port, _) => port,
-
-                    // We have a target port, not need to specify an exposedPort
-                    // it will default to the targetPort
-                    (_, null, { } _) => null,
-
-                    // Other schemes just allocate a port
-                    _ => composePublishingContext.PortAllocator.AllocatePort(),
-                };
-
-                if (exposedPort is { } ep)
-                {
-                    composePublishingContext.PortAllocator.AddUsedPort(ep);
-                    endpoint.Port = ep;
-                }
-
-                if (targetPort is { } tp)
-                {
-                    composePublishingContext.PortAllocator.AddUsedPort(tp);
-                    endpoint.TargetPort = tp;
-                }
-            }
-
-            // First we group the endpoints by container port (aka destinations), this gives us the logical bindings or destinations
-            var endpointsByTargetPort = endpointsList.GroupBy(e => e.TargetPort)
-                .Select(
-                    g => new
-                    {
-                        Port = g.Key,
-                        Endpoints = g.ToArray(),
-                        External = g.Any(e => e.IsExternal),
-                        IsHttpOnly = g.All(e => e.UriScheme is "http" or "https"),
-                        AnyH2 = g.Any(e => e.Transport is "http2"),
-                        UniqueSchemes = g.Select(e => e.UriScheme).Distinct().ToArray(),
-                        Index = g.Min(e => endpointIndexMap[e.Name]),
-                    })
-                .ToList();
-
-            foreach (var endpointsByPort in endpointsByTargetPort)
-            {
-                foreach (var e in endpointsByPort.Endpoints)
-                {
-                    var port = e.Port.GetValueOrDefault();
-                    var targetPort = e.TargetPort ?? e.Port.GetValueOrDefault();
-
-                    _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, false, e.IsExternal);
-                }
-            }
-
-            return;
-
-            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
         }
 
         private async Task ProcessArgumentsAsync(CancellationToken cancellationToken)
@@ -334,26 +233,8 @@ internal sealed class DockerComposePublishingContext(
 
                     EnvironmentVariables.Add(new ComposeEnvironmentVariable(kv.Key, value.ToString()));
                 }
-
-                if (resource is ProjectResource)
-                {
-                    SetUpAspNetCoreUrlsForProject();
-                }
             }
         }
-
-        private void SetUpAspNetCoreUrlsForProject()
-        {
-            var httpEndpoint = _endpointMapping["http"];
-            var httpsEndpoint = _endpointMapping["https"];
-            var value = $"http://+:{httpEndpoint.Port}";
-            if (httpsEndpoint.Port != httpEndpoint.Port)
-            {
-                value += $";https://+:{httpsEndpoint.Port}";
-            }
-            EnvironmentVariables.Add(new ComposeEnvironmentVariable("ASPNETCORE_URLS", value));
-        }
-
         private static void ProcessVolumes()
         {
             // not implemented
