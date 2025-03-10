@@ -145,3 +145,6 @@ node_modules/
 
 # Python virtual environments
 .venv
+
+# Publisher Outputs
+playground/**/publish/
