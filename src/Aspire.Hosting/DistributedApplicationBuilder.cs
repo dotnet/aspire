@@ -236,17 +236,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Dashboard
             if (!options.DisableDashboard)
             {
-                if (!IsDashboardUnsecured(_innerBuilder.Configuration))
-                {
-                    // Set a random API key for the OTLP exporter.
-                    // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-                    _innerBuilder.Configuration.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
-                        }
-                    );
+                var dashboardAuthMode = GetDashboardAuthMode(_innerBuilder.Configuration);
+                _innerBuilder.Configuration[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = dashboardAuthMode.ToString();
 
+                if (dashboardAuthMode == DashboardAuthMode.BrowserToken)
+                {
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
                     {
@@ -258,6 +252,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                         new Dictionary<string, string?>
                         {
                             ["AppHost:BrowserToken"] = browserToken
+                        }
+                    );
+                }
+
+                if (dashboardAuthMode != DashboardAuthMode.Unsecured)
+                {
+                    // Set a random API key for the OTLP exporter.
+                    // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
                         }
                     );
 
@@ -406,9 +412,22 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
     }
 
-    private static bool IsDashboardUnsecured(IConfiguration configuration)
+    private static DashboardAuthMode GetDashboardAuthMode(IConfiguration configuration)
     {
-        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
+        if (configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false)
+        {
+            return DashboardAuthMode.Unsecured;
+        }
+
+        var authModeString = configuration[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] ??
+                             configuration[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey];
+
+        if (Enum.TryParse<DashboardAuthMode>(authModeString, true, out var authMode))
+        {
+            return authMode;
+        }
+
+        return DashboardAuthMode.BrowserToken;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
