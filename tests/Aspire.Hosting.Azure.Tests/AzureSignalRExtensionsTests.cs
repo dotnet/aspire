@@ -17,7 +17,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
 
         var expectedManifest = """
             {
@@ -89,7 +89,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr", AzureSignalRServiceMode.Serverless);
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
 
         var expectedManifest = """
             {

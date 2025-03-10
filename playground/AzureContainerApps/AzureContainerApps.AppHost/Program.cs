@@ -3,6 +3,8 @@
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using Azure.Provisioning.Storage;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var customDomain = builder.AddParameter("customDomain");
@@ -22,9 +24,9 @@ var cosmosDb = builder.AddAzureCosmosDB("account")
 cosmosDb.AddCosmosDatabase("db");
 
 // Testing a connection string
-var blobs = builder.AddAzureStorage("storage")
-                   .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
-                   .AddBlobs("blobs");
+var storage = builder.AddAzureStorage("storage")
+                     .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+var blobs = storage.AddBlobs("blobs");
 
 // Testing docker files
 
@@ -34,6 +36,7 @@ builder.AddDockerfile("pythonapp", "AppWithDocker");
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs)
+       .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
        .WithReference(redis)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)
