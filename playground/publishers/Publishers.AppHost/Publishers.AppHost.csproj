@@ -18,8 +18,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Kubernetes.Helm" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Kubernetes.Kustomize" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Kubernetes" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Docker" />
     <ProjectReference Include="..\Publishers.Frontend\Publishers.Frontend.csproj" />
 

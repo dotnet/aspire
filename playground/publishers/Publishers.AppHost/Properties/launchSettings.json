@@ -52,23 +52,11 @@
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16175"
       }
     },
-    "publish-helm": {
+    "publish-k8s": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher helm --output-path publish/helm",
-      "applicationUrl": "http://localhost:15888",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16175"
-      }
-    },
-    "publish-kustomize": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher kustomize --output-path publish/kustomize",
+      "commandLineArgs": "--publisher k8s --output-path publish/k8s",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
