@@ -1,4 +1,5 @@
 using CatalogDb;
+using Microsoft.Extensions.Builder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,11 @@ builder.Services.AddHealthChecks()
     .AddCheck<CatalogDbInitializerHealthCheck>("DbInitializer", null);
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapResetDbEndpoint();
+}
 
 app.MapDefaultEndpoints();
 
