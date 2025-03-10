@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -279,16 +278,13 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var markHealthy = false;
-        builder.Services.AddHealthChecks()
-            .AddCheck("ManualHealthCheck", () => markHealthy ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("Not ready"));
-
-        builder.AddProject<Projects.ServiceA>("servicea")
-            .WithHttpCommand("/status/200", "Do The Thing", commandName: "mycommand")
-            .WithHealthCheck("ManualHealthCheck");
+        var service = builder.AddResource(new CustomResource("service"))
+            .WithHttpEndpoint()
+            .WithHttpCommand("/dothing", "Do The Thing", commandName: "mycommand");
 
         using var app = builder.Build();
         ResourceCommandState? commandState = null;
+        var watchTcs = new TaskCompletionSource();
         var watchCts = new CancellationTokenSource();
         var watchTask = Task.Run(async () =>
         {
@@ -296,24 +292,44 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
             {
                 var commandSnapshot = resourceEvent.Snapshot.Commands.First(c => c.Name == "mycommand");
                 commandState = commandSnapshot.State;
+                if (commandState == ResourceCommandState.Enabled)
+                {
+                    watchTcs.TrySetResult();
+                }
             }
         }, watchCts.Token);
 
         // Act/Assert
         await app.StartAsync().WaitAsync(s_startTimeout);
 
-        await app.ResourceNotifications.WaitForResourceAsync("servicea", KnownResourceStates.Starting).WaitAsync(s_startTimeout);
+        // Move the resource to the starting state
+        await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
+        {
+            State = KnownResourceStates.Starting
+        });
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Starting).WaitAsync(s_startTimeout);
 
+        // Veriy the command is disabled
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
-        markHealthy = true;
+        // Move the resource to the healthy state
+        await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).WaitAsync(s_healthyTimeout);
+        await watchTcs.Task.WaitAsync(s_healthyTimeout);
 
-        var resourceEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").WaitAsync(s_healthyTimeout);
-
+        // Verify the command is enabled
         Assert.Equal(ResourceCommandState.Enabled, commandState);
 
         // Clean up
         watchCts.Cancel();
         await app.StopAsync();
+    }
+
+    private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport
+    {
+
     }
 }
