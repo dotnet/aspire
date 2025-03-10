@@ -18,9 +18,11 @@ public sealed class ComposeService : YamlObject
     /// <summary>
     /// Represents a service definition in a Docker Compose YAML file.
     /// </summary>
-    public ComposeService(string name)
+    public ComposeService(string name, string? existingNetworkName = null)
     {
         Add(DockerComposeYamlKeys.ContainerName, new YamlValue(name));
+
+        SetDefaultNetwork(existingNetworkName);
     }
 
     /// <summary>
@@ -114,6 +116,29 @@ public sealed class ComposeService : YamlObject
     }
 
     /// <summary>
+    /// Adds a network to the service configuration in the Docker Compose file.
+    /// </summary>
+    /// <param name="value">The name of the network to add.</param>
+    /// <returns>The instance of <see cref="ComposeService"/> for chaining additional configurations.</returns>
+    public ComposeService AddNetwork(string value)
+    {
+        AddNetwork(new YamlValue(value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a specified network to the service in the Docker Compose configuration.
+    /// </summary>
+    /// <param name="value">The name of the network to be added as a string.</param>
+    /// <returns>The updated <see cref="ComposeService"/> instance.</returns>
+    public ComposeService AddNetwork(YamlValue value)
+    {
+        var commands = GetOrCreate<ComposeServiceNetworks>(DockerComposeYamlKeys.Networks);
+        commands.Add(value);
+        return this;
+    }
+
+    /// <summary>
     /// Sets the image property of the Docker Compose service.
     /// </summary>
     /// <param name="value">The name of the Docker image to set for the service.</param>
@@ -135,5 +160,16 @@ public sealed class ComposeService : YamlObject
     {
         Replace(DockerComposeYamlKeys.Entrypoint, new YamlValue(value));
         return this;
+    }
+
+    private void SetDefaultNetwork(string? existingNetworkName)
+    {
+        if (existingNetworkName is not null)
+        {
+            AddNetwork(existingNetworkName);
+            return;
+        }
+
+        AddNetwork("aspire");
     }
 }

@@ -19,8 +19,9 @@ public sealed class ComposeFile : YamlObject
     /// Represents a Docker Compose file as a YAML object and provides utility methods
     /// for managing top-level sections such as services, networks, volumes, and profiles.
     /// </summary>
-    public ComposeFile()
+    public ComposeFile(string? existingNetworkName = null)
     {
+        InitializeComposeNetwork(existingNetworkName);
     }
 
     /// <summary>
@@ -93,5 +94,20 @@ public sealed class ComposeFile : YamlObject
         var volumes = GetOrCreate<YamlObject>(DockerComposeYamlKeys.Volumes);
         volumes.Add(volumeName, volume);
         return this;
+    }
+
+    private void InitializeComposeNetwork(string? existingNetworkName = null)
+    {
+        var networkName = existingNetworkName ?? "aspire";
+
+        var network = new ComposeNetwork();
+        network.SetDriver("bridge");
+
+        if (!string.IsNullOrEmpty(existingNetworkName))
+        {
+            network.SetExternal();
+        }
+
+        AddNetwork(networkName, network);
     }
 }

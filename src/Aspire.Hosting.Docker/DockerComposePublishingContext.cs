@@ -10,15 +10,16 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
-/// Contextual information used for manifest publishing during this execution of the AppHost as docker compose output format.
+/// Represents a context for publishing Docker Compose configurations for a distributed application.
 /// </summary>
-/// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
-/// <param name="outputPath">Output path for assets generated via this invocation of the AppHost.</param>
-/// <param name="logger">The current publisher logger instance.</param>
-/// <param name="cancellationToken">Cancellation token for this operation.</param>
+/// <remarks>
+/// This context facilitates the generation of Docker Compose files using the provided application model,
+/// publisher options, and execution context. It handles the allocation of ports for services and ensures
+/// that the Docker Compose configuration file is created in the specified output path.
+/// </remarks>
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    string outputPath,
+    DockerComposePublisherOptions publisherOptions,
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
@@ -26,6 +27,7 @@ internal sealed class DockerComposePublishingContext(
     private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
 
     private ILogger Logger => logger;
+    private DockerComposePublisherOptions Options => publisherOptions;
 
     internal async Task WriteModel(DistributedApplicationModel model)
     {
@@ -37,7 +39,7 @@ internal sealed class DockerComposePublishingContext(
         logger.StartGeneratingDockerCompose();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(outputPath);
+        ArgumentNullException.ThrowIfNull(publisherOptions.OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -52,7 +54,7 @@ internal sealed class DockerComposePublishingContext(
 
     private async Task<string> WriteDockerComposeOutput(DistributedApplicationModel model)
     {
-        var composeFile = new ComposeFile();
+        var composeFile = new ComposeFile(publisherOptions.ExistingNetworkName);
 
         foreach (var r in model.Resources)
         {
@@ -75,8 +77,8 @@ internal sealed class DockerComposePublishingContext(
         }
 
         var composeOutput = composeFile.ToYamlString();
-        var outputFile = Path.Combine(outputPath, "docker-compose.yaml");
-        Directory.CreateDirectory(outputPath);
+        var outputFile = Path.Combine(publisherOptions.OutputPath!, "docker-compose.yaml");
+        Directory.CreateDirectory(publisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
         return outputFile;
     }
@@ -116,7 +118,7 @@ internal sealed class DockerComposePublishingContext(
                 composePublishingContext.Logger.FailedToGetContainerImage(resource.Name);
             }
 
-            var composeService = new ComposeService(resource.Name.ToLowerInvariant());
+            var composeService = new ComposeService(resource.Name.ToLowerInvariant(), composePublishingContext.Options.ExistingNetworkName);
 
             SetEntryPoint(composeService);
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
