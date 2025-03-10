@@ -23,22 +23,30 @@ on:
       extraTestArgs:
         required: false
         type: string
+      OS:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      os_matrix:
+        required: false
+        type: string
+        default: '{"include": [{"windows-latest":"true", "ubuntu-latest":"false"}]}'
 
 jobs:
 
   test:
     runs-on: ${{ matrix.os }}
     strategy:
-        matrix:
-          include:
-            - os: ubuntu-latest
-              name: linux
-              dotnet_script: ./dotnet.sh
-              build_script: ./build.sh
-            - os: windows-latest
-              name: windows
-              dotnet_script: .\dotnet.cmd
-              build_script: .\build.cmd
+        matrix: ${{ fromJson(inputs.os_matrix) }}
+          #include:
+            #- os: ubuntu-latest
+              #name: linux
+              #dotnet_script: ./dotnet.sh
+              #build_script: ./build.sh
+            #- os: windows-latest
+              #name: windows
+              #dotnet_script: .\dotnet.cmd
+              #build_script: .\build.cmd
     timeout-minutes: 60
     name: ${{ matrix.name }}
     steps:
