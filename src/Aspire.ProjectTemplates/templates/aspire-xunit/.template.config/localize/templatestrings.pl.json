@@ -32,9 +32,9 @@
   "symbols/XUnitVersion/choices/v2/displayName": "v2",
   "symbols/XUnitVersion/choices/v2/description": "Chooses xUnit v2 with VSTest",
   "symbols/XUnitVersion/choices/v3/displayName": "v3",
-  "symbols/XUnitVersion/choices/v3/description": "Chooses xUnit v3 with VSTest (Aspire version 9.1 and later only)",
+  "symbols/XUnitVersion/choices/v3/description": "Chooses xUnit v3 with VSTest (Aspire version 9.2 and later only)",
   "symbols/XUnitVersion/choices/v3mtp/displayName": "v3 with MTP",
-  "symbols/XUnitVersion/choices/v3mtp/description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.1 and later only)",
+  "symbols/XUnitVersion/choices/v3mtp/description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.2 and later only)",
   "symbols/skipRestore/description": "Jeśli ta opcja jest określona, pomija automatyczne przywracanie projektu podczas tworzenia.",
   "postActions/restore/description": "Przywróć pakiety NuGet wymagane przez ten projekt.",
   "postActions/restore/manualInstructions/default/text": "Uruchom polecenie \"dotnet restore\""

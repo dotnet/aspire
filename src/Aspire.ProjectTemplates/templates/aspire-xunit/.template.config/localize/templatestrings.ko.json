@@ -32,9 +32,9 @@
   "symbols/XUnitVersion/choices/v2/displayName": "v2",
   "symbols/XUnitVersion/choices/v2/description": "Chooses xUnit v2 with VSTest",
   "symbols/XUnitVersion/choices/v3/displayName": "v3",
-  "symbols/XUnitVersion/choices/v3/description": "Chooses xUnit v3 with VSTest (Aspire version 9.1 and later only)",
+  "symbols/XUnitVersion/choices/v3/description": "Chooses xUnit v3 with VSTest (Aspire version 9.2 and later only)",
   "symbols/XUnitVersion/choices/v3mtp/displayName": "v3 with MTP",
-  "symbols/XUnitVersion/choices/v3mtp/description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.1 and later only)",
+  "symbols/XUnitVersion/choices/v3mtp/description": "Chooses xUnit v3 with Microsoft Test Platform (Aspire version 9.2 and later only)",
   "symbols/skipRestore/description": "지정된 경우, 프로젝트 생성 시 자동 복원을 건너뜁니다.",
   "postActions/restore/description": "이 프로젝트에 필요한 NuGet 패키지를 복원합니다.",
   "postActions/restore/manualInstructions/default/text": "'dotnet restore' 실행"
