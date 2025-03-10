@@ -99,8 +99,6 @@ public sealed class YamlWriter
     public void WriteStartArray()
     {
         _builder.AppendLine();
-        WriteIndent();
-        _builder.AppendLine("[");
         _indentLevel++;
     }
 
@@ -111,8 +109,29 @@ public sealed class YamlWriter
     public void WriteEndArray()
     {
         _indentLevel--;
+    }
+
+    /// <summary>
+    /// Writes an item to the YAML output buffer as a YAML array element.
+    /// </summary>
+    /// <param name="node">The value of the array item to write.</param>
+    public void WriteArrayItem(YamlNode node)
+    {
         WriteIndent();
-        _builder.AppendLine("]");
+        _builder.Append("- ");
+
+        if (node is YamlValue scalarNode)
+        {
+            var scalar = ConvertToYamlScalar(scalarNode.Value);
+            _builder.AppendLine(scalar);
+            return;
+        }
+
+        // If it's an object or another array, we typically put it on its own lines
+        _builder.AppendLine();
+        _indentLevel++;
+        node.WriteTo(this); // let the node handle writing its keys/children
+        _indentLevel--;
     }
 
     /// <summary>
