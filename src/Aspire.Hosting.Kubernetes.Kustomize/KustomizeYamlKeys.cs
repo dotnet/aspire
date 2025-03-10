@@ -8,4 +8,6 @@ internal static class KustomizeYamlKeys
     internal const string Resources = "resources";
     internal const string PatchesStrategicMerge = "patchesStrategicMerge";
     internal const string ConfigMapGenerator = "configMapGenerator";
+    internal const string ApiVersion = "apiVersion";
+    internal const string Kind = "kind";
 }

@@ -60,7 +60,7 @@ internal sealed class KustomizePublisher(
             );
         }
 
-        var context = new KustomizePublishingContext(executionContext, publisherOptions.OutputPath, logger, cancellationToken);
+        var context = new KustomizePublishingContext(executionContext, publisherOptions, logger, cancellationToken);
 
         await context.WriteModel(model).ConfigureAwait(false);
     }
