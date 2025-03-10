@@ -19,7 +19,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = """
             {
@@ -143,7 +143,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         postgres.AddDatabase("db1", "db1Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = $$"""
             {
