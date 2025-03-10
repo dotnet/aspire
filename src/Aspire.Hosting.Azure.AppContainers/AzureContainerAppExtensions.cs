@@ -20,7 +20,7 @@ public static class AzureContainerAppExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // ensure AzureProvisioning is added first so it's lifecycle hook runs before AzureContainerAppsInfrastructure
+        // ensure AzureProvisioning is added first so the AzureResourcePreparer lifecycle hook runs before AzureContainerAppsInfrastructure
         builder.AddAzureProvisioning();
 
         // AzureContainerAppsInfrastructure will handle adding role assignments,

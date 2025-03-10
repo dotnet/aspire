@@ -324,7 +324,7 @@ public static class AzureStorageExtensions
     /// on the target Azure Storage account.
     /// </summary>
     /// <param name="builder">The resource to which the specified roles will be assigned.</param>
-    /// <param name="destination">The target Azure Storage account.</param>
+    /// <param name="target">The target Azure Storage account.</param>
     /// <param name="roles">The built-in storage roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <example>
@@ -342,11 +342,11 @@ public static class AzureStorageExtensions
     /// </example>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
-        IResourceBuilder<AzureStorageResource> destination,
+        IResourceBuilder<AzureStorageResource> target,
         params StorageBuiltInRole[] roles)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination.Resource, CreateRoleDefinitions(roles)));
+        return builder.WithAnnotation(new RoleAssignmentAnnotation(target.Resource, CreateRoleDefinitions(roles)));
     }
 
     private static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)

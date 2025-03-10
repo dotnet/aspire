@@ -9,11 +9,11 @@ namespace Aspire.Hosting.Azure;
 /// Specifies the default role assignments to be applied to an Azure resource
 /// when no specific role assignments (i.e., <see cref="RoleAssignmentAnnotation"/>) are provided.
 /// </summary>
-/// <param name="roles">The default set of role assignments for an Azure resource.</param>
+/// <param name="roles">The default set of roles for an Azure resource.</param>
 public class DefaultRoleAssignmentsAnnotation(IReadOnlySet<RoleDefinition> roles) : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the set of role assignments to use by default for an Azure resource.
+    /// Gets the set of roles to use by default for an Azure resource.
     /// </summary>
     public IReadOnlySet<RoleDefinition> Roles { get; } = roles;
 }

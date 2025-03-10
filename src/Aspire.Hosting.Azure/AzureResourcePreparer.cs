@@ -17,6 +17,34 @@ internal sealed class AzureResourcePreparer(
     DistributedApplicationExecutionContext executionContext
     ) : IDistributedApplicationLifecycleHook
 {
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    {
+        var azureResources = GetAzureResourcesFromAppModel(appModel);
+        if (azureResources.Count == 0)
+        {
+            return;
+        }
+
+        var options = provisioningOptions.Value;
+        if (options.UseDefaultRoleAssignments)
+        {
+            // If the app is using UseDefaultRoleAssignments, then we need to ensure that
+            // there are no role assignment annotations in the app model because they won't be honored otherwise.
+            EnsureNoRoleAssignmentAnnotations(appModel);
+        }
+
+        await BuildRoleAssignmentAnnotations(appModel, options.UseDefaultRoleAssignments, cancellationToken).ConfigureAwait(false);
+
+        // set the ProvisioningBuildOptions on the resource, if necessary
+        foreach (var r in azureResources)
+        {
+            if (r.AzureResource is AzureProvisioningResource provisioningResource)
+            {
+                provisioningResource.ProvisioningBuildOptions = options.ProvisioningBuildOptions;
+            }
+        }
+    }
+
     internal static List<(IResource Resource, IAzureResource AzureResource)> GetAzureResourcesFromAppModel(DistributedApplicationModel appModel)
     {
         // Some resources do not derive from IAzureResource but can be handled
@@ -45,34 +73,6 @@ internal sealed class AzureResourcePreparer(
         }
 
         return azureResources;
-    }
-
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
-    {
-        var azureResources = GetAzureResourcesFromAppModel(appModel);
-        if (azureResources.Count == 0)
-        {
-            return;
-        }
-
-        var options = provisioningOptions.Value;
-        if (options.UseDefaultRoleAssignments)
-        {
-            // If the app is using UseDefaultRoleAssignments, then we need to ensure that
-            // there are no role assignment annotations in the app model because they won't be honored otherwise.
-            EnsureNoRoleAssignmentAnnotations(appModel);
-        }
-
-        await BuildRoleAssignmentAnnotations(appModel, options.UseDefaultRoleAssignments, cancellationToken).ConfigureAwait(false);
-
-        // set the ProvisioningBuildOptions on the resource, if necessary
-        foreach (var r in azureResources)
-        {
-            if (r.AzureResource is AzureProvisioningResource provisioningResource)
-            {
-                provisioningResource.ProvisioningBuildOptions = options.ProvisioningBuildOptions;
-            }
-        }
     }
 
     private static void EnsureNoRoleAssignmentAnnotations(DistributedApplicationModel appModel)
