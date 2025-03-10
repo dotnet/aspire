@@ -38,7 +38,6 @@
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
     <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Utils\ContainerReferenceParser.cs" />
-    <Compile Include="$(SharedDir)PublishingExtensions.cs" Link="Publishing\PublishingExtensions.cs" />
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
   </ItemGroup>
 
