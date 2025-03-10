@@ -28,7 +28,6 @@ configuration:
           label: 'Closed Github-Action PR'
       - closeIssue
       description: Close and label Github-Action PRs
-      triggerOnOwnActions: true
     - if:
       - payloadType: Pull_Request
       - isAction:
