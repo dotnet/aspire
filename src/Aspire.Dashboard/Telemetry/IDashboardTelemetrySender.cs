@@ -3,18 +3,9 @@
 
 namespace Aspire.Dashboard.Telemetry;
 
-public interface IDashboardTelemetrySender : IDisposable
+public interface IDashboardTelemetrySender : IAsyncDisposable
 {
-    public Task<HttpResponseMessage> GetTelemetryEnabledAsync();
+    public Task<bool> TryStartTelemetrySessionAsync();
 
-    public Task<HttpResponseMessage> StartTelemetrySessionAsync();
-
-    /// <summary>
-    /// Posts telemetry to the server.
-    /// </summary>
-    /// <param name="generatedGuids">If the request will be returning properties (such as correlation or operation id) that other telemetry events need to reference *before* this request
-    /// completes, a dummy guid will be generated for the number of specified properties and correlated after completion.</param>
-    /// <param name="requestFunc">A function containing as inputs 1) the inner http client, and 2) a function that maps Guids to their property value, or throws if not available.</param>
-    /// <returns></returns>
-    public List<Guid> MakeRequest(int generatedGuids, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>> requestFunc);
+    public void MakeRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc);
 }

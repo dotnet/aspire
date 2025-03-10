@@ -1,94 +1,203 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
 
 public class DashboardTelemetrySender : IDashboardTelemetrySender
 {
-    private readonly HttpClient _httpClient;
+    private readonly IOptions<DashboardOptions> _options;
+    private readonly ILogger<DashboardTelemetrySender> _logger;
+    private readonly Channel<(OperationContext, Func<HttpClient, Func<OperationContextProperty, object>, Task>)> _channel;
+    private HttpClient? _httpClient;
+    private bool? _isEnabled;
+    private Task? _sendLoopTask;
 
-    private readonly Channel<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)> _channel;
-    private readonly ConcurrentDictionary<Guid, object> _responsePropertyMap = [];
+    // Internal for testing.
+    internal Func<HttpClientHandler, HttpMessageHandler>? CreateHandler { get; set; }
 
-    public DashboardTelemetrySender(HttpClient client, ILogger<DashboardTelemetryService> logger)
+    public DashboardTelemetrySender(IOptions<DashboardOptions> options, ILogger<DashboardTelemetrySender> logger)
     {
-        _channel = Channel.CreateBounded<(List<Guid>, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>>)>(new BoundedChannelOptions(1000)
+        _options = options;
+        _logger = logger;
+        var channelOptions = new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true
-        });
+        };
+        _channel = Channel.CreateBounded<(OperationContext, Func<HttpClient, Func<OperationContextProperty, object>, Task>)>(channelOptions);
+    }
 
-        _httpClient = client;
-
-        _ = Task.Run(async () =>
+    private static bool HasDebugSession(
+        DebugSession debugSession,
+        [NotNullWhen(true)] out Uri? debugSessionUri,
+        [NotNullWhen(true)] out string? token,
+        [NotNullWhen(true)] out byte[]? certData)
+    {
+        if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
         {
-            while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
-            {
-                while (_channel.Reader.TryRead(out var operation))
-                {
-                    var (propertyIds, requestFunc) = operation;
-                    try
-                    {
-                        var result = await requestFunc(client, GetResponseProperty).ConfigureAwait(false);
+            debugSessionUri = new Uri($"https://{debugSession.Address}");
+            token = debugSession.Token;
+            certData = Convert.FromBase64String(debugSession.ServerCertificate);
+            return true;
+        }
 
-                        // Each property id corresponds to a value that hasn't yet been received from the telemetry server.
-                        // We need to associate with values received so that they can be retrieved by future requests that may be referencing these values (using these guids)
-                        foreach (var (propertyId, value) in propertyIds.Zip(result))
+        debugSessionUri = null;
+        token = null;
+        certData = null;
+        return false;
+    }
+
+    private void StartSendLoop()
+    {
+        Debug.Assert(_httpClient is not null, "HttpClient must be initialized.");
+
+        _sendLoopTask = Task.Run(async () =>
+        {
+            _logger.LogInformation("Starting sender loop.");
+
+            try
+            {
+                while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
+                {
+                    while (_channel.Reader.TryRead(out var operation))
+                    {
+                        var (context, requestFunc) = operation;
+                        try
                         {
-                            _responsePropertyMap[propertyId] = value;
+                            await requestFunc(_httpClient, GetResponseProperty).ConfigureAwait(false);
+
+                            // Double check properties are set.
+                            foreach (var property in context.Properties)
+                            {
+                                if (!property.HasValue)
+                                {
+                                    _logger.LogWarning("Unset context property.");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to send telemetry request.");
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to send telemetry request.");
-                    }
                 }
+            }
+            finally
+            {
+                _logger.LogInformation("Ending sender loop.");
             }
         });
     }
 
-    private object GetResponseProperty(Guid propertyId)
+    private HttpClient CreateHttpClient(Uri debugSessionUri, string token, byte[] certData)
     {
-        if (!_responsePropertyMap.TryGetValue(propertyId, out var value))
+        var cert = new X509Certificate2(certData);
+        var handler = new HttpClientHandler
         {
-            throw new InvalidOperationException($"Response property not found. Id: {propertyId}");
+            ServerCertificateCustomValidationCallback = (_, c, _, e) =>
+            {
+                // Server certificate is already considered valid.
+                if (e == SslPolicyErrors.None)
+                {
+                    return true;
+                }
+
+                // Certificate isn't immediately valid. Check if it is the same as the one we expect.
+                return string.Equals(
+                    cert.GetCertHashString(HashAlgorithmName.SHA256),
+                    c?.GetCertHashString(HashAlgorithmName.SHA256),
+                    StringComparison.OrdinalIgnoreCase);
+            }
+        };
+        var resolvedHandler = CreateHandler?.Invoke(handler) ?? handler;
+        var client = new HttpClient(resolvedHandler)
+        {
+            BaseAddress = debugSessionUri,
+            DefaultRequestHeaders =
+            {
+                { "Authorization", $"Bearer {token}" },
+                { "User-Agent", "Aspire Dashboard" }
+            }
+        };
+
+        return client;
+    }
+
+    private object GetResponseProperty(OperationContextProperty propertyId)
+    {
+        return propertyId.GetValue();
+    }
+
+    public async Task<bool> TryStartTelemetrySessionAsync()
+    {
+        Debug.Assert(_isEnabled is null, "Telemetry session has already been started.");
+
+        _isEnabled = await TryStartTelemetrySessionCoreAsync().ConfigureAwait(false);
+        if (_isEnabled.Value)
+        {
+            StartSendLoop();
         }
 
-        return value;
+        return _isEnabled.Value;
     }
 
-    public Task<HttpResponseMessage> GetTelemetryEnabledAsync()
+    private async Task<bool> TryStartTelemetrySessionCoreAsync()
     {
-        return _httpClient.GetAsync(TelemetryEndpoints.TelemetryEnabled);
-    }
-
-    public Task<HttpResponseMessage> StartTelemetrySessionAsync()
-    {
-        return _httpClient.PostAsync(TelemetryEndpoints.TelemetryStart, content: null);
-    }
-
-    public List<Guid> MakeRequest(int generatedGuids, Func<HttpClient, Func<Guid, object>, Task<ICollection<object>>> requestFunc)
-    {
-        Debug.Assert(generatedGuids >= 0, "guidsNeeded must be >= 0");
-
-        var propertyIds = new List<Guid>();
-        for (var i = 0; i < generatedGuids; i++)
+        if (HasDebugSession(_options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
         {
-            propertyIds.Add(Guid.NewGuid());
+            _httpClient = CreateHttpClient(debugSessionUri, token, certData);
+        }
+        else
+        {
+            _logger.LogInformation("Telemetry is not configured.");
+            return false;
         }
 
-        _channel.Writer.TryWrite((propertyIds, requestFunc));
+        try
+        {
+            var response = await _httpClient.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
+            var isTelemetryEnabled = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
 
-        return propertyIds;
+            if (!isTelemetryEnabled)
+            {
+                return false;
+            }
+
+            // start the actual telemetry session
+            var telemetryStartedStatusCode = (await _httpClient.PostAsync(TelemetryEndpoints.TelemetryStart, content: null).ConfigureAwait(false)).StatusCode;
+            return telemetryStartedStatusCode is HttpStatusCode.OK;
+        }
+        catch (Exception ex)
+        {
+            // If the request fails, we've been given an invalid server address and should assume telemetry is unsupported.
+            _logger.LogWarning(ex, "Failed to request whether telemetry is supported.");
+            return false;
+        }
     }
 
-    public void Dispose()
+    public void MakeRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
     {
-        _httpClient.Dispose();
+        _channel.Writer.TryWrite((context, requestFunc));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
         _channel.Writer.Complete();
+        if (_sendLoopTask is { } task)
+        {
+            await task.ConfigureAwait(false);
+        }
+
+        _httpClient?.Dispose();
     }
 }

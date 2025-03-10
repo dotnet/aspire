@@ -660,7 +660,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     // IComponentWithTelemetry
     public string ComponentId => DashboardUrls.ConsoleLogBasePath;
-    public Guid? InitializeCorrelation { get; set; }
+    public OperationContext? InitializeCorrelation { get; set; }
 
     public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
     {

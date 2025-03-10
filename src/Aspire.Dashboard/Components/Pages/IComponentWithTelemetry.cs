@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Telemetry;
@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components.Pages;
 /// </summary>
 public interface IComponentWithTelemetry
 {
-    public Guid? InitializeCorrelation { get; set; }
+    public OperationContext? InitializeCorrelation { get; set; }
     public NavigationManager NavigationManager { get; }
     public DashboardTelemetryService TelemetryService { get; }
 
@@ -32,7 +32,8 @@ public static class IComponentWithTelemetryExtensions
             component.InitializeCorrelation = component.TelemetryService.PostUserTask(
                 TelemetryEventKeys.InitializeComponent,
                 TelemetryResult.Success,
-                properties: new Dictionary<string, AspireTelemetryProperty> {
+                properties: new Dictionary<string, AspireTelemetryProperty>
+                {
                     // Component properties
                     { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(component.ComponentId) }
                 });
@@ -48,6 +49,6 @@ public static class IComponentWithTelemetryExtensions
             TelemetryEventKeys.ParametersSet,
             TelemetryResult.Success,
             properties: properties,
-            correlatedWith: component.InitializeCorrelation is null ? null : [component.InitializeCorrelation.Value]);
+            correlatedWith: component.InitializeCorrelation?.Properties);
     }
 }

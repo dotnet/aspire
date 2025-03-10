@@ -1,24 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
-using Aspire.Dashboard.Configuration;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options, ILogger<DashboardTelemetryService> logger) : IDisposable
+public sealed class DashboardTelemetryService
 {
     private bool? _telemetryEnabled;
-    private IDashboardTelemetrySender? _dashboardTelemetrySender;
+    private readonly ILogger<DashboardTelemetryService> _logger;
+    private readonly IDashboardTelemetrySender _dashboardTelemetrySender;
+    private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
+
+    public DashboardTelemetryService(ILogger<DashboardTelemetryService> logger, IDashboardTelemetrySender telemetrySender)
+    {
+        _logger = logger;
+        _dashboardTelemetrySender = telemetrySender;
+    }
 
     /// <summary>
-    /// Whether the telemetry service has been initialized. This will be true if <see cref="DashboardTelemetryService.InitializeAsync"/> has completed.
+    /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
     /// </summary>
     public bool IsTelemetryInitialized => _telemetryEnabled is not null;
 
@@ -36,117 +37,64 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="DashboardTelemetryService.IsTelemetryEnabled"/> is set
     /// by making a request to the debug session, if one exists.
     /// </summary>
-    public async Task InitializeAsync(IDashboardTelemetrySender? telemetrySender = null)
+    public async Task InitializeAsync()
     {
-        logger.LogDebug("Initializing telemetry service.");
-
         if (_telemetryEnabled is not null)
         {
             return;
         }
 
-        if (telemetrySender is not null)
-        {
-            _dashboardTelemetrySender = telemetrySender;
-        }
-        else if (!HasDebugSession(options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
-        {
-            _telemetryEnabled = false;
-            logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", false);
-            return;
-        }
-        else
-        {
-            _dashboardTelemetrySender = new DashboardTelemetrySender(CreateHttpClient(debugSessionUri, token, certData), logger);
-        }
+        // Async lock to ensure that telemetry is only initialized once.
+        await _lock.WaitAsync().ConfigureAwait(false);
 
-        _telemetryEnabled = await GetTelemetrySupportedAsync(_dashboardTelemetrySender, logger).ConfigureAwait(false);
-        logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
-
-        // Post session property values after initialization, if telemetry has been enabled.
-        if (_telemetryEnabled is true)
+        try
         {
-            foreach (var (key, value) in GetDefaultProperties())
+            if (_telemetryEnabled is not null)
             {
-                PostProperty(key, value);
-            }
-        }
-
-        return;
-
-        static HttpClient CreateHttpClient(Uri debugSessionUri, string token, byte[] certData)
-        {
-            var cert = new X509Certificate2(certData);
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, c, _, _) => cert.Equals(c)
-            };
-            var client = new HttpClient(handler)
-            {
-                BaseAddress = debugSessionUri,
-                DefaultRequestHeaders = { { "Authorization", $"Bearer {token}" }, { "User-Agent", "Aspire Dashboard" } }
-            };
-
-            return client;
-        }
-
-        static bool HasDebugSession(
-            DebugSession debugSession,
-            [NotNullWhen(true)] out Uri? debugSessionUri,
-            [NotNullWhen(true)] out string? token,
-            [NotNullWhen(true)] out byte[]? certData)
-        {
-            if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
-            {
-                debugSessionUri = new Uri($"https://{debugSession.Address}");
-                token = debugSession.Token;
-                certData = Convert.FromBase64String(debugSession.ServerCertificate);
-                return true;
+                return;
             }
 
-            debugSessionUri = null;
-            token = null;
-            certData = null;
-            return false;
-        }
+            _logger.LogDebug("Initializing telemetry service.");
+            _telemetryEnabled = await _dashboardTelemetrySender.TryStartTelemetrySessionAsync().ConfigureAwait(false);
+            _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
 
-        static async Task<bool> GetTelemetrySupportedAsync(IDashboardTelemetrySender sender, ILogger<DashboardTelemetryService> logger)
-        {
-            try
+            // Post session property values after initialization, if telemetry has been enabled.
+            if (_telemetryEnabled is true)
             {
-                var response = await sender.GetTelemetryEnabledAsync().ConfigureAwait(false);
-                var isTelemetryEnabled = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
-
-                if (!isTelemetryEnabled)
+                foreach (var (key, value) in GetDefaultProperties())
                 {
-                    return false;
+                    PostProperty(key, value);
                 }
-
-                // start the actual telemetry session
-                var telemetryStartedStatusCode = (await sender.StartTelemetrySessionAsync().ConfigureAwait(false)).StatusCode;
-                return telemetryStartedStatusCode is HttpStatusCode.OK;
             }
-            catch (Exception ex) when (ex is HttpRequestException or JsonException)
-            {
-                // If the request fails, we've been given an invalid server address and should assume telemetry is unsupported.
-                logger.LogDebug("Failed to request whether telemetry is supported: {ExceptionMessage}", ex.Message);
-                return false;
-            }
+        }
+        finally
+        {
+            _lock.Release();
         }
     }
 
-    /// <summary>
-    /// Begin a long-running user operation. Prefer this over <see cref="DashboardTelemetryService.PostOperation"/>. If an explicit user task caused this operation to start,
-    /// use <see cref="DashboardTelemetryService.StartUserTask"/> instead. Duration will be automatically calculated and the end event posted after <see cref="DashboardTelemetryService.EndOperation"/> is called.
-    /// </summary>
-    public (Guid OperationIdToken, Guid CorrelationToken) StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
+    private bool IsEnabled()
     {
-        if (_dashboardTelemetrySender is null)
+        if (_telemetryEnabled is null)
         {
-            return (Guid.Empty, Guid.Empty);
+            throw new InvalidOperationException("InitializeAsync has not been called yet");
+        }
+        return _telemetryEnabled.Value;
+    }
+
+    /// <summary>
+    /// Begin a long-running user operation. Prefer this over <see cref="PostOperation"/>. If an explicit user task caused this operation to start,
+    /// use <see cref="StartUserTask"/> instead. Duration will be automatically calculated and the end event posted after <see cref="DashboardTelemetryService.EndOperation"/> is called.
+    /// </summary>
+    public OperationContext StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<OperationContextProperty>? correlations = null)
+    {
+        if (!IsEnabled())
+        {
+            return OperationContext.Empty;
         }
 
-        var guids = _dashboardTelemetrySender.MakeRequest(2, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 2);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
                 startEventProperties,
@@ -155,46 +103,44 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
                 postStartEvent);
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartOperation, scopeSettings).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-
-            return [response.OperationId, response.Correlation];
+            var response = await PostRequestAsync<AspireTelemetryScopeSettings, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartOperation, scopeSettings).ConfigureAwait(false);
+            context.Properties[0].SetValue(response.OperationId);
+            context.Properties[1].SetValue(response.Correlation);
         });
 
-        return (guids[0], guids[1]);
+        return context;
     }
 
     /// <summary>
     /// Ends a long-running operation. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndOperation(Guid operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndOperation(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
             return;
         }
 
-        _dashboardTelemetrySender.MakeRequest(0, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 0);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
-            return [];
         });
     }
 
     /// <summary>
     /// Begin a long-running user task. This will post the start event and calculate the duration.
-    /// Duration will be automatically calculated and the end event posted after <see cref="DashboardTelemetryService.EndUserTask"/> is called.
+    /// Duration will be automatically calculated and the end event posted after <see cref="EndUserTask"/> is called.
     /// </summary>
-    public (Guid OperationIdToken, Guid CorrelationToken) StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<Guid>? correlations = null)
+    public OperationContext StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<OperationContextProperty>? correlations = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
-            return (Guid.Empty, Guid.Empty);
+            return OperationContext.Empty;
         }
 
-        var guids = _dashboardTelemetrySender.MakeRequest(2, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 2);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
                 startEventProperties,
@@ -203,31 +149,28 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
                 postStartEvent);
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryStartUserTask, scopeSettings).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<StartOperationResponse>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-
-            return [response.OperationId, response.Correlation];
+            var response = await PostRequestAsync<AspireTelemetryScopeSettings, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartUserTask, scopeSettings).ConfigureAwait(false);
+            context.Properties[0].SetValue(response.OperationId);
+            context.Properties[1].SetValue(response.Correlation);
         });
 
-        return (guids[0], guids[1]);
+        return context;
     }
 
     /// <summary>
     /// Ends a long-running user task. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndUserTask(Guid operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndUserTask(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
             return;
         }
 
-        _dashboardTelemetrySender.MakeRequest(0, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 0);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
-            return [];
         });
     }
 
@@ -236,14 +179,15 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// If an explicit user task caused this operation to start, use <see cref="DashboardTelemetryService.PostUserTask"/> instead.
     /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    public Guid PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    public OperationContext PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
-            return Guid.Empty;
+            return OperationContext.Empty;
         }
 
-        return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
                 eventName,
@@ -252,26 +196,26 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 properties,
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostOperation, request).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-            return [response];
-        }).Single();
+            var response = await PostRequestAsync<PostOperationRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostOperation, request).ConfigureAwait(false);
+            context.Properties[0].SetValue(response);
+        });
+
+        return context;
     }
 
     /// <summary>
     /// Posts a short-lived user task. If duration needs to be calculated, use <see cref="DashboardTelemetryService.StartUserTask"/> and <see cref="DashboardTelemetryService.EndUserTask"/> instead.
     /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    public Guid PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    public OperationContext PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
-            return Guid.Empty;
+            return OperationContext.Empty;
         }
 
-        return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
                 eventName,
@@ -280,26 +224,26 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 properties,
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostUserTask, request).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-            return [response];
-        }).Single();
+            var response = await PostRequestAsync<PostOperationRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostUserTask, request).ConfigureAwait(false);
+            context.Properties[0].SetValue(response);
+        });
+
+        return context;
     }
 
     /// <summary>
     /// Posts a fault event.
     /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    public Guid PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<Guid>? correlatedWith = null)
+    public OperationContext PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
-            return Guid.Empty;
+            return OperationContext.Empty;
         }
 
-        return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostFaultRequest(
                 eventName,
@@ -308,12 +252,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 properties,
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostFault, request).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-            return [response];
-        }).Single();
+            var response = await PostRequestAsync<PostFaultRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostFault, request).ConfigureAwait(false);
+            context.Properties[0].SetValue(response);
+        });
+
+        return context;
     }
 
     /// <summary>
@@ -321,14 +264,15 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// Currently not used.
     /// <returns>Guid corresponding to the (as-of-yet-uncompleted) correlation returned from this request.</returns>
     /// </summary>
-    public Guid PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<Guid>? correlatedWith = null)
+    public OperationContext PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
-            return Guid.Empty;
+            return OperationContext.Empty;
         }
 
-        return _dashboardTelemetrySender.MakeRequest(1, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostAssetRequest(
                 eventName,
@@ -337,12 +281,11 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
                 additionalProperties,
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
-            var httpResponseMessage = await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostAsset, request).ConfigureAwait(false);
-            httpResponseMessage.EnsureSuccessStatusCode();
-            var response = await httpResponseMessage.Content.ReadFromJsonAsync<TelemetryEventCorrelation>().ConfigureAwait(false);
-            Debug.Assert(response is not null);
-            return [response];
-        }).Single();
+            var response = await PostRequestAsync<PostAssetRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostAsset, request).ConfigureAwait(false);
+            context.Properties[0].SetValue(response);
+        });
+
+        return context;
     }
 
     /// <summary>
@@ -350,16 +293,16 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
             return;
         }
 
-        _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostProperty, request).ConfigureAwait(false);
-            return [];
         });
     }
 
@@ -368,16 +311,16 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
             return;
         }
 
-        _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostRecurringProperty, request).ConfigureAwait(false);
-            return [];
         });
     }
 
@@ -386,16 +329,16 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
     /// </summary>
     public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties)
     {
-        if (_dashboardTelemetrySender is null)
+        if (!IsEnabled())
         {
             return;
         }
 
-        _dashboardTelemetrySender.MakeRequest(0, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0);
+        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostCommandLineFlagsRequest(flagPrefixes, additionalProperties);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request).ConfigureAwait(false);
-            return [];
         });
     }
 
@@ -411,9 +354,16 @@ public sealed class DashboardTelemetryService(IOptions<DashboardOptions> options
         };
     }
 
-    public void Dispose()
+    private static async Task<TResponse> PostRequestAsync<TRequest, TResponse>(HttpClient client, string endpoint, TRequest request)
     {
-        _dashboardTelemetrySender?.Dispose();
+        var httpResponseMessage = await client.PostAsJsonAsync(endpoint, request).ConfigureAwait(false);
+        httpResponseMessage.EnsureSuccessStatusCode();
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<TResponse>().ConfigureAwait(false);
+        if (response is null)
+        {
+            throw new InvalidOperationException("Response was null.");
+        }
+        return response;
     }
 }
 
