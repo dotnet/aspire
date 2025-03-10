@@ -1,14 +1,18 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "openai": {
+    "aiservices": {
       "type": "azure.bicep.v0",
-      "connectionString": "{openai.outputs.connectionString}",
-      "path": "openai.module.bicep",
+      "connectionString": "{aiservices.outputs.connectionString}",
+      "path": "aiservices.module.bicep",
       "params": {
         "principalType": "",
         "principalId": ""
       }
+    },
+    "chat": {
+      "type": "value.v0",
+      "connectionString": "{aiservices.outputs.connectionString};Deployment=Phi-4"
     },
     "webstory": {
       "type": "project.v0",
@@ -19,8 +23,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webstory.bindings.http.targetPort}",
-        "ConnectionStrings__openai": "{openai.connectionString}",
-        "OpenAI__DeploymentName": "gpt-4o"
+        "ConnectionStrings__chat": "{chat.connectionString}"
       },
       "bindings": {
         "http": {
