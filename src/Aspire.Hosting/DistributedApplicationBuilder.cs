@@ -228,6 +228,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
+        _innerBuilder.Services.AddHostedService<CliBackchannel>();
+        _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
 
