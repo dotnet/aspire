@@ -479,3 +479,74 @@ dotnet_diagnostic.CA2007.severity = silent
 
 [*.{cs,vb}]
 dotnet_diagnostic.ASPIREEVENTING001.severity = none
+
+### VSTHRD rules
+
+# VSTHRD001: Avoid legacy thread switching methods.
+dotnet_diagnostic.VSTHRD001.severity = none
+
+# VSTHRD002: Synchronously waiting on tasks or awaiters may cause deadlocks. Use await or JoinableTaskFactory.Run instead.
+dotnet_diagnostic.VSTHRD002.severity = none
+
+# VSTHRD003: Avoid awaiting foreign Tasks.
+dotnet_diagnostic.VSTHRD003.severity = none
+
+# VSTHRD004: Await SwitchToMainThreadAsync.
+dotnet_diagnostic.VSTHRD004.severity = none
+
+# VSTHRD010: Invoke single-threaded types on Main thread.
+dotnet_diagnostic.VSTHRD010.severity = none
+ 
+# VSTHRD011: Use AsyncLazy<T>.
+dotnet_diagnostic.VSTHRD011.severity = none
+
+# VSTHRD012: Provide JoinableTaskFactory where allowed.
+dotnet_diagnostic.VSTHRD012.severity = none
+
+# VSTHRD100: Avoid "async void" methods, because any exceptions not handled by the method will crash the process.
+dotnet_diagnostic.VSTHRD100.severity = none
+
+# VSTHRD101: Avoid using async lambda for a void returning delegate type, because any exceptions not handled by the delegate will crash the process.
+dotnet_diagnostic.VSTHRD101.severity = none
+
+# VSTHRD102: Implement internal logic asynchronously.
+dotnet_diagnostic.VSTHRD102.severity = none
+
+# VSTHRD103: Call async methods when in an async method.
+dotnet_diagnostic.VSTHRD103.severity = none
+
+# VSTHRD104: Expose an async version of this method that does not synchronously block. Then simplify this method to call that async method within a JoinableTaskFactory.Run delegate.
+dotnet_diagnostic.VSTHRD104.severity = none
+
+# VSTHRD105: Avoid method overloads that assume TaskScheduler.Current. Use an overload that accepts a TaskScheduler and specify TaskScheduler.Default (or any other) explicitly.
+dotnet_diagnostic.VSTHRD105.severity = none
+
+# VSTHRD106: Use InvokeAsync to raise async events.
+dotnet_diagnostic.VSTHRD106.severity = none
+
+# VSTHRD107: Await Task within using expression.
+dotnet_diagnostic.VSTHRD107.severity = none
+
+# VSTHRD108: Assert thread affinity unconditionally.
+dotnet_diagnostic.VSTHRD108.severity = none
+
+# VSTHRD109: Switch instead of assert in async methods.
+dotnet_diagnostic.VSTHRD109.severity = none
+
+# VSTHRD110: Observe the awaitable result of this method call by awaiting it, assigning to a variable, or passing it to another method.
+dotnet_diagnostic.VSTHRD110.severity = none
+
+# VSTHRD111: Add .ConfigureAwait(bool) to your await expression.
+dotnet_diagnostic.VSTHRD111.severity = none
+
+# VSTHRD112: Implement System.IAsyncDisposable.
+dotnet_diagnostic.VSTHRD112.severity = none
+
+# VSTHRD113: Check for System.IAsyncDisposable.
+dotnet_diagnostic.VSTHRD113.severity = none
+
+# VSTHRD114: Avoid returning a null Task.
+dotnet_diagnostic.VSTHRD114.severity = none
+
+# VSTHRD200: Use "Async" suffix in names of methods that return an awaitable type.
+dotnet_diagnostic.VSTHRD200.severity = none
