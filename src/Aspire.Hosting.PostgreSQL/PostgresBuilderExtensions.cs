@@ -17,7 +17,7 @@ public static class PostgresBuilderExtensions
 {
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
-
+    
     /// <summary>
     /// Adds a PostgreSQL resource to the application model. A container is used for local development.
     /// </summary>
@@ -308,8 +308,8 @@ public static class PostgresBuilderExtensions
                 if (!OperatingSystem.IsWindows())
                 {
                     var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+                               UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
 
                     File.SetUnixFileMode(serverFileMount.Source!, mode);
                 }
