@@ -60,6 +60,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifySqlServerResource()
     {
+        const string databaseName = "newdb";
+
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
@@ -68,7 +70,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
         var sqlserver = builder.AddSqlServer("sqlserver");
-        var tempDb = sqlserver.AddDatabase("tempdb");
+        var newDb = sqlserver.AddDatabase(databaseName);
 
         using var app = builder.Build();
 
@@ -76,10 +78,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
-        hb.AddSqlServerDbContext<TestDbContext>(tempDb.Resource.Name);
-        hb.AddSqlServerClient(tempDb.Resource.Name);
+        hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name);
+        hb.AddSqlServerClient(newDb.Resource.Name);
 
         using var host = hb.Build();
 
@@ -151,7 +153,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-                Directory.CreateDirectory(bindMountPath);
+                var directoryInfo = Directory.CreateDirectory(bindMountPath);
 
                 if (!OperatingSystem.IsWindows())
                 {
