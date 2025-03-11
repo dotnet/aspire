@@ -1424,8 +1424,9 @@ public static class ResourceBuilderExtensions
                         return await getCommandResult(resultContext).ConfigureAwait(false);
                     }
 
-                    response.EnsureSuccessStatusCode();
-                    return CommandResults.Success();
+                    return response.IsSuccessStatusCode
+                        ? CommandResults.Success()
+                        : CommandResults.Failure($"Request failed with status code {response.StatusCode}");
                 }
                 catch (Exception ex)
                 {
