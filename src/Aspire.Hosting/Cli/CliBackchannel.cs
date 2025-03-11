@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Cli;
 
 internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget) : BackgroundService
 {
-    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_CLI_BACKCHANNEL_PATH";
+    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_LAUNCHER_BACKCHANNEL_PATH";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
