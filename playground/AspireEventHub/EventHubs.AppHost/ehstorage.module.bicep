@@ -65,3 +65,5 @@ output blobEndpoint string = ehstorage.properties.primaryEndpoints.blob
 output queueEndpoint string = ehstorage.properties.primaryEndpoints.queue
 
 output tableEndpoint string = ehstorage.properties.primaryEndpoints.table
+
+output name string = ehstorage.name

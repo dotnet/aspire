@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting.Azure;
 
@@ -19,6 +22,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
 
     internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
     internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
+    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Storage__Tables";
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -70,15 +74,26 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
             // Injected to support Aspire client integration for Azure Storage.
             target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
             target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
+            target[$"{TablesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
         }
         else
         {
             // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
+            target[$"{connectionName}__tableServiceUri"] = TableEndpoint;
             // Injected to support Aspire client integration for Azure Storage.
             target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = BlobEndpoint;
             target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = QueueEndpoint;
+            target[$"{TablesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = TableEndpoint;
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource CreateExistingResource(BicepValue<string> name)
+    {
+        var account = StorageAccount.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        account.Name = name;
+        return account;
     }
 }

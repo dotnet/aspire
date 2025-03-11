@@ -427,6 +427,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
             {
                 await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+
+                if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph)
+                {
+                    await UpdateResourceGraphSelectedAsync();
+                }
             }
 
             // Navigate to remove ?resource=xxx in the URL.

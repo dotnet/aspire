@@ -47,7 +47,7 @@ public class AzureProvisioningResourceExtensionsTests(ITestOutputHelper output)
             infrastructure.Add(app);
         });
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(resource1.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(resource1.Resource);
 
         var expectedManifest = """
             {

@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureEventHubProducerClient("eventhub");
+builder.AddAzureEventHubProducerClient("eventhubOne");
 
 var app = builder.Build();
 

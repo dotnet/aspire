@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,12 +10,10 @@ namespace Aspire.Hosting.Publishing;
 
 internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
-                               IHostApplicationLifetime lifetime,
                                DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
 {
     private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
-    private readonly IHostApplicationLifetime _lifetime = lifetime;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
@@ -24,7 +21,6 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await PublishInternalAsync(model, cancellationToken).ConfigureAwait(false);
-        _lifetime.StopApplication();
     }
 
     protected virtual async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)

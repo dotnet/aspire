@@ -51,6 +51,8 @@ internal static class ResourceSetupHelpers
         context.JSInterop.SetupVoid("scrollToTop", _ => true);
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
@@ -87,6 +89,8 @@ internal static class ResourceSetupHelpers
 
         var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
+
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
