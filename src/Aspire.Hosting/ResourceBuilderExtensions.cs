@@ -1249,8 +1249,8 @@ public static class ResourceBuilderExtensions
             path: path,
             displayName: displayName,
             endpointSelector: endpointName is not null
-                ? PreferredEndpointSelector(builder, [endpointName])
-                : PreferredEndpointSelector(builder, s_httpSchemes),
+                ? NamedEndpointSelector(builder, [endpointName])
+                : NamedEndpointSelector(builder, s_httpSchemes),
             method: method,
             httpClientName: httpClientName,
             configureRequest: configureRequest,
@@ -1357,7 +1357,7 @@ public static class ResourceBuilderExtensions
     {
         method ??= HttpMethod.Post;
 
-        endpointSelector ??= PreferredEndpointSelector(builder);
+        endpointSelector ??= DefaultEndpointSelector(builder);
 
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
@@ -1447,36 +1447,39 @@ public static class ResourceBuilderExtensions
     // if found.
     private static readonly string[] s_httpSchemes = ["https", "http"];
 
-    private static Func<EndpointReference> PreferredEndpointSelector<TResource>(IResourceBuilder<TResource> builder, string[]? endpointNames = null)
+    private static Func<EndpointReference> NamedEndpointSelector<TResource>(IResourceBuilder<TResource> builder, string[] endpointNames)
         where TResource : IResourceWithEndpoints
         => () =>
         {
-            // If endpointNames is supplied, find a matching endpoint using those names and if not an HTTP endpoint or not found throw an exception,
-            // otherwise use the first HTTP endpoint (preferring HTTPS over HTTP),
-            // otherwise throw an exception if no endpoint is found.
-
+            // Find a matching endpoint using those names and if not an HTTP endpoint or not found throw an exception.
             var endpoints = builder.Resource.GetEndpoints();
             EndpointReference? matchingEndpoint = null;
 
-            if (endpointNames is { Length: > 0 })
+            foreach (var name in endpointNames)
             {
-                foreach (var name in endpointNames)
+                matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, name, StringComparisons.EndpointAnnotationName));
+                if (matchingEndpoint is not null)
                 {
-                    matchingEndpoint = endpoints.FirstOrDefault(e => string.Equals(e.EndpointName, name, StringComparisons.EndpointAnnotationName));
-                    if (matchingEndpoint is not null)
+                    if (!s_httpSchemes.Contains(matchingEndpoint.Scheme, StringComparers.EndpointAnnotationUriScheme))
                     {
-                        if (!s_httpSchemes.Contains(matchingEndpoint.Scheme, StringComparers.EndpointAnnotationUriScheme))
-                        {
-                            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint with name '{matchingEndpoint.EndpointName}' and scheme '{matchingEndpoint.Scheme}' is not an HTTP endpoint.");
-                        }
-                        return matchingEndpoint;
+                        throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint with name '{matchingEndpoint.EndpointName}' and scheme '{matchingEndpoint.Scheme}' is not an HTTP endpoint.");
                     }
+                    return matchingEndpoint;
                 }
-
-                // No endpoint found with the specified names
-                var endpointNamesString = string.Join(", ", endpointNames);
-                throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no endpoint was found matching one of the specified names: {endpointNamesString}");
             }
+
+            // No endpoint found with the specified names
+            var endpointNamesString = string.Join(", ", endpointNames);
+            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no endpoint was found matching one of the specified names: {endpointNamesString}");
+        };
+
+    private static Func<EndpointReference> DefaultEndpointSelector<TResource>(IResourceBuilder<TResource> builder)
+        where TResource : IResourceWithEndpoints
+        => () =>
+        {
+            // Use the first HTTP endpoint (preferring HTTPS over HTTP), otherwise throw an exception if no endpoint is found.
+            var endpoints = builder.Resource.GetEndpoints();
+            EndpointReference? matchingEndpoint = null;
 
             foreach (var scheme in s_httpSchemes)
             {
