@@ -43,24 +43,24 @@ jobs:
             exit 1
           }
 
-      - name: Setup vars
+      - name: Setup vars (Linux)
         if: ${{ inputs.os == 'ubuntu-latest' }}
         run: |
-          echo "dotnet_script=./dotnet.sh" >> $GITHUB_ENV
-          echo "build_script=./build.sh" >> $GITHUB_ENV
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
 
-      - name: Setup vars
+      - name: Setup vars (Windows)
         if: ${{ inputs.os == 'windows-latest' }}
         run: |
-          echo "dotnet_script=.\dotnet.cmd" >> $env:GITHUB_ENV
-          echo "build_script=.\build.cmd" >> $env:GITHUB_ENV
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
-        run: ${{ env.dotnet_script }} dev-certs https --trust
+        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
@@ -71,14 +71,14 @@ jobs:
         if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
         env:
           CI: false
-        run: ${{ env.build_script }} -restore -build -ci -pack -testnobuild /bl
+        run: ${{ env.BUILD_SCRIPT }} -restore -build -ci -pack -testnobuild /bl
 
       - name: Install sdk for workload testing
         if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
         env:
           CI: false
         run: >
-          ${{ env.dotnet_script }} build ${{ github.workspace }}/tests/workloads.proj
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForWorkloadTesting=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
@@ -116,7 +116,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.build_script }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -124,7 +124,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.dotnet_script }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
       - name: Run tests
         id: run-tests
@@ -134,7 +134,7 @@ jobs:
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           DISABLE_PLAYWRIGHT_TESTS: ${{ inputs.os == 'ubuntu-latest' }}
         run: >
-          ${{ env.dotnet_script }} test ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
           -s eng/testing/.runsettings
           -l "console;verbosity=normal"
