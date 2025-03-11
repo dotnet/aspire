@@ -115,7 +115,7 @@ public class Program
         var projectFilePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
         try 
         {
-            var projectFilePath = projectFilePaths?.Single();
+            var projectFilePath = projectFilePaths?.SingleOrDefault();
             if (projectFilePath is null)
             {
                 throw new InvalidOperationException("No project file found.");
