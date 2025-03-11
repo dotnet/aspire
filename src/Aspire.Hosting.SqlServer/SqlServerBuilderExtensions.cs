@@ -3,7 +3,9 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -45,6 +47,39 @@ public static class SqlServerBuilderExtensions
             }
         });
 
+        builder.Eventing.Subscribe<ResourceReadyEvent>(sqlServer, async (@event, ct) =>
+        {
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+            }
+
+            using var sqlConnection = new SqlConnection(connectionString);
+            await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+            foreach (var sqlDatabase in sqlServer.DatabaseResources)
+            {
+                var quotedDatabaseIdentifier = new SqlCommandBuilder().QuoteIdentifier(sqlDatabase.DatabaseName);
+
+                try
+                {
+                    if (sqlConnection.State != System.Data.ConnectionState.Open)
+                    {
+                        throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
+                    }
+
+                    using var command = sqlConnection.CreateCommand();
+                    command.CommandText = sqlDatabase.DatabaseCreationScript ?? $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
+                    command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
+                    await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    @event.Services.GetRequiredService<ILogger<SqlServerServerResource>>().LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
+                }
+            }
+        });
+
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
@@ -66,18 +101,40 @@ public static class SqlServerBuilderExtensions
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <param name="databaseCreationScript">A custom database creation script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null, string? databaseCreationScript = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        Dictionary<string, string> databaseConnectionStrings = [];
+
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
-        var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(sqlServerDatabase);
+        var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource) { DatabaseCreationScript = databaseCreationScript };
+
+        builder.Resource.AddDatabase(sqlServerDatabase);
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
+        {
+            var databaseConnectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (databaseConnectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+            }
+
+            databaseConnectionStrings[name] = databaseConnectionString;
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => databaseConnectionStrings[name] ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(sqlServerDatabase)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>

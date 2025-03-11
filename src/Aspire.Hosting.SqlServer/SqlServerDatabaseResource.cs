@@ -31,6 +31,12 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
+    /// <summary>
+    /// Gets or sets the database creation script.
+    /// </summary>
+    /// <value>Default is <code>IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = '&lt;ESCAPED_DATABASE_NAME%gt;' ) ) CREATE DATABASE [&lt;QUOTED_DATABASE_NAME%gt;];</code></value>
+    public string? DatabaseCreationScript { get; set; }
+
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
