@@ -33,9 +33,9 @@ if (builder.Environment.IsDevelopment())
                     displayDescription: "Reset the catalog database to its initial state. This will delete and recreate the database.",
                     confirmationMessage: "Are you sure you want to reset the catalog database?",
                     iconName: "DatabaseLightning",
-                    configureRequest: request =>
+                    configureRequest: requestContext =>
                     {
-                        request.Headers.Add("Authorization", $"Key {resetDbKey}");
+                        requestContext.Request.Headers.Add("Authorization", $"Key {resetDbKey}");
                         return Task.CompletedTask;
                     });
 }

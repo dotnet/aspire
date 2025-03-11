@@ -66,6 +66,41 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         Assert.True(command.IsHighlighted);
     }
 
+    [Fact]
+    public void WithHttpCommand_AddsResourceCommandAnnotations_WithUniqueCommandNames()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resourceBuilder = builder.AddContainer("name", "image")
+            .WithHttpEndpoint()
+            .WithHttpEndpoint(name: "custom-endpoint")
+            .WithHttpCommand("/some-path", "Do The Thing")
+            .WithHttpCommand("/some-path", "Do The Thing", endpointName: "custom-endpoint")
+            .WithHttpCommand("/some-path", "Do The Get Thing", method: HttpMethod.Get)
+            .WithHttpCommand("/some-path", "Do The Get Thing", method: HttpMethod.Get, endpointName: "custom-endpoint")
+            .WithHttpCommand("/some-other-path", "Do The Other Thing")
+            // Call it again but just change display name, it should override the previous one with the same path
+            .WithHttpCommand("/some-other-path", "Do The Other Thing CHANGED");
+
+        // Act
+        var commands = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var command1 = commands.FirstOrDefault(c => c.DisplayName == "Do The Thing");
+        var command2 = commands.FirstOrDefault(c => c.DisplayName == "Do The Thing" && c.Name.Contains("custom-endpoint"));
+        var command3 = commands.FirstOrDefault(c => c.DisplayName == "Do The Get Thing");
+        var command4 = commands.FirstOrDefault(c => c.DisplayName == "Do The Get Thing" && c.Name.Contains("custom-endpoint"));
+        var command5 = commands.FirstOrDefault(c => c.DisplayName == "Do The Other Thing");
+        var command6 = commands.FirstOrDefault(c => c.DisplayName == "Do The Other Thing CHANGED");
+
+        // Assert
+        Assert.True(commands.Count >= 5);
+        Assert.NotNull(command1);
+        Assert.NotNull(command2);
+        Assert.NotNull(command3);
+        Assert.NotNull(command4);
+        Assert.Null(command5); // This one is overridden by the last one
+        Assert.NotNull(command6);
+    }
+
     [InlineData(200, true)]
     [InlineData(201, true)]
     [InlineData(400, false)]
@@ -212,8 +247,15 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
-                configureRequest: hrm =>
+                configureRequest: requestContext =>
                 {
+                    Assert.NotNull(requestContext);
+                    Assert.NotNull(requestContext.ServiceProvider);
+                    Assert.Equal("servicea", requestContext.ResourceName);
+                    Assert.NotNull(requestContext.Endpoint);
+                    Assert.NotNull(requestContext.HttpClient);
+                    Assert.NotNull(requestContext.Request);
+                    
                     callbackCalled = true;
                     return Task.CompletedTask;
                 });
@@ -246,8 +288,15 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
-                getCommandResult: response =>
+                getCommandResult: resultContext =>
                 {
+                    Assert.NotNull(resultContext);
+                    Assert.NotNull(resultContext.ServiceProvider);
+                    Assert.Equal("servicea", resultContext.ResourceName);
+                    Assert.NotNull(resultContext.Endpoint);
+                    Assert.NotNull(resultContext.HttpClient);
+                    Assert.NotNull(resultContext.Response);
+
                     callbackCalled = true;
                     return Task.FromResult(CommandResults.Failure("A test error message"));
                 });

@@ -1198,6 +1198,32 @@ public static class ResourceBuilderExtensions
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// Adds a command to the project resource that when invoked sends an HTTP POST request to the path <c>/clear-cache</c>.
+    /// <code lang="csharp">
+    /// var apiService = builder.AddProject&gt;MyApiService&gt;("api")
+    ///     .WithHttpCommand("/clear-cache", "Clear cache");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Adds a command to the project resource that when invoked sends an HTTP GET request to the path <c>/reset-db</c> on endpoint named <c>admin</c>.
+    /// The request's headers are configured to include an <c>X-Admin-Key</c> header for verification.
+    /// <code lang="csharp">
+    /// var adminKey = builder.AddParameter("admin-key");
+    /// var apiService = builder.AddProject&gt;MyApiService&gt;("api")
+    ///     .WithHttpsEndpoint("admin")
+    ///     .WithEnvironment("ADMIN_KEY", adminKey)
+    ///     .WithHttpCommand("/reset-db", "Reset database",
+    ///                      method: HttpMethod.Get,
+    ///                      endpointName: "admin",
+    ///                      confirmationMessage: "Are you sure you want to reset the database?"
+    ///                      configureRequest: request =>
+    ///                      {
+    ///                          request.Headers.Add("X-Admin-Key", adminKey);
+    ///                          return Task.CompletedTask;
+    ///                      });
+    /// </code>
+    /// </example>
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -1205,8 +1231,8 @@ public static class ResourceBuilderExtensions
         [EndpointName] string? endpointName = null,
         HttpMethod? method = null,
         string? httpClientName = null,
-        Func<HttpRequestMessage, Task>? configureRequest = null,
-        Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
+        Func<HttpCommandRequestContext, Task>? configureRequest = null,
+        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
         string? displayDescription = null,
         string? confirmationMessage = null,
@@ -1289,6 +1315,18 @@ public static class ResourceBuilderExtensions
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// Adds commands to a project resource that when invoked sends an HTTP POST request to an endpoint on a separate load generator resource, to generate load against the
+    /// resource the command was executed against.
+    /// <code lang="csharp">
+    /// var loadGenerator = builder.AddProject&gt;LoadGenerator&gt;("load");
+    /// var loadGeneratorEndpoint = loadGenerator.GetEndpoint("https");
+    /// var customerService = builder.AddProject&gt;CustomerService&gt;("customer-service")
+    ///     .WithHttpCommand("/stress?resource=customer-service&amp;requests=1000", "Apply load (1000)", endpointSelector: () => loadGeneratorEndpoint)
+    ///     .WithHttpCommand("/stress?resource=customer-service&amp;requests=5000", "Apply load (5000)", endpointSelector: () => loadGeneratorEndpoint);
+    /// loadGenerator.WithReference(customerService);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -1296,8 +1334,8 @@ public static class ResourceBuilderExtensions
         Func<EndpointReference>? endpointSelector,
         HttpMethod? method = null,
         string? httpClientName = null,
-        Func<HttpRequestMessage, Task>? configureRequest = null,
-        Func<HttpResponseMessage, Task<ExecuteCommandResult>>? getCommandResult = null,
+        Func<HttpCommandRequestContext, Task>? configureRequest = null,
+        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
         string? displayDescription = null,
         string? confirmationMessage = null,
@@ -1313,13 +1351,13 @@ public static class ResourceBuilderExtensions
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
 
-        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}";
+        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}-{path}";
 
         var targetRunning = false;
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
         {
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            var watchTask = Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
                 {
@@ -1347,14 +1385,32 @@ public static class ResourceBuilderExtensions
                 var request = new HttpRequestMessage(method, uri);
                 if (configureRequest is not null)
                 {
-                    await configureRequest(request).ConfigureAwait(false);
+                    var requestContext = new HttpCommandRequestContext
+                    {
+                        ServiceProvider = context.ServiceProvider,
+                        ResourceName = context.ResourceName,
+                        Endpoint = endpoint,
+                        CancellationToken = context.CancellationToken,
+                        HttpClient = httpClient,
+                        Request = request
+                    };
+                    await configureRequest(requestContext).ConfigureAwait(false);
                 }
                 try
                 {
                     var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
                     if (getCommandResult is not null)
                     {
-                        return await getCommandResult(response).ConfigureAwait(false);
+                        var resultContext = new HttpCommandResultContext
+                        {
+                            ServiceProvider = context.ServiceProvider,
+                            ResourceName = context.ResourceName,
+                            Endpoint = endpoint,
+                            CancellationToken = context.CancellationToken,
+                            HttpClient = httpClient,
+                            Response = response
+                        };
+                        return await getCommandResult(resultContext).ConfigureAwait(false);
                     }
 
                     response.EnsureSuccessStatusCode();
