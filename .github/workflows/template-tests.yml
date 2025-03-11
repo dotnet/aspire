@@ -81,3 +81,16 @@ jobs:
       - name: Compute result
         run: |
           [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: logs-*
+          merge-multiple: true
+          path: testresults
+
+      - name: Upload test result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Template-TestResults
+          path: testresults/**/*.trx
