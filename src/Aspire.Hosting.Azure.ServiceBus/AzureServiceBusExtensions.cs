@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
+using Azure.Provisioning.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
@@ -28,6 +29,13 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure Service Bus resource will be assigned the following roles:
+    /// 
+    /// - <see cref="ServiceBusBuiltInRole.AzureServiceBusDataOwner"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureServiceBusResource}, ServiceBusBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -63,14 +71,23 @@ public static class AzureServiceBusExtensions
                     return resource;
                 });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
+            {
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
 
-            infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(AzureProvisioning.ServiceBusBuiltInRole.AzureServiceBusDataOwner, principalTypeParameter, principalIdParameter));
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(new ServiceBusBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
+            }
 
             infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
+
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = serviceBusNamespace.Name });
 
             var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
 
@@ -104,7 +121,8 @@ public static class AzureServiceBusExtensions
         };
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+                      .WithDefaultRoleAssignments(ServiceBusBuiltInRole.AzureServiceBusDataOwner);
     }
 
     /// <summary>
@@ -646,4 +664,41 @@ public static class AzureServiceBusExtensions
 
         return filePath;
     }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Service Bus namespace. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Service Bus namespace.</param>
+    /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Adds the AzureServiceBusDataSender role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var sb = builder.AddAzureServiceBus("bus");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(sb, ServiceBusBuiltInRole.AzureServiceBusDataSender)
+    ///   .WithReference(sb);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureServiceBusResource> target,
+        params ServiceBusBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithAnnotation(new RoleAssignmentAnnotation(target.Resource, CreateRoleDefinitions(roles)));
+    }
+
+    private static IResourceBuilder<AzureServiceBusResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureServiceBusResource> builder, params ServiceBusBuiltInRole[] roles)
+    {
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
+    }
+
+    private static HashSet<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<ServiceBusBuiltInRole> roles) =>
+        [.. roles.Select(r => new RoleDefinition(r.ToString(), ServiceBusBuiltInRole.GetBuiltInRoleName(r)))];
 }
