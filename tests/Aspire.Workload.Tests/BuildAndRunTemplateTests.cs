@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,6 +28,7 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
 
     [Theory]
     [MemberData(nameof(TestFrameworkTypeWithConfig))]
+    [RequiresSSLCertificate]
     public async Task BuildAndRunStarterTemplateBuiltInTest(string config, string testType)
     {
         string id = GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");
@@ -43,6 +45,7 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
     [Theory]
     [InlineData("Debug")]
     [InlineData("Release")]
+    [RequiresSSLCertificate]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -111,6 +114,7 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
     [Theory]
     [InlineData("Debug")]
     [InlineData("Release")]
+    [RequiresSSLCertificate]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
