@@ -167,6 +167,24 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+        if (!OperatingSystem.IsWindows())
+        {
+            return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+        }
+        else
+        {
+            // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver15&pivots=cs1-bash#mount-a-host-directory-as-data-volume
+
+            foreach (var dir in new string[] { "data", "log", "secrets" })
+            {
+                var path = Path.Combine(source, dir);
+
+                Directory.CreateDirectory(path);
+
+                builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
+            }
+
+            return builder;
+        }
     }
 }
