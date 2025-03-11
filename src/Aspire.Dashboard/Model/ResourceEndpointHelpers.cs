@@ -19,6 +19,11 @@ internal static class ResourceEndpointHelpers
         {
             if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
             {
+                if (url.IsInactive)
+                {
+                    continue;
+                }
+
                 endpoints.Add(new DisplayedEndpoint
                 {
                     Name = url.Name,

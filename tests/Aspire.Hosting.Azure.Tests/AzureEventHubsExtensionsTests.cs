@@ -271,7 +271,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithProperties(hub => hub.PartitionCount = 3)
             .AddConsumerGroup("cg1", "group-name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -344,7 +344,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
         Assert.NotNull(hub);
         Assert.Equal("hub1", hub.Name.Value);

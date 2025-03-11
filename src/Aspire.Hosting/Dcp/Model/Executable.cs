@@ -51,9 +51,41 @@ internal sealed class ExecutableSpec
     [JsonPropertyName("healthProbes")]
     public List<HealthProbe>? HealthProbes { get; set; }
 
-    // Should this resource be stopped?
+    /// <summary>
+    /// Setting Stop property to true will stop the Executable if it is running.
+    /// Once the Executable is stopped, it cannot be started again.
+    /// </summary>
     [JsonPropertyName("stop")]
     public bool? Stop { get; set; }
+
+    /// <summary>
+    /// Controls how ambient environment variables are applied to the Executable.
+    /// </summary>
+    [JsonPropertyName("ambientEnvironment")]
+    public AmbientEnvironment? AmbientEnvironment { get; set; }
+}
+
+internal sealed class AmbientEnvironment
+{
+    /// <summary>
+    /// Gets or sets the default behavior for applying ambient environment variables.
+    /// </summary>
+    [JsonPropertyName("behavior")]
+    public string? Behavior { get; set; } = AmbientEnvironmentBehavior.Inherit;
+}
+
+internal static class AmbientEnvironmentBehavior
+{
+    /// <summary>
+    /// The Executable will inherit the environment of the Aspire app host process.
+    /// This is the default behavior.
+    /// </summary>
+    public const string Inherit = "Inherit";
+
+    /// <summary>
+    /// The Executable will not inherit any environment variables from the Aspire app host process.
+    /// </summary>
+    public const string DoNotInherit = "DoNotInherit";
 }
 
 internal static class ExecutionType
@@ -145,7 +177,7 @@ internal sealed class ExecutableStatus : V1Status
     /// Latest results for health probes configured for the Executable.
     /// </summary>
     [JsonPropertyName("healthProbeResults")]
-    public List<HealthProbeResult>? HealthProbeResults { get; set;}
+    public List<HealthProbeResult>? HealthProbeResults { get; set; }
 }
 
 internal static class ExecutableState

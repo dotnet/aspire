@@ -40,7 +40,6 @@
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
           "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
@@ -83,11 +82,7 @@
     },
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "blobs": {
       "type": "value.v0",
@@ -104,7 +99,6 @@
         "path": "pythonapp.module.bicep",
         "params": {
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "pythonapp_containerimage": "{pythonapp.containerImage}"
@@ -118,13 +112,14 @@
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
         "params": {
+          "api_roles_outputs_id": "{api-roles.outputs.id}",
+          "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "cache_password_value": "{cache-password.value}",
           "account_outputs_connectionstring": "{account.outputs.connectionString}",
           "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "api_containerimage": "{api.containerImage}",
@@ -156,6 +151,13 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "api-roles": {
+      "type": "azure.bicep.v0",
+      "path": "api-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}"
       }
     },
     "cache-password": {

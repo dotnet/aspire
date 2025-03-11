@@ -17,7 +17,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         var redis = builder.AddAzureRedis("redis-cache");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
@@ -85,7 +85,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         var redis = builder.AddAzureRedis("redis-cache")
             .WithAccessKeyAuthentication();
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
