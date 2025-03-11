@@ -143,6 +143,7 @@ public class TextVisualizerDialogTests : TestContext
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService, ThemeManager? themeManager = null)
     {
+        var version = typeof(FluentMain).Assembly.GetName().Version!;
         themeManager ??= new ThemeManager(new TestThemeResolver());
 
         Services.AddFluentUIComponents();
@@ -151,6 +152,8 @@ public class TextVisualizerDialogTests : TestContext
         Services.AddLocalization();
         var module = JSInterop.SetupModule("/Components/Dialogs/TextVisualizerDialog.razor.js");
         module.SetupVoid();
+
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         var cut = Render(builder =>
         {
@@ -165,5 +168,10 @@ public class TextVisualizerDialogTests : TestContext
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
+    }
+
+    private static string GetFluentFile(string filePath, Version version)
+    {
+        return $"{filePath}?v={version}";
     }
 }
