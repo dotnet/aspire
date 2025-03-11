@@ -269,7 +269,7 @@ public static class AzureEventHubsExtensions
             // an event hub namespace without an event hub? :)
             if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
             {
-                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.Name};";
+                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.HubName};";
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }
             else

@@ -488,8 +488,8 @@ public static class AzureServiceBusExtensions
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
             queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.Name).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.Name).FirstOrDefault();
+                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
+                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
