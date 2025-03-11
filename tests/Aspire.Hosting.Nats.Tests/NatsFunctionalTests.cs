@@ -364,10 +364,9 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyNuiResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        //using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        IResourceBuilder<NuiContainerResource>? nuiBuilder = null;
+        IResourceBuilder<NuiResource>? nuiBuilder = null;
         var nats = builder.AddNats("nats");
         nats.WithNui(c =>
         {

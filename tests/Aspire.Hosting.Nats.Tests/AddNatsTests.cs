@@ -310,7 +310,7 @@ public class AddNatsTests
         builder.AddNats("nats1").WithNui();
         builder.AddNats("nats2").WithNui();
 
-        Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+        Assert.Single(builder.Resources.OfType<NuiResource>());
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public class AddNatsTests
             c.WithImageTag("someothertag");
         });
 
-        var resource = Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+        var resource = Assert.Single(builder.Resources.OfType<NuiResource>());
         var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
         Assert.Equal("customnui", containerAnnotation.Image);
@@ -332,7 +332,7 @@ public class AddNatsTests
     }
 
     [Fact]
-    public void WithRedisInsightSupportsChangingHostPort()
+    public void WithNuiSupportsChangingHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddNats("nats").WithNui(c =>
@@ -340,7 +340,7 @@ public class AddNatsTests
             c.WithHostPort(1000);
         });
 
-        var resource = Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+        var resource = Assert.Single(builder.Resources.OfType<NuiResource>());
         var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1000, endpoint.Port);
     }

@@ -195,7 +195,7 @@ public class NatsPublicApiTests
     {
         string name = null!;
 
-        var action = () => new NuiContainerResource(name);
+        var action = () => new NuiResource(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
@@ -215,7 +215,7 @@ public class NatsPublicApiTests
     [Fact]
     public void WithHostPortShouldThrowWhenBuilderIsNull()
     {
-        IResourceBuilder<NuiContainerResource> builder = null!;
+        IResourceBuilder<NuiResource> builder = null!;
 
         var action = () => builder.WithHostPort(default(int?));
 

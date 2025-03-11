@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Nats;
 /// Represents a container resource for Nui.
 /// </summary>
 /// <param name="name">The name of the container resource.</param>
-public sealed class NuiContainerResource(string name) : ContainerResource(name)
+public sealed class NuiResource(string name) : ContainerResource(name)
 {
     internal const string PrimaryEndpointName = "http";
 

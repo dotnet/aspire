@@ -165,12 +165,12 @@ public static class NatsBuilderExtensions
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithNui(this IResourceBuilder<NatsServerResource> builder,
-        Action<IResourceBuilder<NuiContainerResource>>? configureContainer = null,
+        Action<IResourceBuilder<NuiResource>>? configureContainer = null,
         string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.ApplicationBuilder!.Resources.OfType<NuiContainerResource>().SingleOrDefault() is { } existingNuiResource)
+        if (builder.ApplicationBuilder!.Resources.OfType<NuiResource>().SingleOrDefault() is { } existingNuiResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingNuiResource);
             configureContainer?.Invoke(builderForExistingResource);
@@ -182,7 +182,7 @@ public static class NatsBuilderExtensions
 
             builder.ApplicationBuilder.Services.AddHttpClient();
 
-            var nuiContainer = new NuiContainerResource(containerName);
+            var nuiContainer = new NuiResource(containerName);
             var nuiContainerBuilder = builder.ApplicationBuilder.AddResource(nuiContainer)
                                                  .WithImage(NatsContainerImageTags.NuiImage, NatsContainerImageTags.NuiTag)
                                                  .WithImageRegistry(NatsContainerImageTags.NuiRegistry)
@@ -200,7 +200,7 @@ public static class NatsBuilderExtensions
                     return;
                 }
 
-                var nuiInstance = builder.ApplicationBuilder.Resources.OfType<NuiContainerResource>().Single();
+                var nuiInstance = builder.ApplicationBuilder.Resources.OfType<NuiResource>().Single();
                 var nuiEnpoint = nuiInstance.PrimaryEndpoint;
 
                 var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
@@ -278,7 +278,7 @@ public static class NatsBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<NuiContainerResource> WithHostPort(this IResourceBuilder<NuiContainerResource> builder, int? port)
+    public static IResourceBuilder<NuiResource> WithHostPort(this IResourceBuilder<NuiResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
