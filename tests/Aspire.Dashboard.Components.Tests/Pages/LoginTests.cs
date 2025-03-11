@@ -65,6 +65,7 @@ public partial class LoginTests : TestContext
         Services.AddSingleton<IDashboardClient>(new TestDashboardClient());
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
     }
 

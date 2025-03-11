@@ -72,6 +72,7 @@ public partial class MetricsTests : TestContext
                 }
             }
         };
+
         MetricsSetupHelpers.SetupMetricsPage(this, sessionStorage: testSessionStorage);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();

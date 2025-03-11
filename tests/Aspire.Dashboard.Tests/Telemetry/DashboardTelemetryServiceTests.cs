@@ -3,10 +3,12 @@
 
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Tests.Shared.Telemetry;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -63,55 +65,59 @@ public class DashboardTelemetryServiceTests
             DebugSession = new DebugSession
             {
                 Address = "http://localhost:5000",
-                ServerCertificate = string.Empty,
+                ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
                 Token = "test"
             }
         });
 
+        Assert.True(options.Value.DebugSession.TryParseOptions(out _));
+
         var userTaskCorrelationId = Guid.NewGuid();
         var tcs = new TaskCompletionSource<PostOperationRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var telemetrySender = new DashboardTelemetrySender(options, loggerFactory.CreateLogger<DashboardTelemetrySender>());
-        telemetrySender.CreateHandler = handler => new TestHttpMessageHandler(
-            (request, cancellationToken) =>
-            {
-                if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryEnabled)
+        var telemetrySender = new DashboardTelemetrySender(options, loggerFactory.CreateLogger<DashboardTelemetrySender>())
+        {
+            CreateHandler = _ => new TestHttpMessageHandler(
+                (request, _) =>
                 {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryEnabled)
                     {
-                        Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: true)) ?? string.Empty)
-                    });
-                }
-                else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryStart)
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-                }
-                else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostProperty)
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-                }
-                else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostUserTask)
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new TelemetryEnabledResponse(IsEnabled: true)) ?? string.Empty)
+                        });
+                    }
+                    else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryStart)
                     {
-                        Content = new StringContent(JsonSerializer.Serialize(new TelemetryEventCorrelation { Id = userTaskCorrelationId }))
-                    });
-                }
-                else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostOperation)
-                {
-                    var requestContent = (JsonContent)request.Content!;
-                    tcs.SetResult((PostOperationRequest) requestContent.Value!);
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                    }
+                    else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostProperty)
+                    {
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                    }
+                    else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostUserTask)
+                    {
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new TelemetryEventCorrelation { Id = userTaskCorrelationId }))
+                        });
+                    }
+                    else if (request.RequestUri!.AbsolutePath == TelemetryEndpoints.TelemetryPostOperation)
+                    {
+                        var requestContent = (JsonContent)request.Content!;
+                        tcs.SetResult((PostOperationRequest)requestContent.Value!);
 
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new TelemetryEventCorrelation { Id = Guid.NewGuid() }))
+                        });
+                    }
+                    else
                     {
-                        Content = new StringContent(JsonSerializer.Serialize(new TelemetryEventCorrelation { Id = Guid.NewGuid() }))
-                    });
-                }
-                else
-                {
-                    throw new InvalidCastException($"Unexpected path: {request.RequestUri}");
-                }
-            });
+                        throw new InvalidCastException($"Unexpected path: {request.RequestUri}");
+                    }
+                })
+        };
 
         var telemetryService = await CreateTelemetryServiceAsync(telemetrySender, loggerFactory: loggerFactory);
         await telemetryService.InitializeAsync();

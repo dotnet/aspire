@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Tests.Shared.Telemetry;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -40,10 +42,12 @@ public class DashboardTelemetrySenderTests
             DebugSession = new DebugSession
             {
                 Address = "http://localhost:5000",
-                ServerCertificate = string.Empty,
+                ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
                 Token = "test"
             }
         });
+
+        Assert.True(options.Value.DebugSession.TryParseOptions(out _));
 
         var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
         telemetrySender.CreateHandler = handler => new TestHttpMessageHandler(
