@@ -51,12 +51,19 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
     {
         try
         {
+            logger.LogDebug("Starting AppHost backchannel on socket path: {SocketPath}", socketPath);
+
             using var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(socketPath);
             serverSocket.Bind(endpoint);
             serverSocket.Listen(1);
 
+            logger.LogDebug("Waiting for AppHost to connect to backchannel on socket path: {SocketPath}", socketPath);
+
             using var clientSocket = await serverSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
+
+            logger.LogDebug("AppHost to connected to backchannel on socket path: {SocketPath}", socketPath);
+
             using var stream = new NetworkStream(clientSocket, true);
             var rpc = JsonRpc.Attach(stream, cliRpcTarget);
 
@@ -64,10 +71,14 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             do
             {
                 var sendTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                logger.LogDebug("Sending PingAsync to AppHost backchannel at {SocketPath}", socketPath);
+
                 var responseTimestamp = await rpc.InvokeAsync<long>("PingAsync", sendTimestamp).ConfigureAwait(false);
                 Debug.Assert(sendTimestamp == responseTimestamp);
                 var roundtripMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - sendTimestamp;
-                logger.LogDebug("PingAsync round trip time is: {RoundtripMilliseconds} ms", roundtripMilliseconds);
+
+                logger.LogDebug("AppHost PingAsync round trip time is: {RoundtripMilliseconds} ms", roundtripMilliseconds);
             } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException ex)
@@ -75,9 +86,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             logger.LogDebug(ex, "Shutting down AppHost backchannel because of cancellation.");
             return;
         }
-        catch (StreamJsonRpc.ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+        catch (StreamJsonRpc.ConnectionLostException ex) when (cancellationToken.IsCancellationRequested)
         {
-            logger.LogDebug("Ignoring ConnectionLostException because of cancellation.");
+            logger.LogDebug(ex, "Ignoring ConnectionLostException because of cancellation.");
             return;
         }
         catch (Exception ex)

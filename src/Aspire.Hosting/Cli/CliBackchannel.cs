@@ -33,7 +33,13 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
         {
             using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(unixSocketPath);
+
+            logger.LogDebug("Connecting to backchannel socket at {SocketPath}", unixSocketPath);
+
             await socket.ConnectAsync(endpoint, stoppingToken).ConfigureAwait(false);
+
+            logger.LogDebug("Connected to backchannel socket at {SocketPath}", unixSocketPath);
+
             using var stream = new NetworkStream(socket, true);
             var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
 
@@ -41,15 +47,19 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
             do
             {
                 var sendTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                logger.LogDebug("Sending PingAsync to CLI backchannel at {SocketPath}", unixSocketPath);
+
                 var responseTimestamp = await rpc.InvokeAsync<long>("PingAsync", sendTimestamp).ConfigureAwait(false);
                 Debug.Assert(sendTimestamp == responseTimestamp);
                 var roundtripMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - sendTimestamp;
-                logger.LogDebug("PingAsync round trip time is {RoundTripDuration} ms", roundtripMilliseconds);
+
+                logger.LogDebug("CLI PingAsync round trip time is {RoundTripDuration} ms", roundtripMilliseconds);
             } while(await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
-        catch (StreamJsonRpc.ConnectionLostException) when (stoppingToken.IsCancellationRequested)
+        catch (StreamJsonRpc.ConnectionLostException ex) when (stoppingToken.IsCancellationRequested)
         {
-            logger.LogDebug("Ignoring ConnectionLostException because of cancellation.");
+            logger.LogDebug(ex, "Ignoring ConnectionLostException because of cancellation.");
             return;
         }
         catch (OperationCanceledException ex)
