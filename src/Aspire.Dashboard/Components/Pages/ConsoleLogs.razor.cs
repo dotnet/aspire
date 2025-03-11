@@ -290,33 +290,50 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
 
-        if (_timestampDisplayMode is not TimestampDisplayMode.Local)
+        _logsMenuItems.Add(new()
+        {
+            IsDivider = true
+        });
+
+        if (_timestampDisplayMode is TimestampDisplayMode.None)
         {
             _logsMenuItems.Add(new()
             {
                 OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Local),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowLocal)],
-                Icon = new Icons.Regular.Size16.CalendarClock()
+                Icon = new Icons.Regular.Size16.ToggleLeft()
             });
         }
 
-        if (_timestampDisplayMode is not TimestampDisplayMode.Utc)
-        {
-            _logsMenuItems.Add(new()
-            {
-                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Utc),
-                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowUtc)],
-                Icon = new Icons.Regular.Size16.CalendarAdd()
-            });
-        }
-
-        if (_timestampDisplayMode is not TimestampDisplayMode.None)
+        if (_timestampDisplayMode is TimestampDisplayMode.Local)
         {
             _logsMenuItems.Add(new()
             {
                 OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.None),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
-                Icon = new Icons.Regular.Size16.DismissSquareMultiple()
+                Icon = new Icons.Regular.Size16.ToggleRight()
+            });
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Utc),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowUtc)],
+                Icon = new Icons.Regular.Size16.GlobeClock()
+            });
+        }
+
+        if (_timestampDisplayMode is TimestampDisplayMode.Utc)
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.None),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
+                Icon = new Icons.Regular.Size16.ToggleRight()
+            });
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Local),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowLocal)],
+                Icon = new Icons.Regular.Size16.GlobeOff()
             });
         }
 
