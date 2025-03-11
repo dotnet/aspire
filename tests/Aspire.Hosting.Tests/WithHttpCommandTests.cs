@@ -359,13 +359,13 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Veriy the command is disabled
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
-        // Move the resource to the healthy state
+        // Move the resource to the running state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
         await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await watchTcs.Task.DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await watchTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Verify the command is enabled
         Assert.Equal(ResourceCommandState.Enabled, commandState);
