@@ -3,8 +3,7 @@
 
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
-using Aspire.Hosting.Yaml.Converters;
-using Aspire.Hosting.Yaml.Emitter;
+using Aspire.Hosting.Yaml;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -17,7 +16,7 @@ namespace Aspire.Hosting.Docker.Resources;
 /// This class is designed to encapsulate the structure of a Docker Compose file as a strongly-typed model.
 /// It supports serialization to YAML format for usage in Docker Compose operations.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class ComposeFile
 {
     /// <summary>
@@ -51,8 +50,8 @@ public sealed class ComposeFile
     /// A dictionary where the key is the name of the service (as a string), and the value
     /// is a <see cref="Service"/> object containing the configuration of the service.
     /// </value>
-    [YamlMember(Alias = "services")]
-    public Dictionary<string, Service>? Services { get; set; }
+    [YamlMember(Alias = "services", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Service> Services { get; set; } = [];
 
     /// <summary>
     /// Represents the collection of networks defined in a Docker Compose file.
@@ -61,8 +60,8 @@ public sealed class ComposeFile
     /// Each key in the dictionary represents the name of the network, and the value is an instance of the <see cref="Network"/> class,
     /// which encapsulates the details and configurations of the corresponding network.
     /// </remarks>
-    [YamlMember(Alias = "networks")]
-    public Dictionary<string, Network>? Networks { get; set; }
+    [YamlMember(Alias = "networks", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Network> Networks { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of volume definitions within a Docker Compose file.
@@ -72,8 +71,8 @@ public sealed class ComposeFile
     /// name of the volume, and the value is an instance of the <see cref="Volume"/> class.
     /// Volumes can be used to share data between containers or between a container and the host system.
     /// </remarks>
-    [YamlMember(Alias = "volumes")]
-    public Dictionary<string, Volume>? Volumes { get; set; }
+    [YamlMember(Alias = "volumes", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Volume> Volumes { get; set; } = [];
 
     /// <summary>
     /// Represents the secrets section in a Docker Compose file.
@@ -85,16 +84,16 @@ public sealed class ComposeFile
     /// which holds the details about the secret such as file location, external status,
     /// and additional metadata like labels.
     /// </remarks>
-    [YamlMember(Alias = "secrets")]
-    public Dictionary<string, Secret>? Secrets { get; set; }
+    [YamlMember(Alias = "secrets", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Secret> Secrets { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of configuration objects within a Docker Compose file.
     /// Each key in the dictionary corresponds to a configuration name, and the value is
     /// an instance of the <see cref="Config"/> class that contains the associated configuration details.
     /// </summary>
-    [YamlMember(Alias = "configs")]
-    public Dictionary<string, Config>? Configs { get; set; }
+    [YamlMember(Alias = "configs", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Config> Configs { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of user-defined extension fields that can be
@@ -104,8 +103,8 @@ public sealed class ComposeFile
     /// flexibility for including additional metadata or configuration outside the scope
     /// of standard Compose file specifications.
     /// </summary>
-    [YamlMember(Alias = "extensions")]
-    public Dictionary<string, object>? Extensions { get; set; }
+    [YamlMember(Alias = "extensions", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, object> Extensions { get; set; } = [];
 
     /// <summary>
     /// Adds a new network to the Compose file.
@@ -114,7 +113,6 @@ public sealed class ComposeFile
     /// <returns>The updated <see cref="ComposeFile"/> instance with the added network.</returns>
     public ComposeFile AddNetwork(Network network)
     {
-        Networks ??= [];
         Networks[network.Name] = network;
         return this;
     }
@@ -126,7 +124,6 @@ public sealed class ComposeFile
     /// <returns>The updated <see cref="ComposeFile"/> instance containing the added service.</returns>
     public ComposeFile AddService(Service service)
     {
-        Services ??= [];
         Services[service.Name] = service;
         return this;
     }
@@ -138,7 +135,6 @@ public sealed class ComposeFile
     /// <returns>The updated <see cref="ComposeFile"/> instance with the added volume.</returns>
     public ComposeFile AddVolume(Volume volume)
     {
-        Volumes ??= [];
         Volumes[volume.Name] = volume;
         return this;
     }
@@ -151,13 +147,12 @@ public sealed class ComposeFile
     public string ToYaml(string lineEndings = "\n")
     {
         var serializer = new SerializerBuilder()
-            .WithTypeConverter(new YamlValueCollectionConverter())
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .WithEventEmitter(nextEmitter => new StringSequencesFlowStyle(nextEmitter))
-            .WithEventEmitter(nextEmitter => new StringEnumConverterFlowStyle(nextEmitter))
             .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
             .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
             .WithNewLine(lineEndings)
+            .WithIndentedSequences()
             .Build();
 
         return serializer.Serialize(this);

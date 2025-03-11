@@ -5,7 +5,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
-namespace Aspire.Hosting.Yaml.Emitter;
+namespace Aspire.Hosting.Yaml;
 
 /// <summary>
 /// A custom event emitter that forces string scalar values to use double-quoted style when serialized in YAML.
@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Yaml.Emitter;
 /// It ensures that all string values are wrapped in double quotes, which can be useful for preserving string formatting
 /// or compatibility with specific YAML consumers.
 /// </remarks>
-public sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
+internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
 {
     private readonly Stack<EmitterState> _state = new();
 

@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes;
 /// The <c>Service</c> class can be used to define a container's image, ports, volumes, environment settings,
 /// and advanced settings like logging and health checks.
 /// </example>
-[Serializable]
+[YamlSerializable]
 public sealed class Service : NamedComposeMember
 {
     /// <summary>
@@ -55,16 +55,16 @@ public sealed class Service : NamedComposeMember
     /// Represents the command to override the default command specified in the image's Dockerfile.
     /// This property allows specifying how the container should run by defining an executable and its arguments.
     /// </summary>
-    [YamlMember(Alias = "command")]
-    public List<string>? Command { get; set; }
+    [YamlMember(Alias = "command", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Command { get; set; } = [];
 
     /// <summary>
     /// Specifies the entrypoint to be used for the container.
     /// This property allows overriding the default entrypoint of the image
     /// and defines the executable or command that is run when the container starts.
     /// </summary>
-    [YamlMember(Alias = "entrypoint")]
-    public List<string>? Entrypoint { get; set; }
+    [YamlMember(Alias = "entrypoint", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Entrypoint { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of environment variables for the service container.
@@ -74,16 +74,16 @@ public sealed class Service : NamedComposeMember
     /// These variables can be used to configure the behavior of the container
     /// or pass information to the application running inside the container.
     /// </remarks>
-    [YamlMember(Alias = "environment")]
-    public Dictionary<string, string>? Environment { get; set; }
+    [YamlMember(Alias = "environment", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Environment { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of paths to environment variable files used by the service.
     /// These files contain key-value pairs of environment variables that will be loaded
     /// and applied to the service configuration at runtime.
     /// </summary>
-    [YamlMember(Alias = "env_file")]
-    public List<string>? EnvFile { get; set; }
+    [YamlMember(Alias = "env_file", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> EnvFile { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the working directory of the container.
@@ -97,8 +97,8 @@ public sealed class Service : NamedComposeMember
     /// Represents a collection of port mappings for the service.
     /// Each mapping specifies how a container port is bound to a host port.
     /// </summary>
-    [YamlMember(Alias = "ports")]
-    public List<string>? Ports { get; set; }
+    [YamlMember(Alias = "ports", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Ports { get; set; } = [];
 
     /// <summary>
     /// Gets or sets a list of ports to expose from the container without publishing them to the host machine.
@@ -106,8 +106,8 @@ public sealed class Service : NamedComposeMember
     /// or other containers within the same network, but these ports are not accessible from outside
     /// the container’s network.
     /// </summary>
-    [YamlMember(Alias = "expose")]
-    public List<string>? Expose { get; set; }
+    [YamlMember(Alias = "expose", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Expose { get; set; } = [];
 
     /// <summary>
     /// Defines the list of volumes to be mounted into the service's container.
@@ -118,8 +118,8 @@ public sealed class Service : NamedComposeMember
     /// This property can also include named volumes as defined in the Compose file's top-level `volumes` section.
     /// Volumes can specify additional options such as read-only access or volume drivers.
     /// </remarks>
-    [YamlMember(Alias = "volumes")]
-    public List<Volume>? Volumes { get; set; }
+    [YamlMember(Alias = "volumes", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<Volume> Volumes { get; set; } = [];
 
     /// <summary>
     /// Specifies a list of services that this service depends on.
@@ -127,8 +127,8 @@ public sealed class Service : NamedComposeMember
     /// This property defines the order in which services should be started,
     /// ensuring that the specified services are initialized before the current service.
     /// </summary>
-    [YamlMember(Alias = "depends_on")]
-    public List<string>? DependsOn { get; set; }
+    [YamlMember(Alias = "depends_on", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> DependsOn { get; set; } = [];
 
     /// <summary>
     /// Specifies the user that the container will run as.
@@ -148,8 +148,8 @@ public sealed class Service : NamedComposeMember
     /// If no network is specified, the service is connected to the default network that is automatically
     /// created by Docker Compose for the project unless `network_mode` is set to another value.
     /// </summary>
-    [YamlMember(Alias = "networks")]
-    public List<string>? Networks { get; set; }
+    [YamlMember(Alias = "networks", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Networks { get; set; } = [];
 
     /// <summary>
     /// Specifies the restart policy for the container. This property determines how the
@@ -186,8 +186,8 @@ public sealed class Service : NamedComposeMember
     /// Represents a set of metadata labels for the service.
     /// These key-value pairs can be used to organize and identify objects within the service configuration.
     /// </summary>
-    [YamlMember(Alias = "labels")]
-    public Dictionary<string, string>? Labels { get; set; }
+    [YamlMember(Alias = "labels", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Labels { get; set; } = [];
 
     /// <summary>
     /// Represents the domain name of a service container.
@@ -248,16 +248,16 @@ public sealed class Service : NamedComposeMember
     /// Each capability should be specified as a string in the list. Use this property to enhance the container's permissions
     /// beyond the default set provided by the Docker runtime, if required by the application running inside the container.
     /// </remarks>
-    [YamlMember(Alias = "cap_add")]
-    public List<string>? CapAdd { get; set; }
+    [YamlMember(Alias = "cap_add", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> CapAdd { get; set; } = [];
 
     /// <summary>
     /// Represents a list of Linux capabilities to be dropped from the service's container.
     /// This property can be used to restrict specific capabilities that the container
     /// should not have access to, enhancing security by implementing the principle of least privilege.
     /// </summary>
-    [YamlMember(Alias = "cap_drop")]
-    public List<string>? CapDrop { get; set; }
+    [YamlMember(Alias = "cap_drop", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> CapDrop { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the parent Cgroup for the container.
@@ -270,14 +270,14 @@ public sealed class Service : NamedComposeMember
     /// Represents a collection of device mappings for the service container.
     /// This property defines the host-to-container device paths in Docker.
     /// </summary>
-    [YamlMember(Alias = "devices")]
-    public List<string>? Devices { get; set; }
+    [YamlMember(Alias = "devices", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Devices { get; set; } = [];
 
     /// <summary>
     /// Gets or sets a list of custom DNS server IP addresses to be used by the service container.
     /// </summary>
-    [YamlMember(Alias = "dns")]
-    public List<string>? Dns { get; set; }
+    [YamlMember(Alias = "dns", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Dns { get; set; } = [];
 
     /// <summary>
     /// Specifies the domain search options for the service's container.
@@ -285,24 +285,24 @@ public sealed class Service : NamedComposeMember
     /// that will be appended to unqualified DNS queries performed by the container.
     /// Typically used to configure how DNS resolution should behave in specific network setups.
     /// </summary>
-    [YamlMember(Alias = "dns_search")]
-    public List<string>? DnsSearch { get; set; }
+    [YamlMember(Alias = "dns_search", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> DnsSearch { get; set; } = [];
 
     /// <summary>
     /// Represents additional hostname-to-IP mappings for the service.
     /// These mappings allow you to manually define hostnames and corresponding IP addresses,
     /// effectively augmenting the DNS resolution for the service's containers.
     /// </summary>
-    [YamlMember(Alias = "extra_hosts")]
-    public Dictionary<string, string>? ExtraHosts { get; set; }
+    [YamlMember(Alias = "extra_hosts", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> ExtraHosts { get; set; } = [];
 
     /// <summary>
     /// Gets or sets a list of additional group IDs to add to the container's
     /// process. This allows the container to have access to resources or
     /// permissions associated with the specified groups.
     /// </summary>
-    [YamlMember(Alias = "group_add")]
-    public List<string>? GroupAdd { get; set; }
+    [YamlMember(Alias = "group_add", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> GroupAdd { get; set; } = [];
 
     /// <summary>
     /// Indicates whether the init binary should be used as the container's init process.
@@ -315,16 +315,16 @@ public sealed class Service : NamedComposeMember
     /// <summary>
     /// Represents a service definition in a Docker Compose configuration file.
     /// </summary>
-    [YamlMember(Alias = "links")]
-    public List<string>? Links { get; set; }
+    [YamlMember(Alias = "links", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Links { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the external links for the service.
     /// External links are references to services defined outside the current Docker Compose file,
     /// enabling communication with containers in other projects or environments.
     /// </summary>
-    [YamlMember(Alias = "external_links")]
-    public List<string>? ExternalLinks { get; set; }
+    [YamlMember(Alias = "external_links", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> ExternalLinks { get; set; } = [];
 
     /// <summary>
     /// Specifies the network mode to be used for the container.
@@ -343,8 +343,8 @@ public sealed class Service : NamedComposeMember
     /// profiles. If no profiles are specified, the service will be
     /// active in all configurations.
     /// </summary>
-    [YamlMember(Alias = "profiles")]
-    public List<string>? Profiles { get; set; }
+    [YamlMember(Alias = "profiles", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Profiles { get; set; } = [];
 
     /// <summary>
     /// Defines whether the service containers should be run in read-only mode.
@@ -359,8 +359,8 @@ public sealed class Service : NamedComposeMember
     /// This is used to configure security-related settings specific to the container such as SELinux labels
     /// or AppArmor profiles, providing fine-grained control over the container's security behavior.
     /// </summary>
-    [YamlMember(Alias = "security_opt")]
-    public List<string>? SecurityOpt { get; set; }
+    [YamlMember(Alias = "security_opt", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> SecurityOpt { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of secret references used by the service.
@@ -369,16 +369,16 @@ public sealed class Service : NamedComposeMember
     /// Each entry in the collection refers to a specific secret that is utilized by the service,
     /// typically for managing sensitive information in a secure manner (e.g., credentials, tokens).
     /// </remarks>
-    [YamlMember(Alias = "secrets")]
-    public List<SecretReference>? Secrets { get; set; }
+    [YamlMember(Alias = "secrets", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<SecretReference> Secrets { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of configuration references associated with the service.
     /// Each configuration is defined as a reference to an external configuration resource,
     /// which can be used to manage application configurations.
     /// </summary>
-    [YamlMember(Alias = "configs")]
-    public List<ConfigReference>? Configs { get; set; }
+    [YamlMember(Alias = "configs", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<ConfigReference> Configs { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the stop grace period for the container.
@@ -407,16 +407,16 @@ public sealed class Service : NamedComposeMember
     /// Example: Use this property to set parameters like `net.ipv4.tcp_syncookies`
     /// or `net.core.somaxconn`.
     /// </summary>
-    [YamlMember(Alias = "sysctls")]
-    public Dictionary<string, string>? Sysctls { get; set; }
+    [YamlMember(Alias = "sysctls", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Sysctls { get; set; } = [];
 
     /// <summary>
     /// Specifies a list of temporary file systems (tmpfs) to be mounted inside the container.
     /// Each entry represents a directory on the container's filesystem, mounted as a tmpfs,
     /// which resides in-memory and is typically used for ephemeral storage or caching purposes.
     /// </summary>
-    [YamlMember(Alias = "tmpfs")]
-    public List<string>? Tmpfs { get; set; }
+    [YamlMember(Alias = "tmpfs", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Tmpfs { get; set; } = [];
 
     /// <summary>
     /// Indicates whether standard input (stdin) should remain open and be attached
@@ -437,8 +437,8 @@ public sealed class Service : NamedComposeMember
     /// Ulimits specify system resource limitations to be applied to the container,
     /// such as maximum number of open files or maximum stack size.
     /// </summary>
-    [YamlMember(Alias = "ulimits")]
-    public Dictionary<string, Ulimit>? Ulimits { get; set; }
+    [YamlMember(Alias = "ulimits", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, Ulimit> Ulimits { get; set; } = [];
 
     /// <summary>
     /// Adds a volume to the service's list of volumes. If the volumes collection is
@@ -448,8 +448,33 @@ public sealed class Service : NamedComposeMember
     /// <returns>The updated <see cref="Service"/> instance with the added volume.</returns>
     public Service AddVolume(Volume volume)
     {
-        Volumes ??= [];
         Volumes.Add(volume);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple volumes to the service's list of volumes. If the volumes collection is empty,
+    /// the provided volumes will be appended to the existing collection.
+    /// </summary>
+    /// <param name="volumes">A collection of volumes to be added to the service.</param>
+    /// <returns>The updated <see cref="Service"/> instance with the added volumes.</returns>
+    public Service AddVolumes(IEnumerable<Volume> volumes)
+    {
+        Volumes.AddRange(volumes);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an environmental variable to the service's environment dictionary.
+    /// If the specified value is null, it assigns an empty string as the value.
+    /// </summary>
+    /// <param name="key">The key for the environmental variable.</param>
+    /// <param name="value">The value of the environmental variable. If null, an empty string will be used.</param>
+    /// <returns>The updated <see cref="Service"/> instance with the added environmental variable.</returns>
+    public Service AddEnvironmentalVariable(string key, string? value)
+    {
+        Environment[key] = value ?? string.Empty;
+
         return this;
     }
 }

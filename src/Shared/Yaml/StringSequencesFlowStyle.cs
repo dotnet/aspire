@@ -6,7 +6,7 @@ using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
-namespace Aspire.Hosting.Yaml.Emitter;
+namespace Aspire.Hosting.Yaml;
 
 /// <summary>
 /// A specialized implementation of the <see cref="ChainedEventEmitter"/> class
@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Yaml.Emitter;
 /// This is achieved by intercepting <see cref="SequenceStartEventInfo"/> for string arrays
 /// and altering its style property before emitting it to the next emitter in the chain.
 /// </remarks>
-public sealed class StringSequencesFlowStyle(IEventEmitter nextEmitter) : ChainedEventEmitter(nextEmitter)
+internal sealed class StringSequencesFlowStyle(IEventEmitter nextEmitter) : ChainedEventEmitter(nextEmitter)
 {
     /// <summary>
     /// Emits a <see cref="SequenceStartEventInfo"/> during YAML serialization.

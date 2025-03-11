@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// Represents the placement configuration for a Docker service in a Swarm cluster.
 /// This class is used to define specific constraints and preferences for the placement of tasks or containers.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class Placement
 {
     /// <summary>

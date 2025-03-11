@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// This class specifies the conditions, delay, maximum attempts, and time window
 /// involved in restarting a Docker service container within a Swarm deployment.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class RestartPolicy
 {
     /// <summary>

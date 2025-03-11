@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// <summary>
 /// Represents the deployment configuration for a Docker service. This class is used to define various aspects such as replication, mode, resource constraints, updates, and restart policies.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class Deploy
 {
     /// <summary>

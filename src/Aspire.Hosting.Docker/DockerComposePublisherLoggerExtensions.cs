@@ -22,6 +22,9 @@ internal static partial class DockerComposePublisherLoggerExtensions
     [LoggerMessage(LogLevel.Information, "Generating Compose output")]
     internal static partial void StartGeneratingDockerCompose(this ILogger logger);
 
+    [LoggerMessage(LogLevel.Information, "No resources found in the model.")]
+    internal static partial void EmptyModel(this ILogger logger);
+
     [LoggerMessage(LogLevel.Information, "Successfully generated Compose output in '{OutputPath}'")]
     internal static partial void FinishGeneratingDockerCompose(this ILogger logger, string outputPath);
 

@@ -5,7 +5,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
-namespace Aspire.Hosting.Yaml.Emitter;
+namespace Aspire.Hosting.Yaml;
 
 /// <summary>
 /// A custom implementation of <see cref="ChainedEventEmitter"/> that ensures all string
@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Yaml.Emitter;
 /// This class is useful in scenarios where quoted output is necessary to ensure compatibility
 /// with specific YAML processing tools or to escape special characters in string values.
 /// </example>
-public sealed class QuotationEventEmitter(IEventEmitter nextEmitter) : ChainedEventEmitter(nextEmitter)
+internal sealed class QuotationEventEmitter(IEventEmitter nextEmitter) : ChainedEventEmitter(nextEmitter)
 {
     /// <summary>
     /// Emits a scalar event during YAML serialization, ensuring that string and object values are

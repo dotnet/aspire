@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// Represents a collection of additional labels that can be associated with a Docker service.
 /// This class is used to define extra metadata in the form of key-value pairs.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class LabelSpecs
 {
     /// <summary>

@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// The configuration includes the driver used for IPAM, specific configuration details,
 /// and additional options for customization.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Ipam
 {
     /// <summary>
@@ -29,8 +29,8 @@ public sealed class Ipam
     /// This property is a collection of key-value pairs that define
     /// specific IPAM configuration settings.
     /// </summary>
-    [YamlMember(Alias = "config")]
-    public List<Dictionary<string, string>>? Config { get; set; }
+    [YamlMember(Alias = "config", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<Dictionary<string, string>> Config { get; set; } = [];
 
     /// <summary>
     /// A collection of key-value pairs representing options for the IPAM configuration.
@@ -41,6 +41,6 @@ public sealed class Ipam
     /// where each key corresponds to a particular option name and the value corresponds
     /// to its respective setting.
     /// </remarks>
-    [YamlMember(Alias = "options")]
-    public Dictionary<string, string>? Options { get; set; }
+    [YamlMember(Alias = "options", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Options { get; set; } = [];
 }

@@ -6,7 +6,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectGraphVisitors;
 
-namespace Aspire.Hosting.Yaml.Emitter;
+namespace Aspire.Hosting.Yaml;
 
 /// <summary>
 /// A specialized implementation of <see cref="ChainedObjectGraphVisitor"/> designed to
@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Yaml.Emitter;
 /// This class is internally integrated in YAML serialization pipelines to optimize representation
 /// by excluding unnecessary empty elements, thereby simplifying the resulting YAML document.
 /// </example>
-public sealed class YamlIEnumerableSkipEmptyObjectGraphVisitor(
+internal sealed class YamlIEnumerableSkipEmptyObjectGraphVisitor(
     IObjectGraphVisitor<IEmitter> nextVisitor
 ) : ChainedObjectGraphVisitor(nextVisitor)
 {

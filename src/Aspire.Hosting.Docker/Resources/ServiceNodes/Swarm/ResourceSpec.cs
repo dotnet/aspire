@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// for a service in the Docker Swarm mode. These configurations can be applied
 /// to set limits or reservations for resources.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class ResourceSpec
 {
     /// <summary>

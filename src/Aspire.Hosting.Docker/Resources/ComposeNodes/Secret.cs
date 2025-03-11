@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes;
 /// such as passwords, keys, or certificates. These secrets can either be externally managed
 /// or provided locally from a specific file.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Secret
 {
     /// <summary>
@@ -42,6 +42,6 @@ public sealed class Secret
     /// associated with the secret. These labels can be used for categorization, identification,
     /// or other purposes as determined by the user.
     /// </summary>
-    [YamlMember(Alias = "labels")]
-    public Dictionary<string, string>? Labels { get; set; }
+    [YamlMember(Alias = "labels", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Labels { get; set; } = [];
 }

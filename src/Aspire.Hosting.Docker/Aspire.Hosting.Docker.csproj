@@ -11,12 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.Yaml\Aspire.Hosting.Yaml.csproj" />
+    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)ContainerReferenceParser.cs" Link="Shared\ContainerReferenceParser.cs" />
-    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

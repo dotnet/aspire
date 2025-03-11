@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// <summary>
 /// Represents the health check configuration for a container.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class Healthcheck
 {
     /// <summary>
@@ -17,8 +17,8 @@ public sealed class Healthcheck
     /// This property is defined as a list of strings, where each string is a command or argument
     /// contributing to the health check operation.
     /// </summary>
-    [YamlMember(Alias = "test", ScalarStyle = ScalarStyle.Folded)]
-    public required List<string> Test { get; set; }
+    [YamlMember(Alias = "test", ScalarStyle = ScalarStyle.Folded, DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> Test { get; set; } = [];
 
     /// <summary>
     /// Specifies the duration between health check executions for a service.

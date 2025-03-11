@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// This class provides various configurable options for updating services, including parallelism,
 /// delay between updates, failure actions, monitoring settings, failure ratio limits, and the order of updates.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class UpdateConfig
 {
     /// <summary>

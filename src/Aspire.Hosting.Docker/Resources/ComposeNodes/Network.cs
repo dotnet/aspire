@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes;
 /// This class encapsulates the properties and options related to a network in a Docker Compose file.
 /// It includes configurations such as driver type, options, labels, IPAM settings, and more.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Network : NamedComposeMember
 {
     /// <summary>
@@ -30,8 +30,8 @@ public sealed class Network : NamedComposeMember
     /// These options are key-value pairs that allow customization of network settings based on the specified driver.
     /// They can control behaviors or features unique to the driver being used.
     /// </remarks>
-    [YamlMember(Alias = "driver_opts")]
-    public Dictionary<string, string>? DriverOpts { get; set; }
+    [YamlMember(Alias = "driver_opts", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> DriverOpts { get; set; } = [];
 
     /// <summary>
     /// Indicates whether the network is external or managed by Docker outside of the
@@ -46,8 +46,8 @@ public sealed class Network : NamedComposeMember
     /// Represents a collection of metadata labels applied to the network configuration.
     /// These labels can be used to organize, manage, or identify network resources.
     /// </summary>
-    [YamlMember(Alias = "labels")]
-    public Dictionary<string, string>? Labels { get; set; }
+    [YamlMember(Alias = "labels", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Labels { get; set; } = [];
 
     /// <summary>
     /// Represents the IP Address Management (IPAM) configuration for a network in a container environment.

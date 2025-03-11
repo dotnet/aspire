@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// to control how logs are handled for a service. It is typically used within the context
 /// of container orchestration platforms to configure logging behavior at a service level.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Logging
 {
     /// <summary>
@@ -28,6 +28,6 @@ public sealed class Logging
     /// Gets or sets a collection of key-value pairs representing the logging driver options.
     /// These options are configuration parameters used to customize the behavior of the logging driver.
     /// </summary>
-    [YamlMember(Alias = "options")]
-    public Dictionary<string, string>? Options { get; set; }
+    [YamlMember(Alias = "options", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Options { get; set; } = [];
 }

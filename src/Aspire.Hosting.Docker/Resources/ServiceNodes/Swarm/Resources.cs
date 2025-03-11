@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm;
 /// by specifying limits and reservations. Limits define the maximum resources
 /// a service can utilize, while reservations define the minimum guaranteed resources.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Resources
 {
     /// <summary>

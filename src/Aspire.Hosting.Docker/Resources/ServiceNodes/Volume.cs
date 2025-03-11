@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// The <see cref="Volume"/> class is used to define properties and options for volumes in a Docker environment.
 /// Volumes are used to persist data beyond the lifecycle of a container and can be shared among multiple containers.
 /// </remarks>
-[Serializable]
+[YamlSerializable]
 public sealed class Volume : NamedComposeMember
 {
     /// <summary>
@@ -59,8 +59,8 @@ public sealed class Volume : NamedComposeMember
     /// These options are passed as key-value pairs to the volume driver,
     /// allowing customization or configuration specific to the driver being used.
     /// </summary>
-    [YamlMember(Alias = "driver_opts")]
-    public Dictionary<string, string>? DriverOpts { get; set; }
+    [YamlMember(Alias = "driver_opts", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> DriverOpts { get; set; } = [];
 
     /// <summary>
     /// Indicates whether the volume is external to the current scope or environment.
@@ -76,6 +76,6 @@ public sealed class Volume : NamedComposeMember
     /// Labels are key-value pairs that can be used for metadata purposes
     /// or for organizing and identifying volumes within Docker services.
     /// </summary>
-    [YamlMember(Alias = "labels")]
-    public Dictionary<string, string>? Labels { get; set; }
+    [YamlMember(Alias = "labels", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Labels { get; set; } = [];
 }

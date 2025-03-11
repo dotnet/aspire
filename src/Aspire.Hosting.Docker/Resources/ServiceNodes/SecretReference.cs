@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// <summary>
 /// Represents a reference to a secret within a Docker service configuration.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class SecretReference
 {
     /// <summary>

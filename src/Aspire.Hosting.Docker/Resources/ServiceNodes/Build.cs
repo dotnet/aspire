@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes;
 /// This class is used to define various build parameters such as context, dockerfile,
 /// arguments, target stages, cache sources, and labels.
 /// </summary>
-[Serializable]
+[YamlSerializable]
 public sealed class Build
 {
     /// <summary>
@@ -35,8 +35,8 @@ public sealed class Build
     /// These arguments allow customization of the build process by defining key-value pairs
     /// that are accessible within the Dockerfile.
     /// </summary>
-    [YamlMember(Alias = "args")]
-    public Dictionary<string, string>? Args { get; set; }
+    [YamlMember(Alias = "args", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Args { get; set; } = [];
 
     /// <summary>
     /// Specifies the target build stage to be used from a multi-stage Dockerfile.
@@ -52,13 +52,13 @@ public sealed class Build
     /// build configuration and allows specifying external images or sources
     /// to use as a cache for layers during Docker image builds.
     /// </summary>
-    [YamlMember(Alias = "cache_from")]
-    public List<string>? CacheFrom { get; set; }
+    [YamlMember(Alias = "cache_from", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<string> CacheFrom { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the collection of additional labels to be applied to the build.
     /// Labels are key-value pairs that provide metadata about the build.
     /// </summary>
-    [YamlMember(Alias = "labels")]
-    public Dictionary<string, string>? Labels { get; set; }
+    [YamlMember(Alias = "labels", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public Dictionary<string, string> Labels { get; set; } = [];
 }

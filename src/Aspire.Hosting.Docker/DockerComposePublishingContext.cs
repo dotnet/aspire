@@ -44,7 +44,7 @@ internal sealed class DockerComposePublishingContext(
 
         if (model.Resources.Count == 0)
         {
-            logger.WriteMessage("No resources found in the model.");
+            logger.EmptyModel();
             return;
         }
 
@@ -113,7 +113,7 @@ internal sealed class DockerComposePublishingContext(
     {
         foreach (var volume in composeServiceContext.Volumes.Where(volume => volume.Type != "bind"))
         {
-            if (composeFile.Volumes?.ContainsKey(volume.Name) == true)
+            if (composeFile.Volumes.ContainsKey(volume.Name))
             {
                 continue;
             }
@@ -121,7 +121,7 @@ internal sealed class DockerComposePublishingContext(
             var newVolume = new Volume
             {
                 Name = volume.Name,
-                Driver = volume.Driver,
+                Driver = volume.Driver ?? "local",
                 External = volume.External,
             };
 
@@ -136,8 +136,6 @@ internal sealed class DockerComposePublishingContext(
         private readonly Dictionary<object, string> _allocatedParameters = [];
         private readonly Dictionary<string, string> _allocatableParameters = [];
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
-
-        public IResource Resource => resource;
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
         public List<string> Commands { get; } = [];
         public Dictionary<string, object> Parameters { get; } = [];
@@ -189,7 +187,6 @@ internal sealed class DockerComposePublishingContext(
             {
                 var port = mapping.Port.ToString(CultureInfo.InvariantCulture);
                 var targetPort = mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? port;
-                composeService.Ports ??= [];
                 composeService.Ports.Add($"{port}:{targetPort}");
             }
         }
@@ -447,7 +444,6 @@ internal sealed class DockerComposePublishingContext(
         {
             if (resource is ContainerResource {Entrypoint: { } entrypoint})
             {
-                composeService.Entrypoint ??= [];
                 composeService.Entrypoint.Add(entrypoint);
             }
         }
@@ -456,17 +452,14 @@ internal sealed class DockerComposePublishingContext(
         {
             if (EnvironmentVariables.Count > 0)
             {
-                composeService.Environment ??= [];
-
-                foreach (var ev in EnvironmentVariables)
+                foreach (var variable in EnvironmentVariables)
                 {
-                    composeService.Environment[ev.Key] = ev.Value;
+                    composeService.AddEnvironmentalVariable(variable.Key, variable.Value);
                 }
             }
 
             if (Commands.Count > 0)
             {
-                composeService.Command ??= [];
                 composeService.Command.AddRange(Commands);
             }
         }
