@@ -25,7 +25,13 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
+
+        // Thru trial and error it seems that on the Windows CI machine it
+        // can take a while for this to startup in a quick fashion. On my local
+        // Windows environment it took up to 15 seconds, I'm setting 60 seconds
+        // here for plenty of buffer. If it takes longer than that then we have
+        // a problem.
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
 
         var clientSocket = await serverSocket.AcceptAsync();
         using var stream = new NetworkStream(clientSocket, true);
