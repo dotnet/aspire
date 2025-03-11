@@ -615,6 +615,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         await StopAndClearConsoleLogsSubscriptionAsync();
+        this.DisposeComponentTelemetry();
     }
 
     public class ConsoleLogsViewModel
@@ -659,7 +660,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry
-    public string ComponentId => DashboardUrls.ConsoleLogBasePath;
+    public string ComponentId { get; } = Guid.NewGuid().ToString();
+    public string ComponentType => DashboardUrls.ConsoleLogBasePath;
     public OperationContext? InitializeCorrelation { get; set; }
 
     public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()

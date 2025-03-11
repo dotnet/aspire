@@ -41,19 +41,19 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         DebugSession debugSession,
         [NotNullWhen(true)] out Uri? debugSessionUri,
         [NotNullWhen(true)] out string? token,
-        [NotNullWhen(true)] out byte[]? certData)
+        [NotNullWhen(true)] out X509Certificate2? serverCert)
     {
-        if (debugSession.Address is not null && debugSession.Token is not null && debugSession.ServerCertificate is not null && debugSession.TelemetryOptOut is not true)
+        if (debugSession.Address is not null && debugSession.Token is not null && debugSession.GetServerCertificate() is { } cert && debugSession.TelemetryOptOut is not true)
         {
             debugSessionUri = new Uri($"https://{debugSession.Address}");
             token = debugSession.Token;
-            certData = Convert.FromBase64String(debugSession.ServerCertificate);
+            serverCert = cert;
             return true;
         }
 
         debugSessionUri = null;
         token = null;
-        certData = null;
+        serverCert = null;
         return false;
     }
 
@@ -99,9 +99,8 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         });
     }
 
-    private HttpClient CreateHttpClient(Uri debugSessionUri, string token, byte[] certData)
+    private HttpClient CreateHttpClient(Uri debugSessionUri, string token, X509Certificate2 cert)
     {
-        var cert = new X509Certificate2(certData);
         var handler = new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = (_, c, _, e) =>
