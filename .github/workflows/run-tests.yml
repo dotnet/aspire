@@ -8,6 +8,10 @@ on:
       testShortName:
         required: true
         type: string
+      testProjectPath:
+        # relative the repo root
+        required: false
+        type: string
       testSessionTimeoutMs:
         required: false
         type: string
@@ -63,6 +67,21 @@ jobs:
         if: inputs.os == 'ubuntu-latest'
         run: docker info
 
+      - name: Build with packages
+        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+        env:
+          CI: false
+        run: ${{ env.build_script }} -restore -build -ci -pack -testnobuild /bl
+
+      - name: Install sdk for workload testing
+        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+        env:
+          CI: false
+        run: >
+          ${{ env.dotnet_script }} build ${{ github.workspace }}/tests/workloads.proj
+          /p:SkipPackageCheckForWorkloadTesting=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
       - name: Install Azure Functions Core Tools
         if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
@@ -74,13 +93,15 @@ jobs:
         shell: pwsh
         env:
           CI: false
-        # Convert the shortname of the test to a project path in tests/
         run: |
           $testShortName = "${{ inputs.testShortName }}"
+          $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
           $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
           $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
 
-          if (Test-Path -Path $projectPath1) {
+          if (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {
+              $projectPath = "${{ github.workspace }}/$overrideTestProjectPath"
+          } elseif (Test-Path -Path $projectPath1) {
               $projectPath = $projectPath1
           } elseif (Test-Path -Path $projectPath2) {
               $projectPath = $projectPath2
@@ -111,6 +132,7 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          DISABLE_PLAYWRIGHT_TESTS: ${{ inputs.os == 'ubuntu-latest' }}
         run: >
           ${{ env.dotnet_script }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
