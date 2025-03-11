@@ -77,11 +77,6 @@ jobs:
           merge-multiple: true
           path: test-job-result
 
-      # return success if zero result-failed-* files are found
-      - name: Compute result
-        run: |
-          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
-
       - uses: actions/download-artifact@v4
         with:
           pattern: logs-*-ubuntu-latest
@@ -100,3 +95,8 @@ jobs:
         with:
           name: Integration-TestResults
           path: testresults/**/*.trx
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
