@@ -25,6 +25,9 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
         }
 
         logger.LogDebug("Aspire CLI backchannel socket path: {SocketPath}", unixSocketPath);
+        
+        // Forcing to background.
+        await Task.Yield();
 
         try
         {
