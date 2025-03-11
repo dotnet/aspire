@@ -11,6 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Duplicated jobs so their dependencies are not blocked on both the
+  # setup jobs
+
   setup_for_tests_lin:
     name: Setup for tests (Linux)
     runs-on: ubuntu-latest

@@ -14,8 +14,8 @@ jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
 
-  setup_for_template_tests_lin:
-    name: Setup for template tests (Linux)
+  setup_for_tests_lin:
+    name: Setup for tests (Linux)
     runs-on: ubuntu-latest
     outputs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
@@ -24,7 +24,7 @@ jobs:
       - uses: ./.github/actions/enumerate-template-tests
         id: generate_test_matrix
 
-  setup_for_template_tests_win:
+  setup_for_tests_win:
     name: Setup for template tests (Windows)
     runs-on: windows-latest
     outputs:
@@ -37,10 +37,10 @@ jobs:
   test_linux:
     name: Linux
     uses: ./.github/workflows/run-tests.yml
-    needs: setup_for_template_tests_lin
+    needs: setup_for_tests_lin
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_template_tests_lin.outputs.tests_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
@@ -52,10 +52,10 @@ jobs:
   test_windows:
     name: Windows
     uses: ./.github/workflows/run-tests.yml
-    needs: setup_for_template_tests_win
+    needs: setup_for_tests_win
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_template_tests_win.outputs.tests_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
