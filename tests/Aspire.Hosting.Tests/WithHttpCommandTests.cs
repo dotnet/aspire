@@ -377,6 +377,70 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task WithHttpCommand_EnablesCommandUsingCustomUpdateStateCallback()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var enableCommand = false;
+        var callbackCalled = false;
+        var service = builder.AddResource(new CustomResource("service"))
+            .WithHttpEndpoint()
+            .WithHttpCommand("/dothing", "Do The Thing", commandName: "mycommand",
+                updateState: usc =>
+                {
+                    callbackCalled = true;
+                    return enableCommand ? ResourceCommandState.Enabled : ResourceCommandState.Hidden;
+                });
+
+        using var app = builder.Build();
+        ResourceCommandState? commandState = null;
+        var watchTcs = new TaskCompletionSource();
+        var watchCts = new CancellationTokenSource();
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var resourceEvent in app.ResourceNotifications.WatchAsync(watchCts.Token).WithCancellation(watchCts.Token))
+            {
+                var commandSnapshot = resourceEvent.Snapshot.Commands.First(c => c.Name == "mycommand");
+                commandState = commandSnapshot.State;
+                if (commandState == ResourceCommandState.Enabled)
+                {
+                    watchTcs.TrySetResult();
+                }
+            }
+        }, watchCts.Token);
+
+        // Act/Assert
+        await app.StartAsync().WaitAsync(s_startTimeout);
+
+        // Move the resource to the running state
+        await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).WaitAsync(s_startTimeout);
+
+        // Veriy the command is hidden despite the resource being running
+        Assert.Equal(ResourceCommandState.Hidden, commandState);
+
+        // Publish an update to force reevaluation of the command state
+        enableCommand = true;
+        await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+        await watchTcs.Task.WaitAsync(s_healthyTimeout);
+
+        // Verify the callback was called and the command is enabled
+        Assert.True(callbackCalled);
+        Assert.Equal(ResourceCommandState.Enabled, commandState);
+
+        // Clean up
+        watchCts.Cancel();
+        await app.StopAsync();
+    }
+
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport
     {
 

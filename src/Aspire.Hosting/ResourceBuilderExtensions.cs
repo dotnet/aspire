@@ -1432,7 +1432,7 @@ public static class ResourceBuilderExtensions
                     return CommandResults.Failure(ex);
                 }
             },
-            updateState: context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled,
+            updateState: updateState ?? (context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled),
             displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
