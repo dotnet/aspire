@@ -89,7 +89,7 @@ jobs:
           merge-multiple: true
           path: testresults/windows-latest
 
-      - name: Upload test result
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:

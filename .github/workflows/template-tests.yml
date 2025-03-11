@@ -79,15 +79,21 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: logs-*
+          pattern: logs-*-ubuntu-latest
           merge-multiple: true
-          path: testresults
+          path: testresults/ubuntu-latest
 
-      - name: Upload test result
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: logs-*-windows-latest
+          merge-multiple: true
+          path: testresults/windows-latest
+
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Template-TestResults
+          name: Templates-TestResults
           path: testresults/**/*.trx
 
       # return success if zero result-failed-* files are found
