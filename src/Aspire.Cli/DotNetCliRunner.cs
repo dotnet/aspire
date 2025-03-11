@@ -75,9 +75,15 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             logger.LogDebug(ex, "Shutting down AppHost backchannel because of cancellation.");
             return;
         }
+        catch (StreamJsonRpc.ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogDebug("Ignoring ConnectionLostException because of cancellation.");
+            return;
+        }
         catch (Exception ex)
         {
-            _ = ex;
+            logger.LogError(ex, "AppHost backchannel failed unexpectedly.");
+            return;
         }
     }
 
