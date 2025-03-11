@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
