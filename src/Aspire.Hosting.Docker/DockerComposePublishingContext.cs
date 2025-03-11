@@ -4,8 +4,9 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
+using Aspire.Hosting.Docker.Resources.ComposeNodes;
+using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Yaml;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -28,7 +29,6 @@ internal sealed class DockerComposePublishingContext(
     private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
 
     private ILogger Logger => logger;
-    private DockerComposePublisherOptions Options => publisherOptions;
 
     internal async Task WriteModel(DistributedApplicationModel model)
     {
@@ -55,7 +55,14 @@ internal sealed class DockerComposePublishingContext(
 
     private async Task<string> WriteDockerComposeOutput(DistributedApplicationModel model)
     {
-        var composeFile = new ComposeFile(publisherOptions.ExistingNetworkName);
+        var defaultNetwork = new Network
+        {
+            Name = publisherOptions.ExistingNetworkName ?? "aspire",
+            Driver = "bridge",
+        };
+
+        var composeFile = new ComposeFile();
+        composeFile.AddNetwork(defaultNetwork);
 
         foreach (var resource in model.Resources)
         {
@@ -76,10 +83,15 @@ internal sealed class DockerComposePublishingContext(
 
             HandleComposeFileVolumes(composeServiceContext, composeFile);
 
-            composeFile.AddService(resource.Name.ToLowerInvariant(), composeService);
+            composeService.Networks =
+            [
+                defaultNetwork.Name,
+            ];
+
+            composeFile.AddService(composeService);
         }
 
-        var composeOutput = composeFile.ToYamlString();
+        var composeOutput = composeFile.ToYaml();
         var outputFile = Path.Combine(publisherOptions.OutputPath!, "docker-compose.yaml");
         Directory.CreateDirectory(publisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
@@ -99,19 +111,21 @@ internal sealed class DockerComposePublishingContext(
 
     private static void HandleComposeFileVolumes(ComposeServiceContext composeServiceContext, ComposeFile composeFile)
     {
-        foreach (var volume in composeServiceContext.Volumes.Where(volume => volume.Type != ContainerMountType.BindMount))
+        foreach (var volume in composeServiceContext.Volumes.Where(volume => volume.Type != "bind"))
         {
-            var composeFileVolumes = composeFile.GetOrCreate<YamlObject>(DockerComposeYamlKeys.Volumes);
-
-            if (composeFileVolumes.ContainsKey(volume.Source!))
+            if (composeFile.Volumes?.ContainsKey(volume.Name) == true)
             {
                 continue;
             }
 
-            var newVolume = new ComposeVolume(external: volume.External);
-            newVolume.SetLocalDriver();
+            var newVolume = new Volume
+            {
+                Name = volume.Name,
+                Driver = volume.Driver,
+                External = volume.External,
+            };
 
-            composeFileVolumes.Add(volume.Source!, newVolume);
+            composeFile.AddVolume(newVolume);
         }
     }
 
@@ -124,20 +138,23 @@ internal sealed class DockerComposePublishingContext(
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
         public IResource Resource => resource;
-        public List<ComposeEnvironmentVariable> EnvironmentVariables { get; } = [];
-        public List<ComposeCommand> Args { get; } = [];
+        public Dictionary<string, string> EnvironmentVariables { get; } = [];
+        public List<string> Commands { get; } = [];
         public Dictionary<string, object> Parameters { get; } = [];
 
-        public List<ComposeVolume> Volumes { get; } = [];
+        public List<Volume> Volumes { get; } = [];
 
-        public ComposeService BuildComposeService()
+        public Service BuildComposeService()
         {
             if (!TryGetContainerImageName(resource, out var containerImageName))
             {
                 composePublishingContext.Logger.FailedToGetContainerImage(resource.Name);
             }
 
-            var composeService = new ComposeService(resource.Name.ToLowerInvariant(), composePublishingContext.Options.ExistingNetworkName);
+            var composeService = new Service
+            {
+                Name = resource.Name.ToLowerInvariant(),
+            };
 
             SetEntryPoint(composeService);
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
@@ -148,7 +165,7 @@ internal sealed class DockerComposePublishingContext(
             return composeService;
         }
 
-        private void AddVolumes(ComposeService composeService)
+        private void AddVolumes(Service composeService)
         {
             if (Volumes.Count == 0)
             {
@@ -161,7 +178,7 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private void AddPorts(ComposeService composeService)
+        private void AddPorts(Service composeService)
         {
             if (_endpointMapping.Count == 0)
             {
@@ -172,16 +189,16 @@ internal sealed class DockerComposePublishingContext(
             {
                 var port = mapping.Port.ToString(CultureInfo.InvariantCulture);
                 var targetPort = mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? port;
-
-                composeService.AddPort($"{port}:{targetPort}");
+                composeService.Ports ??= [];
+                composeService.Ports.Add($"{port}:{targetPort}");
             }
         }
 
-        private static void SetContainerImage(string? containerImageName, ComposeService composeService)
+        private static void SetContainerImage(string? containerImageName, Service composeService)
         {
             if (containerImageName is not null)
             {
-                composeService.WithImage(containerImageName);
+                composeService.Image = containerImageName;
             }
         }
 
@@ -243,7 +260,7 @@ internal sealed class DockerComposePublishingContext(
                         throw new NotSupportedException("Command line args must be strings");
                     }
 
-                    Args.Add(new(str));
+                    Commands.Add(new(str));
                 }
             }
         }
@@ -263,7 +280,7 @@ internal sealed class DockerComposePublishingContext(
                 {
                     var value = await ProcessValueAsync(kv.Value).ConfigureAwait(false);
 
-                    EnvironmentVariables.Add(new ComposeEnvironmentVariable(kv.Key, value.ToString()));
+                    EnvironmentVariables[kv.Key] = value.ToString() ?? string.Empty;
                 }
             }
         }
@@ -281,7 +298,14 @@ internal sealed class DockerComposePublishingContext(
                     throw new InvalidOperationException("Volume source and target must be set");
                 }
 
-                var composeVolume = new ComposeVolume(volume.Source, volume.Target, volume.Type, volume.IsReadOnly);
+                var composeVolume = new Volume
+                {
+                    Name = volume.Source,
+                    Type = volume.Type == ContainerMountType.BindMount ? "bind" : "volume",
+                    Target = volume.Target,
+                    Source = volume.Source,
+                    ReadOnly = volume.IsReadOnly,
+                };
 
                 Volumes.Add(composeVolume);
             }
@@ -419,30 +443,31 @@ internal sealed class DockerComposePublishingContext(
             return allocatableParameter ?? _allocatableParameters[parameterName];
         }
 
-        private void SetEntryPoint(ComposeService composeService)
+        private void SetEntryPoint(Service composeService)
         {
             if (resource is ContainerResource {Entrypoint: { } entrypoint})
             {
-                composeService.WithEntrypoint(entrypoint);
+                composeService.Entrypoint ??= [];
+                composeService.Entrypoint.Add(entrypoint);
             }
         }
 
-        private void AddEnvironmentVariablesAndCommandLineArgs(ComposeService composeService)
+        private void AddEnvironmentVariablesAndCommandLineArgs(Service composeService)
         {
             if (EnvironmentVariables.Count > 0)
             {
+                composeService.Environment ??= [];
+
                 foreach (var ev in EnvironmentVariables)
                 {
-                    composeService.AddEnvironmentVariable(ev);
+                    composeService.Environment[ev.Key] = ev.Value;
                 }
             }
 
-            if (Args.Count > 0)
+            if (Commands.Count > 0)
             {
-                foreach (var command in Args)
-                {
-                    composeService.AddCommand(command);
-                }
+                composeService.Command ??= [];
+                composeService.Command.AddRange(Commands);
             }
         }
     }
