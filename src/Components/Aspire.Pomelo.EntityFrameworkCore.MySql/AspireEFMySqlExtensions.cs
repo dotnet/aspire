@@ -60,6 +60,7 @@ public static partial class AspireEFMySqlExtensions
 
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
+            connectionName,
             (settings, section) => section.Bind(settings)
         );
 
@@ -149,6 +150,7 @@ public static partial class AspireEFMySqlExtensions
 
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
+            null,
             (settings, section) => section.Bind(settings)
         );
 

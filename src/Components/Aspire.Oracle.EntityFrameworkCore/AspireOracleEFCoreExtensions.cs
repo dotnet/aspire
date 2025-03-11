@@ -16,7 +16,7 @@ using Oracle.ManagedDataAccess.OpenTelemetry;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Extension methods for configuring EntityFrameworkCore DbContext to Oracle database 
+/// Extension methods for configuring EntityFrameworkCore DbContext to Oracle database
 /// </summary>
 public static class AspireOracleEFCoreExtensions
 {
@@ -48,6 +48,7 @@ public static class AspireOracleEFCoreExtensions
 
         var settings = builder.GetDbContextSettings<TContext, OracleEntityFrameworkCoreSettings>(
             DefaultConfigSectionName,
+            connectionName,
             (settings, section) => section.Bind(settings)
         );
 
@@ -99,6 +100,7 @@ public static class AspireOracleEFCoreExtensions
 
         var settings = builder.GetDbContextSettings<TContext, OracleEntityFrameworkCoreSettings>(
             DefaultConfigSectionName,
+            null,
             (settings, section) => section.Bind(settings)
         );
 

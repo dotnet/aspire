@@ -50,6 +50,7 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
+            connectionName,
             (settings, section) => section.Bind(settings)
         );
 
@@ -131,6 +132,7 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
+            null,
             (settings, section) => section.Bind(settings)
         );
 
