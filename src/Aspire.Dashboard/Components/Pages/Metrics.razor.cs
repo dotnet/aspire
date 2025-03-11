@@ -8,13 +8,14 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
+public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
@@ -62,10 +63,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
 
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         _durations = new List<SelectViewModel<TimeSpan>>
         {
@@ -98,7 +102,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             UpdateApplications();
             StateHasChanged();
         }));
-        return Task.CompletedTask;
+
+        await this.InitializeComponentTelemetryAsync();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -107,7 +112,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         {
             return;
         }
+
         UpdateSubscription();
+        this.PostComponentTelemetryParametersAsync();
     }
 
     public MetricsPageState ConvertViewModelToSerializable()
@@ -301,5 +308,26 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         _applicationsSubscription?.Dispose();
         _metricsSubscription?.Dispose();
+        this.DisposeComponentTelemetry();
     }
+
+    // IComponentWithTelemetry impl
+    public string ComponentId { get; } = Guid.NewGuid().ToString();
+    public string ComponentType => DashboardUrls.MetricsBasePath;
+    public OperationContext? InitializeCorrelation { get; set; }
+
+    public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.MetricsApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty) },
+            { TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ReplicaSetName is not null) },
+            { TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1) },
+            { TelemetryPropertyKeys.MetricsSelectedMeter, new AspireTelemetryProperty(PageViewModel.SelectedMeter?.MeterName ?? string.Empty, AspireTelemetryPropertyType.Pii) },
+            { TelemetryPropertyKeys.MetricsSelectedInstrument, new AspireTelemetryProperty(PageViewModel.SelectedInstrument?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii) },
+            { TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString()) },
+            { TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty) }
+        };
+    }
+
 }

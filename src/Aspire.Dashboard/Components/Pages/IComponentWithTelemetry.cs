@@ -42,7 +42,7 @@ public static class IComponentWithTelemetryExtensions
             });
     }
 
-    public static void PostParametersSetTelemetry(this IComponentWithTelemetry component)
+    public static void PostComponentTelemetryParametersAsync(this IComponentWithTelemetry component)
     {
         var properties = component.GetTelemetryProperties();
         properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(component.ComponentType);

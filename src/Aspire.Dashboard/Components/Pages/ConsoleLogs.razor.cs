@@ -286,7 +286,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        this.PostParametersSetTelemetry();
+        this.PostComponentTelemetryParametersAsync();
     }
 
     private void UpdateMenuButtons()
@@ -659,7 +659,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
     }
 
-    // IComponentWithTelemetry
+    // IComponentWithTelemetry impl
     public string ComponentId { get; } = Guid.NewGuid().ToString();
     public string ComponentType => DashboardUrls.ConsoleLogBasePath;
     public OperationContext? InitializeCorrelation { get; set; }
