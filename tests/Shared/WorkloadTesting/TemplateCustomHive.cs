@@ -100,12 +100,14 @@ public class TemplatesCustomHive
     public static async Task<CommandResult> InstallTemplatesAsync(string packagePath, string customHiveDirectory, string dotnet)
     {
         var installCmd = $"new install --debug:custom-hive {customHiveDirectory} {packagePath}";
+        string workingDir = BuildEnvironment.IsRunningOnCI
+                                ? Path.GetTempPath()
+                                : Path.Combine(BuildEnvironment.TempDir, "templates", "working"); // avoid running from the repo
+        Directory.CreateDirectory(workingDir);
         using var cmd = new ToolCommand(dotnet,
                                         new TestOutputWrapper(forceShowBuildOutput: true),
                                         label: "template install")
-                            .WithWorkingDirectory(BuildEnvironment.IsRunningOnCI
-                                ? Path.GetTempPath()
-                                : Path.Combine(BuildEnvironment.TempDir, "templates", "working")); // avoid running from the repo
+                            .WithWorkingDirectory(workingDir);
 
         var res = await cmd.ExecuteAsync(installCmd);
         res.EnsureSuccessful();
