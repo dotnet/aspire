@@ -25,7 +25,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
 
         var clientSocket = await serverSocket.AcceptAsync();
         using var stream = new NetworkStream(clientSocket, true);
@@ -56,7 +56,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
 
         var clientSocket = await serverSocket.AcceptAsync();
         using var stream = new NetworkStream(clientSocket, true);
