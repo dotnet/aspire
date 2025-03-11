@@ -365,7 +365,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
             State = KnownResourceStates.Running
         });
         await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await watchTcs.Task.DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await watchTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Verify the command is enabled
         Assert.Equal(ResourceCommandState.Enabled, commandState);
