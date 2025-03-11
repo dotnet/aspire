@@ -24,7 +24,7 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
             return;
         }
 
-        logger.LogInformation("Aspire CLI backchannel socket path: {SocketPath}", unixSocketPath);
+        logger.LogDebug("Aspire CLI backchannel socket path: {SocketPath}", unixSocketPath);
 
         try
         {
@@ -44,9 +44,9 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
                 logger.LogDebug("PingAsync round trip time is {RoundTripDuration} ms", roundtripMilliseconds);
             } while(await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            logger.LogError(ex, "Failed to connect to Aspire CLI backchannel socket.");
+            logger.LogDebug(ex, "Shutting down CLI backchannel because of cancellation.");
             return;
         }
     }

@@ -49,24 +49,36 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
     private async Task StartBackchannelAsync(string socketPath, CancellationToken cancellationToken)
     {
-        using var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        var endpoint = new UnixDomainSocketEndPoint(socketPath);
-        serverSocket.Bind(endpoint);
-        serverSocket.Listen(1);
-
-        using var clientSocket = await serverSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
-        using var stream = new NetworkStream(clientSocket, true);
-        var rpc = JsonRpc.Attach(stream, cliRpcTarget);
-
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
-        do
+        try
         {
-            var sendTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var responseTimestamp = await rpc.InvokeAsync<long>("PingAsync", sendTimestamp).ConfigureAwait(false);
-            Debug.Assert(sendTimestamp == responseTimestamp);
-            var roundtripMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - sendTimestamp;
-            logger.LogDebug("PingAsync round trip time is: {RoundtripMilliseconds} ms", roundtripMilliseconds);
-        } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
+            using var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+            serverSocket.Bind(endpoint);
+            serverSocket.Listen(1);
+
+            using var clientSocket = await serverSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
+            using var stream = new NetworkStream(clientSocket, true);
+            var rpc = JsonRpc.Attach(stream, cliRpcTarget);
+
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            do
+            {
+                var sendTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var responseTimestamp = await rpc.InvokeAsync<long>("PingAsync", sendTimestamp).ConfigureAwait(false);
+                Debug.Assert(sendTimestamp == responseTimestamp);
+                var roundtripMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - sendTimestamp;
+                logger.LogDebug("PingAsync round trip time is: {RoundtripMilliseconds} ms", roundtripMilliseconds);
+            } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogDebug(ex, "Shutting down AppHost backchannel because of cancellation.");
+            return;
+        }
+        catch (Exception ex)
+        {
+            _ = ex;
+        }
     }
 
     public async Task<int> ExecuteAsync(string[] args, bool startBackchannel, CancellationToken cancellationToken)
@@ -90,7 +102,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         {
             var socketPath = GetBackchannelSocketPath();
             _ = StartBackchannelAsync(socketPath, cancellationToken);
-            startInfo.EnvironmentVariables["ASPIRE_CLI_BACKCHANNEL_PATH"] = Environment.GetEnvironmentVariable("ASPIRE_CLI_BACKCHANNEL_PATH") ?? string.Empty;
+            startInfo.EnvironmentVariables["ASPIRE_CLI_BACKCHANNEL_PATH"] = socketPath;
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process

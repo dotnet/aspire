@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli;
 
-internal class CliRpcTarget(Logger<CliRpcTarget> logger)
+internal class CliRpcTarget(ILogger<CliRpcTarget> logger)
 {
     public Task<long> PingAsync(long timestamp)
     {
