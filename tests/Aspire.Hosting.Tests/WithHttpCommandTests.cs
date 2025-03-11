@@ -29,7 +29,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(command);
         Assert.Equal("Do The Thing", command.DisplayName);
         // Expected name format: "{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{httpMethod}"
-        Assert.Equal($"{resourceBuilder.Resource.Name}-http-http-post", command.Name);
+        Assert.Equal($"{resourceBuilder.Resource.Name}-http-http-post-/some-path", command.Name);
         Assert.Null(command.DisplayDescription);
         Assert.Null(command.ConfirmationMessage);
         Assert.Null(command.IconName);
