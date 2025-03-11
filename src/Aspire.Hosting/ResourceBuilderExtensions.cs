@@ -1153,6 +1153,10 @@ public static class ResourceBuilderExtensions
     /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
     /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
     /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="updateState">
+    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
+    /// <para>If a callback isn't specified, the command is enabled when the resource is in the <c>Running</c> state.</para>
+    /// </param>
     /// <param name="displayDescription">
     /// Optional description of the command, to be shown in the UI.
     /// Could be used as a tooltip. May be localized.
@@ -1234,6 +1238,7 @@ public static class ResourceBuilderExtensions
         Func<HttpCommandRequestContext, Task>? configureRequest = null,
         Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
+        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
         string? displayDescription = null,
         string? confirmationMessage = null,
         string? iconName = null,
@@ -1251,6 +1256,7 @@ public static class ResourceBuilderExtensions
             configureRequest: configureRequest,
             getCommandResult: getCommandResult,
             commandName: commandName,
+            updateState: updateState,
             displayDescription: displayDescription,
             confirmationMessage: confirmationMessage,
             iconName: iconName,
@@ -1270,6 +1276,10 @@ public static class ResourceBuilderExtensions
     /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
     /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
     /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="updateState">
+    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
+    /// <para>If a callback isn't specified, the command is enabled when the resource associated with the endpoint returned by <paramref name="endpointSelector"/> is in the <c>Running</c> state.</para>
+    /// </param>
     /// <param name="displayDescription">
     /// Optional description of the command, to be shown in the UI.
     /// Could be used as a tooltip. May be localized.
@@ -1337,6 +1347,7 @@ public static class ResourceBuilderExtensions
         Func<HttpCommandRequestContext, Task>? configureRequest = null,
         Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
+        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
         string? displayDescription = null,
         string? confirmationMessage = null,
         string? iconName = null,
