@@ -24,7 +24,6 @@ public class Program
 
         builder.Services.AddTransient<AppHostRunner>();
         builder.Services.AddTransient<DotNetCliRunner>();
-        builder.Services.AddSingleton<CliRpcTarget>();
         var app = builder.Build();
         return app;
     }
