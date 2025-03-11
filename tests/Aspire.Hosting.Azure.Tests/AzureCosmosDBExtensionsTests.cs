@@ -117,18 +117,21 @@ public class AzureCosmosDBExtensionsTests
         ((IResourceWithAzureFunctionsConfig)cosmos.Resource).ApplyAzureFunctionsConfiguration(target, "cosmos");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__cosmos__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmos__AccountEndpoint", k),
             k => Assert.Equal("cosmos__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__AccountEndpoint", k),
             k => Assert.Equal("db1__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
             k => Assert.Equal("container1__accountEndpoint", k));
     }
 }
