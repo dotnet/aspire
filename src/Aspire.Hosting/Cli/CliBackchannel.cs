@@ -47,6 +47,10 @@ internal class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration con
                 logger.LogDebug("PingAsync round trip time is {RoundTripDuration} ms", roundtripMilliseconds);
             } while(await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
+        catch (StreamJsonRpc.ConnectionLostException && stoppingToken.IsCancellationRequested)
+        {
+            logger.LogDebug("Ignoring ConnectionLostException because of cancellation.");
+        }
         catch (OperationCanceledException ex)
         {
             logger.LogDebug(ex, "Shutting down CLI backchannel because of cancellation.");
