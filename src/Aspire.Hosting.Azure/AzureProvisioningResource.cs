@@ -27,6 +27,13 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// </summary>
     public ProvisioningBuildOptions? ProvisioningBuildOptions { get; set; }
 
+    /// <summary>
+    /// Creates a new <see cref="ProvisionableResource"/> representing an existing Azure resource with the specified name.
+    /// </summary>
+    /// <param name="name">The name of the existing resource.</param>
+    /// <returns>A new <see cref="ProvisionableResource"/>, typically using the FromExisting method on the derived <see cref="ProvisionableResource"/> class.</returns>
+    public virtual ProvisionableResource CreateExistingResource(BicepValue<string> name) => throw new NotImplementedException();
+
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {

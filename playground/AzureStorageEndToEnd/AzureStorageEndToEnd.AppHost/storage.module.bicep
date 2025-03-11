@@ -65,3 +65,5 @@ output blobEndpoint string = storage.properties.primaryEndpoints.blob
 output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
 output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+output name string = storage.name
