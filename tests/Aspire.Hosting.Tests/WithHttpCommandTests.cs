@@ -359,7 +359,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Veriy the command is disabled
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
-        // Move the resource to the healthy state
+        // Move the resource to the running state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
         {
             State = KnownResourceStates.Running
