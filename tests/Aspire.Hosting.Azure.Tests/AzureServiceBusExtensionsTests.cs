@@ -36,7 +36,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 sub.Rules.Add(new AzureServiceBusRule("rule1"));
             });
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -126,7 +126,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             serviceBus.AddServiceBusTopic("device-connection-state-events1234567890-even-longer");
         }
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -366,7 +366,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         Assert.NotNull(queue);
         Assert.Equal("queue1", queue.Name.Value);

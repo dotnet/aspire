@@ -8,8 +8,6 @@ param cache_password_value string
 
 param outputs_azure_container_registry_managed_identity_id string
 
-param outputs_managed_identity_client_id string
-
 param outputs_azure_container_apps_environment_id string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
@@ -47,10 +45,6 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'REDIS_PASSWORD'
               secretRef: 'redis-password'
-            }
-            {
-              name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
             }
           ]
           volumeMounts: [
