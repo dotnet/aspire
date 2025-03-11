@@ -16,7 +16,7 @@ public class WebTests
 #elif (TestFramework == "xUnit.net")
     [Fact]
 #endif
-    public async Task GetWebResourceRootReturnsOkStatusCode()
+    public async Task GetWebResourceRootReturnsOkStatusCodeAsync()
     {
         // Arrange
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>();
