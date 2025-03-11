@@ -16,13 +16,8 @@ public abstract class StarterTemplateProjectNamesTests : WorkloadTestsBase
         _testType = testType;
     }
 
-    public static IEnumerable<object[]> ProjectNamesWithTestType_TestData()
-    {
-        foreach (var name in GetProjectNamesForTest())
-        {
-            yield return [name];
-        }
-    }
+    public static TheoryData<string> ProjectNamesWithTestType_TestData()
+        => new(GetProjectNamesForTest());
 
     [Theory]
     [MemberData(nameof(ProjectNamesWithTestType_TestData))]

@@ -31,8 +31,8 @@ jobs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
     steps:
       - uses: actions/checkout@v4
-      - id: generate_test_matrix
-        uses: ./.github/actions/enumerate-template-tests
+      - uses: ./.github/actions/enumerate-template-tests
+        id: generate_test_matrix
 
   test_linux:
     name: Linux
