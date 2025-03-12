@@ -339,7 +339,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var sqlserver = builder.AddSqlServer("sqlserver");
 
-        // Create a datbase with Accent Insensitive collation
+        // Create a database with Accent Insensitive collation
         var newDb = sqlserver.AddDatabase(databaseName)
             .WithCreationScript($"CREATE DATABASE [{databaseName}] COLLATE French_CI_AI;");
 
@@ -378,6 +378,54 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var results = await selectCommand.ExecuteReaderAsync(token);
             Assert.True(results.HasRows);
+        }, cts.Token);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithSpecialNames()
+    {
+        const string databaseName = "!'][\"";
+        const string resourceName = "db";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 3, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+
+        var newDb = sqlserver.AddDatabase(resourceName, databaseName);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddSqlServerClient(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        // Test SqlConnection
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var conn = host.Services.GetRequiredService<SqlConnection>();
+
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
+
+            Assert.Equal(System.Data.ConnectionState.Open, conn.State);
         }, cts.Token);
     }
 }

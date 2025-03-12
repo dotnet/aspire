@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Microsoft.Data.SqlClient;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -23,8 +24,16 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// <summary>
     /// Gets the connection string expression for the SQL Server database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+    public ReferenceExpression ConnectionStringExpression {
+        get
+        {
+            var connectionStringBuilder = new SqlConnectionStringBuilder();
+            connectionStringBuilder["Database"] = DatabaseName;
+            var connectionString = connectionStringBuilder.ToString();
+
+            return ReferenceExpression.Create($"{Parent};{connectionString}");
+        }
+    }
 
     /// <summary>
     /// Gets the database name.
