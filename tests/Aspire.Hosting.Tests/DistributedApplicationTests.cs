@@ -209,7 +209,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7836")]
     [RequiresDocker]
     public async Task ExplicitStart_StartContainer()
     {
