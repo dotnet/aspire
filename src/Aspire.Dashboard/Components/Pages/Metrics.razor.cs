@@ -114,7 +114,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         }
 
         UpdateSubscription();
-        this.PostComponentTelemetryParametersAsync();
+        this.PostComponentTelemetryParameters();
     }
 
     public MetricsPageState ConvertViewModelToSerializable()

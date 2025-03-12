@@ -2,13 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using System.Net.Security;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -18,12 +15,12 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
     private readonly IOptions<DashboardOptions> _options;
     private readonly ILogger<DashboardTelemetrySender> _logger;
     private readonly Channel<(OperationContext, Func<HttpClient, Func<OperationContextProperty, object>, Task>)> _channel;
-    private HttpClient? _httpClient;
     private bool? _isEnabled;
     private Task? _sendLoopTask;
 
     // Internal for testing.
     internal Func<HttpClientHandler, HttpMessageHandler>? CreateHandler { get; set; }
+    internal HttpClient? Client { get; private set; }
 
     public DashboardTelemetrySender(IOptions<DashboardOptions> options, ILogger<DashboardTelemetrySender> logger)
     {
@@ -37,29 +34,9 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         _channel = Channel.CreateBounded<(OperationContext, Func<HttpClient, Func<OperationContextProperty, object>, Task>)>(channelOptions);
     }
 
-    private static bool HasDebugSession(
-        DebugSession debugSession,
-        [NotNullWhen(true)] out Uri? debugSessionUri,
-        [NotNullWhen(true)] out string? token,
-        [NotNullWhen(true)] out X509Certificate2? serverCert)
-    {
-        if (debugSession.Address is not null && debugSession.Token is not null && debugSession.GetServerCertificate() is { } cert && debugSession.TelemetryOptOut is not true)
-        {
-            debugSessionUri = new Uri($"https://{debugSession.Address}");
-            token = debugSession.Token;
-            serverCert = cert;
-            return true;
-        }
-
-        debugSessionUri = null;
-        token = null;
-        serverCert = null;
-        return false;
-    }
-
     private void StartSendLoop()
     {
-        Debug.Assert(_httpClient is not null, "HttpClient must be initialized.");
+        Debug.Assert(Client is not null, "HttpClient must be initialized.");
 
         _sendLoopTask = Task.Run(async () =>
         {
@@ -74,7 +51,9 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
                         var (context, requestFunc) = operation;
                         try
                         {
-                            await requestFunc(_httpClient, GetResponseProperty).ConfigureAwait(false);
+                            await requestFunc(Client, GetResponseProperty).ConfigureAwait(false);
+
+                            _logger.LogTrace("Telemetry request successfully sent.");
 
                             // Double check properties are set.
                             foreach (var property in context.Properties)
@@ -99,39 +78,6 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         });
     }
 
-    private HttpClient CreateHttpClient(Uri debugSessionUri, string token, X509Certificate2 cert)
-    {
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (_, c, _, e) =>
-            {
-                // Server certificate is already considered valid.
-                if (e == SslPolicyErrors.None)
-                {
-                    return true;
-                }
-
-                // Certificate isn't immediately valid. Check if it is the same as the one we expect.
-                return string.Equals(
-                    cert.GetCertHashString(HashAlgorithmName.SHA256),
-                    c?.GetCertHashString(HashAlgorithmName.SHA256),
-                    StringComparison.OrdinalIgnoreCase);
-            }
-        };
-        var resolvedHandler = CreateHandler?.Invoke(handler) ?? handler;
-        var client = new HttpClient(resolvedHandler)
-        {
-            BaseAddress = debugSessionUri,
-            DefaultRequestHeaders =
-            {
-                { "Authorization", $"Bearer {token}" },
-                { "User-Agent", "Aspire Dashboard" }
-            }
-        };
-
-        return client;
-    }
-
     private object GetResponseProperty(OperationContextProperty propertyId)
     {
         return propertyId.GetValue();
@@ -150,21 +96,30 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
         return _isEnabled.Value;
     }
 
+    internal bool CreateHttpClient()
+    {
+        if (DebugSessionHelpers.HasDebugSession(_options.Value.DebugSession, out var certificate, out var debugSessionUri, out var token))
+        {
+            Client = DebugSessionHelpers.CreateHttpClient(debugSessionUri, token, certificate, CreateHandler);
+            return true;
+        }
+
+        _logger.LogInformation("Telemetry is not configured.");
+        return false;
+    }
+
     private async Task<bool> TryStartTelemetrySessionCoreAsync()
     {
-        if (HasDebugSession(_options.Value.DebugSession, out var debugSessionUri, out var token, out var certData))
+        if (!CreateHttpClient())
         {
-            _httpClient = CreateHttpClient(debugSessionUri, token, certData);
-        }
-        else
-        {
-            _logger.LogInformation("Telemetry is not configured.");
             return false;
         }
 
+        Debug.Assert(Client is not null);
+
         try
         {
-            var response = await _httpClient.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
+            var response = await Client.GetAsync(TelemetryEndpoints.TelemetryEnabled).ConfigureAwait(false);
             var isTelemetryEnabled = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<TelemetryEnabledResponse>().ConfigureAwait(false) is { IsEnabled: true };
 
             if (!isTelemetryEnabled)
@@ -173,7 +128,7 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
             }
 
             // start the actual telemetry session
-            var telemetryStartedStatusCode = (await _httpClient.PostAsync(TelemetryEndpoints.TelemetryStart, content: null).ConfigureAwait(false)).StatusCode;
+            var telemetryStartedStatusCode = (await Client.PostAsync(TelemetryEndpoints.TelemetryStart, content: null).ConfigureAwait(false)).StatusCode;
             return telemetryStartedStatusCode is HttpStatusCode.OK;
         }
         catch (Exception ex)
@@ -197,6 +152,6 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
             await task.ConfigureAwait(false);
         }
 
-        _httpClient?.Dispose();
+        Client?.Dispose();
     }
 }

@@ -79,6 +79,31 @@ public class DashboardTelemetrySenderTests
         Assert.Equal(expectedTelemetryEnabled, result);
     }
 
+    [Theory]
+    [InlineData(false, "localhost:5000", "http://localhost:5000/")]
+    [InlineData(true, "localhost:5000", "https://localhost:5000/")]
+    public void CreateTelemetrySender_WithDebugSession_UsesCorrectScheme(bool isHttps, string address, string expectedUrl)
+    {
+        var options = new TestDashboardOptions(new DashboardOptions
+        {
+            DebugSession = new DebugSession
+            {
+                Address = address,
+                ServerCertificate = isHttps ? Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)) : null,
+                Token = "test"
+            }
+        });
+
+        Assert.True(options.Value.DebugSession.TryParseOptions(out _));
+
+        var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
+        Assert.True(telemetrySender.CreateHttpClient());
+
+        var client = telemetrySender.Client;
+        Assert.NotNull(client);
+        Assert.Equal(expectedUrl, client.BaseAddress?.ToString());
+    }
+
     public static TheoryData<HttpStatusCode?, string?, HttpStatusCode?, bool> CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData()
     {
         return new TheoryData<HttpStatusCode?, string?, HttpStatusCode?, bool>

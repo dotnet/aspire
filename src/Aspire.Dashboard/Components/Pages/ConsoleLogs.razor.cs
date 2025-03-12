@@ -286,7 +286,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        this.PostComponentTelemetryParametersAsync();
+        this.PostComponentTelemetryParameters();
     }
 
     private void UpdateMenuButtons()
