@@ -215,9 +215,9 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         var completion = await client.GetResponseAsync("Whatever");
-        Assert.Equal("Hello from middleware", completion.Message.Text);
+        Assert.Equal("Hello from middleware", completion.Text);
 
-        static Task<ChatResponse> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
+        static Task<ChatResponse> TestMiddleware(IEnumerable<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
             => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
     }
 }

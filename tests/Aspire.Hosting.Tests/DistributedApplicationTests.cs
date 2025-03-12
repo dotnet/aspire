@@ -10,6 +10,7 @@ using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
@@ -34,6 +35,8 @@ public class DistributedApplicationTests
     private readonly ITestOutputHelper _testOutputHelper;
 
     private const string ReplicaIdRegex = @"[\w]+"; // Matches a replica ID that is part of a resource name.
+    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+    private const string RedisImageSource = $"{AspireTestContainerRegistry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}";
 
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
@@ -219,7 +222,7 @@ public class DistributedApplicationTests
         var notStartedResourceName = $"{testName}-redis";
         var dependentResourceName = $"{testName}-serviceb";
 
-        var containerBuilder = testProgram.AppBuilder.AddContainer(notStartedResourceName, "redis")
+        var containerBuilder = AddRedisContainer(testProgram.AppBuilder, notStartedResourceName)
             .WithEndpoint(port: 6379, targetPort: 6379, name: "tcp", env: "REDIS_PORT")
             .WithExplicitStart();
 
@@ -238,7 +241,7 @@ public class DistributedApplicationTests
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Inactive URLs and source should be populated on non-started resources.
-        Assert.Equal("redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+        Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
@@ -405,7 +408,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("verify-container-args");
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, "verify-container-args-redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
             .WithContainerRuntimeArgs("--add-host", "testlocalhost:127.0.0.1");
 
@@ -419,7 +422,7 @@ public class DistributedApplicationTests
         Assert.Collection(list,
             item =>
             {
-                Assert.Equal("redis:latest", item.Spec.Image);
+                Assert.Equal(RedisImageSource, item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
@@ -437,7 +440,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         const string containerName = "container-start-stop-redis";
-        testProgram.AppBuilder.AddContainer(containerName, "redis")
+        AddRedisContainer(testProgram.AppBuilder, containerName)
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
@@ -528,7 +531,7 @@ public class DistributedApplicationTests
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
@@ -550,7 +553,7 @@ public class DistributedApplicationTests
         var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"{testName}-nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(nodeApp);
 
-        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal(RedisImageSource, redisContainer.Spec.Image);
         Assert.Equal("6379", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
 
@@ -659,7 +662,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
@@ -673,7 +676,7 @@ public class DistributedApplicationTests
             r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false)).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer);
-        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal(RedisImageSource, redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
@@ -689,7 +692,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithBindMount(sourcePath, "path-here");
 
         await using var app = testProgram.Build();
@@ -719,7 +722,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithBindMount("etc/path-here", "path-here");
 
         await using var app = testProgram.Build();
@@ -750,7 +753,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithVolume($"{testName}-volume", "/path-here");
 
         await using var app = testProgram.Build();
@@ -1086,7 +1089,7 @@ public class DistributedApplicationTests
         const string testName = "proxyless-container-without-ports";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddContainer($"{testName}-redis", "redis").WithEndpoint("tcp", endpoint =>
+        var redis = AddRedisContainer(builder, $"{testName}-redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
         });
@@ -1118,6 +1121,12 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
+    {
+        return builder.AddContainer(containerName, RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(AspireTestContainerRegistry);
     }
 
     private void SetupXUnitLogging(IServiceCollection services)

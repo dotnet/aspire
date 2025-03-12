@@ -1,0 +1,41 @@
+name: 'Enumerate test projects'
+description: 'Enumerate list of test projects'
+outputs:
+  tests_matrix:
+    description: tests matrix
+    value: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.x
+
+    - name: Get list of tests
+      env:
+        CI: false
+      shell: pwsh
+      run: >
+        dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+        /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
+        /p:ContinuousIntegrationBuild=true
+
+    - name: Generate tests matrix
+      id: generate_test_matrix
+      shell: pwsh
+      env:
+        CI: false
+      run: |
+        $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
+        $lines = Get-Content $filePath
+        $jsonObject = @{
+            "shortname" = $lines | Sort-Object
+        }
+        $jsonString = ConvertTo-Json $jsonObject -Compress
+        "tests_matrix=$jsonString"
+        "tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT

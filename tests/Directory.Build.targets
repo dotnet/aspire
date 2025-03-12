@@ -39,7 +39,7 @@
 
   <!-- Used for running one helix job per test class -->
   <Target Name="ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true' and '$(IsTestSupportProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"

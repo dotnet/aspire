@@ -171,6 +171,8 @@ public partial class StructuredLogsTests : TestContext
 
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
 
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+
         JSInterop.SetupVoid("initializeContinuousScroll");
 
         Services.AddLocalization();

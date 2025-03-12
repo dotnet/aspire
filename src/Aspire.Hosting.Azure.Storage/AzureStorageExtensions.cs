@@ -26,6 +26,15 @@ public static class AzureStorageExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
+    /// <remarks>
+    /// By default references to the Azure Storage resource will be assigned the following roles:
+    /// 
+    /// - <see cref="StorageBuiltInRole.StorageBlobDataContributor"/>
+    /// - <see cref="StorageBuiltInRole.StorageTableDataContributor"/>
+    /// - <see cref="StorageBuiltInRole.StorageQueueDataContributor"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureStorageResource}, StorageBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -321,7 +330,7 @@ public static class AzureStorageExtensions
 
     /// <summary>
     /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure Storage account.
+    /// on the target Azure Storage account. This replaces the default role assignments for the resource.
     /// </summary>
     /// <param name="builder">The resource to which the specified roles will be assigned.</param>
     /// <param name="target">The target Azure Storage account.</param>

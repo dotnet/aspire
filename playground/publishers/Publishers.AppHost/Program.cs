@@ -22,16 +22,7 @@ builder.AddAzureContainerApps("aca", options => {
     // Do stuff here.
 });
 
-var db = builder.AddAzurePostgresFlexibleServer("pg")
-                .WithPasswordAuthentication()
-                .RunAsContainer(c =>
-                {
-                    c.WithPgAdmin(c =>
-                    {
-                        c.WithHostPort(15551);
-                    });
-                })
-                .AddDatabase("db");
+var db = builder.AddPostgres("pg").AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.Publishers_DbSetup>("dbsetup")
                      .WithReference(db).WaitFor(db);
@@ -43,7 +34,14 @@ var backend = builder.AddProject<Projects.Publishers_ApiService>("api")
                      .WaitForCompletion(dbsetup)
                      .WithReplicas(2);
 
+// need a container to test.
+var sqlServer = builder.AddSqlServer("sqlserver")
+        .WithDataVolume("sqlserver-data");
+
+var sqlDb = sqlServer.AddDatabase("sqldb");
+
 builder.AddProject<Projects.Publishers_Frontend>("frontend")
+       .WithReference(sqlDb)
        .WithReference(backend).WaitFor(backend);
 
 #if !SKIP_DASHBOARD_REFERENCE

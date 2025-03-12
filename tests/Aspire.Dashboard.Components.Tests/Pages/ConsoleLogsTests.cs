@@ -12,6 +12,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -33,10 +34,11 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
-    public void ResourceName_SubscribeOnLoadAndChange_SubscribeConsoleLogsOnce()
+    public async Task ResourceName_SubscribeOnLoadAndChange_SubscribeConsoleLogsOnce()
     {
         // Arrange
-        var subscribedResourceNames = new List<string>();
+        ILogger logger = null!;
+        var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
         var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
@@ -45,13 +47,16 @@ public partial class ConsoleLogsTests : TestContext
             isEnabled: true,
             consoleLogsChannelProvider: name =>
             {
-                subscribedResourceNames.Add(name);
+                logger.LogInformation($"Requesting logs for: {name}");
+                subscribedResourceNamesChannel.Writer.TryWrite(name);
                 return consoleLogsChannel;
             },
             resourceChannelProvider: () => resourceChannel,
             initialResources: [testResource, testResource2]);
 
         SetupConsoleLogsServices(dashboardClient);
+
+        logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
         navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: "test-resource"));
@@ -68,7 +73,6 @@ public partial class ConsoleLogsTests : TestContext
         });
 
         var instance = cut.Instance;
-        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
         // Assert 1
@@ -82,7 +86,8 @@ public partial class ConsoleLogsTests : TestContext
         logger.LogInformation("Waiting for finish message.");
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)]);
 
-        Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
+        var subscribedResourceName1 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal("test-resource", subscribedResourceName1);
 
         navigationManager.LocationChanged += (sender, e) =>
         {
@@ -107,9 +112,11 @@ public partial class ConsoleLogsTests : TestContext
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource2);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
-        Assert.Collection(subscribedResourceNames,
-            r => Assert.Equal("test-resource", r),
-            r => Assert.Equal("test-resource2", r));
+        var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal("test-resource2", subscribedResourceName2);
+
+        subscribedResourceNamesChannel.Writer.Complete();
+        Assert.False(await subscribedResourceNamesChannel.Reader.WaitToReadAsync().DefaultTimeout());
     }
 
     [Fact]
@@ -347,13 +354,15 @@ public partial class ConsoleLogsTests : TestContext
         var inputLabelModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
         inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
 
-        var listModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
 
         var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
 
         var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
+
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
