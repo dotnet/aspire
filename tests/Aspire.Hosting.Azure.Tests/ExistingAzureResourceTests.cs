@@ -66,6 +66,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -137,6 +139,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = messaging.name
             """;
 
         output.WriteLine(BicepText);
@@ -199,6 +203,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -266,6 +272,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -327,6 +335,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = messaging.name
             """;
 
         output.WriteLine(BicepText);
