@@ -360,7 +360,7 @@ internal sealed class DockerComposePublishingContext(
 
                 if (value is ParameterResource param)
                 {
-                    return await AllocateParameter(param).ConfigureAwait(false) ?? throw new InvalidOperationException("Parameter name is null");
+                    return AllocateParameter(param);
                 }
 
                 if (value is ConnectionStringReference cs)
@@ -390,7 +390,7 @@ internal sealed class DockerComposePublishingContext(
 
                 if (value is ReferenceExpression expr)
                 {
-                    if (expr is {Format: "{0}", ValueProviders.Count: 1})
+                    if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                     {
                         return (await ProcessValueAsync(expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
                     }
@@ -420,32 +420,24 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private static Task<string> ResolveParameterValue(IManifestExpressionProvider parameter)
+        private static string ResolveParameterValue(ParameterResource parameter)
         {
             // Placeholder for resolving the actual parameter value
-            // Where does it come from? How do we resolve it?
-            // From user input?
-            // From State?
-            // To Discuss
-            // Will work for AppSettings values and generated values as it stands.
+            // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
 
-            if (parameter is not ParameterResource res)
+            // Treat secrets as environment variable placeholders as for now
+            // this doesn't handle generation of parameter values with defaults
+            var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
+
+            if (parameter.Secret || parameter.Default is null)
             {
-                throw new InvalidOperationException("Parameter is not a ParameterResource");
+                return $"${{{env}}}";
             }
 
-            if (res.Secret) 
-            {
-                // Treat secrets as environment variable placeholders as for now
-                // this doesn't handle generation of parameter values with defaults
-                var env = res.Name.ToUpperInvariant().Replace("-", "_");
-                return Task.FromResult($"${{{env}}}");
-            }
-
-            return Task.FromResult(res.Value);
+            return $"${{{env}:-{parameter.Value}}}";
         }
 
-        private async Task<string> AllocateParameter(IManifestExpressionProvider parameter)
+        private string AllocateParameter(ParameterResource parameter)
         {
             if (!_resolvedParameters.TryGetValue(parameter, out var parameterName))
             {
@@ -461,7 +453,7 @@ internal sealed class DockerComposePublishingContext(
 
             if (!_rawParameterValues.ContainsKey(parameterName))
             {
-                var actualValue = await ResolveParameterValue(parameter).ConfigureAwait(false);
+                var actualValue = ResolveParameterValue(parameter);
                 _rawParameterValues[parameterName] = actualValue;
             }
 
@@ -472,7 +464,7 @@ internal sealed class DockerComposePublishingContext(
 
         private void SetEntryPoint(Service composeService)
         {
-            if (resource is ContainerResource {Entrypoint: { } entrypoint})
+            if (resource is ContainerResource { Entrypoint: { } entrypoint })
             {
                 composeService.Entrypoint.Add(entrypoint);
             }
