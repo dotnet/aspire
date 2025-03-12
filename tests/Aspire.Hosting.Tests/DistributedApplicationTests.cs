@@ -10,6 +10,7 @@ using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
@@ -1124,8 +1125,7 @@ public class DistributedApplicationTests
 
     private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
     {
-        // Values from RedisContainerImageTags.
-        return builder.AddContainer(containerName, "library/redis", "7.4")
+        return builder.AddContainer(containerName, RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(AspireTestContainerRegistry);
     }
 
