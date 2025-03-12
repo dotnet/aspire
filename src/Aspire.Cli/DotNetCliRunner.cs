@@ -145,4 +145,18 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
         return process.ExitCode;
     }
+
+    public async Task<int> AddPackageAsync(string projectFilepath, string packageName, string packageVersion, CancellationToken cancellationToken)
+    {
+        string[] cliArgs = [
+            "add",
+            projectFilepath,
+            "package",
+            packageName,
+            "--version",
+            packageVersion
+        ];
+
+        return await ExecuteAsync(cliArgs, cancellationToken).ConfigureAwait(false);
+    }
 }

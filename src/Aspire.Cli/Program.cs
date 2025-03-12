@@ -27,6 +27,7 @@ public class Program
         builder.Services.AddTransient<AppHostRunner>();
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddSingleton<CliRpcTarget>();
+        builder.Services.AddTransient<IIntegrationLookup, IntegrationLookup>();
         var app = builder.Build();
         return app;
     }
@@ -40,6 +41,7 @@ public class Program
         ConfigureDevCommand(rootCommand);
         ConfigurePublishCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
+        ConfigureAddCommand(rootCommand);
         return rootCommand;
     }
 
@@ -263,6 +265,86 @@ public class Program
             if (newProjectExitCode != 0)
             {
                 return ExitCodeConstants.FailedToCreateNewProject;
+            }
+
+            return 0;
+        });
+
+        parentCommand.Subcommands.Add(command);
+    }
+
+    private static Integration GetIntegrationByInteractiveFlow(IEnumerable<Integration> knownIntegrations)
+    {
+        // HACK: Will be adding interactivity soon.
+        return knownIntegrations.First();
+    }
+
+    private static void ConfigureAddCommand(Command parentCommand)
+    {
+        var command = new Command("add", "Add a resource to the .NET Aspire project.");
+        var resourceArgument = new Argument<string>("resource");
+        command.Arguments.Add(resourceArgument);
+
+        var projectOption = new Option<FileInfo?>("--project", "-p");
+        projectOption.Validators.Add(ValidateProjectOption);
+        command.Options.Add(projectOption);
+
+        var nameOption = new Option<string?>("--name", "-n");
+        command.Options.Add(nameOption);
+
+        command.SetAction(async (parseResult, ct) => {
+            var app = BuildApplication(parseResult);
+            var integrationLookup = app.Services.GetRequiredService<IIntegrationLookup>();
+
+            var integrationName = parseResult.GetValue<string>("resource");
+            var integrations = integrationLookup.GetIntegrations();
+            var selectedIntegration = integrations.SingleOrDefault(i => i.PackageShortName == integrationName || i.PackageName == integrationName);
+
+            if (selectedIntegration is null)
+            {
+                selectedIntegration = GetIntegrationByInteractiveFlow(integrations);
+            }
+
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
+            var addPackageResult = await runner.AddPackageAsync(
+                effectiveAppHostProjectFile.FullName,
+                selectedIntegration.PackageName,
+                selectedIntegration.PackageVersion,
+                ct
+                ).ConfigureAwait(false);
+
+            if (addPackageResult != 0)
+            {
+                return ExitCodeConstants.FailedToAddPackage;
+            }
+
+            // HACK: This is really crude, we should use Roslyn here but this is
+            //       just for this spike.
+            var resourceName = parseResult.GetValue<string?>("--name");
+            var snippet = selectedIntegration.AppHostSnippet(resourceName);
+
+            var appHostEntryPoint = Path.Combine(
+                effectiveAppHostProjectFile.DirectoryName!,
+                "Program.cs"
+            );
+
+            if (File.Exists(appHostEntryPoint))
+            {
+                var lines = File.ReadAllLines(appHostEntryPoint);
+                var newLines = new List<string>(lines.Length + 1);
+                foreach (var line in lines)
+                {
+                    newLines.Add(line);
+                    if (line.Contains("DistributedApplication.CreateBuilder"))
+                    {
+                        newLines.Add(snippet);
+                    }
+                }
+
+                File.WriteAllLines(appHostEntryPoint, newLines);
             }
 
             return 0;
