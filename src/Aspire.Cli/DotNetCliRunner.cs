@@ -103,7 +103,10 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         var startInfo = new ProcessStartInfo("dotnet")
         {
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            RedirectStandardInput = true
         };
 
         foreach (var a in args)

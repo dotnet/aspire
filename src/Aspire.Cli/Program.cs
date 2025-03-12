@@ -303,7 +303,12 @@ public class Program
             var integrationLookup = app.Services.GetRequiredService<IIntegrationLookup>();
 
             var integrationName = parseResult.GetValue<string>("resource");
-            var integrations = await integrationLookup.GetIntegrationsAsync(ct).ConfigureAwait(false);
+
+            var integrations = await AnsiConsole.Status().StartAsync(
+                "Searching for integrations...",
+                context => integrationLookup.GetIntegrationsAsync(ct)
+                ).ConfigureAwait(false);
+
             var selectedIntegration = integrations.SingleOrDefault(i => i.PackageShortName == integrationName || i.PackageName == integrationName);
 
             if (selectedIntegration is null)
