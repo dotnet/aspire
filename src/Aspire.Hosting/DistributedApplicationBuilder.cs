@@ -170,9 +170,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        var modeSettings = (
+            InspectMode: _innerBuilder.Configuration.GetBool("Operation:InspectMode") ?? false,
+            Publisher: _innerBuilder.Configuration["Publishing:Publisher"]
+        );
+
+        _executionContextOptions = modeSettings switch
         {
-            { } publisher => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, publisher),
+            { InspectMode: true } => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Inspect),
+            { Publisher: not null } => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, modeSettings.Publisher),
             _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
 
@@ -308,7 +314,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
-            _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff
             _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
@@ -422,7 +427,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
-            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
+            { "--inspect", "Operation:InspectMode" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
