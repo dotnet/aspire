@@ -68,8 +68,11 @@ public static class SqlServerBuilderExtensions
                         throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
                     }
 
+                    var scriptAnnotation = sqlDatabase.Annotations.OfType<ScriptAnnotation>().LastOrDefault();
+
                     using var command = sqlConnection.CreateCommand();
-                    command.CommandText = sqlDatabase.DatabaseCreationScript ?? $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
+                    command.CommandText = scriptAnnotation?.Script ??
+                        $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
                     command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
                     await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
                 }
@@ -101,9 +104,8 @@ public static class SqlServerBuilderExtensions
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
-    /// <param name="databaseCreationScript">A custom database creation script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null, string? databaseCreationScript = null)
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -113,7 +115,7 @@ public static class SqlServerBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource) { DatabaseCreationScript = databaseCreationScript };
+        var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
 
         builder.Resource.AddDatabase(sqlServerDatabase);
 
@@ -167,24 +169,25 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        if (!OperatingSystem.IsWindows())
-        {
-            return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
-        }
-        else
-        {
-            // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver15&pivots=cs1-bash#mount-a-host-directory-as-data-volume
+        return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+    }
 
-            foreach (var dir in new string[] { "data", "log", "secrets" })
-            {
-                var path = Path.Combine(source, dir);
+    /// <summary>
+    /// Alters the JSON configuration document used by the emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="SqlServerDatabaseResource"/>.</param>
+    /// <param name="script">The SQL script used to create the database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <value>Default script is <code>IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE [&lt;QUOTED_DATABASE_NAME%gt;];</code></value>
+    /// </remarks>
+    public static IResourceBuilder<SqlServerDatabaseResource> WithCreationScript(this IResourceBuilder<SqlServerDatabaseResource> builder, string script)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(script);
 
-                Directory.CreateDirectory(path);
+        builder.WithAnnotation(new ScriptAnnotation(script));
 
-                builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
-            }
-
-            return builder;
-        }
+        return builder;
     }
 }

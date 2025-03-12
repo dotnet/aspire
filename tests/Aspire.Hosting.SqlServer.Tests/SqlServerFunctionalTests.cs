@@ -323,4 +323,61 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
         }
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithCustomScript()
+    {
+        const string databaseName = "newdb";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+
+        // Create a datbase with Accent Insensitive collation
+        var newDb = sqlserver.AddDatabase(databaseName)
+            .WithCreationScript($"CREATE DATABASE [{databaseName}] COLLATE French_CI_AI;");
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddSqlServerClient(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        // Test SqlConnection
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var conn = host.Services.GetRequiredService<SqlConnection>();
+
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
+
+            var selectCommand = conn.CreateCommand();
+            selectCommand.CommandText = """
+                CREATE TABLE [Modèles] ([Name] nvarchar(max) NOT NULL);
+                INSERT INTO [Modèles] ([Name]) VALUES ('BatMobile');
+                SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation 
+                """;
+
+            var results = await selectCommand.ExecuteReaderAsync(token);
+            Assert.True(results.HasRows);
+        }, cts.Token);
+    }
 }
