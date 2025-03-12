@@ -22,16 +22,7 @@ builder.AddAzureContainerApps("aca", options => {
     // Do stuff here.
 });
 
-var db = builder.AddAzurePostgresFlexibleServer("pg")
-                .WithPasswordAuthentication()
-                .RunAsContainer(c =>
-                {
-                    c.WithPgAdmin(c =>
-                    {
-                        c.WithHostPort(15551);
-                    });
-                })
-                .AddDatabase("db");
+var db = builder.AddPostgres("pg").AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.Publishers_DbSetup>("dbsetup")
                      .WithReference(db).WaitFor(db);

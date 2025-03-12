@@ -434,6 +434,14 @@ internal sealed class DockerComposePublishingContext(
                 throw new InvalidOperationException("Parameter is not a ParameterResource");
             }
 
+            if (res.Secret) 
+            {
+                // Treat secrets as environment variable placeholders as for now
+                // this doesn't handle generation of parameter values with defaults
+                var env = res.Name.ToUpperInvariant().Replace("-", "_");
+                return Task.FromResult($"${{{env}}}");
+            }
+
             return Task.FromResult(res.Value);
         }
 

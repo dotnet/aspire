@@ -1,0 +1,73 @@
+services:
+  pg:
+    image: "docker.io/library/postgres:17.2"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${PG_PASSWORD}"
+    ports:
+      - "8000:5432"
+    networks:
+      - "aspire"
+  dbsetup:
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8002"
+      ConnectionStrings__db: "Host=pg;Port=5432;Username=postgres;Password=${PG_PASSWORD};Database=db"
+    ports:
+      - "8002:8001"
+      - "8004:8003"
+    networks:
+      - "aspire"
+  api:
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8006"
+      ConnectionStrings__db: "Host=pg;Port=5432;Username=postgres;Password=${PG_PASSWORD};Database=db"
+    ports:
+      - "8006:8005"
+      - "8008:8007"
+    networks:
+      - "aspire"
+  sqlserver:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLSERVER_PASSWORD}"
+    ports:
+      - "8009:1433"
+    volumes:
+      - type: "volume"
+        target: "/var/opt/mssql"
+        source: "sqlserver-data"
+        read_only: false
+    networks:
+      - "aspire"
+  frontend:
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8011"
+      ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Database=sqldb"
+      services__api__http__0: "http://api:8005"
+      services__api__https__0: "https://api:8007"
+    ports:
+      - "8011:8010"
+      - "8013:8012"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
+volumes:
+  sqlserver-data:
+    driver: "local"
