@@ -58,6 +58,10 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "8011"
       ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Database=sqldb"
+      P0: "${PARAM0}"
+      P1: "${PARAM1}"
+      P2: "${PARAM2:-default}"
+      P3: "${PARAM3}"
       services__api__http__0: "http://api:8005"
       services__api__https__0: "https://api:8007"
     ports:
