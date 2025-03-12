@@ -3,19 +3,17 @@ using SignalRServerlessWeb;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
-builder.Services.AddHttpClient();
-builder.Services.AddSingleton(sp =>
-{
-    return new ServiceManagerBuilder()
+var serviceManager = new ServiceManagerBuilder()
         .WithOptions(option =>
         {
             option.ConnectionString = builder.Configuration["ConnectionStrings:signalrServerless"];
         })
         .BuildServiceManager();
-});
-builder.Services.AddHostedService<BackgroundWorker>();
+var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
+
+// Add services to the container.
+builder.Services.AddRazorPages();
+builder.Services.AddSingleton(hubContext).AddHostedService<BackgroundWorker>();
 
 var app = builder.Build();
 
@@ -34,9 +32,8 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapPost("/negotiate", async (ServiceManager serviceManager, string? userId) =>
+app.MapPost("/negotiate", async (string? userId) =>
 {
-    var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
     var negotiateResponse = await hubContext.NegotiateAsync(new NegotiationOptions
     {
         UserId = userId ?? "user1"
