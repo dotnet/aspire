@@ -153,7 +153,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-                var directoryInfo = Directory.CreateDirectory(bindMountPath);
+                Directory.CreateDirectory(bindMountPath);
 
                 if (!OperatingSystem.IsWindows())
                 {

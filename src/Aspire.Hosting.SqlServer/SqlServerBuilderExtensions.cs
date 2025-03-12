@@ -110,7 +110,7 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        Dictionary<string, string> databaseConnectionStrings = [];
+        string? connectionString = null;
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -121,18 +121,16 @@ public static class SqlServerBuilderExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
         {
-            var databaseConnectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
-            if (databaseConnectionString == null)
+            if (connectionString == null)
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
             }
-
-            databaseConnectionStrings[name] = databaseConnectionString;
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => databaseConnectionStrings[name] ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         return builder.ApplicationBuilder
             .AddResource(sqlServerDatabase)
