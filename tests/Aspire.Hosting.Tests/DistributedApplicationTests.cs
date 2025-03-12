@@ -34,6 +34,7 @@ public class DistributedApplicationTests
     private readonly ITestOutputHelper _testOutputHelper;
 
     private const string ReplicaIdRegex = @"[\w]+"; // Matches a replica ID that is part of a resource name.
+    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
 
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
@@ -220,6 +221,7 @@ public class DistributedApplicationTests
         var dependentResourceName = $"{testName}-serviceb";
 
         var containerBuilder = testProgram.AppBuilder.AddContainer(notStartedResourceName, "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithEndpoint(port: 6379, targetPort: 6379, name: "tcp", env: "REDIS_PORT")
             .WithExplicitStart();
 
@@ -238,7 +240,7 @@ public class DistributedApplicationTests
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Inactive URLs and source should be populated on non-started resources.
-        Assert.Equal("redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+        Assert.Equal("netaspireci.azurecr.io/redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
@@ -406,6 +408,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
             .WithContainerRuntimeArgs("--add-host", "testlocalhost:127.0.0.1");
 
@@ -438,6 +441,7 @@ public class DistributedApplicationTests
 
         const string containerName = "container-start-stop-redis";
         testProgram.AppBuilder.AddContainer(containerName, "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
@@ -529,6 +533,7 @@ public class DistributedApplicationTests
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
@@ -660,6 +665,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
@@ -690,6 +696,7 @@ public class DistributedApplicationTests
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithBindMount(sourcePath, "path-here");
 
         await using var app = testProgram.Build();
@@ -720,6 +727,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithBindMount("etc/path-here", "path-here");
 
         await using var app = testProgram.Build();
@@ -751,6 +759,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithImageRegistry(AspireTestContainerRegistry)
             .WithVolume($"{testName}-volume", "/path-here");
 
         await using var app = testProgram.Build();
@@ -1089,7 +1098,7 @@ public class DistributedApplicationTests
         var redis = builder.AddContainer($"{testName}-redis", "redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
-        });
+        }).WithImageRegistry(AspireTestContainerRegistry);
 
         using var app = builder.Build();
 
