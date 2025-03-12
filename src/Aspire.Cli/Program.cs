@@ -282,15 +282,16 @@ public class Program
     private static void ConfigureAddCommand(Command parentCommand)
     {
         var command = new Command("add", "Add a resource to the .NET Aspire project.");
+
         var resourceArgument = new Argument<string>("resource");
         command.Arguments.Add(resourceArgument);
+
+        var nameArgument = new Argument<string?>("name");
+        command.Arguments.Add(nameArgument);
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
-
-        var nameOption = new Option<string?>("--name", "-n");
-        command.Options.Add(nameOption);
 
         command.SetAction(async (parseResult, ct) => {
             var app = BuildApplication(parseResult);
@@ -323,7 +324,7 @@ public class Program
 
             // HACK: This is really crude, we should use Roslyn here but this is
             //       just for this spike.
-            var resourceName = parseResult.GetValue<string?>("--name");
+            var resourceName = parseResult.GetValue<string?>("name");
             var snippet = selectedIntegration.AppHostSnippet(resourceName);
 
             var appHostEntryPoint = Path.Combine(
