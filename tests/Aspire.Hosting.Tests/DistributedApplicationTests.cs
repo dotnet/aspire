@@ -240,7 +240,7 @@ public class DistributedApplicationTests
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Inactive URLs and source should be populated on non-started resources.
-        Assert.Equal("redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+        Assert.Equal("netaspireci.azurecr.io/redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
