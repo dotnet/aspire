@@ -16,7 +16,6 @@ jobs:
         parameters:
           PackageVersion: ${{ parameters.packageVersion }}
           BuildDropPath: ${{ parameters.buildDropPath }}
-          ManifestDirPath: $(Build.ArtifactStagingDirectory)/sbom
           publishArtifacts: false
 
     # publish artifacts
