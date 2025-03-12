@@ -1,5 +1,4 @@
 using Microsoft.Azure.SignalR.Management;
-using SignalRServerlessWeb;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,9 +10,8 @@ var serviceManager = new ServiceManagerBuilder()
         .BuildServiceManager();
 var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
 
-// Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton(hubContext).AddHostedService<BackgroundWorker>();
+builder.Services.AddSingleton(hubContext).AddHostedService<PeriodicBroadcaster>();
 
 var app = builder.Build();
 
@@ -44,3 +42,16 @@ app.MapPost("/negotiate", async (string? userId) =>
 
 app.MapRazorPages();
 app.Run();
+
+internal class PeriodicBroadcaster(ServiceHubContext hubContext) : BackgroundService
+{
+    private int _count;
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await hubContext.Clients.All.SendCoreAsync("newMessage", [$"Current count is: {_count++}"], stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+        }
+    }
+}
