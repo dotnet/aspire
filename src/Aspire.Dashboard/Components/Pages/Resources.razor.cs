@@ -400,7 +400,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
         if (_showResourceTypeColumn)
         {
-
              _resourcesMenuItems.Add(new MenuButtonItem
             {
                 IsDisabled = false,
