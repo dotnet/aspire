@@ -43,7 +43,7 @@ app.MapPost("/negotiate", async (string? userId) =>
 app.MapRazorPages();
 app.Run();
 
-internal class PeriodicBroadcaster(ServiceHubContext hubContext) : BackgroundService
+internal sealed class PeriodicBroadcaster(ServiceHubContext hubContext) : BackgroundService
 {
     private int _count;
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
