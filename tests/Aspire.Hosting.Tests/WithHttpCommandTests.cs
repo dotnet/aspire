@@ -321,6 +321,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8038")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
