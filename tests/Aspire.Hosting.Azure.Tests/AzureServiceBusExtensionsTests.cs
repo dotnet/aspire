@@ -218,9 +218,11 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [Theory(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [InlineData(null)]
+    [InlineData("other")]
     [RequiresDocker]
-    public async Task VerifyAzureServiceBusEmulatorResource()
+    public async Task VerifyAzureServiceBusEmulatorResource(string? queueName)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
@@ -229,7 +231,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator();
 
-        serviceBus.AddServiceBusQueue("queue123");
+        var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -247,10 +249,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 
-        await using var sender = serviceBusClient.CreateSender("queue123");
+        await using var sender = serviceBusClient.CreateSender(queueResource.Resource.QueueName);
         await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
 
-        await using var receiver = serviceBusClient.CreateReceiver("queue123");
+        await using var receiver = serviceBusClient.CreateReceiver(queueResource.Resource.QueueName);
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());

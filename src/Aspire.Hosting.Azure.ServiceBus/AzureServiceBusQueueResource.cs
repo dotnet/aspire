@@ -21,6 +21,7 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
     : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     private string _queueName = ThrowIfNullOrEmpty(queueName);
+
     /// <summary>
     /// The queue name.
     /// </summary>
