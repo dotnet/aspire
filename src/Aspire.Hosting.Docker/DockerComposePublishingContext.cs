@@ -131,10 +131,10 @@ internal sealed class DockerComposePublishingContext(
 
     private sealed class ComposeServiceContext(IResource resource, DockerComposePublishingContext composePublishingContext)
     {
-        private record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
+        private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress, bool External);
 
-        private readonly Dictionary<object, string> _allocatedParameters = [];
-        private readonly Dictionary<string, string> _allocatableParameters = [];
+        private readonly Dictionary<object, string> _resolvedParameters = [];
+        private readonly Dictionary<string, string> _rawParameterValues = [];
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
         public List<string> Commands { get; } = [];
@@ -153,6 +153,8 @@ internal sealed class DockerComposePublishingContext(
             {
                 Name = resource.Name.ToLowerInvariant(),
             };
+
+            ApplyParametersForContext();
 
             SetEntryPoint(composeService);
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
@@ -185,9 +187,10 @@ internal sealed class DockerComposePublishingContext(
 
             foreach (var (_, mapping) in _endpointMapping)
             {
-                var port = mapping.Port.ToString(CultureInfo.InvariantCulture);
-                var targetPort = mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? port;
-                composeService.Ports.Add($"{port}:{targetPort}");
+                var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
+                var exposedPort = mapping.ExposedPort.ToString(CultureInfo.InvariantCulture);
+
+                composeService.Ports.Add($"{exposedPort}:{internalPort}");
             }
         }
 
@@ -230,10 +233,13 @@ internal sealed class DockerComposePublishingContext(
 
             foreach (var endpoint in endpoints)
             {
-                var port = endpoint.Port ?? composePublishingContext.PortAllocator.AllocatePort();
-                composePublishingContext.PortAllocator.AddUsedPort(port);
-                var targetPort = endpoint.TargetPort ?? port;
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, port, targetPort, false, endpoint.IsExternal);
+                var internalPort = endpoint.TargetPort ?? composePublishingContext.PortAllocator.AllocatePort();
+                composePublishingContext.PortAllocator.AddUsedPort(internalPort);
+
+                var exposedPort = composePublishingContext.PortAllocator.AllocatePort();
+                composePublishingContext.PortAllocator.AddUsedPort(exposedPort);
+
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, exposedPort, false, endpoint.IsExternal);
             }
         }
 
@@ -308,17 +314,17 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private string GetValue(EndpointMapping mapping, EndpointProperty property)
+        private static string GetValue(EndpointMapping mapping, EndpointProperty property)
         {
-            var (scheme, host, port, targetPort, isHttpIngress, _) = mapping;
+            var (scheme, host, internalPort, exposedPort, isHttpIngress, _) = mapping;
 
             return property switch
             {
-                EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{port}"),
+                EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{internalPort}"),
                 EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-                EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
-                EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-                EndpointProperty.TargetPort => $"{targetPort ?? composePublishingContext.PortAllocator.AllocatePort()}",
+                EndpointProperty.Port => internalPort.ToString(CultureInfo.InvariantCulture),
+                EndpointProperty.HostAndPort => GetHostValue(suffix: $":{internalPort}"),
+                EndpointProperty.TargetPort => $"{exposedPort}",
                 EndpointProperty.Scheme => scheme,
                 _ => throw new NotSupportedException(),
             };
@@ -354,7 +360,7 @@ internal sealed class DockerComposePublishingContext(
 
                 if (value is ParameterResource param)
                 {
-                    return AllocateParameter(param) ?? throw new InvalidOperationException("Parameter name is null");
+                    return await AllocateParameter(param).ConfigureAwait(false) ?? throw new InvalidOperationException("Parameter name is null");
                 }
 
                 if (value is ConnectionStringReference cs)
@@ -384,11 +390,9 @@ internal sealed class DockerComposePublishingContext(
 
                 if (value is ReferenceExpression expr)
                 {
-                    // Special case simple expressions
                     if (expr is {Format: "{0}", ValueProviders.Count: 1})
                     {
-                        value = expr.ValueProviders[0];
-                        continue;
+                        return (await ProcessValueAsync(expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
                     }
 
                     var args = new object[expr.ValueProviders.Count];
@@ -397,11 +401,10 @@ internal sealed class DockerComposePublishingContext(
                     foreach (var vp in expr.ValueProviders)
                     {
                         var val = await ProcessValueAsync(vp).ConfigureAwait(false);
-
                         args[index++] = val ?? throw new InvalidOperationException("Value is null");
                     }
 
-                    return args;
+                    return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
                 }
 
                 // todo: ideally we should have processed all resources that we can before getting here...
@@ -417,27 +420,46 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private string AllocateParameter(IManifestExpressionProvider parameter)
+        private static Task<string> ResolveParameterValue(IManifestExpressionProvider parameter)
         {
-            if (!_allocatedParameters.TryGetValue(parameter, out var parameterName))
+            // Placeholder for resolving the actual parameter value
+            // Where does it come from? How do we resolve it?
+            // From user input?
+            // From State?
+            // To Discuss
+            // Will work for AppSettings values and generated values as it stands.
+
+            if (parameter is not ParameterResource res)
             {
-                parameterName = parameter.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
-
-                if (parameterName[0] == '_')
-                {
-                    parameterName = parameterName[1..];
-                }
-
-                _allocatedParameters[parameter] = parameterName;
+                throw new InvalidOperationException("Parameter is not a ParameterResource");
             }
 
-            if (!_allocatableParameters.TryGetValue(parameterName, out var allocatableParameter))
+            return Task.FromResult(res.Value);
+        }
+
+        private async Task<string> AllocateParameter(IManifestExpressionProvider parameter)
+        {
+            if (!_resolvedParameters.TryGetValue(parameter, out var parameterName))
             {
-                _allocatableParameters[parameterName] = string.Empty;
+                parameterName = parameter.ValueExpression
+                    .Replace("{", "")
+                    .Replace("}", "")
+                    .Replace(".", "_")
+                    .Replace("-", "_")
+                    .ToLowerInvariant();
+
+                _resolvedParameters[parameter] = parameterName;
+            }
+
+            if (!_rawParameterValues.ContainsKey(parameterName))
+            {
+                var actualValue = await ResolveParameterValue(parameter).ConfigureAwait(false);
+                _rawParameterValues[parameterName] = actualValue;
             }
 
             Parameters[parameterName] = parameter;
-            return allocatableParameter ?? _allocatableParameters[parameterName];
+
+            return parameterName;
         }
 
         private void SetEntryPoint(Service composeService)
@@ -461,6 +483,28 @@ internal sealed class DockerComposePublishingContext(
             if (Commands.Count > 0)
             {
                 composeService.Command.AddRange(Commands);
+            }
+        }
+
+        private void ApplyParametersForContext()
+        {
+            if (Parameters.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var parameter in _resolvedParameters)
+            {
+                var parameterName = parameter.Value;
+
+                foreach (var envVar in EnvironmentVariables.Where(x => x.Value.Contains(parameterName)))
+                {
+                    var envVarValue = _rawParameterValues.TryGetValue(parameterName, out var value)
+                        ? value
+                        : string.Empty;
+
+                    EnvironmentVariables[envVar.Key] = envVar.Value.Replace(parameterName, envVarValue);
+                }
             }
         }
     }

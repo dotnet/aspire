@@ -44,10 +44,13 @@ var backend = builder.AddProject<Projects.Publishers_ApiService>("api")
                      .WithReplicas(2);
 
 // need a container to test.
-builder.AddSqlServer("sqlserver")
+var sqlServer = builder.AddSqlServer("sqlserver")
         .WithDataVolume("sqlserver-data");
 
+var sqlDb = sqlServer.AddDatabase("sqldb");
+
 builder.AddProject<Projects.Publishers_Frontend>("frontend")
+       .WithReference(sqlDb)
        .WithReference(backend).WaitFor(backend);
 
 #if !SKIP_DASHBOARD_REFERENCE
