@@ -114,6 +114,9 @@ public partial class ConsoleLogsTests : TestContext
 
         var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal("test-resource2", subscribedResourceName2);
+
+        subscribedResourceNamesChannel.Writer.Complete();
+        Assert.False(await subscribedResourceNamesChannel.Reader.WaitToReadAsync().DefaultTimeout());
     }
 
     [Fact]
