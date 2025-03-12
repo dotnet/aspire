@@ -6,13 +6,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation for defining a script to create a resource.
 /// </summary>
-public sealed class ScriptAnnotation : IResourceAnnotation
+public sealed class CreationScriptAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ScriptAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="CreationScriptAnnotation"/> class.
     /// </summary>
     /// <param name="script">The script used to create the resource.</param>
-    public ScriptAnnotation(string script)
+    public CreationScriptAnnotation(string script)
     {
         ArgumentNullException.ThrowIfNull(script);
         Script = script;

@@ -16,12 +16,6 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context) =>
 {
-    // You wouldn't normally do this on every call,
-    // but doing it here just to make this simple.
-
-    await db1Context.Database.EnsureCreatedAsync();
-    await db2Context.Database.EnsureCreatedAsync();
-
     var entry1 = new Entry();
     await db1Context.Entries.AddAsync(entry1);
     await db1Context.SaveChangesAsync();

@@ -68,7 +68,7 @@ public static class SqlServerBuilderExtensions
                         throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
                     }
 
-                    var scriptAnnotation = sqlDatabase.Annotations.OfType<ScriptAnnotation>().LastOrDefault();
+                    var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
 
                     using var command = sqlConnection.CreateCommand();
                     command.CommandText = scriptAnnotation?.Script ??
@@ -78,7 +78,8 @@ public static class SqlServerBuilderExtensions
                 }
                 catch (Exception e)
                 {
-                    @event.Services.GetRequiredService<ILogger<SqlServerServerResource>>().LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
+                    var logger = @event.Services.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+                    logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
                 }
             }
         });
@@ -110,14 +111,14 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string? connectionString = null;
-
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
         var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
 
         builder.Resource.AddDatabase(sqlServerDatabase);
+
+        string? connectionString = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
         {
@@ -171,7 +172,7 @@ public static class SqlServerBuilderExtensions
     }
 
     /// <summary>
-    /// Alters the JSON configuration document used by the emulator.
+    /// Defines the SQL script used to create the database.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="SqlServerDatabaseResource"/>.</param>
     /// <param name="script">The SQL script used to create the database.</param>
@@ -184,7 +185,7 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
-        builder.WithAnnotation(new ScriptAnnotation(script));
+        builder.WithAnnotation(new CreationScriptAnnotation(script));
 
         return builder;
     }
