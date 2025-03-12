@@ -4,6 +4,7 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
@@ -18,6 +19,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class AppHostTests
 {
     private readonly ITestOutputHelper _testOutput;
