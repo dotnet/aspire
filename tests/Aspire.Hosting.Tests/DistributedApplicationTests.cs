@@ -220,8 +220,7 @@ public class DistributedApplicationTests
         var notStartedResourceName = $"{testName}-redis";
         var dependentResourceName = $"{testName}-serviceb";
 
-        var containerBuilder = testProgram.AppBuilder.AddContainer(notStartedResourceName, "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        var containerBuilder = AddRedisContainer(testProgram.AppBuilder, notStartedResourceName)
             .WithEndpoint(port: 6379, targetPort: 6379, name: "tcp", env: "REDIS_PORT")
             .WithExplicitStart();
 
@@ -240,7 +239,7 @@ public class DistributedApplicationTests
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Inactive URLs and source should be populated on non-started resources.
-        Assert.Equal("netaspireci.azurecr.io/redis:latest", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+        Assert.Equal("netaspireci.azurecr.io/library/redis:7.4", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
@@ -407,8 +406,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("verify-container-args");
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, "verify-container-args-redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
             .WithContainerRuntimeArgs("--add-host", "testlocalhost:127.0.0.1");
 
@@ -440,8 +438,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         const string containerName = "container-start-stop-redis";
-        testProgram.AppBuilder.AddContainer(containerName, "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, containerName)
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
@@ -532,8 +529,7 @@ public class DistributedApplicationTests
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
@@ -664,8 +660,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
@@ -695,8 +690,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithBindMount(sourcePath, "path-here");
 
         await using var app = testProgram.Build();
@@ -726,8 +720,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithBindMount("etc/path-here", "path-here");
 
         await using var app = testProgram.Build();
@@ -758,8 +751,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
-            .WithImageRegistry(AspireTestContainerRegistry)
+        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithVolume($"{testName}-volume", "/path-here");
 
         await using var app = testProgram.Build();
@@ -1095,10 +1087,10 @@ public class DistributedApplicationTests
         const string testName = "proxyless-container-without-ports";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddContainer($"{testName}-redis", "redis").WithEndpoint("tcp", endpoint =>
+        var redis = AddRedisContainer(builder, $"{testName}-redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
-        }).WithImageRegistry(AspireTestContainerRegistry);
+        });
 
         using var app = builder.Build();
 
@@ -1127,6 +1119,13 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
+    {
+        // Values from RedisContainerImageTags.
+        return builder.AddContainer(containerName, "library/redis", "7.4")
+            .WithImageRegistry(AspireTestContainerRegistry);
     }
 
     private void SetupXUnitLogging(IServiceCollection services)
