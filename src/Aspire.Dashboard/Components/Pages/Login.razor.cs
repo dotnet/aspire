@@ -118,7 +118,5 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public string ComponentId { get; } = Guid.NewGuid().ToString();
-    public string ComponentType => DashboardUrls.ConsoleLogBasePath;
-    public OperationContext? InitializeCorrelation { get; set; }
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.LoginBasePath);
 }

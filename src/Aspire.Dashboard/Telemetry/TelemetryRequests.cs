@@ -25,7 +25,7 @@ public record AspireTelemetryScopeSettings(
     bool PostStartEvent = true
 );
 
-public record AspireTelemetryProperty(object Value, AspireTelemetryPropertyType PropertyType = AspireTelemetryPropertyType.Basic);
+public record struct AspireTelemetryProperty(object Value, AspireTelemetryPropertyType PropertyType = AspireTelemetryPropertyType.Basic);
 
 public enum AspireTelemetryPropertyType
 {

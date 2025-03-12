@@ -286,7 +286,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        this.PostComponentTelemetryParameters();
+        this.UpdateTelemetryProperties();
     }
 
     private void UpdateMenuButtons()
@@ -660,16 +660,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public string ComponentId { get; } = Guid.NewGuid().ToString();
-    public string ComponentType => DashboardUrls.ConsoleLogBasePath;
-    public OperationContext? InitializeCorrelation { get; set; }
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.ConsoleLogBasePath);
 
-    public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
+    public void UpdateTelemetryProperties()
     {
-        return new Dictionary<string, AspireTelemetryProperty>
-        {
-            { TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii) },
-            { TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting) }
-        };
+        TelemetryContext.UpdateTelemetryProperties(TelemetryService, [
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
+        ]);
     }
 }

@@ -114,7 +114,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         }
 
         UpdateSubscription();
-        this.PostComponentTelemetryParameters();
+        this.UpdateTelemetryProperties();
     }
 
     public MetricsPageState ConvertViewModelToSerializable()
@@ -312,22 +312,18 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     }
 
     // IComponentWithTelemetry impl
-    public string ComponentId { get; } = Guid.NewGuid().ToString();
-    public string ComponentType => DashboardUrls.MetricsBasePath;
-    public OperationContext? InitializeCorrelation { get; set; }
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.MetricsBasePath);
 
-    public Dictionary<string, AspireTelemetryProperty> GetTelemetryProperties()
+    public void UpdateTelemetryProperties()
     {
-        return new Dictionary<string, AspireTelemetryProperty>
-        {
-            { TelemetryPropertyKeys.MetricsApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty) },
-            { TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ReplicaSetName is not null) },
-            { TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1) },
-            { TelemetryPropertyKeys.MetricsSelectedMeter, new AspireTelemetryProperty(PageViewModel.SelectedMeter?.MeterName ?? string.Empty, AspireTelemetryPropertyType.Pii) },
-            { TelemetryPropertyKeys.MetricsSelectedInstrument, new AspireTelemetryProperty(PageViewModel.SelectedInstrument?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii) },
-            { TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString()) },
-            { TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty) }
-        };
+        TelemetryContext.UpdateTelemetryProperties(TelemetryService, [
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ReplicaSetName is not null)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedMeter, new AspireTelemetryProperty(PageViewModel.SelectedMeter?.MeterName ?? string.Empty, AspireTelemetryPropertyType.Pii)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedInstrument, new AspireTelemetryProperty(PageViewModel.SelectedInstrument?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString())),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty))
+        ]);
     }
-
 }
