@@ -39,6 +39,8 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
@@ -90,10 +92,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     }
 
     /// <inheritdoc/>
-    public override ProvisionableResource CreateExistingResource(BicepValue<string> name)
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var account = StorageAccount.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
-        account.Name = name;
+        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(account);
         return account;
     }
 }

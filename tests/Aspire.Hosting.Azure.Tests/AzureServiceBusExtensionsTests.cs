@@ -102,6 +102,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -168,6 +170,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

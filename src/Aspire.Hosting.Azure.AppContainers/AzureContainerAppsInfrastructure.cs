@@ -312,10 +312,8 @@ internal sealed class AzureContainerAppsInfrastructure(
                 foreach (var (a, roles) in GetInlineRoleAssignments())
                 {
                     var prefix = a.GetBicepIdentifier();
-                    var name = new BicepOutputReference("name", a).AsProvisioningParameter(infra);
-                    var provisionable = a.CreateExistingResource(name);
+                    var provisionable = a.AddAsExistingResource(infra);
 
-                    infra.Add(provisionable);
                     foreach (var role in roles)
                     {
                         infra.Add(CreateRoleAssignment(prefix, provisionable, role.Id, role.Name, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId));
@@ -355,12 +353,11 @@ internal sealed class AzureContainerAppsInfrastructure(
             private static void AddExistingResourceRoleAssignments(AzureResourceInfrastructure infra, AzureProvisioningResource existingResource, IEnumerable<RoleDefinition> roles, AzureProvisioningResource containerAppIdentityResource)
             {
                 var prefix = existingResource.GetBicepIdentifier();
-                var name = new BicepOutputReference("name", existingResource).AsProvisioningParameter(infra);
-                var provisionable = existingResource.CreateExistingResource(name);
+                var provisionable = existingResource.AddAsExistingResource(infra);
 
                 var appIdentityId = new BicepOutputReference("id", containerAppIdentityResource).AsProvisioningParameter(infra);
                 var appIdentityPrincipalId = new BicepOutputReference("principalId", containerAppIdentityResource).AsProvisioningParameter(infra);
-                infra.Add(provisionable);
+
                 foreach (var role in roles)
                 {
                     var roleAssignment = CreateRoleAssignment(prefix, provisionable, role.Id, role.Name, appIdentityId, RoleManagementPrincipalType.ServicePrincipal, appIdentityPrincipalId);
