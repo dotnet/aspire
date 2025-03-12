@@ -27,7 +27,7 @@
         }
 
         var response = await aiClient.GetResponseAsync(chatMessages);
-        chatMessages.Add(response.Message);
+        chatMessages.AddMessages(response);
     }
 
     protected override async Task OnInitializedAsync()
