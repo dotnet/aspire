@@ -11,11 +11,50 @@ internal class DashboardOptions
 {
     public string? DashboardPath { get; set; }
     public string? DashboardUrl { get; set; }
+    public DashboardAuthMode DashboardAuthMode { get; set; }
     public string? DashboardToken { get; set; }
+    public OpenIdConnectPolicyOptions? OpenIdConnect { get; set; } = new();
+    public OpenIdConnectSettings? OpenIdConnectSettings { get; set; } = new();
     public string? OtlpGrpcEndpointUrl { get; set; }
     public string? OtlpHttpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
+}
+
+internal enum DashboardAuthMode
+{
+    Unsecured,
+    OpenIdConnect,
+    BrowserToken
+}
+
+internal sealed class OpenIdConnectPolicyOptions
+{
+    public string NameClaimType { get; set; } = "name";
+    public string UsernameClaimType { get; set; } = "preferred_username";
+
+    /// <summary>
+    /// Gets the optional name of a claim that users authenticated via OpenID Connect are required to have.
+    /// If specified, users without this claim will be rejected. If <see cref="RequiredClaimValue"/>
+    /// is also specified, then the value of this claim must also match <see cref="RequiredClaimValue"/>.
+    /// </summary>
+    public string RequiredClaimType { get; set; } = "";
+
+    /// <summary>
+    /// Gets the optional value of the <see cref="RequiredClaimType"/> claim for users authenticated via
+    /// OpenID Connect. If specified, users not having this value for the corresponding claim type are
+    /// rejected.
+    /// </summary>
+    public string RequiredClaimValue { get; set; } = "";
+}
+
+internal class OpenIdConnectSettings
+{
+    public string? Authority { get; set; }
+    public string? MetadataAddress { get; set; }
+    public string? ClientId { get; set; }
+    public string? ClientSecret { get; set; }
+    public ICollection<string> Scope { get; } = [];
 }
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
@@ -23,11 +62,18 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
     public void Configure(DashboardOptions options)
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
-        options.DashboardUrl = configuration["ASPNETCORE_URLS"];
-        options.DashboardToken = configuration["AppHost:BrowserToken"];
+        options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
 
-        options.OtlpGrpcEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
-        options.OtlpHttpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"];
+        if (Enum.TryParse<DashboardAuthMode>(configuration[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey], out var dashboardAuthMode))
+        {
+            options.DashboardAuthMode = dashboardAuthMode;
+        }
+
+        options.DashboardToken = configuration["AppHost:BrowserToken"];
+        configuration.Bind("Dashboard:Frontend:OpenIdConnect", options.OpenIdConnect);
+        configuration.Bind("Authentication:Schemes:OpenIdConnect", options.OpenIdConnectSettings);
+        options.OtlpGrpcEndpointUrl = configuration[KnownConfigNames.DashboardOtlpGrpcEndpointUrl];
+        options.OtlpHttpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpHttpEndpointUrl];
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
