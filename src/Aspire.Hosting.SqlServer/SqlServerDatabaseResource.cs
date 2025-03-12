@@ -24,14 +24,16 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// <summary>
     /// Gets the connection string expression for the SQL Server database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression {
+    public ReferenceExpression ConnectionStringExpression
+    {
         get
         {
-            var connectionStringBuilder = new SqlConnectionStringBuilder();
-            connectionStringBuilder["Database"] = DatabaseName;
-            var connectionString = connectionStringBuilder.ToString();
+            var connectionStringBuilder = new SqlConnectionStringBuilder
+            {
+                ["Database"] = DatabaseName
+            };
 
-            return ReferenceExpression.Create($"{Parent};{connectionString}");
+            return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
 
