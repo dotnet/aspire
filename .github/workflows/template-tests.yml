@@ -67,7 +67,7 @@ jobs:
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    name: Final Results
+    name: Templates Results
     needs: [test_linux, test_windows]
     steps:
       # get all the test-job-result* artifacts into a single directory
