@@ -19,20 +19,6 @@ internal interface IIntegrationLookup
 
 internal sealed class IntegrationLookup : IIntegrationLookup
 {
-/*
-var nugetCache = Path.Combine(Path.GetTempPath(), FolderPrefix, "packages.json");
-
-        if (!File.Exists(nugetCache) || new FileInfo(nugetCache).CreationTimeUtc < DateTime.UtcNow.AddDays(-1))
-        {
-            using var httpClient = new HttpClient();
-            var result = httpClient.GetStringAsync("https://azuresearch-usnc.nuget.org/query?q=tag:aspire+integration+hosting&take=1000").Result;
-            File.WriteAllText(nugetCache, result);
-        }
-
-        var doc = JsonObject.Parse(File.ReadAllText(nugetCache));
-        _packageNames = doc!["data"]!.AsArray().Select(x => $"{x!.AsObject()["id"]}@{x.AsObject()["version"]}").ToHashSet();
-*/
-
     public async Task<IEnumerable<Integration>> GetIntegrationsAsync(CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient();
@@ -45,7 +31,6 @@ var nugetCache = Path.Combine(Path.GetTempPath(), FolderPrefix, "packages.json")
         var integrations = new List<Integration>();
 
         var data = doc.RootElement.GetProperty("data");
-        
         for (int index = 0; index < data.GetArrayLength(); index++)
         {
             var item = data[index];
