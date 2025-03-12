@@ -275,8 +275,15 @@ public class Program
 
     private static Integration GetIntegrationByInteractiveFlow(IEnumerable<Integration> knownIntegrations)
     {
-        // HACK: Will be adding interactivity soon.
-        return knownIntegrations.First();
+        var prompt = new SelectionPrompt<Integration>()
+            .Title("Please select the integration you want to add:")
+            .UseConverter<Integration>((i) => $"{i.PackageShortName} ({i.PackageName})")
+            .PageSize(10)
+            .AddChoices(knownIntegrations);
+
+        var selectedIntegration = AnsiConsole.Prompt(prompt);
+
+        return selectedIntegration;
     }
 
     private static void ConfigureAddCommand(Command parentCommand)
@@ -284,10 +291,8 @@ public class Program
         var command = new Command("add", "Add a resource to the .NET Aspire project.");
 
         var resourceArgument = new Argument<string>("resource");
+        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
         command.Arguments.Add(resourceArgument);
-
-        var nameArgument = new Argument<string?>("name");
-        command.Arguments.Add(nameArgument);
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -320,32 +325,6 @@ public class Program
             if (addPackageResult != 0)
             {
                 return ExitCodeConstants.FailedToAddPackage;
-            }
-
-            // HACK: This is really crude, we should use Roslyn here but this is
-            //       just for this spike.
-            var resourceName = parseResult.GetValue<string?>("name");
-            var snippet = selectedIntegration.AppHostSnippet(resourceName);
-
-            var appHostEntryPoint = Path.Combine(
-                effectiveAppHostProjectFile.DirectoryName!,
-                "Program.cs"
-            );
-
-            if (File.Exists(appHostEntryPoint))
-            {
-                var lines = File.ReadAllLines(appHostEntryPoint);
-                var newLines = new List<string>(lines.Length + 1);
-                foreach (var line in lines)
-                {
-                    newLines.Add(line);
-                    if (line.Contains("DistributedApplication.CreateBuilder"))
-                    {
-                        newLines.Add(snippet);
-                    }
-                }
-
-                File.WriteAllLines(appHostEntryPoint, newLines);
             }
 
             return 0;

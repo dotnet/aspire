@@ -3,13 +3,11 @@
 
 namespace Aspire.Cli;
 
-internal sealed class Integration(string packageName, string packageVersion, string packageShortName, Func<string?, string> appHostSnippet)
+internal sealed class Integration(string packageName, string packageVersion, string packageShortName)
 {
     public string PackageShortName { get; } = packageShortName;
     public string PackageName { get; } = packageName;
     public string PackageVersion { get; } = packageVersion;
-    public Func<string?, string> AppHostSnippet { get; } = appHostSnippet;
-
 }
 
 internal interface IIntegrationLookup
@@ -27,14 +25,12 @@ internal sealed class IntegrationLookup : IIntegrationLookup
             new Integration(
                 "Aspire.Hosting.Redis",
                 "9.1",
-                "redis",
-                (resourceName) => $"builder.AddRedis(\"{resourceName ?? "redis"}\");"
+                "redis"
             ),
             new Integration(
                 "Aspire.Hosting.PostgreSql",
                 "9.1",
-                "postgres",
-                (resourceName) => $"builder.AddPostgres(\"{resourceName ?? "postgres"}\");"
+                "postgres"
             ),
         ];
     }
