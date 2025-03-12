@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
+
 namespace Aspire.Cli;
 
 internal sealed class Integration(string packageName, string packageVersion, string packageShortName)
@@ -12,26 +14,51 @@ internal sealed class Integration(string packageName, string packageVersion, str
 
 internal interface IIntegrationLookup
 {
-    IEnumerable<Integration> GetIntegrations();
+    Task<IEnumerable<Integration>> GetIntegrationsAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class IntegrationLookup : IIntegrationLookup
 {
-    public IEnumerable<Integration> GetIntegrations()
-    {
-        // HACK: Just to get the rest working.
+/*
+var nugetCache = Path.Combine(Path.GetTempPath(), FolderPrefix, "packages.json");
 
-        return [
-            new Integration(
-                "Aspire.Hosting.Redis",
-                "9.1",
-                "redis"
-            ),
-            new Integration(
-                "Aspire.Hosting.PostgreSql",
-                "9.1",
-                "postgres"
-            ),
-        ];
+        if (!File.Exists(nugetCache) || new FileInfo(nugetCache).CreationTimeUtc < DateTime.UtcNow.AddDays(-1))
+        {
+            using var httpClient = new HttpClient();
+            var result = httpClient.GetStringAsync("https://azuresearch-usnc.nuget.org/query?q=tag:aspire+integration+hosting&take=1000").Result;
+            File.WriteAllText(nugetCache, result);
+        }
+
+        var doc = JsonObject.Parse(File.ReadAllText(nugetCache));
+        _packageNames = doc!["data"]!.AsArray().Select(x => $"{x!.AsObject()["id"]}@{x.AsObject()["version"]}").ToHashSet();
+*/
+
+    public async Task<IEnumerable<Integration>> GetIntegrationsAsync(CancellationToken cancellationToken)
+    {
+        using var httpClient = new HttpClient();
+        var result = await httpClient.GetStringAsync(
+            "https://azuresearch-usnc.nuget.org/query?q=tag:aspire+integration+hosting&take=1000",
+            cancellationToken).ConfigureAwait(false);
+
+        var doc = JsonDocument.Parse(result);
+
+        var integrations = new List<Integration>();
+
+        var data = doc.RootElement.GetProperty("data");
+        
+        for (int index = 0; index < data.GetArrayLength(); index++)
+        {
+            var item = data[index];
+            var id = item.GetProperty("id").GetString();
+            var version = item.GetProperty("version").GetString();
+
+            integrations.Add(new Integration(
+                id!,
+                version!,
+                id!
+            ));
+        }
+
+        return integrations;
     }
 }

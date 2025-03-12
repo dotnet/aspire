@@ -303,7 +303,7 @@ public class Program
             var integrationLookup = app.Services.GetRequiredService<IIntegrationLookup>();
 
             var integrationName = parseResult.GetValue<string>("resource");
-            var integrations = integrationLookup.GetIntegrations();
+            var integrations = await integrationLookup.GetIntegrationsAsync(ct).ConfigureAwait(false);
             var selectedIntegration = integrations.SingleOrDefault(i => i.PackageShortName == integrationName || i.PackageName == integrationName);
 
             if (selectedIntegration is null)
