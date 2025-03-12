@@ -107,6 +107,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(404, false)]
     [InlineData(500, false)]
     [Theory]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8038")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
