@@ -11,6 +11,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]

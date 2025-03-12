@@ -35,6 +35,15 @@ runs:
         $lines = Get-Content $filePath
         $jsonObject = @{
             "shortname" = $lines | Sort-Object
+            "os" = @(
+              @{
+                  "name"="ubuntu-latest"
+                  "title"="Linux"
+              }
+              @{
+                  "name"="windows-latest"
+                  "title"="Windows"
+              })
         }
         $jsonString = ConvertTo-Json $jsonObject -Compress
         "tests_matrix=$jsonString"

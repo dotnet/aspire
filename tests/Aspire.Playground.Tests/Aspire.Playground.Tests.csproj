@@ -8,8 +8,6 @@
 
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <!-- no docker support on github-actions/windows yet -->
-    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
