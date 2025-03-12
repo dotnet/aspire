@@ -10,6 +10,7 @@ using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
@@ -35,7 +36,7 @@ public class DistributedApplicationTests
 
     private const string ReplicaIdRegex = @"[\w]+"; // Matches a replica ID that is part of a resource name.
     private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
-    private const string RedisImageSource = "netaspireci.azurecr.io/library/redis:7.4";
+    private const string RedisImageSource = $"{AspireTestContainerRegistry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}";
 
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
@@ -1124,8 +1125,7 @@ public class DistributedApplicationTests
 
     private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
     {
-        // Values from RedisContainerImageTags.
-        return builder.AddContainer(containerName, "library/redis", "7.4")
+        return builder.AddContainer(containerName, RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(AspireTestContainerRegistry);
     }
 
