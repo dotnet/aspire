@@ -14,8 +14,8 @@ jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
 
-  setup_for_tests_lin:
-    name: Setup for tests (Linux)
+  setup_for_tests:
+    name: Setup for tests
     runs-on: ubuntu-latest
     outputs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
@@ -27,48 +27,22 @@ jobs:
       - uses: ./.github/actions/enumerate-tests
         id: generate_test_matrix
 
-  setup_for_tests_win:
-    name: Setup for tests (Windows)
-    runs-on: windows-latest
-    outputs:
-      tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: generate_test_matrix
-        uses: ./.github/actions/enumerate-tests
-
-  test_linux:
+  test:
     uses: ./.github/workflows/run-tests.yml
-    name: Linux
-    needs: setup_for_tests_lin
+    name: ${{ matrix.os.title }}
+    needs: setup_for_tests
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.tests_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: ubuntu-latest
-      testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
-      extraTestArgs: ${{ matrix.extraTestArgs }}
-
-  test_windows:
-    uses: ./.github/workflows/run-tests.yml
-    name: Windows
-    needs: setup_for_tests_win
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: windows-latest
-      testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
-      extraTestArgs: ${{ matrix.extraTestArgs }}
+      os: ${{ matrix.os.name }}
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [test_linux, test_windows]
+    needs: [test]
     steps:
       # get all the test-job-result* artifacts into a single directory
       - uses: actions/download-artifact@v4
