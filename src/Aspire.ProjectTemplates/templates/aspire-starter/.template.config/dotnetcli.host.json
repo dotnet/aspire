@@ -57,7 +57,7 @@
         "longName": "use-redis-cache",
         "shortName": ""
       },
-      "TestFramework": {
+      "TestFx": {
         "longName": "test-framework",
         "shortName": "t"
       }

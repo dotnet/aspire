@@ -38,7 +38,7 @@
       "persistenceScope": "templateGroup"
     },
     {
-      "id": "TestFramework",
+      "id": "TestFx",
       "isVisible": true,
       "persistenceScope": "templateGroup"
     }

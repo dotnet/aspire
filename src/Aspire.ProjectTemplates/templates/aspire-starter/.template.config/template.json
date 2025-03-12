@@ -52,7 +52,7 @@
           ]
         },
         {
-          "condition": "(TestFramework == None)",
+          "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
@@ -71,7 +71,7 @@
           ]
         },
         {
-          "condition": "(TestFramework == None)",
+          "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
@@ -90,7 +90,7 @@
           ]
         },
         {
-          "condition": "(TestFramework == None)",
+          "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
@@ -229,7 +229,7 @@
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
     },
-    "TestFramework": {
+    "TestFx": {
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "None",
@@ -259,7 +259,7 @@
       "description": "The version of xUnit.net to use.",
       "displayName": "xUnit.net version",
       "datatype": "choice",
-      "isEnabled": "(TestFramework == xUnit.net)",
+      "isEnabled": "(TestFx == xUnit.net)",
       "replaces": "XUnitVersion",
       "choices": [
         {
@@ -280,13 +280,13 @@
       ],
       "defaultValue": "v2"
     },
-    "TestFrameworkIsXUnit": {
+    "IsXunit": {
       "type": "generated",
       "generator": "switch",
       "parameters": {
         "cases": [
           {
-            "condition": "(TestFramework == xUnit.net)",
+            "condition": "(TestFx == xUnit.net)",
             "value": "true"
           },
           {
@@ -574,7 +574,7 @@
     },
     {
       "path": "Aspire-StarterApplication.1.Tests\\Aspire-StarterApplication.1.Tests.csproj",
-      "condition": "(TestFramework != None)"
+      "condition": "(TestFx != None)"
     }
   ],
   "postActions": [
