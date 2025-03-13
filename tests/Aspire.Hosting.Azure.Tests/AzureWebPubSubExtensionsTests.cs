@@ -107,6 +107,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -185,6 +187,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -267,6 +271,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -344,6 +350,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -496,6 +504,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
