@@ -9,6 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -19,6 +20,7 @@ internal sealed class ApplicationOrchestrator
     private readonly ILookup<IResource, IResource> _parentChildLookup;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks;
     private readonly ResourceNotificationService _notificationService;
+    private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _shutdownCancellation = new();
@@ -28,6 +30,7 @@ internal sealed class ApplicationOrchestrator
                                    DcpExecutorEvents dcpExecutorEvents,
                                    IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
                                    ResourceNotificationService notificationService,
+                                   ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
                                    IServiceProvider serviceProvider)
     {
@@ -36,6 +39,7 @@ internal sealed class ApplicationOrchestrator
         _parentChildLookup = RelationshipEvaluator.GetParentChildLookup(model);
         _lifecycleHooks = lifecycleHooks.ToArray();
         _notificationService = notificationService;
+        _loggerService = loggerService;
         _eventing = eventing;
         _serviceProvider = serviceProvider;
 
@@ -47,6 +51,7 @@ internal sealed class ApplicationOrchestrator
 
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
     }
 
     private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
@@ -145,6 +150,50 @@ internal sealed class ApplicationOrchestrator
         await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
     }
 
+    private Task ProcessResourcesWithoutLifetime(AfterEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    {
+        async Task ProcessValueAsync(IResource resource, IValueProvider vp)
+        {
+            try
+            {
+                var value = await vp.GetValueAsync(default).ConfigureAwait(false);
+
+                await _notificationService.PublishUpdateAsync(resource, s =>
+                {
+                    return s with
+                    {
+                        Properties = s.Properties.SetResourceProperty("Value", value ?? "", resource is ParameterResource p && p.Secret)
+                    };
+                })
+                .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await _notificationService.PublishUpdateAsync(resource, s =>
+                {
+                    return s with
+                    {
+                        State = new("Value missing", KnownResourceStateStyles.Error),
+                        Properties = s.Properties.SetResourceProperty("Value", ex.Message)
+                    };
+                })
+                .ConfigureAwait(false);
+
+                _loggerService.GetLogger(resource.Name).LogError("{Message}", ex.Message);
+            }
+        }
+
+        foreach (var resource in _model.Resources.OfType<IResourceWithoutLifetime>())
+        {
+            if (resource is IValueProvider provider)
+            {
+                _ = ProcessValueAsync(resource, provider);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
     private async Task OnResourceChanged(OnResourceChangedContext context)
     {
         await _notificationService.PublishUpdateAsync(context.Resource, context.DcpResourceName, context.UpdateSnapshot).ConfigureAwait(false);
@@ -238,6 +287,11 @@ internal sealed class ApplicationOrchestrator
                 StopTimeStamp = stopTimeStamp,
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
+
+            // the parent name needs to be an instance name, not the resource name.
+            // parent the children of the child under the first resource instance.
+            await SetChildResourceAsync(child, child.GetResolvedResourceNames()[0], state, startTimeStamp, stopTimeStamp)
+                .ConfigureAwait(false);
         }
     }
 
@@ -253,6 +307,8 @@ internal sealed class ApplicationOrchestrator
             {
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
+
+            await SetExecutableChildResourceAsync(child).ConfigureAwait(false);
         }
     }
 

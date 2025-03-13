@@ -13,22 +13,22 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.1" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
-    <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.5" />
-    <PackageVersion Include="Azure.Messaging.EventHubs.Processor" Version="5.11.5" />
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.3" />
+    <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.6" />
+    <PackageVersion Include="Azure.Messaging.EventHubs.Processor" Version="5.11.6" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageVersion Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.12" />
-    <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.0" />
+    <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.1.1" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.47.2" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.2" />
+    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.10.0" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
@@ -88,11 +88,11 @@
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
-    <PackageVersion Include="KubernetesClient" Version="15.0.1" />
+    <PackageVersion Include="KubernetesClient" Version="16.0.2" />
     <PackageVersion Include="JsonPatch.Net" Version="3.2.3" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.3" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.3" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="2.0.0" />
@@ -100,7 +100,7 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.5.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.2" />
-    <PackageVersion Include="OpenAI" Version="2.1.0" />
+    <PackageVersion Include="OpenAI" Version="2.2.0-beta.1" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.60" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.6.0" />
     <PackageVersion Include="Polly.Core" Version="8.5.1" />
@@ -108,9 +108,11 @@
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageVersion Include="Qdrant.Client" Version="1.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.49.2-preview.0.76" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.1" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.22.3-alpha" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />
@@ -135,7 +137,7 @@
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.49.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.50.0" />
     <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
@@ -150,12 +152,11 @@
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <!-- playground apps dependencies -->
-    <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.1.2" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.1" />
@@ -165,7 +166,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDb" Version="4.12.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.1.0-preview6" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.1" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Azure.Core" Version="1.44.1" />

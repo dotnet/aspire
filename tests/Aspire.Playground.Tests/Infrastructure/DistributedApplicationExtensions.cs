@@ -144,9 +144,7 @@ public static partial class DistributedApplicationExtensions
                     // Container resources tend to write to stderr for various reasons so only assert projects and executables
                     (ProjectResource or ExecutableResource)
                     // Node resources tend to have npm modules that write to stderr so ignore them
-                    and not NodeAppResource
-                // Dapr resources write to stderr about deprecated --components-path flag
-                && !resource.Name.EndsWith("-dapr-cli");
+                    and not NodeAppResource;
         }
 
         static void AssertDoesNotContain(IReadOnlyList<FakeLogRecord> logs, Func<FakeLogRecord, bool> predicate)

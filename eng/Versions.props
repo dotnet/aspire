@@ -9,9 +9,9 @@
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <AllTargetFrameworks>$(DefaultTargetFramework);net9.0</AllTargetFrameworks>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimePreviousVersionForTesting>8.0.12</DotNetRuntimePreviousVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.13</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkPreviousVersionForTesting>8.0.404</DotNetSdkPreviousVersionForTesting>
+    <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -21,57 +21,57 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.11.4</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.11.4</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.11.4</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.11.4</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanewindows386Version>0.11.4</MicrosoftDeveloperControlPlanewindows386Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.11.4</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.11.4</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.12.4</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.12.4</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.12.4</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.12.4</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanewindows386Version>0.12.4</MicrosoftDeveloperControlPlanewindows386Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.12.4</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.12.4</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25111.5</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25111.5</MicrosoftDotNetXUnitExtensionsVersion>
-    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25111.5</MicrosoftDotNetBuildTasksInstallersVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25111.5</MicrosoftDotNetBuildTasksWorkloadsVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25161.4</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25161.4</MicrosoftDotNetXUnitExtensionsVersion>
+    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25161.4</MicrosoftDotNetBuildTasksInstallersVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25161.4</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.1-servicing.24603.14</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- dotnet/extensions -->
-    <MicrosoftExtensionsAIVersion>9.1.0-preview.1.25064.3</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIVersion>9.3.0-preview.1.25161.3</MicrosoftExtensionsAIVersion>
     <!-- when updating this, also update cgmanifest.json as it is consumed in templates -->
-    <MicrosoftExtensionsHttpResilienceVersion>9.1.0</MicrosoftExtensionsHttpResilienceVersion>
-    <MicrosoftExtensionsDiagnosticsTestingVersion>9.1.0</MicrosoftExtensionsDiagnosticsTestingVersion>
-    <MicrosoftExtensionsTimeProviderTestingVersion>9.1.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <MicrosoftExtensionsHttpResilienceVersion>9.2.0</MicrosoftExtensionsHttpResilienceVersion>
+    <MicrosoftExtensionsDiagnosticsTestingVersion>9.2.0</MicrosoftExtensionsDiagnosticsTestingVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>9.2.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- for templates -->
-    <MicrosoftAspNetCorePackageVersionForNet9>9.0.1</MicrosoftAspNetCorePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet9>9.0.2</MicrosoftAspNetCorePackageVersionForNet9>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">
     <!-- EF -->
-    <MicrosoftEntityFrameworkCoreCosmosVersion>9.0.1</MicrosoftEntityFrameworkCoreCosmosVersion>
-    <MicrosoftEntityFrameworkCoreDesignVersion>9.0.1</MicrosoftEntityFrameworkCoreDesignVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerVersion>9.0.1</MicrosoftEntityFrameworkCoreSqlServerVersion>
-    <MicrosoftEntityFrameworkCoreToolsVersion>9.0.1</MicrosoftEntityFrameworkCoreToolsVersion>
+    <MicrosoftEntityFrameworkCoreCosmosVersion>9.0.2</MicrosoftEntityFrameworkCoreCosmosVersion>
+    <MicrosoftEntityFrameworkCoreDesignVersion>9.0.2</MicrosoftEntityFrameworkCoreDesignVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerVersion>9.0.2</MicrosoftEntityFrameworkCoreSqlServerVersion>
+    <MicrosoftEntityFrameworkCoreToolsVersion>9.0.2</MicrosoftEntityFrameworkCoreToolsVersion>
     <!-- ASP.NET Core -->
-    <MicrosoftAspNetCoreAuthenticationCertificateVersion>9.0.1</MicrosoftAspNetCoreAuthenticationCertificateVersion>
-    <MicrosoftAspNetCoreAuthenticationJwtBearerVersion>9.0.1</MicrosoftAspNetCoreAuthenticationJwtBearerVersion>
-    <MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>9.0.1</MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>
-    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>9.0.1</MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>
-    <MicrosoftAspNetCoreTestHostVersion>9.0.1</MicrosoftAspNetCoreTestHostVersion>
-    <MicrosoftExtensionsCachingStackExchangeRedisVersion>9.0.1</MicrosoftExtensionsCachingStackExchangeRedisVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>9.0.1</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksVersion>9.0.1</MicrosoftExtensionsDiagnosticsHealthChecksVersion>
-    <MicrosoftExtensionsFeaturesVersion>9.0.1</MicrosoftExtensionsFeaturesVersion>
+    <MicrosoftAspNetCoreAuthenticationCertificateVersion>9.0.2</MicrosoftAspNetCoreAuthenticationCertificateVersion>
+    <MicrosoftAspNetCoreAuthenticationJwtBearerVersion>9.0.2</MicrosoftAspNetCoreAuthenticationJwtBearerVersion>
+    <MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>9.0.2</MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>
+    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>9.0.2</MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>
+    <MicrosoftAspNetCoreTestHostVersion>9.0.2</MicrosoftAspNetCoreTestHostVersion>
+    <MicrosoftExtensionsCachingStackExchangeRedisVersion>9.0.2</MicrosoftExtensionsCachingStackExchangeRedisVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>9.0.2</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksVersion>9.0.2</MicrosoftExtensionsDiagnosticsHealthChecksVersion>
+    <MicrosoftExtensionsFeaturesVersion>9.0.2</MicrosoftExtensionsFeaturesVersion>
     <!-- Runtime -->
-    <MicrosoftExtensionsHostingAbstractionsVersion>9.0.1</MicrosoftExtensionsHostingAbstractionsVersion>
-    <MicrosoftExtensionsHostingVersion>9.0.1</MicrosoftExtensionsHostingVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsVersion>9.0.1</MicrosoftExtensionsConfigurationAbstractionsVersion>
-    <MicrosoftExtensionsConfigurationBinderVersion>9.0.1</MicrosoftExtensionsConfigurationBinderVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsVersion>9.0.1</MicrosoftExtensionsDependencyInjectionAbstractionsVersion>
-    <MicrosoftExtensionsLoggingAbstractionsVersion>9.0.1</MicrosoftExtensionsLoggingAbstractionsVersion>
-    <MicrosoftExtensionsOptionsVersion>9.0.1</MicrosoftExtensionsOptionsVersion>
-    <MicrosoftExtensionsPrimitivesVersion>9.0.1</MicrosoftExtensionsPrimitivesVersion>
-    <MicrosoftExtensionsHttpVersion>9.0.1</MicrosoftExtensionsHttpVersion>
-    <SystemFormatsAsn1Version>9.0.1</SystemFormatsAsn1Version>
-    <SystemTextJsonVersion>9.0.1</SystemTextJsonVersion>
+    <MicrosoftExtensionsHostingAbstractionsVersion>9.0.2</MicrosoftExtensionsHostingAbstractionsVersion>
+    <MicrosoftExtensionsHostingVersion>9.0.2</MicrosoftExtensionsHostingVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsVersion>9.0.2</MicrosoftExtensionsConfigurationAbstractionsVersion>
+    <MicrosoftExtensionsConfigurationBinderVersion>9.0.2</MicrosoftExtensionsConfigurationBinderVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsVersion>9.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsVersion>
+    <MicrosoftExtensionsLoggingAbstractionsVersion>9.0.2</MicrosoftExtensionsLoggingAbstractionsVersion>
+    <MicrosoftExtensionsOptionsVersion>9.0.2</MicrosoftExtensionsOptionsVersion>
+    <MicrosoftExtensionsPrimitivesVersion>9.0.2</MicrosoftExtensionsPrimitivesVersion>
+    <MicrosoftExtensionsHttpVersion>9.0.2</MicrosoftExtensionsHttpVersion>
+    <SystemFormatsAsn1Version>9.0.2</SystemFormatsAsn1Version>
+    <SystemTextJsonVersion>9.0.2</SystemTextJsonVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">
@@ -96,11 +96,11 @@
     <MicrosoftExtensionsConfigurationAbstractionsLTSVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsLTSVersion>
     <MicrosoftExtensionsConfigurationBinderLTSVersion>8.0.2</MicrosoftExtensionsConfigurationBinderLTSVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>
-    <MicrosoftExtensionsLoggingAbstractionsLTSVersion>8.0.2</MicrosoftExtensionsLoggingAbstractionsLTSVersion>
+    <MicrosoftExtensionsLoggingAbstractionsLTSVersion>8.0.3</MicrosoftExtensionsLoggingAbstractionsLTSVersion>
     <MicrosoftExtensionsOptionsLTSVersion>8.0.2</MicrosoftExtensionsOptionsLTSVersion>
     <MicrosoftExtensionsPrimitivesLTSVersion>8.0.0</MicrosoftExtensionsPrimitivesLTSVersion>
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
-    <SystemFormatsAsn1LTSVersion>8.0.1</SystemFormatsAsn1LTSVersion>
+    <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.5</SystemTextJsonLTSVersion>
   </PropertyGroup>
 </Project>

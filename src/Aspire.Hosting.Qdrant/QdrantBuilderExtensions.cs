@@ -41,7 +41,7 @@ public static class QdrantBuilderExtensions
         int? httpPort = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
@@ -114,7 +114,7 @@ public static class QdrantBuilderExtensions
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
     }

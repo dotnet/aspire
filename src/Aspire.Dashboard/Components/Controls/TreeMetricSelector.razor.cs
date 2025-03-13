@@ -20,4 +20,9 @@ public partial class TreeMetricSelector
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
+
+    public void OnResourceChanged()
+    {
+        StateHasChanged();
+    }
 }

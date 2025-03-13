@@ -74,6 +74,12 @@ internal sealed class ContainerSpec
     /// </summary>
     [JsonPropertyName("lifecycleKey")]
     public string? LifecycleKey { get; set; }
+
+    /// <summary>
+    /// Optional pull policy for the container image.
+    /// </summary>
+    [JsonPropertyName("pullPolicy")]
+    public string? PullPolicy { get; set; }
 }
 
 internal sealed class BuildContext
@@ -197,6 +203,18 @@ internal static class ContainerRestartPolicy
 
     // Always try to restart the container
     public const string Always = "always";
+}
+
+internal static class ContainerPullPolicy
+{
+    // Always attempt to pull a newer image from the registry
+    public const string Always = "always";
+
+    // Only pull the image if there isn't a version already available locally (this may mean the image is out of date)
+    public const string Missing = "missing";
+
+    // Never pull the image from the registry even if it is missing locally
+    public const string Never = "never";
 }
 
 internal static class PortProtocol
@@ -354,6 +372,10 @@ internal static class ContainerState
 
     // Unknown means for some reason container state is unavailable.
     public const string Unknown = "Unknown";
+
+    // Indicates that the container start is blocked because the container runtime isn't healthy.
+    // Startup will resume once the runtime has recovered.
+    public const string RuntimeUnhealthy = "RuntimeUnhealthy";
 }
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>

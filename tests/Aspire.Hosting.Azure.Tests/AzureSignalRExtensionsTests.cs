@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 using Xunit;
@@ -18,7 +17,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
 
         var expectedManifest = """
             {
@@ -90,7 +89,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr", AzureSignalRServiceMode.Serverless);
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
 
         var expectedManifest = """
             {

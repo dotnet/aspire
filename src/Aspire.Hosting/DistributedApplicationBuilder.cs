@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting;
 
@@ -156,6 +157,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
+        var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
+
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -163,11 +167,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
+            { } publisher => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, publisher),
             _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
 
@@ -206,8 +211,25 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
             // from a failure in that case.
-            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnDependencyFailure : WaitBehavior.WaitOnDependencyFailure;
+            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnResourceUnavailable : WaitBehavior.WaitOnResourceUnavailable;
         });
+        _innerBuilder.Services.AddSingleton<IAspireStore, AspireStore>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var aspireDir = configuration[AspireStore.AspireStorePathKeyName];
+
+            if (string.IsNullOrWhiteSpace(aspireDir))
+            {
+                throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
+            }
+
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
+        });
+
+        // Aspire CLI support
+        _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
+        _innerBuilder.Services.AddHostedService<CliBackchannel>();
+        _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
 
@@ -400,7 +422,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
-            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -506,4 +528,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         return diagnosticListener;
     }
+
+    /// <summary>
+    /// Gets the metadata value for the specified key from the assembly metadata.
+    /// </summary>
+    /// <param name="assemblyMetadata">The assembly metadata.</param>
+    /// <param name="key">The key to look for.</param>
+    /// <returns>The metadata value if found; otherwise, null.</returns>
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
+        assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }

@@ -12,23 +12,16 @@ internal static class RelationshipEvaluator
 {
     public static ILookup<IResource, IResource> GetParentChildLookup(DistributedApplicationModel model)
     {
-        static IResource? SelectParentContainerResource(IResource resource) => resource switch
-        {
-            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
-            IResource r when r.IsContainer() => r,
-            _ => null
-        };
-
         // parent -> children lookup
         // Built from IResourceWithParent first, then from annotations.
         return model.Resources.OfType<IResourceWithParent>()
-                              .Select(x => (Child: (IResource)x, Root: SelectParentContainerResource(x.Parent)))
-                              .Where(x => x.Root is not null)
+                              .Select(x => (Child: (IResource)x, Parent: x.Parent))
+                              .Where(x => x.Parent is not null)
                               .Concat(GetParentChildRelationshipsFromAnnotations(model))
-                              .ToLookup(x => x.Root!, x => x.Child);
+                              .ToLookup(x => x.Parent!, x => x.Child);
     }
 
-    private static IEnumerable<(IResource Child, IResource? Root)> GetParentChildRelationshipsFromAnnotations(DistributedApplicationModel model)
+    private static IEnumerable<(IResource Child, IResource Parent)> GetParentChildRelationshipsFromAnnotations(DistributedApplicationModel model)
     {
         static bool TryGetParent(IResource resource, [NotNullWhen(true)] out IResource? parent)
         {
@@ -55,14 +48,7 @@ internal static class RelationshipEvaluator
 
         ValidateRelationships(result!);
 
-        static IResource? SelectRootResource(IResource? resource) => resource switch
-        {
-            IResource r when TryGetParent(r, out var parent) => SelectRootResource(parent) ?? parent,
-            _ => null
-        };
-
-        // translate the result to child -> root, which the dashboard expects
-        return result.Select(x => (x.Child, Root: SelectRootResource(x.Child)));
+        return result!;
     }
 
     private static void ValidateRelationships((IResource Child, IResource Parent)[] relationships)

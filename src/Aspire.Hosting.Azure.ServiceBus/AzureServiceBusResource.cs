@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -21,6 +24,8 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
@@ -33,7 +38,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
         : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
@@ -52,5 +57,14 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
             target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var sbNamespace = ServiceBusNamespace.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(sbNamespace);
+        return sbNamespace;
     }
 }

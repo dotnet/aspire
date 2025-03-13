@@ -9,6 +9,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RedisResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="password">A parameter that contains the Redis server password.</param>
+    public RedisResource(string name, ParameterResource password) : this(name)
+    {
+        PasswordParameter = password;
+    }
+
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
@@ -18,9 +28,23 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+    /// <summary>
+    /// Gets the parameter that contains the Redis server password.
+    /// </summary>
+    public ParameterResource? PasswordParameter { get; }
+
+    private ReferenceExpression BuildConnectionString()
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+
+        if (PasswordParameter is not null)
+        {
+            builder.Append($",password={PasswordParameter}");
+        }
+
+        return builder.Build();
+    }
 
     /// <summary>
     /// Gets the connection string expression for the Redis server.
@@ -34,7 +58,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return ConnectionString;
+            return BuildConnectionString();
         }
     }
 
@@ -50,6 +74,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return ConnectionString.GetValueAsync(cancellationToken);
+        return BuildConnectionString().GetValueAsync(cancellationToken);
     }
 }

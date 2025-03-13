@@ -21,6 +21,9 @@ public static class AzureAppConfigurationExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -50,7 +53,6 @@ public static class AzureAppConfigurationExtensions
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

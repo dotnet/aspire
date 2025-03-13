@@ -36,7 +36,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 sub.Rules.Add(new AzureServiceBusRule("rule1"));
             });
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -102,6 +102,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -126,7 +128,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             serviceBus.AddServiceBusTopic("device-connection-state-events1234567890-even-longer");
         }
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -168,6 +170,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -179,7 +183,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
-        
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -215,9 +218,11 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [Theory(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [InlineData(null)]
+    [InlineData("other")]
     [RequiresDocker]
-    public async Task VerifyAzureServiceBusEmulatorResource()
+    public async Task VerifyAzureServiceBusEmulatorResource(string? queueName)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
@@ -226,7 +231,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator();
 
-        serviceBus.AddServiceBusQueue("queue123");
+        var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -244,10 +249,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 
-        await using var sender = serviceBusClient.CreateSender("queue123");
+        await using var sender = serviceBusClient.CreateSender(queueResource.Resource.QueueName);
         await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
 
-        await using var receiver = serviceBusClient.CreateReceiver("queue123");
+        await using var receiver = serviceBusClient.CreateReceiver(queueResource.Resource.QueueName);
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());
@@ -330,7 +335,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
         topic1.AddServiceBusSubscription("subscription1")
             .WithProperties(sub =>
-            { 
+            {
                 sub.DeadLetteringOnMessageExpiration = true;
                 sub.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 sub.LockDuration = TimeSpan.FromMinutes(5);
@@ -367,7 +372,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         Assert.NotNull(queue);
         Assert.Equal("queue1", queue.Name.Value);
@@ -469,6 +474,16 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        if (!OperatingSystem.IsWindows())
+        {
+            // Ensure the configuration file has correct attributes
+            var fileInfo = new FileInfo(volumeAnnotation.Source!);
+
+            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
+        }
 
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 

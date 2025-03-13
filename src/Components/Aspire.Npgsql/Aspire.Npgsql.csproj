@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>87</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />

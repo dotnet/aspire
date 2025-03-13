@@ -31,9 +31,7 @@ public static class AspireQdrantExtensions
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<QdrantClientSettings>? configureSettings = null)
-    {
-        AddQdrant(builder, configureSettings, connectionName, serviceKey: null);
-    }
+        => AddQdrant(builder, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="QdrantClient" /> as a keyed singleton for the given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
@@ -49,6 +47,8 @@ public static class AspireQdrantExtensions
         string name,
         Action<QdrantClientSettings>? configureSettings = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddQdrant(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
@@ -59,6 +59,7 @@ public static class AspireQdrantExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new QdrantClientSettings();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);

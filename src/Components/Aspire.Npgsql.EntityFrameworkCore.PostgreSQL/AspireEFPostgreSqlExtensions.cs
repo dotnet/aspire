@@ -49,11 +49,13 @@ public static partial class AspireEFPostgreSqlExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
         var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
             DefaultConfigSectionName,
+            connectionName,
             (settings, section) => section.Bind(settings)
         );
 
@@ -104,12 +106,14 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
     public static void EnrichNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
             this IHostApplicationBuilder builder,
-            Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
+            Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null)
+        where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
             DefaultConfigSectionName,
+            null,
             (settings, section) => section.Bind(settings)
         );
 

@@ -55,6 +55,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <returns></returns>
     public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
+        // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
         {
             return null;
@@ -129,6 +130,21 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
 
             _valueProviders.Add(valueProvider);
             _manifestExpressions.Add(valueProvider.ValueExpression);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            var index = _valueProviders.Count;
+            _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
+
+            _valueProviders.Add(valueProvider.Resource);
+            _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
         }
 
         internal readonly ReferenceExpression GetExpression() =>

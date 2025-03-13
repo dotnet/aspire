@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
@@ -10,30 +12,29 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Queue.
+/// Initializes a new instance of the <see cref="AzureServiceBusQueueResource"/> class.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusQueueResource : Resource, IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+public class AzureServiceBusQueueResource(string name, string queueName, AzureServiceBusResource parent)
+    : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureServiceBusQueueResource"/> class.
-    /// </summary>
-    public AzureServiceBusQueueResource(string name, string queueName, AzureServiceBusResource parent) : base(name)
-    {
-        QueueName = queueName;
-        Parent = parent;
-    }
+    private string _queueName = ThrowIfNullOrEmpty(queueName);
 
     /// <summary>
     /// The queue name.
     /// </summary>
-    public string QueueName { get; set; }
+    public string QueueName
+    {
+        get => _queueName;
+        set => _queueName = ThrowIfNullOrEmpty(value, nameof(queueName));
+    }
 
     /// <summary>
     /// Gets the parent Azure Service Bus resource.
     /// </summary>
-    public AzureServiceBusResource Parent { get; }
+    public AzureServiceBusResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Queue.
@@ -196,5 +197,11 @@ public class AzureServiceBusQueueResource : Resource, IResourceWithParent<AzureS
             writer.WriteBoolean(nameof(RequiresSession), queue.RequiresSession.Value);
         }
         writer.WriteEndObject();
+    }
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 }

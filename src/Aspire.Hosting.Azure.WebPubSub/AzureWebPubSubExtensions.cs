@@ -24,6 +24,9 @@ public static class AzureWebPubSubExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -121,8 +124,7 @@ public static class AzureWebPubSubExtensions
         };
 
         var resource = new AzureWebPubSubResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -133,6 +135,9 @@ public static class AzureWebPubSubExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(hubName);
+
         AzureWebPubSubHubResource? hubResource;
         if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
         {
@@ -153,13 +158,19 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
+        this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression,
+        string userEventPattern = "*",
+        string[]? systemEvents = null,
+        UpstreamAuthSettings? authSettings = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(userEventPattern);
+
         var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
 
-        return builder.AddEventHandler(urlExpression, userEventPattern, systemEvents, authSettings);
+        return AddEventHandler(builder, urlExpression, userEventPattern, systemEvents, authSettings);
     }
 
     /// <summary>
@@ -172,10 +183,18 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
+        this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-        ReferenceExpression urlExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+        ReferenceExpression urlExpression,
+        string userEventPattern = "*",
+        string[]? systemEvents = null,
+        UpstreamAuthSettings? authSettings = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(urlExpression);
+        ArgumentException.ThrowIfNullOrEmpty(userEventPattern);
+
         builder.Resource.EventHandlers.Add((urlExpression, userEventPattern, systemEvents, authSettings));
         return builder;
     }

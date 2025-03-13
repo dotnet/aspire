@@ -56,7 +56,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
     // Internal for testing.
-    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
 
@@ -94,7 +94,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         _distributedApplicationOptions = distributedApplicationOptions;
         _options = options;
         _executionContext = executionContext;
-        _resourceState = new(model.Resources.ToDictionary(r => r.Name));
+        _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
@@ -902,6 +902,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
                 try
                 {
+                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                    // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                    foreach (var er in executables)
+                    {
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable) er.DcpResource, s))).ConfigureAwait(false);
+                    }
+
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
 
                     foreach (var er in executables)
@@ -966,31 +973,31 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
         var spec = exe.Spec;
 
+        // Don't create an args collection unless needed. A null args collection means a project run by the will use args provided by the launch profile.
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
+        spec.Args = null;
+
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
-        spec.Args = [];
-        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs))
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs) && projectArgs.Count > 0)
         {
+            spec.Args ??= [];
             spec.Args.AddRange(projectArgs);
         }
 
-        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
+        // Get args from app host model resource.
+        (var appHostArgs, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
-        // If the executable is a project then include any command line args from the launch profile.
-        if (er.ModelResource is ProjectResource project)
+        var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
+
+        var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
+        if (executableArgs.Count > 0)
         {
-            // When the .NET project is launched from an IDE the launch profile args are automatically added.
-            // We still want to display the args in the dashboard so only add them to the custom arg annotations.
-            var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
-
-            var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
-            launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+            spec.Args ??= [];
+            spec.Args.AddRange(executableArgs);
         }
 
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
-        launchArgs.AddRange(args.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
-
-        spec.Args.AddRange(launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value));
+        // Arg annotations are what is displayed in the dashboard.
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
@@ -1003,19 +1010,51 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
     }
 
-    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
+    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(AppResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
     {
-        var args = new List<string>();
-        if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+        // Launch args is the final list of args that are displayed in the UI and possibly added to the executable spec.
+        // They're built from app host resource model args and any args in the effective launch profile.
+        // Follows behavior in the IDE execution spec when in IDE execution mode:
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
+        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
+
+        // If the executable is a project then include any command line args from the launch profile.
+        if (er.ModelResource is ProjectResource project)
         {
-            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-            if (cmdArgs.Count > 0)
+            // Args in the launch profile is used when:
+            // 1. The project is run as an executable. Launch profile args are combined with app host supplied args.
+            // 2. The project is run by the IDE and no app host args are specified.
+            if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && appHostArgs.Count == 0))
             {
-                args.Add("--");
-                args.AddRange(cmdArgs);
+                // When the .NET project is launched from an IDE the launch profile args are automatically added.
+                // We still want to display the args in the dashboard so only add them to the custom arg annotations.
+                var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
+
+                var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
+                {
+                    // If there are app host args, add a double-dash to separate them from the launch args.
+                    launchProfileArgs.Insert(0, "--");
+                }
+
+                launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
             }
         }
-        return args;
+
+        // In the situation where args are combined (process execution) the app host args are added after the launch profile args.
+        launchArgs.AddRange(appHostArgs.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
+
+        return launchArgs;
+    }
+
+    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
+    {
+        if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+        {
+            return CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+        }
+
+        return [];
     }
 
     private void PrepareContainers()
@@ -1044,28 +1083,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 ctr.Spec.Persistent = true;
             }
 
+            if (container.TryGetContainerImagePullPolicy(out var pullPolicy))
+            {
+                ctr.Spec.PullPolicy = pullPolicy switch
+                {
+                    ImagePullPolicy.Default => null,
+                    ImagePullPolicy.Always => ContainerPullPolicy.Always,
+                    ImagePullPolicy.Missing => ContainerPullPolicy.Missing,
+                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(ImagePullPolicy), pullPolicy)}' for container '{container.Name}'")
+                };
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
-
-            if (container.TryGetContainerMounts(out var containerMounts))
-            {
-                ctr.Spec.VolumeMounts = [];
-
-                foreach (var mount in containerMounts)
-                {
-                    var volumeSpec = new VolumeMount
-                    {
-                        Source = mount.Source,
-                        Target = mount.Target,
-                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
-                        IsReadOnly = mount.IsReadOnly
-                    };
-
-                    ctr.Spec.VolumeMounts.Add(volumeSpec);
-                }
-            }
 
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
@@ -1142,6 +1174,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
             foreach (var cr in containerResources)
             {
+                // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container) cr.DcpResource, s))).ConfigureAwait(false);
+
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
                     await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
@@ -1174,6 +1210,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Ports = BuildContainerPorts(cr);
         }
+
+        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1467,6 +1505,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource
         {
+            _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
+
             var resourceNotFound = false;
             try
             {
@@ -1485,19 +1525,27 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
+                var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
                         await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
+                        return false;
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
+                        return true;
                     }
                 }, resourceName, cancellationToken).ConfigureAwait(false);
+
+                if (!result)
+                {
+                    throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+                }
             }
+
+            _logger.LogDebug("Successfully ensured '{ResourceName}' is deleted.", resourceName);
         }
     }
 
@@ -1614,5 +1662,28 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         return ports;
+    }
+
+    private static List<VolumeMount> BuildContainerMounts(IResource container)
+    {
+        var volumeMounts = new List<VolumeMount>();
+
+        if (container.TryGetContainerMounts(out var containerMounts))
+        {
+            foreach (var mount in containerMounts)
+            {
+                var volumeSpec = new VolumeMount
+                {
+                    Source = mount.Source,
+                    Target = mount.Target,
+                    Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                    IsReadOnly = mount.IsReadOnly
+                };
+
+                volumeMounts.Add(volumeSpec);
+            }
+        }
+
+        return volumeMounts;
     }
 }

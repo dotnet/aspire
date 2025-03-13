@@ -1,9 +1,16 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param api_roles_outputs_id string
+
+param api_roles_outputs_clientid string
+
 param api_containerport string
 
 param storage_outputs_blobendpoint string
+
+@secure()
+param cache_password_value string
 
 param account_outputs_connectionstring string
 
@@ -11,8 +18,6 @@ param account_outputs_connectionstring string
 param secretparam_value string
 
 param outputs_azure_container_registry_managed_identity_id string
-
-param outputs_managed_identity_client_id string
 
 param outputs_azure_container_apps_environment_id string
 
@@ -30,6 +35,10 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     configuration: {
       secrets: [
+        {
+          name: 'connectionstrings--cache'
+          value: 'cache:6379,password=${cache_password_value}'
+        }
         {
           name: 'value'
           value: secretparam_value
@@ -88,7 +97,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__cache'
-              value: 'cache:6379'
+              secretRef: 'connectionstrings--cache'
             }
             {
               name: 'ConnectionStrings__account'
@@ -100,7 +109,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
+              value: api_roles_outputs_clientid
             }
           ]
         }
@@ -113,6 +122,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
+      '${api_roles_outputs_id}': { }
       '${outputs_azure_container_registry_managed_identity_id}': { }
     }
   }

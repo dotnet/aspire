@@ -1,15 +1,15 @@
 namespace Aspire_StarterApplication._1.Tests;
 
-#if (TestFramework == "MSTest")
+#if (TestFx == "MSTest")
 [TestClass]
 #endif
 public class WebTests
 {
-#if (TestFramework == "MSTest")
+#if (TestFx == "MSTest")
     [TestMethod]
-#elif (TestFramework == "NUnit")
+#elif (TestFx == "NUnit")
     [Test]
-#elif (TestFramework == "xUnit.net")
+#elif (TestFx == "xUnit.net")
     [Fact]
 #endif
     public async Task GetWebResourceRootReturnsOkStatusCode()
@@ -20,7 +20,7 @@ public class WebTests
         {
             clientBuilder.AddStandardResilienceHandler();
         });
-#if (TestFramework == "xUnit.net")
+#if (TestFx == "xUnit.net")
         // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging
 #endif
 
@@ -34,11 +34,11 @@ public class WebTests
         var response = await httpClient.GetAsync("/");
 
         // Assert
-#if (TestFramework == "MSTest")
+#if (TestFx == "MSTest")
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-#elif (TestFramework == "NUnit")
+#elif (TestFx == "NUnit")
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-#elif (TestFramework == "xUnit.net")
+#elif (TestFx == "xUnit.net")
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 #endif
     }

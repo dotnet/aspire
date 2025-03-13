@@ -5,10 +5,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var serviceBus = builder.AddAzureServiceBus("sbemulator");
 
-serviceBus.AddServiceBusQueue("queue1")
+serviceBus.AddServiceBusQueue("queueOne", "queue1")
     .WithProperties(queue => queue.DeadLetteringOnMessageExpiration = false);
 
-serviceBus.AddServiceBusTopic("topic1")
+serviceBus.AddServiceBusTopic("topicOne", "topic1")
     .AddServiceBusSubscription("sub1")
     .WithProperties(subscription =>
     {

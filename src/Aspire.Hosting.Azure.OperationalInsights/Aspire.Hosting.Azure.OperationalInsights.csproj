@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)AzureLogAnalytics_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>100</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />

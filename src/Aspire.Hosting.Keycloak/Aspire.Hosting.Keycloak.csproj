@@ -8,10 +8,6 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>80</MinCodeCoverage>
-  </PropertyGroup>    
-
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>

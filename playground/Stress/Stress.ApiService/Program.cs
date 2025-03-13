@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -55,6 +56,21 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
     return "Counter incremented";
 });
 
+app.MapGet("/overflow-counter", (TestMetrics metrics) =>
+{
+    // Emit measurements to ensure at least 2000 unique tag values are emitted,
+    // matching the default cardinality limit in OpenTelemetry.
+    for (var i = 0; i < 250; i++)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>($"add-tag-{i}", j.ToString(CultureInfo.InvariantCulture))]));
+        }
+    }
+
+    return "Counter overflowed";
+});
+
 app.MapGet("/big-trace", async () =>
 {
     var traceCreator = new TraceCreator
@@ -62,7 +78,7 @@ app.MapGet("/big-trace", async () =>
         IncludeBrokenLinks = true
     };
 
-    await traceCreator.CreateTraceAsync(count: 10, createChildren: true);
+    await traceCreator.CreateTraceAsync("bigtrace", count: 10, createChildren: true);
 
     return "Big trace created";
 });
@@ -77,7 +93,13 @@ app.MapGet("/trace-limit", async () =>
 
     for (var i = 0; i < TraceCount; i++)
     {
-        await traceCreator.CreateTraceAsync(count: 1, createChildren: false);
+        // Delay so OTEL has the opportunity to send traces.
+        if (i % 1000 == 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(0.5));
+        }
+
+        await traceCreator.CreateTraceAsync($"tracelimit-{i}", count: 1, createChildren: false);
     }
 
     Activity.Current = current;
@@ -101,7 +123,7 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
 app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
     const int LogCount = 10_000;
-    const int BatchSize = 10;
+    const int BatchSize = 100;
 
     for (var i = 0; i < LogCount / BatchSize; i++)
     {
@@ -254,9 +276,9 @@ app.MapGet("/multiple-traces-linked", async () =>
     Activity.Current = null;
     var traceCreator = new TraceCreator();
 
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace1");
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace2");
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace3");
+    await traceCreator.CreateTraceAsync("trace1", count: 1, createChildren: true, rootName: "LinkedTrace1");
+    await traceCreator.CreateTraceAsync("trace2", count: 1, createChildren: true, rootName: "LinkedTrace2");
+    await traceCreator.CreateTraceAsync("trace3", count: 1, createChildren: true, rootName: "LinkedTrace3");
 
     Activity.Current = current;
 
