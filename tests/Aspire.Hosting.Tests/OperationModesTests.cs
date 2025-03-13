@@ -42,6 +42,9 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
             .Create(["--publisher", "manifest", "--output-path", "test-output-path"])
             .WithTestAndResourceLogging(outputHelper);
         
+
+        // TOOD: This won't work because this event does not fire in publish mode. We need
+        //       another way to get at this internal state.
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
