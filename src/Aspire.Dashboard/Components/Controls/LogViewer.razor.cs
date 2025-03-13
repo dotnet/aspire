@@ -31,7 +31,10 @@ public sealed partial class LogViewer
     public LogEntries? LogEntries { get; set; } = null!;
 
     [Parameter]
-    public TimestampDisplayMode TimestampDisplayMode { get; set; }
+    public bool ShowTimestamp { get; set; }
+
+    [Parameter]
+    public bool IsTimestampUtc { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -73,7 +76,7 @@ public sealed partial class LogViewer
 
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
-        var date = TimestampDisplayMode is TimestampDisplayMode.Local ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
+        var date = IsTimestampUtc ? timestamp.DateTime : TimeProvider.ToLocal(timestamp);
 
         return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
@@ -85,11 +88,4 @@ public sealed partial class LogViewer
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
         return ValueTask.CompletedTask;
     }
-}
-
-public enum TimestampDisplayMode
-{
-    None,
-    Local,
-    Utc
 }

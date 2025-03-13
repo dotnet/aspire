@@ -163,13 +163,13 @@
   <data name="ConsoleLogsResourceCommands" xml:space="preserve">
     <value>Resource commands</value>
   </data>
-  <data name="ConsoleLogsTimestampShowUtc" xml:space="preserve">
-    <value>Show UTC timestamps</value>
-  </data>
-  <data name="ConsoleLogsTimestampShowLocal" xml:space="preserve">
-    <value>Show local timestamps</value>
+  <data name="ConsoleLogsTimestampShow" xml:space="preserve">
+    <value>Show timestamps</value>
   </data>
   <data name="ConsoleLogsTimestampHide" xml:space="preserve">
     <value>Hide timestamps</value>
+  </data>
+  <data name="ConsoleLogsTimestampShowUtc" xml:space="preserve">
+    <value>UTC timestamps</value>
   </data>
 </root>

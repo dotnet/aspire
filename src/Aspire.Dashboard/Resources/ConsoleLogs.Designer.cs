@@ -168,16 +168,16 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show local timestamps.
+        ///   Looks up a localized string similar to Show timestamps.
         /// </summary>
-        public static string ConsoleLogsTimestampShowLocal {
+        public static string ConsoleLogsTimestampShow {
             get {
-                return ResourceManager.GetString("ConsoleLogsTimestampShowLocal", resourceCulture);
+                return ResourceManager.GetString("ConsoleLogsTimestampShow", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show UTC timestamps.
+        ///   Looks up a localized string similar to UTC timestamps.
         /// </summary>
         public static string ConsoleLogsTimestampShowUtc {
             get {

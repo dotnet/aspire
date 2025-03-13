@@ -62,14 +62,14 @@
         <target state="translated">타임스탬프 숨기기</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsTimestampShowLocal">
-        <source>Show local timestamps</source>
-        <target state="new">Show local timestamps</target>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="new">Show timestamps</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShowUtc">
-        <source>Show UTC timestamps</source>
-        <target state="new">Show UTC timestamps</target>
+        <source>UTC timestamps</source>
+        <target state="new">UTC timestamps</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
