@@ -85,4 +85,9 @@ public class DistributedApplicationExecutionContext
     /// Returns true if the current operation is running.
     /// </summary>
     public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
+
+    /// <summary>
+    /// Returns true if the current operation is inspecting.
+    /// </summary>
+    public bool IsInspectMode => Operation == DistributedApplicationOperation.Inspect;
 }
