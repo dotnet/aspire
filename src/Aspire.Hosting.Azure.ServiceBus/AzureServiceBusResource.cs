@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.ServiceBus;
 
@@ -62,7 +61,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var sbNamespace = ServiceBusNamespace.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        var sbNamespace = ServiceBusNamespace.FromExisting(this.GetBicepIdentifier());
         sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(sbNamespace);
         return sbNamespace;
