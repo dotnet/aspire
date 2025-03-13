@@ -72,7 +72,7 @@ public partial class ResourcesTests : TestContext
                     ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null))))
             ]);
 
-        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2, TestConstants.WaitTimeout);
 
         // Assert 2
         Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
