@@ -30,6 +30,8 @@ var param1 = builder.AddParameter("param1", secret: true);
 var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
 var param3 = builder.AddParameter("param3", "default"); // Runtime only default value.
 
+var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg").RunAsContainer().AddDatabase("azdb");
+
 var db = builder.AddPostgres("pg").AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.Publishers_DbSetup>("dbsetup")
@@ -39,6 +41,7 @@ var backend = builder.AddProject<Projects.Publishers_ApiService>("api")
                      .WithExternalHttpEndpoints()
                      .WithHttpHealthCheck("/health")
                      .WithReference(db).WaitFor(db)
+                     .WithReference(azpgdb).WaitFor(azpgdb)
                      .WaitForCompletion(dbsetup)
                      .WithReplicas(2);
 
