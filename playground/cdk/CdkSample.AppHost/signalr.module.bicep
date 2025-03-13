@@ -42,3 +42,5 @@ resource signalr_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-
 }
 
 output hostName string = signalr.properties.hostName
+
+output name string = signalr.name

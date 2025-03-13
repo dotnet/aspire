@@ -32,3 +32,5 @@ resource kv3_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022
 }
 
 output vaultUri string = kv3.properties.vaultUri
+
+output name string = kv3.name
