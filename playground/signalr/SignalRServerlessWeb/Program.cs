@@ -12,7 +12,7 @@ var serviceManager = new ServiceManagerBuilder()
         })
         .BuildServiceManager();
 var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
-builder.Services.AddSingleton(hubContext).AddHostedService<PeriodicBroadcaster>();
+builder.Services.AddHostedService(sp => new PeriodicBroadcaster(hubContext));
 
 var app = builder.Build();
 
