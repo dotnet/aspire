@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Text;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Data.SqlClient;
@@ -15,8 +17,10 @@ namespace Aspire.Hosting;
 /// </summary>
 public static partial class SqlServerBuilderExtensions
 {
-    [GeneratedRegex(@"(?:[\r\n\s])*GO(?:[\r\n\s]|\z)*", RegexOptions.CultureInvariant)]
-    private static partial Regex GoStatements();
+    // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
+    // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
+    [GeneratedRegex(@"^(?:\s*)(GO|go)(?<repeat>\s+\d{1,6})?(?:\s*\-{2,}.*)?(?:\s+)?$", RegexOptions.CultureInvariant)]
+    internal static partial Regex GoStatements();
 
     /// <summary>
     /// Adds a SQL Server resource to the application model. A container is used for local development.
@@ -61,48 +65,14 @@ public static partial class SqlServerBuilderExtensions
             using var sqlConnection = new SqlConnection(connectionString);
             await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
 
+            if (sqlConnection.State != System.Data.ConnectionState.Open)
+            {
+                throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
+            }
+
             foreach (var sqlDatabase in sqlServer.DatabaseResources)
             {
-                var quotedDatabaseIdentifier = new SqlCommandBuilder().QuoteIdentifier(sqlDatabase.DatabaseName);
-
-                try
-                {
-                    if (sqlConnection.State != System.Data.ConnectionState.Open)
-                    {
-                        throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
-                    }
-
-                    var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
-
-                    if (scriptAnnotation?.Script == null)
-                    {
-                        using var command = sqlConnection.CreateCommand();
-                        command.CommandText = $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
-                        command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
-                        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        var batches = GoStatements().Split(scriptAnnotation.Script);
-
-                        foreach (var batch in batches)
-                        {
-                            if (string.IsNullOrWhiteSpace(batch))
-                            {
-                                continue;
-                            }
-
-                            using var command = sqlConnection.CreateCommand();
-                            command.CommandText = batch;
-                            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    var logger = @event.Services.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
-                    logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
-                }
+                await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
             }
         });
 
@@ -210,5 +180,69 @@ public static partial class SqlServerBuilderExtensions
         builder.WithAnnotation(new CreationScriptAnnotation(script));
 
         return builder;
+    }
+
+    private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
+    {
+        try
+        {
+            var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+
+            if (scriptAnnotation?.Script == null)
+            {
+                var quotedDatabaseIdentifier = new SqlCommandBuilder().QuoteIdentifier(sqlDatabase.DatabaseName);
+                using var command = sqlConnection.CreateCommand();
+                command.CommandText = $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
+                command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
+                await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                using var reader = new StringReader(scriptAnnotation.Script);
+                var batchBuilder = new StringBuilder();
+
+                while (reader.ReadLine() is { } line)
+                {
+                    var matchGo = GoStatements().Match(line);
+
+                    if (matchGo.Success)
+                    {
+                        // Execute the current batch
+                        var count = matchGo.Groups["repeat"].Success ? int.Parse(matchGo.Groups["repeat"].Value, CultureInfo.InvariantCulture) : 1;
+                        var batch = batchBuilder.ToString();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            using var command = sqlConnection.CreateCommand();
+                            command.CommandText = batch;
+                            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                        }
+
+                        batchBuilder.Clear();
+                    }
+                    else
+                    {
+                        // Prevent batches with only whitespace
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            batchBuilder.AppendLine(line);
+                        }
+                    }
+                }
+
+                // Process the remaining batch lines
+                if (batchBuilder.Length > 0) batchBuilder.IsNullOrWhiteSpace())
+                {
+                    using var command = sqlConnection.CreateCommand();
+                    command.CommandText = batchBuilder.ToString();
+                    await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
+        }
     }
 }

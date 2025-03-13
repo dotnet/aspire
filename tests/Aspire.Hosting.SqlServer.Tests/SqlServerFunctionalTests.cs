@@ -125,7 +125,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         string? volumeName = null;
         string? bindMountPath = null;
-        
+
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
@@ -351,6 +351,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 CREATE TABLE [Modèles] ([Name] nvarchar(max) NOT NULL);
                 INSERT INTO [Modèles] ([Name]) VALUES ('BatMobile');
                 GO
+
                 """);
 
         using var app = builder.Build();
