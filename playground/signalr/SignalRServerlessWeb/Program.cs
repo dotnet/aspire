@@ -48,10 +48,10 @@ internal sealed class PeriodicBroadcaster(ServiceHubContext hubContext) : Backgr
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var _count = 0;
+        var count = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
-            await hubContext.Clients.All.SendAsync("newMessage", $"Current count is: {_count++}", stoppingToken);
+            await hubContext.Clients.All.SendAsync("newMessage", $"Current count is: {count++}", stoppingToken);
             await Task.Delay(2000, stoppingToken);
         }
     }
