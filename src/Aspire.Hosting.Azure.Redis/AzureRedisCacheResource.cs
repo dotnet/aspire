@@ -3,6 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.Primitives;
+using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
 
 namespace Aspire.Hosting.Azure;
 
@@ -27,6 +29,8 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+
+    private BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
@@ -62,5 +66,14 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
         }
 
         InnerResource = innerResource;
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = CdkRedisResource.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
     }
 }

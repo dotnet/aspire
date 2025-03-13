@@ -12,6 +12,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Roles;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,7 +37,9 @@ public static class AzureCosmosExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureCosmosDBResource(name, ConfigureCosmosDBInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()))
+            .WithAnnotation(new RoleAssignmentCustomizationAnnotation(ConfigureCosmosDBRoleInfrastructure));
     }
 
     /// <summary>
@@ -418,31 +421,90 @@ public static class AzureCosmosExtensions
         }
         else
         {
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
+            // use managed identity
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-
-            var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
-            roleDefinition.Parent = cosmosAccount;
-            roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
-            infrastructure.Add(roleDefinition);
-
-            infrastructure.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
             {
-                NameOverride = BicepFunction.CreateGuid(principalIdParameter, roleDefinition.Id, cosmosAccount.Id),
-                Parent = cosmosAccount,
-                Scope = cosmosAccount.Id,
-                RoleDefinitionId = roleDefinition.Id,
-                PrincipalId = principalIdParameter
-            });
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+
+                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter, principalIdParameter);
+            }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = cosmosAccount.DocumentEndpoint
             });
         }
+
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
+    }
+
+    private static void ConfigureCosmosDBRoleInfrastructure(AzureResourceInfrastructure infra, AzureProvisioningResource resource)
+    {
+        var azureResource = (AzureCosmosDBResource)resource;
+        if (azureResource.UseAccessKeyAuthentication)
+        {
+            // nothing to do for access key authentication
+            return;
+        }
+
+        var cosmosAccount = GetOrAddExistingCosmosDBResource(infra, azureResource);
+
+        var (principalId, uniqueId) = GetPrincipalId(infra);
+        AddContributorRoleAssignment(infra, cosmosAccount, principalId, uniqueId);
+    }
+
+    private static CosmosDBAccount GetOrAddExistingCosmosDBResource(AzureResourceInfrastructure infra, AzureCosmosDBResource azureResource)
+    {
+        var existingResource = infra.GetProvisionableResources()
+            .OfType<CosmosDBAccount>()
+            .FirstOrDefault(r => r.BicepIdentifier == azureResource.GetBicepIdentifier());
+
+        if (existingResource is null)
+        {
+            existingResource = (CosmosDBAccount)azureResource.AddAsExistingResource(infra);
+        }
+
+        return existingResource;
+    }
+
+    private static (BicepValue<Guid> PrincipalId, BicepValue<string> UniqueId) GetPrincipalId(AzureResourceInfrastructure infra)
+    {
+        if (infra.GetProvisionableResources()
+            .OfType<UserAssignedIdentity>()
+            .SingleOrDefault() is { } identity)
+        {
+            return (identity.PrincipalId, identity.Id);
+        }
+
+        if (infra.GetProvisionableResources()
+            .OfType<ProvisioningParameter>()
+            .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId) is { } principalIdParameter)
+        {
+            // for parameters, return the parameter as the principalId AND as the uniqueId
+            var principalId = (BicepValue<Guid>)principalIdParameter;
+            return (principalId, principalId);
+        }
+
+        throw new InvalidOperationException($"Could not resolve a principalId.");
+    }
+
+    private static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId, BicepValue<string> uniqueId)
+    {
+        var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
+        roleDefinition.Parent = cosmosAccount;
+        roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
+        infra.Add(roleDefinition);
+
+        infra.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+        {
+            NameOverride = BicepFunction.CreateGuid(uniqueId, roleDefinition.Id, cosmosAccount.Id),
+            Parent = cosmosAccount,
+            Scope = cosmosAccount.Id,
+            RoleDefinitionId = roleDefinition.Id,
+            PrincipalId = principalId
+        });
     }
 }
 

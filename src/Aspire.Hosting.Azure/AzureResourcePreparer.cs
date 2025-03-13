@@ -140,7 +140,8 @@ internal sealed class AzureResourcePreparer(
                         }
                         // in PublishMode, this is a no-op since the publish infrastructure will handle the role assignments
                     }
-                    else if (azureReference.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults))
+                    else if (azureReference.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults) &&
+                        defaults.Roles.Count > 0)
                     {
                         if (executionContext.IsRunMode)
                         {
@@ -151,6 +152,20 @@ internal sealed class AzureResourcePreparer(
                         {
                             // in PublishMode, we copy the default role assignments to the compute resource
                             resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, defaults.Roles));
+                        }
+                    }
+
+                    // In PublishMode, if the Azure resource has a RoleAssignmentCustomizationAnnotation, we need to copy it to the compute resource
+                    // so the publish infrastructure can apply it for that compute resource.
+                    if (executionContext.IsPublishMode &&
+                        azureReference.TryGetAnnotationsOfType<RoleAssignmentCustomizationAnnotation>(out var customizationAnnotations))
+                    {
+                        foreach (var customizationAnnotation in customizationAnnotations)
+                        {
+                            resource.Annotations.Add(new RoleAssignmentCustomizationAnnotation(customizationAnnotation.Configure)
+                            {
+                                Target = azureReference
+                            });
                         }
                     }
                 }
@@ -256,7 +271,7 @@ internal sealed class AzureResourcePreparer(
         }
         else
         {
-            resource.Annotations.Add(new AppliedRoleAssignmentsAnnotation([..newRoles]));
+            resource.Annotations.Add(new AppliedRoleAssignmentsAnnotation([.. newRoles]));
         }
     }
 }

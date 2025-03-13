@@ -72,6 +72,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+
+            output principalName string = api_identity.name
             """);
     }
 
@@ -116,6 +118,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
     
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -160,6 +164,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -204,6 +210,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -248,6 +256,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -292,6 +302,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -336,6 +348,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 
@@ -380,6 +394,54 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
+            """);
+    }
+
+    [Fact]
+    public Task RedisSupport()
+    {
+        return RoleAssignmentTest("redis",
+            builder =>
+            {
+                var redis = builder.AddAzureRedis("redis");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            },
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param redis_outputs_name string
+
+            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
+              name: redis_outputs_name
+            }
+
+            resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              properties: {
+                accessPolicyName: 'Data Contributor'
+                objectId: api_identity.properties.principalId
+                objectIdAlias: api_identity.name
+              }
+              parent: redis
+            }
+
+            output id string = api_identity.id
+
+            output clientId string = api_identity.properties.clientId
+
+            output principalId string = api_identity.properties.principalId
+            
+            output principalName string = api_identity.name
             """);
     }
 

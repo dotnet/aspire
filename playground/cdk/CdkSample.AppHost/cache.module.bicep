@@ -37,3 +37,5 @@ resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-0
 }
 
 output connectionString string = '${cache.properties.hostName},ssl=true'
+
+output name string = cache.name

@@ -37,3 +37,5 @@ resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-0
 }
 
 output connectionString string = '${redis.properties.hostName},ssl=true'
+
+output name string = redis.name

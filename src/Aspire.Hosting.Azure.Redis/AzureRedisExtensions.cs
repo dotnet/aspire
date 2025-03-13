@@ -3,12 +3,13 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
-using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
-using Azure.Provisioning.Redis;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Redis;
+using Azure.Provisioning.Roles;
+using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
+using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
 namespace Aspire.Hosting;
 
@@ -121,7 +122,9 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()))
+            .WithAnnotation(new RoleAssignmentCustomizationAnnotation(ConfigureRedisRoleInfrastructure));
     }
 
     /// <summary>
@@ -256,23 +259,90 @@ public static class AzureRedisExtensions
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
-
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+            if (redisResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
             {
-                Parent = redis,
-                AccessPolicyName = "Data Contributor",
-                ObjectId = principalIdParameter,
-                ObjectIdAlias = principalNameParameter
-            });
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+                var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+                infrastructure.Add(principalNameParameter);
+
+                AddContributorPolicyAssignment(infrastructure, redis, principalIdParameter, principalNameParameter);
+            }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
         }
+
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+    }
+
+    private static void ConfigureRedisRoleInfrastructure(AzureResourceInfrastructure infra, AzureProvisioningResource resource)
+    {
+        var azureResource = (AzureRedisCacheResource)resource;
+        if (azureResource.UseAccessKeyAuthentication)
+        {
+            // nothing to do for access key authentication
+            return;
+        }
+
+        var redis = GetOrAddExistingRedisResource(infra, azureResource);
+
+        var (principalId, principalName) = GetPrincipalInfo(infra);
+        AddContributorPolicyAssignment(infra, redis, principalId, principalName);
+    }
+
+    private static CdkRedisResource GetOrAddExistingRedisResource(AzureResourceInfrastructure infra, AzureRedisCacheResource azureResource)
+    {
+        var existingResource = infra.GetProvisionableResources()
+            .OfType<CdkRedisResource>()
+            .FirstOrDefault(r => r.BicepIdentifier == azureResource.GetBicepIdentifier());
+
+        if (existingResource is null)
+        {
+            existingResource = (CdkRedisResource)azureResource.AddAsExistingResource(infra);
+        }
+
+        return existingResource;
+    }
+
+    private static (BicepValue<Guid> PrincipalId, BicepValue<string> PrincipalName) GetPrincipalInfo(AzureResourceInfrastructure infra)
+    {
+        if (infra.GetProvisionableResources()
+            .OfType<UserAssignedIdentity>()
+            .SingleOrDefault() is { } identity)
+        {
+            return (identity.PrincipalId, identity.Name);
+        }
+
+        if (infra.GetProvisionableResources()
+            .OfType<ProvisioningParameter>()
+            .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId) is { } principalIdParameter)
+        {
+            if (infra.GetProvisionableResources()
+                .OfType<ProvisioningParameter>()
+                .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalName) is not { } principalNameParameter)
+            {
+                // add the principal name parameter if it doesn't exist
+                principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+                infra.Add(principalNameParameter);
+            }
+
+            return (principalIdParameter, principalNameParameter);
+        }
+
+        throw new InvalidOperationException($"Could not resolve a principalId.");
+    }
+
+    private static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    {
+        infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+        {
+            Parent = redis,
+            AccessPolicyName = "Data Contributor",
+            ObjectId = principalId,
+            ObjectIdAlias = principalName
+        });
     }
 }

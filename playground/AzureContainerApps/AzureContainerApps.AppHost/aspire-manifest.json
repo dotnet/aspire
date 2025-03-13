@@ -163,7 +163,8 @@
       "type": "azure.bicep.v0",
       "path": "api-roles.module.bicep",
       "params": {
-        "storage_outputs_name": "{storage.outputs.name}"
+        "storage_outputs_name": "{storage.outputs.name}",
+        "account_outputs_name": "{account.outputs.name}"
       }
     },
     "cache-password": {
