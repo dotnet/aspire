@@ -231,7 +231,7 @@ public static partial class SqlServerBuilderExtensions
                 }
 
                 // Process the remaining batch lines
-                if (batchBuilder.Length > 0) batchBuilder.IsNullOrWhiteSpace())
+                if (batchBuilder.Length > 0)
                 {
                     using var command = sqlConnection.CreateCommand();
                     command.CommandText = batchBuilder.ToString();
