@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public class DashboardTelemetrySender : IDashboardTelemetrySender
+public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
 {
     private readonly IOptions<DashboardOptions> _options;
     private readonly ILogger<DashboardTelemetrySender> _logger;
@@ -53,20 +53,20 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
                         {
                             await requestFunc(Client, GetResponseProperty).ConfigureAwait(false);
 
-                            _logger.LogTrace("Telemetry request successfully sent.");
+                            _logger.LogTrace("Telemetry request {Name} successfully sent.", context.Name);
 
                             // Double check properties are set.
                             foreach (var property in context.Properties)
                             {
                                 if (!property.HasValue)
                                 {
-                                    _logger.LogWarning("Unset context property.");
+                                    _logger.LogWarning("Unset context property in request {Name}.", context.Name);
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Failed to send telemetry request.");
+                            _logger.LogWarning(ex, "Failed to send telemetry request {Name}.", context.Name);
                         }
                     }
                 }
@@ -100,8 +100,11 @@ public class DashboardTelemetrySender : IDashboardTelemetrySender
     {
         if (DebugSessionHelpers.HasDebugSession(_options.Value.DebugSession, out var certificate, out var debugSessionUri, out var token))
         {
-            Client = DebugSessionHelpers.CreateHttpClient(debugSessionUri, token, certificate, CreateHandler);
-            return true;
+            if (_options.Value.DebugSession.TelemetryOptOut is not true)
+            {
+                Client = DebugSessionHelpers.CreateHttpClient(debugSessionUri, token, certificate, CreateHandler);
+                return true;
+            }
         }
 
         _logger.LogInformation("Telemetry is not configured.");

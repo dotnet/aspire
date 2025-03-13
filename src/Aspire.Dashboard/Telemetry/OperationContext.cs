@@ -5,13 +5,14 @@ namespace Aspire.Dashboard.Telemetry;
 
 public sealed class OperationContext
 {
-    public static readonly OperationContext Empty = new OperationContext();
+    public static readonly OperationContext Empty = new(name: string.Empty);
 
-    private OperationContext()
+    private OperationContext(string name)
     {
+        Name = name;
     }
 
-    public static OperationContext Create(int propertyCount)
+    public static OperationContext Create(int propertyCount, string name)
     {
         var properties = new OperationContextProperty[propertyCount];
         for (var i = 0; i < propertyCount; i++)
@@ -19,7 +20,7 @@ public sealed class OperationContext
             properties[i] = new OperationContextProperty();
         }
 
-        var context = new OperationContext
+        var context = new OperationContext(name)
         {
             Properties = properties
         };
@@ -28,4 +29,5 @@ public sealed class OperationContext
     }
 
     public OperationContextProperty[] Properties { get; init; } = [];
+    public string Name { get; }
 }

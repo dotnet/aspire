@@ -62,7 +62,7 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
             }
         }
 
-        await this.InitializeComponentTelemetryAsync();
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -114,7 +114,7 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
     public async ValueTask DisposeAsync()
     {
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
-        this.DisposeComponentTelemetry();
+        TelemetryContext.Dispose();
     }
 
     // IComponentWithTelemetry impl

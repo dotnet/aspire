@@ -93,7 +93,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 2);
+        var context = OperationContext.Create(propertyCount: 2, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
@@ -121,7 +121,7 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0);
+        var context = OperationContext.Create(propertyCount: 0, name: "context/endOperation");
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
@@ -139,7 +139,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 2);
+        var context = OperationContext.Create(propertyCount: 2, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
@@ -167,7 +167,7 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0);
+        var context = OperationContext.Create(propertyCount: 0, name: "context/endUserTask");
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
@@ -186,7 +186,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1);
+        var context = OperationContext.Create(propertyCount: 1, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
@@ -214,7 +214,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1);
+        var context = OperationContext.Create(propertyCount: 1, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
@@ -242,7 +242,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1);
+        var context = OperationContext.Create(propertyCount: 1, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostFaultRequest(
@@ -271,7 +271,7 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1);
+        var context = OperationContext.Create(propertyCount: 1, name: eventName);
         _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostAssetRequest(
@@ -298,7 +298,7 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0);
+        var context = OperationContext.Create(propertyCount: 0, name: "context/postProperty");
         _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
@@ -316,7 +316,7 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0);
+        var context = OperationContext.Create(propertyCount: 0, name: "context/postRecurringProperty");
         _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
@@ -334,7 +334,7 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0);
+        var context = OperationContext.Create(propertyCount: 0, name: "context/postCommandLineFlags");
         _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
         {
             var request = new PostCommandLineFlagsRequest(flagPrefixes, additionalProperties);

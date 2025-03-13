@@ -14,10 +14,4 @@ public static class CollectionExtensions
 
         return !array.Where((t, i) => !Equals(t, other[i])).Any();
     }
-
-    public static bool Equivalent<TKey, TValue>(this Dictionary<TKey, TValue> dict1, Dictionary<TKey, TValue> dict2) where TKey : notnull
-    {
-        return dict1.Count == dict2.Count && dict1.All(kvp => dict2.TryGetValue(kvp.Key, out var value)
-                                                              && EqualityComparer<TValue>.Default.Equals(kvp.Value, value));
-    }
 }

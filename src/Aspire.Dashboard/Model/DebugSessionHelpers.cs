@@ -52,7 +52,7 @@ internal static class DebugSessionHelpers
         [NotNullWhen(true)] out Uri? debugSessionUri,
         [NotNullWhen(true)] out string? token)
     {
-        if (debugSession.Address is not null && debugSession.Token is not null && debugSession.TelemetryOptOut is not true)
+        if (debugSession.Address is not null && debugSession.Token is not null)
         {
             serverCert = debugSession.GetServerCertificate();
             var scheme = serverCert is null ? "http" : "https";

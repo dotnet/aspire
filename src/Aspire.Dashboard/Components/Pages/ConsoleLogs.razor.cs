@@ -154,9 +154,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
 
-        await this.InitializeComponentTelemetryAsync();
-
-        return;
+        await TelemetryContext.InitializeAsync(TelemetryService);
 
         async Task TrackResourceSnapshotsAsync()
         {
@@ -615,7 +613,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         await StopAndClearConsoleLogsSubscriptionAsync();
-        this.DisposeComponentTelemetry();
+        TelemetryContext.Dispose();
     }
 
     public class ConsoleLogsViewModel
@@ -664,7 +662,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public void UpdateTelemetryProperties()
     {
-        TelemetryContext.UpdateTelemetryProperties(TelemetryService, [
+        TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
         ]);

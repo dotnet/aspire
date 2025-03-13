@@ -29,6 +29,28 @@ public class DashboardTelemetrySenderTests
         Assert.False(result);
     }
 
+    [Fact]
+    public async Task CreateTelemetryService_WithDebugSession_Optout_ShowsTelemetryUnsupported()
+    {
+        var options = new TestDashboardOptions(new DashboardOptions
+        {
+            DebugSession = new DebugSession
+            {
+                Address = "http://localhost:5000",
+                ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
+                Token = "test",
+                TelemetryOptOut = true
+            }
+        });
+
+        Assert.True(options.Value.DebugSession.TryParseOptions(out _));
+
+        var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
+        var result = await telemetrySender.TryStartTelemetrySessionAsync();
+
+        Assert.False(result);
+    }
+
     [Theory]
     [MemberData(nameof(CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported_MemberData))]
     public async Task CreateTelemetryService_WithValidDebugSession_DifferentServerResponses_ShowsTelemetrySupported(

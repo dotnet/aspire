@@ -103,7 +103,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             StateHasChanged();
         }));
 
-        await this.InitializeComponentTelemetryAsync();
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -308,7 +308,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     {
         _applicationsSubscription?.Dispose();
         _metricsSubscription?.Dispose();
-        this.DisposeComponentTelemetry();
+        TelemetryContext.Dispose();
     }
 
     // IComponentWithTelemetry impl
@@ -316,7 +316,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public void UpdateTelemetryProperties()
     {
-        TelemetryContext.UpdateTelemetryProperties(TelemetryService, [
+        TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ReplicaSetName is not null)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1)),
