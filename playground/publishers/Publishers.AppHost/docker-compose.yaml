@@ -11,6 +11,7 @@ services:
     networks:
       - "aspire"
   dbsetup:
+    image: "${DBSETUP_IMAGE}"
     environment:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
@@ -24,6 +25,7 @@ services:
     networks:
       - "aspire"
   api:
+    image: "${API_IMAGE}"
     environment:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
@@ -51,6 +53,7 @@ services:
     networks:
       - "aspire"
   frontend:
+    image: "${FRONTEND_IMAGE}"
     environment:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
@@ -60,7 +63,7 @@ services:
       ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Database=sqldb"
       P0: "${PARAM0}"
       P1: "${PARAM1}"
-      P2: "${PARAM2:-default}"
+      P2: "${PARAM2}"
       P3: "${PARAM3}"
       services__api__http__0: "http://api:8005"
       services__api__https__0: "https://api:8007"

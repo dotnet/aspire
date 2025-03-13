@@ -26,6 +26,7 @@ internal sealed class DockerComposePublishingContext(
     CancellationToken cancellationToken = default)
 {
     public readonly PortAllocator PortAllocator = new();
+    private readonly Dictionary<string, (string Description, string? DefaultValue)> _env = [];
     private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
 
     private ILogger Logger => logger;
@@ -48,12 +49,17 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        var outputFile = await WriteDockerComposeOutput(model).ConfigureAwait(false);
+        await WriteDockerComposeOutput(model).ConfigureAwait(false);
 
-        logger.FinishGeneratingDockerCompose(outputFile);
+        logger.FinishGeneratingDockerCompose(publisherOptions.OutputPath);
     }
 
-    private async Task<string> WriteDockerComposeOutput(DistributedApplicationModel model)
+    public void AddEnv(string name, string description, string? defaultValue = null)
+    {
+        _env[name] = (description, defaultValue);
+    }
+
+    private async Task WriteDockerComposeOutput(DistributedApplicationModel model)
     {
         var defaultNetwork = new Network
         {
@@ -95,7 +101,31 @@ internal sealed class DockerComposePublishingContext(
         var outputFile = Path.Combine(publisherOptions.OutputPath!, "docker-compose.yaml");
         Directory.CreateDirectory(publisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
-        return outputFile;
+
+        // Write a .env file with the environment variable names
+        // that are used in the compose file
+        var envFile = Path.Combine(publisherOptions.OutputPath!, ".env");
+        using var envWriter = new StreamWriter(envFile);
+
+        foreach (var entry in _env)
+        {
+            var (key, (description, defaultValue)) = entry;
+
+            await envWriter.WriteLineAsync($"# {description}").ConfigureAwait(false);
+
+            if (defaultValue is not null)
+            {
+                await envWriter.WriteLineAsync($"{key}={defaultValue}").ConfigureAwait(false);
+            }
+            else
+            {
+                await envWriter.WriteLineAsync($"{key}=").ConfigureAwait(false);
+            }
+
+            await envWriter.WriteLineAsync().ConfigureAwait(false);
+        }
+
+        await envWriter.FlushAsync().ConfigureAwait(false);
     }
 
     private async Task<ComposeServiceContext> ProcessResourceAsync(IResource resource)
@@ -133,8 +163,6 @@ internal sealed class DockerComposePublishingContext(
     {
         private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress, bool External);
 
-        private readonly Dictionary<object, string> _resolvedParameters = [];
-        private readonly Dictionary<string, string> _rawParameterValues = [];
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
         public List<string> Commands { get; } = [];
@@ -153,8 +181,6 @@ internal sealed class DockerComposePublishingContext(
             {
                 Name = resource.Name.ToLowerInvariant(),
             };
-
-            ApplyParametersForContext();
 
             SetEntryPoint(composeService);
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
@@ -202,13 +228,19 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
+        private bool TryGetContainerImageName(IResource resource, out string? containerImageName)
         {
             // If the resource has a Dockerfile build annotation, we don't have the image name
             // it will come as a parameter
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
+            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resource is ProjectResource)
             {
-                containerImageName = null;
+                var imageEnvName = $"{resource.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
+
+                composePublishingContext.AddEnv(imageEnvName,
+                                                $"Container image name for {resource.Name}",
+                                                $"{resource.Name}:latest");
+
+                containerImageName = $"${{{imageEnvName}}}";
                 return false;
             }
 
@@ -420,7 +452,7 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private static string ResolveParameterValue(ParameterResource parameter)
+        private string ResolveParameterValue(ParameterResource parameter)
         {
             // Placeholder for resolving the actual parameter value
             // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
@@ -429,37 +461,15 @@ internal sealed class DockerComposePublishingContext(
             // this doesn't handle generation of parameter values with defaults
             var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
 
-            if (parameter.Secret || parameter.Default is null)
-            {
-                return $"${{{env}}}";
-            }
+            composePublishingContext.AddEnv(env, $"Parameter {parameter.Name}",
+                                            parameter.Secret || parameter.Default is null ? null : parameter.Value);
 
-            return $"${{{env}:-{parameter.Value}}}";
+            return $"${{{env}}}";
         }
 
         private string AllocateParameter(ParameterResource parameter)
         {
-            if (!_resolvedParameters.TryGetValue(parameter, out var parameterName))
-            {
-                parameterName = parameter.ValueExpression
-                    .Replace("{", "")
-                    .Replace("}", "")
-                    .Replace(".", "_")
-                    .Replace("-", "_")
-                    .ToLowerInvariant();
-
-                _resolvedParameters[parameter] = parameterName;
-            }
-
-            if (!_rawParameterValues.ContainsKey(parameterName))
-            {
-                var actualValue = ResolveParameterValue(parameter);
-                _rawParameterValues[parameterName] = actualValue;
-            }
-
-            Parameters[parameterName] = parameter;
-
-            return parameterName;
+            return ResolveParameterValue(parameter);
         }
 
         private void SetEntryPoint(Service composeService)
@@ -483,28 +493,6 @@ internal sealed class DockerComposePublishingContext(
             if (Commands.Count > 0)
             {
                 composeService.Command.AddRange(Commands);
-            }
-        }
-
-        private void ApplyParametersForContext()
-        {
-            if (Parameters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var parameter in _resolvedParameters)
-            {
-                var parameterName = parameter.Value;
-
-                foreach (var envVar in EnvironmentVariables.Where(x => x.Value.Contains(parameterName)))
-                {
-                    var envVarValue = _rawParameterValues.TryGetValue(parameterName, out var value)
-                        ? value
-                        : string.Empty;
-
-                    EnvironmentVariables[envVar.Key] = envVar.Value.Replace(parameterName, envVarValue);
-                }
             }
         }
     }
