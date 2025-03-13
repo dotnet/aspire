@@ -341,7 +341,17 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         // Create a database with Accent Insensitive collation
         var newDb = sqlserver.AddDatabase(databaseName)
-            .WithCreationScript($"CREATE DATABASE [{databaseName}] COLLATE French_CI_AI;");
+            .WithCreationScript($$"""
+                CREATE DATABASE [{{databaseName}}] COLLATE French_CI_AI;
+                GO
+
+                USE [{{databaseName}}];
+                GO
+
+                CREATE TABLE [Modèles] ([Name] nvarchar(max) NOT NULL);
+                INSERT INTO [Modèles] ([Name]) VALUES ('BatMobile');
+                GO
+                """);
 
         using var app = builder.Build();
 
@@ -370,11 +380,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             var selectCommand = conn.CreateCommand();
-            selectCommand.CommandText = """
-                CREATE TABLE [Modèles] ([Name] nvarchar(max) NOT NULL);
-                INSERT INTO [Modèles] ([Name]) VALUES ('BatMobile');
-                SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation 
-                """;
+            selectCommand.CommandText = "SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation";
 
             var results = await selectCommand.ExecuteReaderAsync(token);
             Assert.True(results.HasRows);

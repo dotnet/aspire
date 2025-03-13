@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Data.SqlClient;
@@ -12,8 +13,11 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding SQL Server resources to the application model.
 /// </summary>
-public static class SqlServerBuilderExtensions
+public static partial class SqlServerBuilderExtensions
 {
+    [GeneratedRegex(@"(?:[\r\n\s])*GO(?:[\r\n\s]|\z)*", RegexOptions.CultureInvariant)]
+    private static partial Regex GoStatements();
+
     /// <summary>
     /// Adds a SQL Server resource to the application model. A container is used for local development.
     /// </summary>
@@ -70,11 +74,29 @@ public static class SqlServerBuilderExtensions
 
                     var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
 
-                    using var command = sqlConnection.CreateCommand();
-                    command.CommandText = scriptAnnotation?.Script ??
-                        $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
-                    command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
-                    await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                    if (scriptAnnotation?.Script == null)
+                    {
+                        using var command = sqlConnection.CreateCommand();
+                        command.CommandText = $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
+                        command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
+                        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        var batches = GoStatements().Split(scriptAnnotation.Script);
+
+                        foreach (var batch in batches)
+                        {
+                            if (string.IsNullOrWhiteSpace(batch))
+                            {
+                                continue;
+                            }
+
+                            using var command = sqlConnection.CreateCommand();
+                            command.CommandText = batch;
+                            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
