@@ -1,21 +1,18 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR.Management;
-using SignalRServerlessWeb;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddHttpClient();
-builder.Services.AddSingleton(sp =>
-{
-    return new ServiceManagerBuilder()
+
+var serviceManager = new ServiceManagerBuilder()
         .WithOptions(option =>
         {
-            option.ConnectionString = builder.Configuration["ConnectionStrings:signalrServerless"];
+            option.ConnectionString = builder.Configuration.GetConnectionString("signalrServerless");
         })
         .BuildServiceManager();
-});
-builder.Services.AddHostedService<BackgroundWorker>();
+var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
+builder.Services.AddHostedService(sp => new PeriodicBroadcaster(hubContext));
 
 var app = builder.Build();
 
@@ -34,9 +31,8 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapPost("/negotiate", async (ServiceManager serviceManager, string? userId) =>
+app.MapPost("/negotiate", async (string? userId) =>
 {
-    var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
     var negotiateResponse = await hubContext.NegotiateAsync(new NegotiationOptions
     {
         UserId = userId ?? "user1"
@@ -47,3 +43,16 @@ app.MapPost("/negotiate", async (ServiceManager serviceManager, string? userId) 
 
 app.MapRazorPages();
 app.Run();
+
+internal sealed class PeriodicBroadcaster(ServiceHubContext hubContext) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        var count = 0;
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await hubContext.Clients.All.SendAsync("newMessage", $"Current count is: {count++}", stoppingToken);
+            await Task.Delay(2000, stoppingToken);
+        }
+    }
+}
