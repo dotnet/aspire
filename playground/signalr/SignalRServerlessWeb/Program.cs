@@ -1,16 +1,17 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR.Management;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddRazorPages();
+
 var serviceManager = new ServiceManagerBuilder()
         .WithOptions(option =>
         {
-            option.ConnectionString = builder.Configuration["ConnectionStrings:signalrServerless"];
+            option.ConnectionString = builder.Configuration.GetConnectionString("signalrServerless");
         })
         .BuildServiceManager();
 var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
-
-builder.Services.AddRazorPages();
 builder.Services.AddSingleton(hubContext).AddHostedService<PeriodicBroadcaster>();
 
 var app = builder.Build();
@@ -45,13 +46,13 @@ app.Run();
 
 internal sealed class PeriodicBroadcaster(ServiceHubContext hubContext) : BackgroundService
 {
-    private int _count;
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var _count = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
-            await hubContext.Clients.All.SendCoreAsync("newMessage", [$"Current count is: {_count++}"], stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            await hubContext.Clients.All.SendAsync("newMessage", $"Current count is: {_count++}", stoppingToken);
+            await Task.Delay(2000, stoppingToken);
         }
     }
 }
