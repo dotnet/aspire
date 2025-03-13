@@ -19,4 +19,8 @@
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Docker.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -102,6 +102,12 @@ internal sealed class DockerComposePublishingContext(
         Directory.CreateDirectory(publisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
 
+        if (_env.Count == 0)
+        {
+            // No environment variables to write, so we can skip creating the .env file
+            return;
+        }
+
         // Write a .env file with the environment variable names
         // that are used in the compose file
         var envFile = Path.Combine(publisherOptions.OutputPath!, ".env");
