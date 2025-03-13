@@ -73,6 +73,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             target[connectionName] = ConnectionStringExpression;
             // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ConnectionString"] = ConnectionStringExpression;
         }
         else
         {
@@ -80,6 +81,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
             // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
         }
     }
 }
