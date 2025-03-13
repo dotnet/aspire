@@ -25,7 +25,7 @@ jobs:
         id: generate_test_matrix
 
   setup_for_tests_win:
-    name: Setup for template tests (Windows)
+    name: Setup for tests (Windows)
     runs-on: windows-latest
     outputs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
