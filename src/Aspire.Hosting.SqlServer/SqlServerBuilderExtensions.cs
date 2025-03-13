@@ -19,8 +19,8 @@ public static partial class SqlServerBuilderExtensions
 {
     // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
     // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
-    [GeneratedRegex(@"^(?:\s*)(GO|go)(?<repeat>\s+\d{1,6})?(?:\s*\-{2,}.*)?(?:\s+)?$", RegexOptions.CultureInvariant)]
-    internal static partial Regex GoStatements();
+    [GeneratedRegex(@"^\s*GO(?<repeat>\s+\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex GoStatements();
 
     /// <summary>
     /// Adds a SQL Server resource to the application model. A container is used for local development.
