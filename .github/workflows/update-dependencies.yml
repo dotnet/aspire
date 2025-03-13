@@ -45,4 +45,4 @@ jobs:
           branch: update-dependencies
           commit-message: "[Automated] Updating package dependencies"
           title: "[Automated] Update dependencies"
-          body: "Auto-generated update to the package dependencies. In order for this PR to be green, it will require all of the new dependencies to be mirrored to our AzDO NuGet feeds. Any updates made outside of the first itemgroup in Directory.Packages.props should be reverted as those are packages that get updated through arcade's dependency flow."
+          body: "Auto-generated update to the package dependencies. In order for this PR to be green, it will require all of the new dependencies to be [mirrored to our AzDO NuGet feeds](https://github.com/dotnet/arcade/blob/main/Documentation/MirroringPackages.md). Any updates made outside of the first itemgroup in Directory.Packages.props should be reverted as those are packages that get updated through arcade's dependency flow."
