@@ -33,6 +33,7 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "8006"
       ConnectionStrings__db: "Host=pg;Port=5432;Username=postgres;Password=${PG_PASSWORD};Database=db"
+      ConnectionStrings__azdb: "${AZPG_OUTPUTS_CONNECTIONSTRING};Database=azdb"
     ports:
       - "8006:8005"
       - "8008:8007"

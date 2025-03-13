@@ -439,17 +439,34 @@ internal sealed class DockerComposePublishingContext(
                     return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
                 }
 
-                // todo: ideally we should have processed all resources that we can before getting here...
-                // This is probably going to include removing the resource from the model if its not processable during publishing in Docker - BicepResources?
-                // The problem there is that we'd need to take reference on Azure hosting for that.
-                // Approach: Maybe we filter the incoming resources and remove the ones that are not processable?
+                // If we don't know how to process the value, we just return it as an external reference
                 if (value is IManifestExpressionProvider r)
                 {
                     composePublishingContext.Logger.NotSupportedResourceWarning(nameof(value), r.GetType().Name);
+
+                    return ResolveUnknownValue(r);
                 }
 
                 return value; // todo: we need to never get here really...
             }
+        }
+
+        private string ResolveUnknownValue(IManifestExpressionProvider parameter)
+        {
+            // Placeholder for resolving the actual parameter value
+            // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
+
+            // Treat secrets as environment variable placeholders as for now
+            // this doesn't handle generation of parameter values with defaults
+            var env = parameter.ValueExpression.Replace("{", "")
+                     .Replace("}", "")
+                     .Replace(".", "_")
+                     .Replace("-", "_")
+                     .ToUpperInvariant();
+
+            composePublishingContext.AddEnv(env, $"Unknown reference {parameter.ValueExpression}");
+
+            return $"${{{env}}}";
         }
 
         private string ResolveParameterValue(ParameterResource parameter)
