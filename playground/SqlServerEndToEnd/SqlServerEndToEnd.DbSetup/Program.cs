@@ -17,6 +17,6 @@ foreach (var db in new DbContext[] { db1, db2 })
     var created = await db.Database.EnsureCreatedAsync();
     if (created)
     {
-        Console.WriteLine("Database created!");
+        Console.WriteLine("Database schema created!");
     }
 }
