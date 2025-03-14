@@ -77,6 +77,39 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
     
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(10));
     }
+
+    [Fact]
+    public async Task AppHostConnectsBackToCliWithPingRequestInInspectMode()
+    {
+        var testStartedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var socketPath = DotNetCliRunner.GetBackchannelSocketPath();
+        using var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(socketPath);
+        serverSocket.Bind(endpoint);
+        serverSocket.Listen(1);
+
+        using var builder = TestDistributedApplicationBuilder
+            .Create("--operation", "inspect")
+            .WithTestAndResourceLogging(outputHelper);
+
+        builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
+        using var app = builder.Build();
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
+
+        var clientSocket = await serverSocket.AcceptAsync();
+        using var stream = new NetworkStream(clientSocket, true);
+
+        var cliRpcTarget = new DummyCliRpcTarget();
+        var rpc = JsonRpc.Attach(stream, cliRpcTarget);
+
+        // This assertion is a little absurd, but the apphsot pinging the CLI
+        // after the test starts is an invaraint I can assert on :)
+        var pingTimestamp = await cliRpcTarget.PingAsyncChannel.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(pingTimestamp > testStartedTimestamp);
+    
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(10));
+    }
 }
 
 public class DummyCliRpcTarget
