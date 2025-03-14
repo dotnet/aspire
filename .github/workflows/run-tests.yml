@@ -38,7 +38,9 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
-    if: inputs.os != 'windows-latest' || inputs.testShortName != 'Playground'
+    # Playground, and EndToEnd tests are disabled on windows
+    # because of missing docker support
+    if: inputs.os != 'windows-latest' || (inputs.testShortName != 'EndToEnd' && inputs.testShortName != 'Playground')
     steps:
       - name: Validate arguments
         shell: pwsh
