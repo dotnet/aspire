@@ -1,15 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
-using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Aspire.Hosting.SqlServer.Tests;
+
 public class SqlServerGoStatementTests
 {
-    private static readonly Regex s_goStatements = (Regex)typeof(SqlServerBuilderExtensions).GetMethod("GoStatements", BindingFlags.Static | BindingFlags.NonPublic)?.Invoke(null, null)!;
-
     [Theory]
     [InlineData("GO")]
     [InlineData(" GO")]
@@ -26,7 +23,7 @@ public class SqlServerGoStatementTests
     [InlineData("GO 123 --comments")]
     public void DelimiterShouldMatch(string delimiter)
     {
-        Assert.Matches(s_goStatements, delimiter);
+        Assert.Matches(SqlServerBuilderExtensions.GoStatements(), delimiter);
     }
 
     [Theory]
@@ -42,6 +39,6 @@ public class SqlServerGoStatementTests
     [InlineData("GO 123_123")]
     public void DelimiterShouldNotMatch(string delimiter)
     {
-        Assert.DoesNotMatch(s_goStatements, delimiter);
+        Assert.DoesNotMatch(SqlServerBuilderExtensions.GoStatements(), delimiter);
     }
 }
