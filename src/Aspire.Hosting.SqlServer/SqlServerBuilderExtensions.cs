@@ -19,7 +19,7 @@ public static partial class SqlServerBuilderExtensions
 {
     // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
     // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
-    [GeneratedRegex(@"^\s*GO(?<repeat>\s+\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\s*GO\s+(?<repeat>\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex GoStatements();
 
     /// <summary>
