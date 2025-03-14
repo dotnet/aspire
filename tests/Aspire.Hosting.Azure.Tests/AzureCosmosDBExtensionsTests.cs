@@ -103,8 +103,8 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // database and container should have the same connection string as the cosmos account, for now.
         // In the future, we can add the database and container info to the connection string.
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", container1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

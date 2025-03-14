@@ -43,8 +43,100 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         Assert.Contains("AccountEndpoint", e.Message);
     }
 
-    private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>
+    [Fact]
+    public void AddAzureCosmosDatabase_RegistersDatabaseService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};");
+
+        builder.AddAzureCosmosDatabase("cosmos");
+
+        using var host = builder.Build();
+        var database = host.Services.GetRequiredService<Database>();
+        var client = host.Services.GetRequiredService<CosmosClient>();
+
+        Assert.NotNull(client);
+        Assert.NotNull(database);
+        Assert.Equal(databaseName, database.Id);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+    }
+
+    [Fact]
+    public void AddAzureCosmosContainer_RegistersContainerService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var containerName = "testcontainer";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};Container={containerName};");
+
+        builder.AddAzureCosmosContainer("cosmos");
+
+        using var host = builder.Build();
+        var container = host.Services.GetRequiredService<Container>();
+        var database = host.Services.GetService<Database>();
+        var client = host.Services.GetRequiredService<CosmosClient>();
+
+        Assert.NotNull(container);
+        Assert.NotNull(client);
+        Assert.Null(database);
+        Assert.Equal(containerName, container.Id);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+    }
+
+    [Fact]
+    public void AddKeyedAzureCosmosDatabase_RegistersDatabaseService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var serviceKey = "cosmos-key";
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};", serviceKey);
+
+        builder.AddKeyedAzureCosmosDatabase(serviceKey);
+
+        using var host = builder.Build();
+        var database = host.Services.GetRequiredKeyedService<Database>(serviceKey);
+        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
+
+        Assert.NotNull(client);
+        Assert.NotNull(database);
+        Assert.Equal(databaseName, database.Id);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+    }
+
+    [Fact]
+    public void AddKeyedAzureCosmosContainer_RegistersContainerService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var serviceKey = "cosmos-key";
+        var databaseName = "testdb";
+        var containerName = "testcontainer";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};Container={containerName}", serviceKey);
+
+        builder.AddKeyedAzureCosmosContainer(serviceKey);
+
+        using var host = builder.Build();
+        var container = host.Services.GetRequiredKeyedService<Container>(serviceKey);
+        var database = host.Services.GetKeyedService<Database>(serviceKey);
+        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
+
+        Assert.NotNull(container);
+        Assert.NotNull(client);
+        Assert.Null(database);
+        Assert.Equal(containerName, container.Id);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+    }
+
+    private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString, string? key = null) =>
         configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString)
+            new KeyValuePair<string, string?>($"ConnectionStrings:{key ?? "cosmos"}", connectionString)
         ]);
 }
