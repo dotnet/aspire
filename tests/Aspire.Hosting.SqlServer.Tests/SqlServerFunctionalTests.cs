@@ -60,6 +60,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifySqlServerResource()
     {
+        const string databaseName = "newdb";
+
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
@@ -68,7 +70,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
         var sqlserver = builder.AddSqlServer("sqlserver");
-        var tempDb = sqlserver.AddDatabase("tempdb");
+        var newDb = sqlserver.AddDatabase(databaseName);
 
         using var app = builder.Build();
 
@@ -76,10 +78,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
-        hb.AddSqlServerDbContext<TestDbContext>(tempDb.Resource.Name);
-        hb.AddSqlServerClient(tempDb.Resource.Name);
+        hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name);
+        hb.AddSqlServerClient(newDb.Resource.Name);
 
         using var host = hb.Build();
 
@@ -119,6 +121,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
+        const string databaseName = "db";
+
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -132,7 +136,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             using var builder1 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
             var sqlserver1 = builder1.AddSqlServer("sqlserver");
-            var masterdb1 = sqlserver1.AddDatabase("master");
+            var db1 = sqlserver1.AddDatabase(databaseName);
 
             var password = sqlserver1.Resource.PasswordParameter.Value;
 
@@ -171,7 +175,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app1.StartAsync();
 
-            await app1.ResourceNotifications.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
+            await app1.ResourceNotifications.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
             try
             {
@@ -179,10 +183,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 hb1.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{masterdb1.Resource.Name}"] = await masterdb1.Resource.ConnectionStringExpression.GetValueAsync(default),
+                    [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default),
                 });
 
-                hb1.AddSqlServerClient(masterdb1.Resource.Name);
+                hb1.AddSqlServerClient(db1.Resource.Name);
 
                 using var host1 = hb1.Build();
 
@@ -239,7 +243,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var sqlserver2 = builder2.AddSqlServer("sqlserver2", passwordParameter2);
-            var masterdb2 = sqlserver2.AddDatabase("master");
+            var db2 = sqlserver2.AddDatabase(databaseName);
 
             if (useVolume)
             {
@@ -254,7 +258,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app2.StartAsync();
 
-                await app2.ResourceNotifications.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
+                await app2.ResourceNotifications.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
                 try
                 {
@@ -262,10 +266,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb2.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{masterdb2.Resource.Name}"] = await masterdb2.Resource.ConnectionStringExpression.GetValueAsync(default),
+                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default),
                     });
 
-                    hb2.AddSqlServerClient(masterdb2.Resource.Name);
+                    hb2.AddSqlServerClient(db2.Resource.Name);
 
                     using (var host2 = hb2.Build())
                     {
@@ -318,5 +322,117 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithCustomScript()
+    {
+        const string databaseName = "newdb";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+
+        // Create a database with Accent Insensitive collation
+        var newDb = sqlserver.AddDatabase(databaseName)
+            .WithCreationScript($$"""
+                CREATE DATABASE [{{databaseName}}] COLLATE French_CI_AI;
+                GO
+
+                USE [{{databaseName}}];
+                GO
+
+                CREATE TABLE [Modèles] ([Name] nvarchar(max) NOT NULL);
+                INSERT INTO [Modèles] ([Name]) VALUES ('BatMobile');
+                GO
+
+                """);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddSqlServerClient(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        // Test SqlConnection
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var conn = host.Services.GetRequiredService<SqlConnection>();
+
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
+
+            var selectCommand = conn.CreateCommand();
+            selectCommand.CommandText = "SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation";
+
+            var results = await selectCommand.ExecuteReaderAsync(token);
+            Assert.True(results.HasRows);
+        }, cts.Token);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithSpecialNames()
+    {
+        const string databaseName = "!'][\"";
+        const string resourceName = "db";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 3, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+
+        var newDb = sqlserver.AddDatabase(resourceName, databaseName);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddSqlServerClient(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        // Test SqlConnection
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var conn = host.Services.GetRequiredService<SqlConnection>();
+
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
+
+            Assert.Equal(System.Data.ConnectionState.Open, conn.State);
+        }, cts.Token);
     }
 }

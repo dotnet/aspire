@@ -11,8 +11,4 @@
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
-  </ItemGroup>
-
 </Project>
