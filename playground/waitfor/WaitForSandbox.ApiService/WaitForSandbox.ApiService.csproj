@@ -12,7 +12,7 @@
     <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
     <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\WaitForSandbox.Common\WaitForSandbox.Common.csproj" />
-  </ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+</ItemGroup>
 
 </Project>
