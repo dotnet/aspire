@@ -107,7 +107,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var postgresDbName = "db1";
 
-        var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+        var postgres = builder.AddPostgres("pg");
         var db = postgres.AddDatabase(postgresDbName);
 
         using var app = builder.Build();
@@ -126,6 +126,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
 
         await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -206,7 +208,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var usernameParameter = builder1.AddParameter("user", username);
             var passwordParameter = builder1.AddParameter("pwd", password, secret: true);
-            var postgres1 = builder1.AddPostgres("pg", usernameParameter, passwordParameter).WithEnvironment("POSTGRES_DB", postgresDbName);
+            var postgres1 = builder1.AddPostgres("pg", usernameParameter, passwordParameter);
 
             var db1 = postgres1.AddDatabase(postgresDbName);
 
@@ -215,7 +217,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.Generate(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), delete it
+                // If the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 postgres1.WithDataVolume(volumeName);
             }
@@ -379,7 +381,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var postgresDbName = "db1";
 
-            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+            var postgres = builder.AddPostgres("pg");
             var db = postgres.AddDatabase(postgresDbName);
 
             postgres.WithInitBindMount(bindMountPath);
@@ -496,6 +498,241 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         static string? GetContainerId(ResourceEvent resourceEvent)
         {
             return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithCustomScript()
+    {
+        const string databaseName = "newdb";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var postgres = builder.AddPostgres("pg1");
+
+        // Create a database. Script derived from TechEmpower.
+        var newDb = postgres.AddDatabase(databaseName)
+            .WithCreationScript($$"""
+                CREATE DATABASE {{databaseName}} WITH OWNER = postgres ENCODING = 'UTF8';
+
+                BEGIN;
+                
+                CREATE TABLE  World (
+                  id integer NOT NULL,
+                  randomNumber integer NOT NULL default 0,
+                  PRIMARY KEY  (id)
+                );
+                GRANT ALL PRIVILEGES ON World to postgres;
+
+                INSERT INTO World (id, randomnumber)
+                SELECT x.id, least(floor(random() * 33 + 1), 33) FROM generate_series(1, 33) as x(id);
+
+                COMMIT;
+
+                """);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddNpgsqlDataSource(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        var conn = host.Services.GetRequiredService<NpgsqlConnection>();
+
+        if (conn.State != ConnectionState.Open)
+        {
+            await conn.OpenAsync(cts.Token);
+        }
+
+        var selectCommand = conn.CreateCommand();
+        selectCommand.CommandText = "SELECT * FROM World";
+
+        var results = await selectCommand.ExecuteReaderAsync(cts.Token);
+        Assert.True(results.HasRows);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseWithSpecialNames()
+    {
+        const string databaseName = "!']`'[\"";
+        const string resourceName = "db";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var postgres = builder.AddPostgres("pg1");
+
+        var newDb = postgres.AddDatabase(resourceName, databaseName);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddNpgsqlDataSource(newDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
+
+        var conn = host.Services.GetRequiredService<NpgsqlConnection>();
+
+        if (conn.State != ConnectionState.Open)
+        {
+            await conn.OpenAsync(cts.Token);
+        }
+
+        Assert.Equal(ConnectionState.Open, conn.State);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseResiliently()
+    {
+        // Creating the database multiple times should not fail
+
+        const string databaseName = "db1";
+        const string resourceName = "db";
+
+        string? volumeName = null;
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 3, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var username = "postgres";
+        var password = "p@ssw0rd1";
+
+        try
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+                var usernameParameter = builder.AddParameter("user", username);
+                var passwordParameter = builder.AddParameter("pwd", password, secret: true);
+
+                var postgres = builder.AddPostgres("pg1", usernameParameter, passwordParameter);
+
+                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+                volumeName = VolumeNameGenerator.Generate(postgres, nameof(AddDatabaseCreatesDatabaseResiliently));
+
+                if (i == 0)
+                {
+                    // If the volume already exists (because of a crashing previous run), delete it
+                    DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                }
+
+                postgres.WithDataVolume(volumeName);
+
+                var newDb = postgres.AddDatabase(resourceName, databaseName);
+
+                using var app = builder.Build();
+
+                await app.StartAsync(cts.Token);
+
+                var hb = Host.CreateApplicationBuilder();
+
+                hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+                hb.AddNpgsqlDataSource(newDb.Resource.Name);
+
+                using var host = hb.Build();
+
+                await host.StartAsync();
+
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
+
+                // Test connection
+                await pipeline.ExecuteAsync(async token =>
+                {
+                    var conn = host.Services.GetRequiredService<NpgsqlConnection>();
+
+                    if (conn.State != ConnectionState.Open)
+                    {
+                        await conn.OpenAsync(token);
+                    }
+
+                    Assert.Equal(ConnectionState.Open, conn.State);
+                }, cts.Token);
+
+                await app.StopAsync(cts.Token);
+            }
+        }
+        finally
+        {
+            if (volumeName is not null)
+            {
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesMultipleDatabases()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var postgres = builder.AddPostgres("pg1");
+
+        var db1 = postgres.AddDatabase("db1");
+        var db2 = postgres.AddDatabase("db2");
+        var db3 = postgres.AddDatabase("db3");
+
+        var dbs = new[] { db1, db2, db3 };
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        foreach (var db in dbs)
+        {
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+            hb.AddKeyedNpgsqlDataSource(db.Resource.Name);
+        }
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        foreach (var db in dbs)
+        {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
+            var conn = host.Services.GetRequiredKeyedService<NpgsqlConnection>(db.Resource.Name);
+
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync(cts.Token);
+            }
+
+            Assert.Equal(ConnectionState.Open, conn.State);
         }
     }
 }

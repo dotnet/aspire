@@ -8,6 +8,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Aspire.Hosting;
 
@@ -67,6 +69,32 @@ public static class PostgresBuilderExtensions
             }
         });
 
+        builder.Eventing.Subscribe<ResourceReadyEvent>(postgresServer, async (@event, ct) =>
+        {
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
+            }
+
+            // Non-database scoped connection string
+            using var npgsqlConnection = new NpgsqlConnection(connectionString + ";Database=postgres;");
+
+            await npgsqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+            if (npgsqlConnection.State != System.Data.ConnectionState.Open)
+            {
+                throw new InvalidOperationException($"Could not open connection to '{postgresServer.Name}'");
+            }
+
+            foreach (var name in postgresServer.Databases.Keys)
+            {
+                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is PostgresDatabaseResource postgreDatabase)
+                {
+                    await CreateDatabaseAsync(npgsqlConnection, postgreDatabase, @event.Services, ct).ConfigureAwait(false);
+                }
+            }
+        });
+
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey, configure: (connection) =>
         {
@@ -121,9 +149,28 @@ public static class PostgresBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase);
+
+        builder.Resource.AddDatabase(postgresDatabase.Name, postgresDatabase.DatabaseName);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
+        {
+            connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(postgresDatabase)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -418,6 +465,25 @@ public static class PostgresBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
+    /// <summary>
+    /// Defines the SQL script used to create the database.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="PostgresDatabaseResource"/>.</param>
+    /// <param name="script">The SQL script used to create the database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <value>Default script is <code>CREATE DATABASE "&lt;QUOTED_DATABASE_NAME&gt;"</code></value>
+    /// </remarks>
+    public static IResourceBuilder<PostgresDatabaseResource> WithCreationScript(this IResourceBuilder<PostgresDatabaseResource> builder, string script)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(script);
+
+        builder.WithAnnotation(new CreationScriptAnnotation(script));
+
+        return builder;
+    }
+
     private static string WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances, out byte[] contentHash)
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
@@ -487,5 +553,47 @@ public static class PostgresBuilderExtensions
         writer.WriteEndObject();
 
         return filePath;
+    }
+
+    private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+
+        if (scriptAnnotation?.Script == null)
+        {
+            try
+            {
+                var quotedDatabaseIdentifier = new NpgsqlCommandBuilder().QuoteIdentifier(npgsqlDatabase.DatabaseName);
+                using var command = npgsqlConnection.CreateCommand();
+                command.CommandText = $"CREATE DATABASE {quotedDatabaseIdentifier}";
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (PostgresException p) when (p.SqlState == "42P04")
+            {
+                // Ignore the error if the database already exists when Aspire tries to create it automatically.
+                // If the database was created by the user, then this exception would be thrown.
+            }
+            catch (Exception e)
+            {
+                var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+                logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
+            }
+        }
+        else
+        {
+            // User-provided script
+
+            try
+            {
+                using var command = npgsqlConnection.CreateCommand();
+                command.CommandText = scriptAnnotation?.Script;
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+                logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
+            }
+        }
     }
 }

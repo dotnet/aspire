@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -23,9 +24,18 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            var connectionStringBuilder = new DbConnectionStringBuilder
+            {
+                ["Database"] = DatabaseName
+            };
 
+            return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
+        }
+    }
     /// <summary>
     /// Gets the database name.
     /// </summary>
