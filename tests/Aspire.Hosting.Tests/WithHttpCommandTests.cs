@@ -325,6 +325,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
+        builder.Configuration["CODESPACES"] = "false";
+
         var service = builder.AddResource(new CustomResource("service"))
             .WithHttpEndpoint()
             .WithHttpCommand("/dothing", "Do The Thing", commandName: "mycommand");
@@ -380,6 +382,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        
+        builder.Configuration["CODESPACES"] = "false";
 
         var enableCommand = false;
         var callbackCalled = false;

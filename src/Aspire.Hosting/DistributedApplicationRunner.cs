@@ -18,6 +18,5 @@ internal sealed class DistributedApplicationRunner(IHostApplicationLifetime life
             await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
             lifetime.StopApplication();
         }
-
     }
 }
