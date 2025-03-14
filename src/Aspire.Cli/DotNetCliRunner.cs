@@ -157,6 +157,6 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             packageVersion
         ];
 
-        return await ExecuteAsync(cliArgs, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(cliArgs, false, cancellationToken).ConfigureAwait(false);
     }
 }
