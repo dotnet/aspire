@@ -752,3 +752,7 @@ fluent-switch.table-switch::part(label) {
     max-height: 400px;
     overflow-y: auto;
 }
+
+.resource-icon {
+    vertical-align: text-bottom;
+}

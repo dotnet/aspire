@@ -321,4 +321,10 @@
     <value>View options</value>
     <comment>An icon allowing the user to expand or collapse all child resources.</comment>
   </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
+  </data>
 </root>
