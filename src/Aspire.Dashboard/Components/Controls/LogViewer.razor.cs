@@ -76,9 +76,9 @@ public sealed partial class LogViewer
 
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
-        var date = IsTimestampUtc ? timestamp.DateTime : TimeProvider.ToLocal(timestamp);
-
-        return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
+        return IsTimestampUtc
+            ? timestamp.UtcDateTime.ToString(KnownFormats.ConsoleLogsUITimestampUTCFormat, CultureInfo.InvariantCulture)
+            : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
     }
 
     public ValueTask DisposeAsync()
