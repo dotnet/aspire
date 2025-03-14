@@ -159,6 +159,11 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-executable";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+
+        // This test is sensitive to codespaces and so needs to explicitly 
+        // disable codespace URL rewriting support.
+        testProgram.AppBuilder.Configuration["CODESPACES"] = "false";
+
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-servicea";
@@ -217,6 +222,11 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-container";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+
+        // This test is sensitive to codespaces and so needs to explicitly 
+        // disable codespace URL rewriting support.
+        testProgram.AppBuilder.Configuration["CODESPACES"] = "false";
+
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-redis";

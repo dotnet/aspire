@@ -170,9 +170,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        var modeSettings = (
+            InspectMode: _innerBuilder.Configuration.GetBool("Operation:InspectMode") ?? false,
+            Publisher: _innerBuilder.Configuration["Publishing:Publisher"]
+        );
+
+        _executionContextOptions = modeSettings switch
         {
-            { } publisher => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, publisher),
+            { InspectMode: true } => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Inspect),
+            { Publisher: not null } => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, modeSettings.Publisher),
             _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
 
@@ -230,6 +236,22 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddHostedService<CliBackchannel>();
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
+
+        // Orchestrator
+        _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+
+        // DCP stuff
+        _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
+        _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
+        _innerBuilder.Services.AddSingleton<DcpHost>();
+        _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
+        _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
+
+        // We need a unique path per application instance
+        _innerBuilder.Services.AddSingleton(new Locations());
+        _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
         ConfigureHealthChecks();
 
@@ -305,23 +327,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
-
-            // Orchestrator
-            _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
-            _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
-
-            // DCP stuff
-            _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
-            _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
-            _innerBuilder.Services.AddSingleton<DcpHost>();
-            _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
-            _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
-
-            // We need a unique path per application instance
-            _innerBuilder.Services.AddSingleton(new Locations());
-            _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             // Devcontainers & Codespaces
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
@@ -422,7 +427,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
-            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
+            { "--inspect", "Operation:InspectMode" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
