@@ -49,12 +49,12 @@ internal static class CosmosUtils
 
         // Strip out the database and container from the connection string in order
         // to tell if we are left with just AccountEndpoint.
-        if (connectionBuilder.TryGetValue("Database", out var _))
+        if (connectionBuilder.TryGetValue("Database", out var databaseValue))
         {
             connectionBuilder["Database"] = null;
         }
 
-        if (connectionBuilder.TryGetValue("Container", out var _))
+        if (connectionBuilder.TryGetValue("Container", out var containerValue))
         {
             connectionBuilder["Container"] = null;
         }
@@ -68,20 +68,24 @@ internal static class CosmosUtils
             return new CosmosConnectionInfo(accountEndpoint, null);
         }
 
-        return new CosmosConnectionInfo(null, connectionBuilder.ConnectionString);
+        return new CosmosConnectionInfo(null, connectionBuilder.ConnectionString, databaseValue?.ToString(), containerValue?.ToString());
     }
 }
 
 internal readonly struct CosmosConnectionInfo
 {
-    public CosmosConnectionInfo(Uri? accountEndpoint, string? connectionString)
+    public CosmosConnectionInfo(Uri? accountEndpoint, string? connectionString, string? databaseName = null, string? containerName = null)
     {
         Debug.Assert(accountEndpoint is not null ^ connectionString is not null, "only one should be set.");
 
         AccountEndpoint = accountEndpoint;
         ConnectionString = connectionString;
+        DatabaseName = databaseName;
+        ContainerName = containerName;
     }
 
     public Uri? AccountEndpoint { get; }
     public string? ConnectionString { get; }
+    public string? DatabaseName { get; }
+    public string? ContainerName { get; }
 }
