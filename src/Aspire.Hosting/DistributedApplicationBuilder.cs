@@ -122,19 +122,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
         };
 
-        if (operation == DistributedApplicationOperation.Run)
+        return operation switch
         {
-            return new DistributedApplicationExecutionContextOptions(operation!);
-        }
-        else if (operation == DistributedApplicationOperation.Inspect)
-        {
-            return new DistributedApplicationExecutionContextOptions(operation);
-        }
-        else
-        {
-            var publisher = _innerBuilder.Configuration["Publishing:Publisher"];
-            return new DistributedApplicationExecutionContextOptions(operation, publisher);
-        }
+            DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
+            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
+            _ => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"])
+        };
     }
 
     /// <summary>
