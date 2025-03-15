@@ -10,7 +10,7 @@
     <DotNetCliPackageType>sdk</DotNetCliPackageType>
     <NeedsCreateDotNetDevScripts Condition="'$(OS)' != 'Windows_NT'">true</NeedsCreateDotNetDevScripts>
     <HasDocker Condition="'$(OS)' != 'Windows_NT'">true</HasDocker>
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4921 -->
     <DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>
 
     <DotNetCliVersion>$(DotNetSdkPreviousVersionForTesting)</DotNetCliVersion>
@@ -138,9 +138,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
-    <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
-
     <!-- Issue: https://github.com/dotnet/aspire/pull/6181 -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
