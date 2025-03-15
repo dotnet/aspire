@@ -9,29 +9,30 @@ using Aspire.Hosting.Kubernetes;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddDockerCompose("docker-compose", options => {
+builder.AddDockerCompose("docker-compose", options =>
+{
     options.DefaultContainerRegistry = "override.azurecr.io";
     // Do stuff here.
 });
 
-builder.AddKubernetes("k8s", options => {
+builder.AddKubernetes("k8s", options =>
+{
     // Do stuff here.
 });
 
-builder.AddAzureContainerApps("aca", options => {
+builder.AddAzureContainerApps("aca", options =>
+{
     // Do stuff here.
 });
 
-var db = builder.AddAzurePostgresFlexibleServer("pg")
-                .WithPasswordAuthentication()
-                .RunAsContainer(c =>
-                {
-                    c.WithPgAdmin(c =>
-                    {
-                        c.WithHostPort(15551);
-                    });
-                })
-                .AddDatabase("db");
+var param0 = builder.AddParameter("param0");
+var param1 = builder.AddParameter("param1", secret: true);
+var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
+var param3 = builder.AddParameter("param3", "default"); // Runtime only default value.
+
+var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg").RunAsContainer().AddDatabase("azdb");
+
+var db = builder.AddPostgres("pg").AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.Publishers_DbSetup>("dbsetup")
                      .WithReference(db).WaitFor(db);
@@ -40,10 +41,22 @@ var backend = builder.AddProject<Projects.Publishers_ApiService>("api")
                      .WithExternalHttpEndpoints()
                      .WithHttpHealthCheck("/health")
                      .WithReference(db).WaitFor(db)
+                     .WithReference(azpgdb).WaitFor(azpgdb)
                      .WaitForCompletion(dbsetup)
                      .WithReplicas(2);
 
+// need a container to test.
+var sqlServer = builder.AddSqlServer("sqlserver")
+        .WithDataVolume("sqlserver-data");
+
+var sqlDb = sqlServer.AddDatabase("sqldb");
+
 builder.AddProject<Projects.Publishers_Frontend>("frontend")
+       .WithReference(sqlDb)
+       .WithEnvironment("P0", param0)
+       .WithEnvironment("P1", param1)
+       .WithEnvironment("P2", param2)
+       .WithEnvironment("P3", param3)
        .WithReference(backend).WaitFor(backend);
 
 #if !SKIP_DASHBOARD_REFERENCE

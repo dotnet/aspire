@@ -112,6 +112,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.1" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.22.3-alpha" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />

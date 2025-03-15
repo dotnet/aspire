@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -20,6 +23,8 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
+
+    private BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
@@ -52,5 +57,14 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
             target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var sbNamespace = ServiceBusNamespace.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(sbNamespace);
+        return sbNamespace;
     }
 }

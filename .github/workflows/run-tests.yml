@@ -33,7 +33,8 @@ jobs:
   test:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
-    name: ${{ inputs.os }}
+    name: ${{ inputs.testShortName }}
+    if: inputs.os != 'windows-latest' || inputs.testShortName != 'Playground'
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -138,7 +139,7 @@ jobs:
           /p:ContinuousIntegrationBuild=true
           -s eng/testing/.runsettings
           -l "console;verbosity=normal"
-          -l "trx;LogFileName=${{ inputs.testShortName }}-TestResults.trx"
+          -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
           -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
           "--blame"
           --blame-hang-timeout ${{ inputs.testHangTimeout }}

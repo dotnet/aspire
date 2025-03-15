@@ -163,6 +163,31 @@
         ]
       }
     },
+    "XUnitVersion": {
+      "type": "parameter",
+      "description": "The version of xUnit.net to use.",
+      "displayName": "xUnit.net version",
+      "datatype": "choice",
+      "replaces": "XUnitVersion",
+      "choices": [
+        {
+          "choice": "v2",
+          "displayName": "v2",
+          "description": "Chooses xUnit.net v2 with VSTest"
+        },
+        {
+          "choice": "v3",
+          "displayName": "v3",
+          "description": "Chooses xUnit.net v3 with VSTest (Aspire version 9.2 and later only)"
+        },
+        {
+          "choice": "v3mtp",
+          "displayName": "v3 with Microsoft Test Platform",
+          "description": "Chooses xUnit.net v3 with Microsoft Test Platform (Aspire version 9.2 and later only)"
+        }
+      ],
+      "defaultValue": "v2"
+    },
     "hostIdentifier": {
       "type": "bind",
       "binding": "HostIdentifier"

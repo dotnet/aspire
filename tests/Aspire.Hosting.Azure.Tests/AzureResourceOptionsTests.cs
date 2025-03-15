@@ -78,6 +78,8 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
                 }
 
                 output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+                output name string = sb.name
                 """;
             output.WriteLine(actualBicep);
             Assert.Equal(expectedBicep, actualBicep);

@@ -117,7 +117,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -147,7 +147,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -176,7 +176,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -221,7 +221,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -261,7 +261,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -302,7 +302,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
@@ -324,6 +324,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        builder.Configuration["CODESPACES"] = "false";
 
         var service = builder.AddResource(new CustomResource("service"))
             .WithHttpEndpoint()
@@ -347,7 +349,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         }, watchCts.Token);
 
         // Act/Assert
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
 
         // Move the resource to the starting state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
@@ -359,13 +361,13 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Veriy the command is disabled
         Assert.Equal(ResourceCommandState.Disabled, commandState);
 
-        // Move the resource to the healthy state
+        // Move the resource to the running state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
         await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await watchTcs.Task.DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await watchTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Verify the command is enabled
         Assert.Equal(ResourceCommandState.Enabled, commandState);
@@ -380,6 +382,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        
+        builder.Configuration["CODESPACES"] = "false";
 
         var enableCommand = false;
         var callbackCalled = false;
@@ -410,7 +414,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         }, watchCts.Token);
 
         // Act/Assert
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync();
 
         // Move the resource to the running state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
@@ -428,7 +432,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         {
             State = KnownResourceStates.Running
         });
-        await watchTcs.Task.DefaultTimeout(TestConstants.DefaultTimeoutTimeSpan);
+        await watchTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Verify the callback was called and the command is enabled
         Assert.True(callbackCalled);

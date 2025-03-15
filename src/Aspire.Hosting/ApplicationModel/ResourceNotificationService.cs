@@ -554,6 +554,9 @@ public class ResourceNotificationService : IDisposable
                     }},
                     HealthReports = {{
                     {HealthReports}
+                    }},
+                    Commands = {{
+                    {Commands}
                     }}
                     """,
                     newState.Version,
@@ -569,7 +572,8 @@ public class ResourceNotificationService : IDisposable
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     JoinIndentLines(newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
                     JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")),
+                    JoinIndentLines(newState.Commands.Select(c => $"{c.DisplayName} ({c.Name}) = {Stringify(c.State)}")));
 
                 static string Stringify(object? o) => o switch
                 {
