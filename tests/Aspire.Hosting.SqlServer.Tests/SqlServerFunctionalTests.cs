@@ -91,7 +91,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
-            // The connection is scope, don't dispose if between retries
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
             if (conn.State != ConnectionState.Open)
@@ -196,7 +196,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
-                    // The connection is scope, don't dispose if between retries
+                    // the connection is scoped, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
                     if (conn.State != ConnectionState.Open)
@@ -221,7 +221,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
-                    // The connection is scope, don't dispose if between retries
+                    // the connection is scoped, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
                     try
@@ -281,7 +281,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            // The connection is scope, don't dispose if between retries
+                            // the connection is scoped, don't dispose if between retries
                             var conn = host2.Services.GetRequiredService<SqlConnection>();
 
                             if (conn.State != ConnectionState.Open)
@@ -379,7 +379,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
-            // The connection is scope, don't dispose if between retries
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
             if (conn.State != ConnectionState.Open)
@@ -432,7 +432,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
-            // The connection is scope, don't dispose if between retries
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
             if (conn.State != ConnectionState.Open)
@@ -504,7 +504,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Test connection
                 await pipeline.ExecuteAsync(async token =>
                 {
-                    // The connection is scope, don't dispose if between retries
+                    // the connection is scoped, don't dispose if between retries
                     var conn = host.Services.GetRequiredService<SqlConnection>();
 
                     if (conn.State != ConnectionState.Open)
