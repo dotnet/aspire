@@ -14,7 +14,6 @@
   </Target>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
-  <Import Project="$(MSBuildThisFileDirectory)/../eng/ProjectStaging.targets" />
 
   <!-- Used by Aspire.Workload.Testing.targets -->
   <Target Name="GetPackageName" Returns="@(PackageName)">

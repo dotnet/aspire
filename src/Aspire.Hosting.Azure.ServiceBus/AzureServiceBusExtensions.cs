@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
+using Azure.Provisioning.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
@@ -20,14 +21,26 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureServiceBusExtensions
 {
+    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure Service Bus resource will be assigned the following roles:
+    /// 
+    /// - <see cref="ServiceBusBuiltInRole.AzureServiceBusDataOwner"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureServiceBusResource}, ServiceBusBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
@@ -58,14 +71,23 @@ public static class AzureServiceBusExtensions
                     return resource;
                 });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
+            {
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
 
-            infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(AzureProvisioning.ServiceBusBuiltInRole.AzureServiceBusDataOwner, principalTypeParameter, principalIdParameter));
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(new ServiceBusBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
+            }
 
             infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
+
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = serviceBusNamespace.Name });
 
             var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
 
@@ -100,7 +122,7 @@ public static class AzureServiceBusExtensions
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+                      .WithDefaultRoleAssignments(ServiceBusBuiltInRole.AzureServiceBusDataOwner);
     }
 
     /// <summary>
@@ -112,6 +134,9 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddServiceBusQueue(name);
 
         return builder;
@@ -127,7 +152,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusQueueResource> AddServiceBusQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? queueName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the queue name if it's not provided
         queueName ??= name;
@@ -162,6 +187,9 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddServiceBusTopic(name);
 
         return builder;
@@ -176,10 +204,15 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} and {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Topic and Subscriptions.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(subscriptions);
+
         var topic = builder.AddServiceBusTopic(name);
 
         foreach (var subscription in subscriptions)
         {
+            ArgumentException.ThrowIfNullOrEmpty(subscription);
             topic.AddServiceBusSubscription(subscription);
         }
 
@@ -196,7 +229,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusTopicResource> AddServiceBusTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? topicName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the topic name if it's not provided
         topicName ??= name;
@@ -233,6 +266,10 @@ public static class AzureServiceBusExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Subscription to a Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(topicName);
+        ArgumentException.ThrowIfNullOrEmpty(subscriptionName);
+
         IResourceBuilder<AzureServiceBusTopicResource> topicBuilder;
         if (builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) is { } existingResource)
         {
@@ -258,7 +295,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusSubscriptionResource> AddServiceBusSubscription(this IResourceBuilder<AzureServiceBusTopicResource> builder, [ResourceName] string name, string? subscriptionName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the subscription name if it's not provided
         subscriptionName ??= name;
@@ -312,6 +349,8 @@ public static class AzureServiceBusExtensions
     /// </example>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.Resource.IsEmulator)
         {
             throw new InvalidOperationException("The Azure Service Bus resource is already configured to run as an emulator.");
@@ -426,10 +465,7 @@ public static class AzureServiceBusExtensions
                 // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                 if (!OperatingSystem.IsWindows())
                 {
-                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(configJsonPath, mode);
+                    File.SetUnixFileMode(configJsonPath, FileMode644);
                 }
 
                 builder.WithAnnotation(new ContainerMountAnnotation(
@@ -470,8 +506,8 @@ public static class AzureServiceBusExtensions
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
             queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.Name).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.Name).FirstOrDefault();
+                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
+                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
@@ -503,6 +539,9 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)
@@ -551,6 +590,8 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithHostPort(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("emulator", endpoint =>
         {
             endpoint.Port = port;
@@ -559,6 +600,7 @@ public static class AzureServiceBusExtensions
 
     private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
     {
+        // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
@@ -622,4 +664,41 @@ public static class AzureServiceBusExtensions
 
         return filePath;
     }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Service Bus namespace. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Service Bus namespace.</param>
+    /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Adds the AzureServiceBusDataSender role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var sb = builder.AddAzureServiceBus("bus");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(sb, ServiceBusBuiltInRole.AzureServiceBusDataSender)
+    ///   .WithReference(sb);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureServiceBusResource> target,
+        params ServiceBusBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithAnnotation(new RoleAssignmentAnnotation(target.Resource, CreateRoleDefinitions(roles)));
+    }
+
+    private static IResourceBuilder<AzureServiceBusResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureServiceBusResource> builder, params ServiceBusBuiltInRole[] roles)
+    {
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
+    }
+
+    private static HashSet<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<ServiceBusBuiltInRole> roles) =>
+        [.. roles.Select(r => new RoleDefinition(r.ToString(), ServiceBusBuiltInRole.GetBuiltInRoleName(r)))];
 }

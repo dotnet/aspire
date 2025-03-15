@@ -42,7 +42,7 @@ partial class Resource
 
         foreach (var url in snapshot.Urls)
         {
-            resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal });
+            resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal, IsInactive = url.IsInactive });
         }
 
         foreach (var relationship in snapshot.Relationships)

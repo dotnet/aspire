@@ -372,11 +372,9 @@ public class ResourceNotificationService : IDisposable
         var pendingDependencies = new List<Task>();
         foreach (var waitAnnotation in waitAnnotations)
         {
-            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            if (waitAnnotation.Resource is IResourceWithoutLifetime)
             {
-                // Parameters and connection string resources are inert and don't need to be waited on.
-                // If we add support for parameter resources that can be waited on, we can remove this check.
-                // As of right now, we don't support waiting on parameter resources.
+                // IResourceWithoutLifetime are inert and don't need to be waited on.
                 continue;
             }
 
@@ -556,6 +554,9 @@ public class ResourceNotificationService : IDisposable
                     }},
                     HealthReports = {{
                     {HealthReports}
+                    }},
+                    Commands = {{
+                    {Commands}
                     }}
                     """,
                     newState.Version,
@@ -571,7 +572,8 @@ public class ResourceNotificationService : IDisposable
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     JoinIndentLines(newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
                     JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")),
+                    JoinIndentLines(newState.Commands.Select(c => $"{c.DisplayName} ({c.Name}) = {Stringify(c.State)}")));
 
                 static string Stringify(object? o) => o switch
                 {

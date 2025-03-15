@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)AzureEventHubs_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>14</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />

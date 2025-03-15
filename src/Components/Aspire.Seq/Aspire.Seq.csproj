@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)Seq_logo.275x147.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>55</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />

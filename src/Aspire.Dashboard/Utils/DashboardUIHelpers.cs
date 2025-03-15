@@ -62,6 +62,23 @@ internal static class DashboardUIHelpers
                 .ToString();
         });
     }
+
+    public static async Task<Message> DisplayMaxLimitMessageAsync(IMessageService messageService, string title, string message, Action onClose)
+    {
+        return await messageService.ShowMessageBarAsync(options =>
+        {
+            options.Title = title;
+            options.Body = message;
+            options.Intent = MessageIntent.Info;
+            options.Section = "MessagesTop";
+            options.AllowDismiss = true;
+            options.OnClose = m =>
+            {
+                onClose();
+                return Task.CompletedTask;
+            };
+        }).ConfigureAwait(false);
+    }
 }
 
 internal record TextMask(MarkupString MarkupString, string Text);

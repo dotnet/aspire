@@ -1129,6 +1129,69 @@ public class MetricsTests
         Assert.Single(dimension.Values);
     }
 
+    [Fact]
+    public void AddMetrics_OverflowDimension()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("otel.metric.overflow", "true")])
+                        }
+                    },
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter2"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var instrument1 = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = new ApplicationKey("TestService", "TestId"),
+            InstrumentName = "test",
+            MeterName = "test-meter",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        });
+
+        Assert.NotNull(instrument1);
+        Assert.True(instrument1.HasOverflow);
+
+        var instrument2 = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = new ApplicationKey("TestService", "TestId"),
+            InstrumentName = "test",
+            MeterName = "test-meter2",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        });
+
+        Assert.NotNull(instrument2);
+        Assert.False(instrument2.HasOverflow);
+    }
+
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
     {
         var scope = dimensions[key];

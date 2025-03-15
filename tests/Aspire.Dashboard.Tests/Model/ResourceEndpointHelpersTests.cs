@@ -25,7 +25,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_HasServices_Results()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [new("Test", new("http://localhost:8080"), isInternal: false)]));
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false)]));
 
         Assert.Collection(endpoints,
             e =>
@@ -42,8 +42,8 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_HasEndpointAndService_Results()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("Test", new("http://localhost:8080"), isInternal: false),
-            new("Test2", new("http://localhost:8081"), isInternal: false)])
+            new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false),
+            new("Test2", new("http://localhost:8081"), isInternal: false, isInactive: false)])
         );
 
         Assert.Collection(endpoints,
@@ -69,8 +69,8 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_OnlyHttpAndHttpsEndpointsSetTheUrl()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("Test", new("http://localhost:8080"), isInternal: false),
-            new("Test2", new("tcp://localhost:8081"), isInternal: false)])
+            new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false),
+            new("Test2", new("tcp://localhost:8081"), isInternal: false, isInactive: false)])
         );
 
         Assert.Collection(endpoints,
@@ -96,8 +96,8 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_IncludeEndpointUrl_HasEndpointAndService_Results()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("First", new("https://localhost:8080/test"), isInternal:false),
-            new("Test", new("https://localhost:8081/test2"), isInternal:false)
+            new("First", new("https://localhost:8080/test"), isInternal: false, isInactive: false),
+            new("Test", new("https://localhost:8081/test2"), isInternal: false, isInactive: false)
         ]));
 
         Assert.Collection(endpoints,
@@ -120,11 +120,30 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_ExcludesIncludeInternalUrls()
+    public void GetEndpoints_ExcludesInternalUrls()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("First", new("https://localhost:8080/test"), isInternal:true),
-            new("Test", new("https://localhost:8081/test2"), isInternal:false)
+            new("First", new("https://localhost:8080/test"), isInternal: true, isInactive : false),
+            new("Test", new("https://localhost:8081/test2"), isInternal: false, isInactive: false)
+        ]));
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("https://localhost:8081/test2", e.Text);
+                Assert.Equal("Test", e.Name);
+                Assert.Equal("https://localhost:8081/test2", e.Url);
+                Assert.Equal("localhost", e.Address);
+                Assert.Equal(8081, e.Port);
+            });
+    }
+
+    [Fact]
+    public void GetEndpoints_ExcludesInactiveUrls()
+    {
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+            new("First", new("https://localhost:8080/test"), isInternal: false, isInactive : true),
+            new("Test", new("https://localhost:8081/test2"), isInternal: false, isInactive: false)
         ]));
 
         Assert.Collection(endpoints,
@@ -142,8 +161,8 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_IncludesIncludeInternalUrls()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("First", new("https://localhost:8080/test"), isInternal:true),
-            new("Test", new("https://localhost:8081/test2"), isInternal:false)
+            new("First", new("https://localhost:8080/test"), isInternal: true, isInactive: false),
+            new("Test", new("https://localhost:8081/test2"), isInternal: false, isInactive: false)
         ]),
         includeInternalUrls: true);
 
@@ -170,11 +189,11 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_OrderByName()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("a", new("http://localhost:8080"), isInternal: false),
-            new("C", new("http://localhost:8080"), isInternal: false),
-            new("D", new("tcp://localhost:8080"), isInternal: false),
-            new("B", new("tcp://localhost:8080"), isInternal: false),
-            new("Z", new("https://localhost:8080"), isInternal: false)
+            new("a", new("http://localhost:8080"), isInternal: false, isInactive: false),
+            new("C", new("http://localhost:8080"), isInternal: false, isInactive: false),
+            new("D", new("tcp://localhost:8080"), isInternal: false, isInactive: false),
+            new("B", new("tcp://localhost:8080"), isInternal: false, isInactive: false),
+            new("Z", new("https://localhost:8080"), isInternal: false, isInactive: false)
         ]));
 
         Assert.Collection(endpoints,

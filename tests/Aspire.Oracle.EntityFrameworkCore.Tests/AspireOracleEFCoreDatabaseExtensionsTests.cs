@@ -332,6 +332,58 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         Assert.NotNull(context);
     }
 
+    [Fact]
+    public void AddOracleDatabaseDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:CommandTimeout"] = "60",
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:DisableTracing"] = "true"
+        });
+
+        OracleEntityFrameworkCoreSettings? capturedSettings = null;
+        builder.AddOracleDatabaseDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(60, capturedSettings.CommandTimeout);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddOracleDatabaseDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:CommandTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Oracle:EntityFrameworkCore:TestDbContext:CommandTimeout"] = "120"
+        });
+
+        OracleEntityFrameworkCoreSettings? capturedSettings = null;
+        builder.AddOracleDatabaseDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(120, capturedSettings.CommandTimeout);
+    }
+
     public class TestDbContext2 : DbContext
     {
         public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)

@@ -22,6 +22,9 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -52,7 +55,7 @@ public static class AzureOpenAIExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
+                Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
             });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
@@ -105,8 +108,7 @@ public static class AzureOpenAIExtensions
         };
 
         var resource = new AzureOpenAIResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -117,6 +119,9 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> builder, AzureOpenAIDeployment deployment)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(deployment);
+
         builder.Resource.AddDeployment(deployment);
         return builder;
     }

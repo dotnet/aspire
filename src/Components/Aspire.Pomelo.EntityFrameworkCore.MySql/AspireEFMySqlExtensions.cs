@@ -50,14 +50,17 @@ public static partial class AspireEFMySqlExtensions
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null)
+        where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
+            connectionName,
             (settings, section) => section.Bind(settings)
         );
 
@@ -140,12 +143,14 @@ public static partial class AspireEFMySqlExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
     public static void EnrichMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
             this IHostApplicationBuilder builder,
-            Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null) where TContext : DbContext
+            Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null)
+        where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
+            null,
             (settings, section) => section.Bind(settings)
         );
 

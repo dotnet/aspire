@@ -9,10 +9,6 @@
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>70</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />

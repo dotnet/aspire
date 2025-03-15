@@ -11,6 +11,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
@@ -57,7 +58,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [Fact]
     [RequiresDocker]
     [RequiresTools(["func"])]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7437")]
     public async Task AzureFunctionsTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);

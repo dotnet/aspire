@@ -120,6 +120,36 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task WaitingForConnectionStringResourceWaitsForReferencedResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"{dependency};Timeout=100"));
+
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WaitFor(cs);
+
+        using var app = builder.Build();
+
+        using var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        using var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+
+        await startTask;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);

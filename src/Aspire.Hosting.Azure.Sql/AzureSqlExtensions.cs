@@ -18,6 +18,8 @@ public static class AzureSqlExtensions
     [Obsolete]
     private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -52,9 +54,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: false);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: false);
 
     /// <summary>
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
@@ -63,9 +63,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: true);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure SQL Database (server) resource to the application model.
@@ -75,6 +73,9 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
     public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -84,8 +85,7 @@ public static class AzureSqlExtensions
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
-        var azureSqlServer = builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        var azureSqlServer = builder.AddResource(resource);
 
         return azureSqlServer;
     }
@@ -100,7 +100,7 @@ public static class AzureSqlExtensions
     public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -149,6 +149,8 @@ public static class AzureSqlExtensions
     /// </example>
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;

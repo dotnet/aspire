@@ -21,9 +21,7 @@ public static class AzureApplicationInsightsExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/>.</returns>
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name)
-    {
-        return builder.AddAzureApplicationInsights(name, logAnalyticsWorkspace: null);
-    }
+        => AddAzureApplicationInsights(builder, name, logAnalyticsWorkspace: null);
 
     /// <summary>
     /// Adds an Azure Application Insights resource to the application model.
@@ -32,8 +30,14 @@ public static class AzureApplicationInsightsExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="logAnalyticsWorkspace">A resource builder for the log analytics workspace.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/>.</returns>
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<AzureLogAnalyticsWorkspaceResource>? logAnalyticsWorkspace)
+    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        IResourceBuilder<AzureLogAnalyticsWorkspaceResource>? logAnalyticsWorkspace)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -106,7 +110,6 @@ public static class AzureApplicationInsightsExtensions
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);
 
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

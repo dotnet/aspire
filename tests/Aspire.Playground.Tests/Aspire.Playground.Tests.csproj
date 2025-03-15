@@ -27,7 +27,7 @@
   <PropertyGroup Condition="'$(SkipUnstableEmulators)' == 'true'">
     <DefineConstants>SKIP_UNSTABLE_EMULATORS;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <!-- on helix, the file will be in the source directory, so it will get
          picked up by msbuild by default -->

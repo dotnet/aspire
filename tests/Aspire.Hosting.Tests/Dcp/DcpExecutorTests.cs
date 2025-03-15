@@ -106,9 +106,9 @@ public class DcpExecutorTests
     }
 
     [Theory]
-    [InlineData(ExecutionType.IDE, false, null, new string[] { "--", "--test1", "--test2" })]
+    [InlineData(ExecutionType.IDE, false, null, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]
-    [InlineData(ExecutionType.Process, false, new string[] { "--", "--test1", "--test2" }, new string[] { "--", "--test1", "--test2" })]
+    [InlineData(ExecutionType.Process, false, new string[] { "--test1", "--test2" }, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.Process, true, new string[] { "--", "--test1", "--test2", "--withargs-test" }, new string[] { "--", "--test1", "--test2", "--withargs-test" })]
     public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded(string executionType, bool addAppHostArgs, string[]? expectedArgs, string[]? expectedAnnotations)
     {
@@ -1075,6 +1075,43 @@ public class DcpExecutorTests
     }
 
     [Fact]
+    public async Task EndpointPortsContainerProxylessProtocolSet()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        const int desiredPort = TestKubernetesService.StartOfAutoPortRange - 998;
+        const int desiredTargetPort = TestKubernetesService.StartOfAutoPortRange - 997;
+        builder.AddContainer("database", "image")
+            .WithEndpoint(name: "PortAndProtocolSet", port: desiredPort, targetPort: desiredTargetPort, env: "PORT_AND_PROTOCOL_SET", isProxied: false, protocol: System.Net.Sockets.ProtocolType.Udp);
+
+        // All these configurations are effectively the same because EndpointAnnotation constructor for proxy-less endpoints
+        // will make sure Port and TargetPort have the same value if one is specified but the other is not.
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+        await appExecutor.RunApplicationAsync();
+
+        var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.True(dcpCtr.TryGetAnnotationAsObjectList<ServiceProducerAnnotation>(CustomResource.ServiceProducerAnnotation, out var spAnnList));
+
+        // Port and TargetPort are set.
+        // Clients connect directly to the container host port, MAY have the container host port injected.
+        // Container is using TargetPort for listening inside the container and the Port as the host port.
+        var svc = kubernetesService.CreatedResources.OfType<Service>().Single(s => s.Name() == "database");
+        Assert.Equal(AddressAllocationModes.Proxyless, svc.Spec.AddressAllocationMode);
+        Assert.Equal(desiredPort, svc.Status?.EffectivePort);
+        Assert.NotNull(dcpCtr.Spec.Ports);
+        Assert.Contains(dcpCtr.Spec.Ports!, p =>  p.HostPort == desiredPort && p.ContainerPort == desiredTargetPort && p.Protocol == "UDP");
+        // Desired port should be part of the service producer annotation.
+        Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
+        var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "PORT_AND_PROTOCOL_SET").Value;
+        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
+        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public async Task ErrorIfResourceNotDeletedBeforeRestart()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -1094,7 +1131,7 @@ public class DcpExecutorTests
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
 
         // Set a custom pipeline without retries or delays to avoid waiting.
-        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder().Build();
+        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder<bool>().Build();
 
         await appExecutor.RunApplicationAsync();
 
@@ -1126,6 +1163,41 @@ public class DcpExecutorTests
         HasKnownCommandAnnotations(exe.Resource);
         HasKnownCommandAnnotations(container.Resource);
         HasKnownCommandAnnotations(project.Resource);
+    }
+
+    [Fact]
+    public async Task ContainersArePassedExpectedImagePullPolicy()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("ImplicitDefault", "container");
+        builder.AddContainer("ExplicitDefault", "container").WithImagePullPolicy(ImagePullPolicy.Default);
+        builder.AddContainer("ExplicitAlways", "container").WithImagePullPolicy(ImagePullPolicy.Always);
+        builder.AddContainer("ExplicitMissing", "container").WithImagePullPolicy(ImagePullPolicy.Missing);
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        Assert.Equal(4, kubernetesService.CreatedResources.OfType<Container>().Count());
+        var implicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ImplicitDefault"));
+        Assert.Null(implicitDefaultContainer.Spec.PullPolicy);
+
+        var explicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitDefault"));
+        Assert.Null(explicitDefaultContainer.Spec.PullPolicy);
+
+        var explicitAlwaysContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitAlways"));
+        Assert.Equal(ContainerPullPolicy.Always, explicitAlwaysContainer.Spec.PullPolicy);
+
+        var explicitMissingContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitMissing"));
+        Assert.Equal(ContainerPullPolicy.Missing, explicitMissingContainer.Spec.PullPolicy);
     }
 
     private static void HasKnownCommandAnnotations(IResource resource)

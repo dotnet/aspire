@@ -246,6 +246,60 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         Assert.Contains("AccountEndpoint", e.Message);
     }
 
+    [Fact]
+    public void AddCosmosDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+        var databaseName = "testdbname";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:RequestTimeout"] = "60",
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:DisableTracing"] = "true"
+        });
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(TimeSpan.Parse("60"), capturedSettings.RequestTimeout);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+        var databaseName = "testdbname";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:RequestTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:TestDbContext:RequestTimeout"] = "120"
+        });
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(TimeSpan.Parse("120"), capturedSettings.RequestTimeout);
+    }
+
     private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>
         configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString)

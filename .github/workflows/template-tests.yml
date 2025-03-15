@@ -1,0 +1,102 @@
+name: Templates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Duplicated jobs so their dependencies are not blocked on both the
+  # setup jobs
+
+  setup_for_tests_lin:
+    name: Setup for tests (Linux)
+    runs-on: ubuntu-latest
+    outputs:
+      tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/enumerate-template-tests
+        id: generate_test_matrix
+
+  setup_for_tests_win:
+    name: Setup for tests (Windows)
+    runs-on: windows-latest
+    outputs:
+      tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/enumerate-template-tests
+        id: generate_test_matrix
+
+  test_linux:
+    name: Linux
+    uses: ./.github/workflows/run-tests.yml
+    needs: setup_for_tests_lin
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "ubuntu-latest"
+      testProjectPath: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      testSessionTimeoutMs: 1200000
+      testHangTimeout: 12m
+      extraTestArgs: "-p:InstallBrowsersForPlaywright=false -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.shortname }}"
+
+  test_windows:
+    name: Windows
+    uses: ./.github/workflows/run-tests.yml
+    needs: setup_for_tests_win
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "windows-latest"
+      testProjectPath: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      testSessionTimeoutMs: 1200000
+      testHangTimeout: 12m
+      extraTestArgs: "-p:InstallBrowsersForPlaywright=true -p:VSTestTestCaseFilter=FullyQualifiedName~Aspire.Workload.Tests.${{ matrix.shortname }}"
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Templates Results
+    needs: [test_linux, test_windows]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: logs-*-ubuntu-latest
+          merge-multiple: true
+          path: testresults/ubuntu-latest
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: logs-*-windows-latest
+          merge-multiple: true
+          path: testresults/windows-latest
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Templates-TestResults
+          path: testresults/**/*.trx
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]

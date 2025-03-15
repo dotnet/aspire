@@ -8,21 +8,21 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" $(TestFramework) == 'MSTest' ">
+  <PropertyGroup Condition=" $(TestFx) == 'MSTest' ">
     <EnableMSTestRunner>true</EnableMSTestRunner>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-    <PackageReference Include="coverlet.collector" Version="6.0.2" Condition=" $(TestFramework) == 'xUnit.net' " />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" Condition=" $(TestFramework) != 'MSTest' " />
-    <PackageReference Include="MSTest" Version="3.6.4" Condition=" $(TestFramework) == 'MSTest' " />
-    <PackageReference Include="NUnit" Version="4.2.2" Condition=" $(TestFramework) == 'NUnit' " />
-    <PackageReference Include="NUnit.Analyzers" Version="4.2.0" Condition=" $(TestFramework) == 'NUnit' " />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" Condition=" $(TestFramework) == 'NUnit' " />
-    <PackageReference Include="xunit" Version="2.9.2" Condition=" $(TestFramework) == 'xUnit.net' " />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" Condition=" $(TestFramework) == 'xUnit.net' " />
+    <PackageReference Include="Aspire.Hosting.Testing" Version="9.1.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" Condition=" $(TestFx) == 'xUnit.net' " />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" Condition=" $(TestFx) != 'MSTest' " />
+    <PackageReference Include="MSTest" Version="3.6.4" Condition=" $(TestFx) == 'MSTest' " />
+    <PackageReference Include="NUnit" Version="4.2.2" Condition=" $(TestFx) == 'NUnit' " />
+    <PackageReference Include="NUnit.Analyzers" Version="4.2.0" Condition=" $(TestFx) == 'NUnit' " />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" Condition=" $(TestFx) == 'NUnit' " />
+    <PackageReference Include="xunit" Version="2.9.2" Condition=" $(TestFx) == 'xUnit.net' " />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" Condition=" $(TestFx) == 'xUnit.net' " />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,9 +34,9 @@
     <Using Include="Microsoft.Extensions.DependencyInjection" />
     <Using Include="Aspire.Hosting.ApplicationModel" />
     <Using Include="Aspire.Hosting.Testing" />
-    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" Condition=" $(TestFramework) == 'MSTest' " />
-    <Using Include="NUnit.Framework" Condition=" $(TestFramework) == 'NUnit' " />
-    <Using Include="Xunit" Condition=" $(TestFramework) == 'xUnit.net' " />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" Condition=" $(TestFx) == 'MSTest' " />
+    <Using Include="NUnit.Framework" Condition=" $(TestFx) == 'NUnit' " />
+    <Using Include="Xunit" Condition=" $(TestFx) == 'xUnit.net' " />
   </ItemGroup>
 
 </Project>

@@ -17,12 +17,14 @@ internal static class MetricsSetupHelpers
 {
     public static void SetupChartContainer(TestContext context)
     {
+        var version = typeof(FluentMain).Assembly.GetName().Version!;
+
         _ = context.JSInterop.SetupModule("/Components/Controls/Chart/MetricTable.razor.js");
 
-        var tabModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js?v=4.9.3.24205");
+        var tabModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js", version));
         tabModule.SetupVoid("TabEditable_Changed", _ => true);
 
-        var overflowModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js?v=4.9.3.24205");
+        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
 
         SetupPlotlyChart(context);
@@ -55,7 +57,7 @@ internal static class MetricsSetupHelpers
         var dataGridRef = dataGridModule.SetupModule("init", _ => true);
         dataGridRef.SetupVoid("stop");
 
-        var listModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
 
         var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
@@ -68,6 +70,10 @@ internal static class MetricsSetupHelpers
 
         var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
+
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         SetupChartContainer(context);
 

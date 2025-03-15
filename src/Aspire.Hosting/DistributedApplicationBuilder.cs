@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting;
 
@@ -101,6 +102,34 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     // values in various callbacks and is a central location to access useful services like IServiceProvider.
     private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
 
+    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions()
+    {
+        var operationConfiguration = _innerBuilder.Configuration["AppHost:Operation"];
+        if (operationConfiguration is null)
+        {
+            return _innerBuilder.Configuration["Publishing:Publisher"] switch
+            {
+                { } publisher => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, publisher),
+                _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+            };
+        }
+
+        var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
+        {
+            "publish" => DistributedApplicationOperation.Publish,
+            "inspect" => DistributedApplicationOperation.Inspect,
+            "run" => DistributedApplicationOperation.Run,
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+        };
+
+        return operation switch
+        {
+            DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
+            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
+            _ => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"])
+        };
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
@@ -169,12 +198,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
-        {
-            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
-            _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
-        };
-
+        _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
@@ -224,6 +248,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+
+        // Aspire CLI support
+        _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
+        _innerBuilder.Services.AddHostedService<CliBackchannel>();
+        _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
 
@@ -411,12 +440,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
-            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -531,5 +561,4 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <returns>The metadata value if found; otherwise, null.</returns>
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
-
 }

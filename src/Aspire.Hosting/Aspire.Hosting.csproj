@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -8,10 +8,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core abstractions for the .NET Aspire application model.</Description>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>75</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +37,7 @@
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
+    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +48,7 @@
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
     <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
 
   <ItemGroup>
@@ -76,6 +74,7 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
+    <InternalsVisibleTo Include="Aspire.Cli.Tests" />
   </ItemGroup>
 
 </Project>

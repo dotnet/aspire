@@ -10,6 +10,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
+
+builder.AddConnectionString("cs2", ReferenceExpression.Create($"Value={builder.AddParameter("p", "this is a value")}"));
+
 if (args.Contains("--add-redis"))
 {
     builder.AddRedis("redis1");
