@@ -764,6 +764,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output appConfigEndpoint string = appConfig.properties.endpoint
+
+            output name string = appConfig.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1233,6 +1235,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1295,6 +1299,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1985,6 +1991,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -2052,6 +2060,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -2828,6 +2838,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
+
+            output name string = search.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -2972,6 +2984,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=${openai.properties.endpoint}'
+
+            output name string = openai.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

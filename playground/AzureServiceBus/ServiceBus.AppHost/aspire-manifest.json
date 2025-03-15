@@ -10,11 +10,11 @@
         "principalId": ""
       }
     },
-    "queue1": {
+    "queueOne": {
       "type": "value.v0",
       "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
     },
-    "topic1": {
+    "topicOne": {
       "type": "value.v0",
       "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
     },
