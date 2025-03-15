@@ -155,6 +155,11 @@ internal sealed class AzurePublisher(
 
             foreach (var parameter in resource.Parameters)
             {
+                // TODO: There are a set of known parameter names that we may not be able to resolve.
+                // This is from earlier versions of aspire where infra was split across
+                // azd and aspire. Once the infra moves to aspire, we can throw for 
+                // unresolved "known parameters".
+
                 var value = Eval(parameter.Value);
 
                 module.Parameters.Add(parameter.Key, value);
