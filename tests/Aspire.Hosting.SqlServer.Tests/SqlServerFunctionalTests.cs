@@ -91,16 +91,17 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // The connection is scope, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
 
-            var selectCommand = conn.CreateCommand();
+            using var selectCommand = conn.CreateCommand();
             selectCommand.CommandText = $"SELECT 1";
-            var results = await selectCommand.ExecuteReaderAsync(token);
+            using var results = await selectCommand.ExecuteReaderAsync(token);
 
             Assert.True(results.HasRows);
         }, cts.Token);
@@ -195,14 +196,15 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    // The connection is scope, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
-                    if (conn.State != System.Data.ConnectionState.Open)
+                    if (conn.State != ConnectionState.Open)
                     {
                         await conn.OpenAsync(token);
                     }
 
-                    var command = conn.CreateCommand();
+                    using var command = conn.CreateCommand();
                     command.CommandText = """
                         DROP TABLE IF EXISTS [Cars];
                         CREATE TABLE [Cars] ([Brand] nvarchar(max) NOT NULL);
@@ -210,7 +212,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                         SELECT * FROM [Cars];
                     """;
 
-                    var results = await command.ExecuteReaderAsync(token);
+                    using var results = await command.ExecuteReaderAsync(token);
 
                     Assert.True(results.HasRows);
                 }, cts.Token);
@@ -219,6 +221,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    // The connection is scope, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
                     try
@@ -278,18 +281,20 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
+                            // The connection is scope, don't dispose if between retries
                             var conn = host2.Services.GetRequiredService<SqlConnection>();
 
-                            if (conn.State != System.Data.ConnectionState.Open)
+                            if (conn.State != ConnectionState.Open)
                             {
                                 await conn.OpenAsync(token);
                             }
                         }, cts.Token);
 
                         var conn = host2.Services.GetRequiredService<SqlConnection>();
-                        var command = conn.CreateCommand();
+
+                        using var command = conn.CreateCommand();
                         command.CommandText = $"SELECT * FROM [Cars];";
-                        var results = await command.ExecuteReaderAsync(cts.Token);
+                        using var results = await command.ExecuteReaderAsync(cts.Token);
 
                         Assert.True(await results.ReadAsync(cts.Token));
                         Assert.Equal("BatMobile", results.GetString(0));
@@ -374,17 +379,18 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // The connection is scope, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
 
-            var selectCommand = conn.CreateCommand();
+            using var selectCommand = conn.CreateCommand();
             selectCommand.CommandText = "SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation";
 
-            var results = await selectCommand.ExecuteReaderAsync(token);
+            using var results = await selectCommand.ExecuteReaderAsync(token);
             Assert.True(results.HasRows);
         }, cts.Token);
     }
@@ -426,9 +432,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // The connection is scope, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
@@ -497,6 +504,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Test connection
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    // The connection is scope, don't dispose if between retries
                     var conn = host.Services.GetRequiredService<SqlConnection>();
 
                     if (conn.State != ConnectionState.Open)
