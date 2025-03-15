@@ -8,6 +8,7 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
@@ -389,6 +390,8 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
+        Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
