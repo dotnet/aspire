@@ -700,6 +700,74 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="entries">The file system entries to create.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="mode">The default (unix style) ownership permissions for the created or updated file system. 0 will be treated as 0600.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// For containers with a <see cref="ContainerLifetime.Persistent"/> lifetime, changing the contents of create file entries will result in the container being recreated.
+    /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
+    /// unique on a per-run basis.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Create a directory called <c>custom-entry</c> in the container's file system at the path <c>/usr/data</c> and create a file called <c>entrypoint.sh</c> inside it with the content <c>echo hello world</c>.
+    /// The default permissions for these files will be for the user or group to be able to read and write to the files, but not execute them. entrypoint.sh will be created with execution permissions for the owner.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///     .WithCreateFile("/usr/data", new()
+    ///     {
+    ///         new ContainerDirectory
+    ///         {
+    ///             Name = "custom-entry",
+    ///             Entries = new()
+    ///             {
+    ///                 new ContainerFile
+    ///                 {
+    ///                     Name = "entrypoint.sh",
+    ///                     Content = "echo hello world",
+    ///                     Mode = 0760,
+    ///                 },
+    ///             },
+    ///         },
+    ///     }, mode = 0660);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithCreateFile<T>(this IResourceBuilder<T> builder, string destinationPath, List<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, int mode = 0) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(entries);
+
+        foreach (var existingAnnotation in builder.Resource.Annotations.OfType<ContainerCreateFileAnnotation>().Where(a => string.Equals(a.DestinationPath, destinationPath, StringComparison.Ordinal)))
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        var annotation = new ContainerCreateFileAnnotation
+        {
+            DestinationPath = destinationPath,
+            Entries = entries,
+            DefaultOwner = defaultOwner,
+            DefaultGroup = defaultGroup,
+            Mode = mode
+        };
+
+        builder.Resource.Annotations.Add(annotation);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Set whether a container resource can use proxied endpoints or whether they should be disabled for all endpoints belonging to the container.
     /// If set to <c>false</c>, endpoints belonging to the container resource will ignore the configured proxy settings and run proxy-less.
     /// </summary>

@@ -1213,6 +1213,19 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
+        if (cr.ModelResource.TryGetAnnotationsOfType<ContainerCreateFileAnnotation>(out var createFileAnnotations))
+        {
+            spec.CreateFiles = createFileAnnotations
+                .Select(a => new ContainerCreateFileSystem
+                {
+                    Destination = a.DestinationPath,
+                    DefaultOwner = a.DefaultOwner,
+                    DefaultGroup = a.DefaultGroup,
+                    Mode = a.Mode,
+                    Entries = a.Entries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
+                }).ToList();
+        }
+
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);

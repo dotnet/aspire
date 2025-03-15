@@ -162,39 +162,21 @@ public static class PostgresBuilderExtensions
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
             {
-                // Add the servers.json file bind mount to the pgAdmin container
-
                 var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
 
-                // Create servers.json file content in a temporary file
+                // Generate the contents of the servers.json file
+                var serversConfigFile = WritePgAdminServerJson(postgresInstances);
 
-                var tempConfigFile = WritePgAdminServerJson(postgresInstances);
-
-                try
-                {
-                    var aspireStore = e.Services.GetRequiredService<IAspireStore>();
-
-                    // Deterministic file path for the configuration file based on its content
-                    var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-servers.json", tempConfigFile);
-
-                    // Need to grant read access to the config file on unix like systems.
-                    if (!OperatingSystem.IsWindows())
+                // Create a servers.json file in the container with necessary permissions
+                pgAdminContainerBuilder.WithCreateFile("/pgadmin4", new()
                     {
-                        File.SetUnixFileMode(configJsonPath, FileMode644);
-                    }
-
-                    pgAdminContainerBuilder.WithBindMount(configJsonPath, "/pgadmin4/servers.json");
-                }
-                finally
-                {
-                    try
-                    {
-                        File.Delete(tempConfigFile);
-                    }
-                    catch
-                    {
-                    }
-                }
+                        new ContainerFile
+                        {
+                            Name = "servers.json",
+                            Contents = serversConfigFile,
+                        },
+                    },
+                    mode: (int)FileMode644);
 
                 return Task.CompletedTask;
             });
@@ -452,10 +434,7 @@ public static class PostgresBuilderExtensions
 
     private static string WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances)
     {
-        // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
-
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         writer.WriteStartObject();
@@ -486,6 +465,8 @@ public static class PostgresBuilderExtensions
         writer.WriteEndObject();
         writer.WriteEndObject();
 
-        return filePath;
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 }

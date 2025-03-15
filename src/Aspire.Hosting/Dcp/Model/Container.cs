@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.ApplicationModel;
 using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
@@ -80,6 +81,9 @@ internal sealed class ContainerSpec
     /// </summary>
     [JsonPropertyName("pullPolicy")]
     public string? PullPolicy { get; set; }
+
+    [JsonPropertyName("createFiles")]
+    public List<ContainerCreateFileSystem>? CreateFiles { get; set; }
 }
 
 internal sealed class BuildContext
@@ -281,6 +285,100 @@ internal sealed class ContainerPortSpec
     // Optional: What host IP to bind the external port to.
     [JsonPropertyName("hostIP")]
     public string? HostIP { get; set; }
+}
+
+internal sealed class ContainerCreateFileSystem
+{
+    // The (absolute) base path to create the child file system entries in the container.
+    [JsonPropertyName("destination")]
+    public string? Destination { get; set; }
+
+    // The default owner UID to use for created (or updated) file system entries. Defaults to 0 for root.
+    [JsonPropertyName("defaultOwner")]
+    public int DefaultOwner { get; set; }
+
+    // The default group GID to use for created (or updated) file system entries. Defaults to 0 for root.
+    [JsonPropertyName("defaultGroup")]
+    public int DefaultGroup { get; set; }
+
+    // The default file system mode (permissions) to use for created (or updated) file system entries. If set to 0, the default will be 0600 (owner read/write).
+    [JsonPropertyName("mode")]
+    public int Mode { get; set; }
+
+    // The list of file system entries to create (or update) in the container.
+    [JsonPropertyName("entries")]
+    public List<ContainerFileSystemEntry>? Entries { get; set; }
+}
+
+internal static class ContainerFileSystemItemExtensions
+{
+    public static ContainerFileSystemEntry ToContainerFileSystemEntry(this ContainerFileSystemItem item)
+    {
+        var type = item switch
+        {
+            ContainerFile => ContainerFileSystemEntryType.File,
+            ContainerDirectory => ContainerFileSystemEntryType.Directory,
+            _ => throw new ArgumentException("Unknown file system entry type")
+        };
+
+        var entry = new ContainerFileSystemEntry
+        {
+            Type = type,
+            Name = item.Name,
+            Owner = item.Owner,
+            Group = item.Group,
+            Mode = item.Mode,
+        };
+
+        if (item is ContainerFile file)
+        {
+            entry.Contents = file.Contents;
+        }
+        else if (item is ContainerDirectory directory)
+        {
+            entry.Entries = directory.Entries?.Select(e => e.ToContainerFileSystemEntry()).ToList();
+        }
+
+        return entry;
+    }
+}
+
+internal sealed class ContainerFileSystemEntry
+{
+    // The type of the file system entry (file or directory)
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = ContainerFileSystemEntryType.File;
+
+    // The name of the file system entry
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    // The UID of the user that owns the file system (if null, the owner will be inherited from its parent directory or the request default)
+    [JsonPropertyName("owner")]
+    public int? Owner { get; set; }
+
+    // The GID of the group that owns the file system (if null, the group will be inherited from its parent directory or the request default)
+    [JsonPropertyName("group")]
+    public int? Group { get; set; }
+
+    // The file system mode (permissions) of the file system entry (if 0, the mode will be inherited from its parent directory or the request default)
+    [JsonPropertyName("mode")]
+    public int Mode { get; set; }
+
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error.
+    [JsonPropertyName("contents")]
+    public string? Contents { get; set; }
+
+    // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
+    [JsonPropertyName("entries")]
+    public List<ContainerFileSystemEntry>? Entries { get; set; }
+}
+
+internal static class ContainerFileSystemEntryType
+{
+    public const string Directory = "directory";
+
+    public const string File = "file";
 }
 
 internal sealed class ContainerStatus : V1Status
