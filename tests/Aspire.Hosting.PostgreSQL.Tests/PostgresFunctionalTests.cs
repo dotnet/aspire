@@ -134,9 +134,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
             await connection.OpenAsync(token);
 
-            var command = connection.CreateCommand();
+            using var command = connection.CreateCommand();
             command.CommandText = $"SELECT 1";
-            var results = await command.ExecuteReaderAsync(token);
+            using var results = await command.ExecuteReaderAsync(token);
 
             Assert.True(results.HasRows);
         }, cts.Token);
@@ -254,14 +254,14 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                             using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
                             await connection.OpenAsync(token);
 
-                            var command = connection.CreateCommand();
+                            using var command = connection.CreateCommand();
                             command.CommandText = """
                                 CREATE TABLE cars (brand VARCHAR(255));
                                 INSERT INTO cars (brand) VALUES ('BatMobile');
                                 SELECT * FROM cars;
                             """;
 
-                            var results = await command.ExecuteReaderAsync(token);
+                            using var results = await command.ExecuteReaderAsync(token);
 
                             Assert.True(results.HasRows);
                         }, cts.Token);
@@ -316,9 +316,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                             using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
                             await connection.OpenAsync(token);
 
-                            var command = connection.CreateCommand();
+                            using var command = connection.CreateCommand();
                             command.CommandText = $"SELECT * FROM cars;";
-                            var results = await command.ExecuteReaderAsync(token);
+                            using var results = await command.ExecuteReaderAsync(token);
 
                             Assert.True(await results.ReadAsync(token));
                             Assert.Equal("BatMobile", results.GetString("brand"));
@@ -418,9 +418,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
                 await connection.OpenAsync(token);
 
-                var command = connection.CreateCommand();
+                using var command = connection.CreateCommand();
                 command.CommandText = $"SELECT * FROM \"Cars\";";
-                var results = await command.ExecuteReaderAsync(token);
+                using var results = await command.ExecuteReaderAsync(token);
 
                 Assert.True(await results.ReadAsync(token));
                 Assert.Equal("BatMobile", results.GetString("brand"));
