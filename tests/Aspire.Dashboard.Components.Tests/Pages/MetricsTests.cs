@@ -280,7 +280,7 @@ public partial class MetricsTests : DashboardTestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TestConstants.WaitTimeout);
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.MeterName);

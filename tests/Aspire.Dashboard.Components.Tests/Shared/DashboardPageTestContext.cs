@@ -9,6 +9,6 @@ public abstract class DashboardTestContext : TestContext
     public DashboardTestContext()
     {
         // Increase from default 1 second as Helix/GitHub Actions can be slow.
-        DefaultWaitTimeout = TestConstants.WaitTimeout;
+        DefaultWaitTimeout = TimeSpan.FromSeconds(10);
     }
 }
