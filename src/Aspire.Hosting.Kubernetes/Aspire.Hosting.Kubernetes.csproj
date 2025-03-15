@@ -14,4 +14,8 @@
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes.Tests" />
+  </ItemGroup>
+
 </Project>
