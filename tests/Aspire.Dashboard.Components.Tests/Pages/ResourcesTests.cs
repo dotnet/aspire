@@ -14,7 +14,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class ResourcesTests : TestContext
+public partial class ResourcesTests : DashboardTestContext
 {
     [Fact]
     public void UpdateResources_FiltersUpdated()

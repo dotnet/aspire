@@ -23,7 +23,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class StructuredLogsTests : TestContext
+public partial class StructuredLogsTests : DashboardTestContext
 {
     [Fact]
     public void Render_TraceIdAndSpanId_FilterAdded()

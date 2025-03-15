@@ -22,7 +22,7 @@ using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class MetricsTests : TestContext
+public partial class MetricsTests : DashboardTestContext
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
