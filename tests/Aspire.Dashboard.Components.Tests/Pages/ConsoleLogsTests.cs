@@ -24,7 +24,7 @@ using Xunit.Abstractions;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class ConsoleLogsTests : TestContext
+public partial class ConsoleLogsTests : DashboardTestContext
 {
     private readonly ITestOutputHelper _testOutputHelper;
 

@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
-public class TextVisualizerDialogTests : TestContext
+public class TextVisualizerDialogTests : DashboardTestContext
 {
     [Fact]
     public async Task Render_TextVisualizerDialog_WithValidJson_FormatsJsonAsync()
