@@ -16,6 +16,7 @@
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Provisioning\Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)CustomResourceSnapshotExtensions.cs" Link="Provisioning\Utils\CustomResourceSnapshotExtensions.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Provisioning\Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)BicepFunction2.cs" Link="Provisioning\Utils\BicepFunction2.cs" />
   </ItemGroup>
 
   <ItemGroup>
