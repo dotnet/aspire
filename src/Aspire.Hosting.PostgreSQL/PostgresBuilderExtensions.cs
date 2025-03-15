@@ -575,7 +575,7 @@ public static class PostgresBuilderExtensions
             }
             catch (Exception e)
             {
-                var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+                var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
                 logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
             }
         }
@@ -591,7 +591,7 @@ public static class PostgresBuilderExtensions
             }
             catch (Exception e)
             {
-                var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+                var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
                 logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
             }
         }

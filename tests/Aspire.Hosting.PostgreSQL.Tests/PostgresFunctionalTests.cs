@@ -363,7 +363,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = 3, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -373,15 +373,15 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         try
         {
             File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
-                CREATE TABLE cars (brand VARCHAR(255));
-                INSERT INTO cars (brand) VALUES ('BatMobile');
-            """);
+                CREATE TABLE "Cars" (brand VARCHAR(255));
+                INSERT INTO "Cars" (brand) VALUES ('BatMobile');
+                """);
 
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
+            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
 
-            var postgres = builder.AddPostgres("pg");
             var db = postgres.AddDatabase(postgresDbName);
 
             postgres.WithInitBindMount(bindMountPath);
@@ -403,6 +403,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await host.StartAsync();
 
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
             // Wait until the database is available
             await pipeline.ExecuteAsync(async token =>
             {
@@ -417,7 +419,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 await connection.OpenAsync(token);
 
                 var command = connection.CreateCommand();
-                command.CommandText = $"SELECT * FROM cars;";
+                command.CommandText = $"SELECT * FROM \"Cars\";";
                 var results = await command.ExecuteReaderAsync(token);
 
                 Assert.True(await results.ReadAsync(token));
