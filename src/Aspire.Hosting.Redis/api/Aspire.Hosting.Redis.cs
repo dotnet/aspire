@@ -10,7 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class RedisBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, string source, bool isReadOnly = false) { throw null; }
 
@@ -36,9 +38,13 @@ namespace Aspire.Hosting.ApplicationModel
 {
     public partial class RedisResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
+        public RedisResource(string name, ParameterResource password) : base(default!, default) { }
+
         public RedisResource(string name) : base(default!, default) { }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ParameterResource? PasswordParameter { get { throw null; } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
 
