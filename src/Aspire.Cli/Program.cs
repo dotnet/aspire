@@ -27,6 +27,7 @@ public class Program
         builder.Services.AddTransient<AppHostRunner>();
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddSingleton<CliRpcTarget>();
+        builder.Services.AddTransient<IIntegrationLookup, IntegrationLookup>();
         var app = builder.Build();
         return app;
     }
@@ -40,6 +41,7 @@ public class Program
         ConfigureDevCommand(rootCommand);
         ConfigurePublishCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
+        ConfigureAddCommand(rootCommand);
         return rootCommand;
     }
 
@@ -263,6 +265,71 @@ public class Program
             if (newProjectExitCode != 0)
             {
                 return ExitCodeConstants.FailedToCreateNewProject;
+            }
+
+            return 0;
+        });
+
+        parentCommand.Subcommands.Add(command);
+    }
+
+    private static Integration GetIntegrationByInteractiveFlow(IEnumerable<Integration> knownIntegrations)
+    {
+        var prompt = new SelectionPrompt<Integration>()
+            .Title("Please select the integration you want to add:")
+            .UseConverter<Integration>((i) => $"{i.PackageShortName} ({i.PackageName})")
+            .PageSize(10)
+            .AddChoices(knownIntegrations);
+
+        var selectedIntegration = AnsiConsole.Prompt(prompt);
+
+        return selectedIntegration;
+    }
+
+    private static void ConfigureAddCommand(Command parentCommand)
+    {
+        var command = new Command("add", "Add a resource to the .NET Aspire project.");
+
+        var resourceArgument = new Argument<string>("resource");
+        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
+        command.Arguments.Add(resourceArgument);
+
+        var projectOption = new Option<FileInfo?>("--project", "-p");
+        projectOption.Validators.Add(ValidateProjectOption);
+        command.Options.Add(projectOption);
+
+        command.SetAction(async (parseResult, ct) => {
+            var app = BuildApplication(parseResult);
+            var integrationLookup = app.Services.GetRequiredService<IIntegrationLookup>();
+
+            var integrationName = parseResult.GetValue<string>("resource");
+
+            var integrations = await AnsiConsole.Status().StartAsync(
+                "Searching for integrations...",
+                context => integrationLookup.GetIntegrationsAsync(ct)
+                ).ConfigureAwait(false);
+
+            var selectedIntegration = integrations.SingleOrDefault(i => i.PackageShortName == integrationName || i.PackageName == integrationName);
+
+            if (selectedIntegration is null)
+            {
+                selectedIntegration = GetIntegrationByInteractiveFlow(integrations);
+            }
+
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
+            var addPackageResult = await runner.AddPackageAsync(
+                effectiveAppHostProjectFile.FullName,
+                selectedIntegration.PackageName,
+                selectedIntegration.PackageVersion,
+                ct
+                ).ConfigureAwait(false);
+
+            if (addPackageResult != 0)
+            {
+                return ExitCodeConstants.FailedToAddPackage;
             }
 
             return 0;
