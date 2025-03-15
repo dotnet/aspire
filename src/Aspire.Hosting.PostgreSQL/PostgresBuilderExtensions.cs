@@ -472,6 +472,8 @@ public static class PostgresBuilderExtensions
     /// <param name="script">The SQL script used to create the database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
+    /// The script can only contain SQL statements applying to the default database like CREATE DATABASE. Custom statements like table creation
+    /// and data insertion are not supported since they require a distinct connection to the newly created database.
     /// <value>Default script is <code>CREATE DATABASE "&lt;QUOTED_DATABASE_NAME&gt;"</code></value>
     /// </remarks>
     public static IResourceBuilder<PostgresDatabaseResource> WithCreationScript(this IResourceBuilder<PostgresDatabaseResource> builder, string script)
@@ -559,41 +561,21 @@ public static class PostgresBuilderExtensions
     {
         var scriptAnnotation = npgsqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
 
-        if (scriptAnnotation?.Script == null)
+        try
         {
-            try
-            {
-                var quotedDatabaseIdentifier = new NpgsqlCommandBuilder().QuoteIdentifier(npgsqlDatabase.DatabaseName);
-                using var command = npgsqlConnection.CreateCommand();
-                command.CommandText = $"CREATE DATABASE {quotedDatabaseIdentifier}";
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (PostgresException p) when (p.SqlState == "42P04")
-            {
-                // Ignore the error if the database already exists when Aspire tries to create it automatically.
-                // If the database was created by the user, then this exception would be thrown.
-            }
-            catch (Exception e)
-            {
-                var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
-                logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
-            }
+            var quotedDatabaseIdentifier = new NpgsqlCommandBuilder().QuoteIdentifier(npgsqlDatabase.DatabaseName);
+            using var command = npgsqlConnection.CreateCommand();
+            command.CommandText = scriptAnnotation?.Script ?? $"CREATE DATABASE {quotedDatabaseIdentifier}";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        else
+        catch (PostgresException p) when (p.SqlState == "42P04")
         {
-            // User-provided script
-
-            try
-            {
-                using var command = npgsqlConnection.CreateCommand();
-                command.CommandText = scriptAnnotation?.Script;
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
-                logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
-            }
+            // Ignore the error if the database already exists.
+        }
+        catch (Exception e)
+        {
+            var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
         }
     }
 }

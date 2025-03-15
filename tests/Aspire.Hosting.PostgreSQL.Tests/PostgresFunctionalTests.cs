@@ -515,25 +515,10 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var postgres = builder.AddPostgres("pg1");
 
-        // Create a database. Script derived from TechEmpower.
         var newDb = postgres.AddDatabase(databaseName)
             .WithCreationScript($$"""
-                CREATE DATABASE {{databaseName}} WITH OWNER = postgres ENCODING = 'UTF8';
-
-                BEGIN;
-                
-                CREATE TABLE  World (
-                  id integer NOT NULL,
-                  randomNumber integer NOT NULL default 0,
-                  PRIMARY KEY  (id)
-                );
-                GRANT ALL PRIVILEGES ON World to postgres;
-
-                INSERT INTO World (id, randomnumber)
-                SELECT x.id, least(floor(random() * 33 + 1), 33) FROM generate_series(1, 33) as x(id);
-
-                COMMIT;
-
+                CREATE DATABASE {{databaseName}}
+                    ENCODING = 'UTF8';
                 """);
 
         using var app = builder.Build();
@@ -559,11 +544,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             await conn.OpenAsync(cts.Token);
         }
 
-        var selectCommand = conn.CreateCommand();
-        selectCommand.CommandText = "SELECT * FROM World";
-
-        var results = await selectCommand.ExecuteReaderAsync(cts.Token);
-        Assert.True(results.HasRows);
+        Assert.Equal(ConnectionState.Open, conn.State);
     }
 
     [Fact]
