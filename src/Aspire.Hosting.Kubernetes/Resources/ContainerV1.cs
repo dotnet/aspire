@@ -138,7 +138,7 @@ public sealed class ContainerV1
     /// The Resources property allows specifying the compute resources needed for container execution.
     /// </summary>
     [YamlMember(Alias = "resources")]
-    public ResourceRequirementsV1 Resources { get; set; } = new();
+    public ResourceRequirementsV1? Resources { get; set; }
 
     /// <summary>
     /// Represents a collection of VolumeDeviceV1 objects that describe mappings of raw block devices within a container.

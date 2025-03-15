@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes.Tests" />
   </ItemGroup>
 
