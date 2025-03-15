@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Bunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
 public abstract class DashboardTestContext : TestContext
