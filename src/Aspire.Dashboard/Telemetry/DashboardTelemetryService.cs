@@ -5,18 +5,12 @@ using System.Reflection;
 
 namespace Aspire.Dashboard.Telemetry;
 
-public sealed class DashboardTelemetryService
+public sealed class DashboardTelemetryService(
+    ILogger<DashboardTelemetryService> logger,
+    IDashboardTelemetrySender telemetrySender)
 {
     private bool? _telemetryEnabled;
-    private readonly ILogger<DashboardTelemetryService> _logger;
-    private readonly IDashboardTelemetrySender _dashboardTelemetrySender;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-
-    public DashboardTelemetryService(ILogger<DashboardTelemetryService> logger, IDashboardTelemetrySender telemetrySender)
-    {
-        _logger = logger;
-        _dashboardTelemetrySender = telemetrySender;
-    }
 
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
@@ -54,9 +48,9 @@ public sealed class DashboardTelemetryService
                 return;
             }
 
-            _logger.LogDebug("Initializing telemetry service.");
-            _telemetryEnabled = await _dashboardTelemetrySender.TryStartTelemetrySessionAsync().ConfigureAwait(false);
-            _logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
+            logger.LogDebug("Initializing telemetry service.");
+            _telemetryEnabled = await telemetrySender.TryStartTelemetrySessionAsync().ConfigureAwait(false);
+            logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
 
             // Post session property values after initialization, if telemetry has been enabled.
             if (_telemetryEnabled is true)
@@ -93,8 +87,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 2, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 2, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryStartOperation));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
                 startEventProperties,
@@ -121,8 +115,8 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0, name: "context/endOperation");
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 0, name: TelemetryEndpoints.TelemetryEndOperation);
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndOperation, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
         });
@@ -139,8 +133,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 2, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 2, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryStartUserTask));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
                 startEventProperties,
@@ -167,8 +161,8 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0, name: "context/endUserTask");
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 0, name: TelemetryEndpoints.TelemetryEndUserTask);
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryEndUserTask, new EndOperationRequest(Id: (string)propertyGetter(operationId), Result: result, ErrorMessage: errorMessage)).ConfigureAwait(false);
         });
@@ -186,8 +180,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostOperation));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
                 eventName,
@@ -214,8 +208,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostUserTask));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostOperationRequest(
                 eventName,
@@ -242,8 +236,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostFault));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostFaultRequest(
                 eventName,
@@ -271,8 +265,8 @@ public sealed class DashboardTelemetryService
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1, name: eventName);
-        _dashboardTelemetrySender.MakeRequest(context, async (client, propertyGetter) =>
+        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostAsset)));
+        telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostAssetRequest(
                 eventName,
@@ -298,8 +292,8 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0, name: "context/postProperty");
-        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0, name: TelemetryEndpoints.TelemetryPostProperty);
+        telemetrySender.QueueRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostProperty, request).ConfigureAwait(false);
@@ -316,8 +310,8 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0, name: "context/postRecurringProperty");
-        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0, name: TelemetryEndpoints.TelemetryPostRecurringProperty);
+        telemetrySender.QueueRequest(context, async (client, _) =>
         {
             var request = new PostPropertyRequest(propertyName, propertyValue);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostRecurringProperty, request).ConfigureAwait(false);
@@ -334,8 +328,8 @@ public sealed class DashboardTelemetryService
             return;
         }
 
-        var context = OperationContext.Create(propertyCount: 0, name: "context/postCommandLineFlags");
-        _dashboardTelemetrySender.MakeRequest(context, async (client, _) =>
+        var context = OperationContext.Create(propertyCount: 0, name: TelemetryEndpoints.TelemetryPostCommandLineFlags);
+        telemetrySender.QueueRequest(context, async (client, _) =>
         {
             var request = new PostCommandLineFlagsRequest(flagPrefixes, additionalProperties);
             await client.PostAsJsonAsync(TelemetryEndpoints.TelemetryPostCommandLineFlags, request).ConfigureAwait(false);
@@ -364,6 +358,11 @@ public sealed class DashboardTelemetryService
             throw new InvalidOperationException("Response was null.");
         }
         return response;
+    }
+
+    private static string GetCompositeEventName(string eventName, string endpoint)
+    {
+        return $"{endpoint} - ${eventName}";
     }
 }
 

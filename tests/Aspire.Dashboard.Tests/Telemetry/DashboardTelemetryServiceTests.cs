@@ -19,13 +19,38 @@ using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Telemetry;
 
-public class DashboardTelemetryServiceTests
+public class DashboardTelemetryServiceTests(ITestOutputHelper output)
 {
-    private readonly ITestOutputHelper _output;
-
-    public DashboardTelemetryServiceTests(ITestOutputHelper output)
+    [Fact]
+    public async Task CreateTelemetryService_WithDebugSession_Optout_ShowsTelemetryUnsupported()
     {
-        _output = output;
+        var options = new TestDashboardOptions(new DashboardOptions
+        {
+            DebugSession = new DebugSession
+            {
+                Address = "http://localhost:5000",
+                Token = "test",
+                TelemetryOptOut = true
+            }
+        });
+
+        Assert.True(options.Value.DebugSession.TryParseOptions(out _));
+
+        var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
+        var telemetryService = await CreateTelemetryServiceAsync(telemetrySender);
+
+        await telemetryService.InitializeAsync();
+        Assert.False(telemetryService.IsTelemetryEnabled);
+
+        var callbackExecuted = false;
+        telemetrySender.QueueRequest(OperationContext.Empty, (_, _) =>
+        {
+            callbackExecuted = true;
+            return Task.FromResult(0);
+        });
+
+        await telemetrySender.DisposeAsync();
+        Assert.False(callbackExecuted, "Telemetry request should not be sent when telemetry is disabled.");
     }
 
     [Theory]
@@ -57,7 +82,7 @@ public class DashboardTelemetryServiceTests
         var loggerFactory = LoggerFactory.Create(b =>
         {
             b.AddProvider(new TestLoggerProvider(testSink));
-            b.AddXunit(_output);
+            b.AddXunit(output);
         });
 
         var options = new TestDashboardOptions(new DashboardOptions
@@ -155,7 +180,7 @@ public class DashboardTelemetryServiceTests
             return Task.FromResult(IsTelemetryEnabled);
         }
 
-        public void MakeRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
+        public void QueueRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
         {
             ContextChannel.Writer.TryWrite(context);
         }

@@ -142,8 +142,13 @@ public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
         }
     }
 
-    public void MakeRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
+    public void QueueRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
     {
+        if (Client is null)
+        {
+            return;
+        }
+
         _channel.Writer.TryWrite((context, requestFunc));
     }
 

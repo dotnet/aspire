@@ -15,13 +15,13 @@ public class ComponentTelemetryContextTests
     {
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
-        var telemetryService = new DashboardTelemetryService(new NullLogger<DashboardTelemetryService>(), telemetrySender);
+        var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
 
         await telemetryContext.InitializeAsync(telemetryService);
         for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
         {
             Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var postPropertyOperation));
-            Assert.Equal("context/postProperty", postPropertyOperation.Name);
+            Assert.Equal(TelemetryEndpoints.TelemetryPostProperty, postPropertyOperation.Name);
         }
 
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var initializeOperation));
@@ -57,7 +57,7 @@ public class ComponentTelemetryContextTests
     {
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = false };
-        var telemetryService = new DashboardTelemetryService(new NullLogger<DashboardTelemetryService>(), telemetrySender);
+        var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
 
         await telemetryContext.InitializeAsync(telemetryService);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
