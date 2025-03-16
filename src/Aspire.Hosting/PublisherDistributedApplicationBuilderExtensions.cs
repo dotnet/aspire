@@ -20,13 +20,16 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
     public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
-        where TPublisher: class, IDistributedApplicationPublisher
-        where TPublisherOptions: class
+        where TPublisher : class, IDistributedApplicationPublisher
+        where TPublisherOptions : class
     {
         // TODO: We need to add validation here since this needs to be something we refer to on the CLI.
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, TPublisher>(name);
 
-        builder.Services.Configure<TPublisherOptions>("name", configureOptions!);
+        if (configureOptions is not null)
+        {
+            builder.Services.Configure("name", configureOptions);
+        }
 
         builder.Services.Configure<TPublisherOptions>(name, builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));
         builder.Services.Configure<TPublisherOptions>(name, options =>
