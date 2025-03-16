@@ -31,7 +31,7 @@ internal sealed class DockerComposePublishingContext(
 
     private ILogger Logger => logger;
 
-    internal async Task WriteModel(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
         if (executionContext.IsRunMode)
         {
@@ -49,7 +49,7 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        await WriteDockerComposeOutput(model).ConfigureAwait(false);
+        await WriteDockerComposeOutputAsync(model).ConfigureAwait(false);
 
         logger.FinishGeneratingDockerCompose(publisherOptions.OutputPath);
     }
@@ -59,7 +59,7 @@ internal sealed class DockerComposePublishingContext(
         _env[name] = (description, defaultValue);
     }
 
-    private async Task WriteDockerComposeOutput(DistributedApplicationModel model)
+    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model)
     {
         var defaultNetwork = new Network
         {
@@ -167,13 +167,11 @@ internal sealed class DockerComposePublishingContext(
 
     private sealed class ComposeServiceContext(IResource resource, DockerComposePublishingContext composePublishingContext)
     {
-        private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress, bool External);
+        private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress);
 
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
-        public List<string> Commands { get; } = [];
-        public Dictionary<string, object> Parameters { get; } = [];
-
+        private List<string> Commands { get; } = [];
         public List<Volume> Volumes { get; } = [];
 
         public Service BuildComposeService()
@@ -234,23 +232,23 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        private bool TryGetContainerImageName(IResource resource, out string? containerImageName)
+        private bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
         {
             // If the resource has a Dockerfile build annotation, we don't have the image name
             // it will come as a parameter
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resource is ProjectResource)
+            if (resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resourceInstance is ProjectResource)
             {
-                var imageEnvName = $"{resource.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
+                var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
 
                 composePublishingContext.AddEnv(imageEnvName,
-                                                $"Container image name for {resource.Name}",
-                                                $"{resource.Name}:latest");
+                                                $"Container image name for {resourceInstance.Name}",
+                                                $"{resourceInstance.Name}:latest");
 
                 containerImageName = $"${{{imageEnvName}}}";
                 return false;
             }
 
-            return resource.TryGetContainerImageName(out containerImageName);
+            return resourceInstance.TryGetContainerImageName(out containerImageName);
         }
 
         public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -277,7 +275,7 @@ internal sealed class DockerComposePublishingContext(
                 var exposedPort = composePublishingContext.PortAllocator.AllocatePort();
                 composePublishingContext.PortAllocator.AddUsedPort(exposedPort);
 
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, exposedPort, false, endpoint.IsExternal);
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, exposedPort, false);
             }
         }
 
@@ -354,7 +352,7 @@ internal sealed class DockerComposePublishingContext(
 
         private static string GetValue(EndpointMapping mapping, EndpointProperty property)
         {
-            var (scheme, host, internalPort, exposedPort, isHttpIngress, _) = mapping;
+            var (scheme, host, internalPort, exposedPort, isHttpIngress) = mapping;
 
             return property switch
             {
