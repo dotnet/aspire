@@ -102,7 +102,7 @@ public static class DistributedApplicationTestingBuilder
     public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entryPoint);
-        ThrowIfNullOrContainsIsNullOrEmpty(args);
+        args.ThrowIfNullOrContainsIsNullOrEmpty();
         ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
 
         var factory = new SuspendingDistributedApplicationFactory(entryPoint, args, configureBuilder);
@@ -129,27 +129,10 @@ public static class DistributedApplicationTestingBuilder
     /// </returns>
     public static IDistributedApplicationTestingBuilder Create(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
     {
-        ThrowIfNullOrContainsIsNullOrEmpty(args);
+        args.ThrowIfNullOrContainsIsNullOrEmpty();
         ArgumentNullException.ThrowIfNull(configureBuilder);
 
         return new TestingBuilder(args, configureBuilder);
-    }
-
-    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-        foreach (var arg in args)
-        {
-            if (string.IsNullOrEmpty(arg))
-            {
-                var values = string.Join(", ", args);
-                if (arg is null)
-                {
-                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
-                }
-                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
-            }
-        }
     }
 
     private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)

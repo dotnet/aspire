@@ -111,7 +111,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
-        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
+        scriptArgs.ThrowIfNullOrContainsIsNullOrEmpty();
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
@@ -172,22 +172,5 @@ public static class PythonAppResourceBuilderExtensions
 
         context.Args.Add("--metrics_exporter");
         context.Args.Add("otlp");
-    }
-
-    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
-    {
-        ArgumentNullException.ThrowIfNull(scriptArgs);
-        foreach (var scriptArg in scriptArgs)
-        {
-            if (string.IsNullOrEmpty(scriptArg))
-            {
-                var values = string.Join(", ", scriptArgs);
-                if (scriptArg is null)
-                {
-                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{values}]");
-                }
-                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
-            }
-        }
     }
 }

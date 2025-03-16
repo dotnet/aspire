@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Azure.Provisioning;
 
@@ -17,7 +15,7 @@ namespace Aspire.Hosting.Azure;
 /// </remarks>
 public class AzureServiceBusRule(string name)
 {
-    private string _name = ThrowIfNullOrEmpty(name);
+    private string _name = name.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// The rule name.
@@ -25,7 +23,7 @@ public class AzureServiceBusRule(string name)
     public string Name
     {
         get => _name;
-        set => _name = ThrowIfNullOrEmpty(value, nameof(name));
+        set => _name = value.ThrowIfNullOrEmpty(nameof(name));
     }
 
     /// <summary>
@@ -180,11 +178,5 @@ public class AzureServiceBusRule(string name)
         writer.WriteEndObject(); // CorrelationFilter
 
         writer.WriteEndObject(); // Properties
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }

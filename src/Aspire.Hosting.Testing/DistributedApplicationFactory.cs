@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
-    private readonly string[] _args = ThrowIfNullOrContainsIsNullOrEmpty(args);
+    private readonly string[] _args = args.ThrowIfNullOrContainsIsNullOrEmpty();
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -147,24 +147,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <param name="application">The application.</param>
     protected virtual void OnBuilt(DistributedApplication application)
     {
-    }
-
-    private static string[] ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-        foreach (var arg in args)
-        {
-            if (string.IsNullOrEmpty(arg))
-            {
-                var values = string.Join(", ", args);
-                if (arg is null)
-                {
-                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
-                }
-                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
-            }
-        }
-        return args;
     }
 
     private void OnBuiltCore(DistributedApplication application)

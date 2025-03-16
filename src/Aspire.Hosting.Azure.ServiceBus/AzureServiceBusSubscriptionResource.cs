@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
@@ -20,7 +18,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusSubscriptionResource(string name, string subscriptionName, AzureServiceBusTopicResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusTopicResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _subscriptionName = ThrowIfNullOrEmpty(subscriptionName);
+    private string _subscriptionName = subscriptionName.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// The subscription name.
@@ -28,7 +26,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
     public string SubscriptionName
     {
         get => _subscriptionName;
-        set => _subscriptionName = ThrowIfNullOrEmpty(value, nameof(subscriptionName));
+        set => _subscriptionName = value.ThrowIfNullOrEmpty(nameof(subscriptionName));
     }
 
     /// <summary>
@@ -182,11 +180,5 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
         }
 
         writer.WriteEndObject();
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }

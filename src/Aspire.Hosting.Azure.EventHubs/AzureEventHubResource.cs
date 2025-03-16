@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
@@ -19,10 +17,16 @@ namespace Aspire.Hosting.Azure;
 public class AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent)
     : Resource(name), IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
+    private string _hubName = hubName.ThrowIfNullOrEmpty();
+
     /// <summary>
     /// The event hub name.
     /// </summary>
-    public string HubName { get; set; } = ThrowIfNullOrEmpty(hubName);
+    public string HubName
+    {
+        get => _hubName;
+        set => _hubName = value.ThrowIfNullOrEmpty(nameof(hubName));
+    }
 
     /// <summary>
     /// Number of partitions created for the Event Hub, allowed values are from
@@ -109,10 +113,4 @@ public class AzureEventHubResource(string name, string hubName, AzureEventHubsRe
         writer.WriteEndArray();
     }
 #pragma warning restore CA1507 // Use nameof to express symbol names
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }

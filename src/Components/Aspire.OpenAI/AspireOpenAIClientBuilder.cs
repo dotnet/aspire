@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using OpenAI;
@@ -31,7 +29,7 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
     /// <summary>
     /// Gets the name used to retrieve the connection string from the ConnectionStrings configuration section.
     /// </summary>
-    public string ConnectionName { get; } = ThrowIfNullOrEmpty(connectionName);
+    public string ConnectionName { get; } = connectionName.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// Gets the service key used to register the <see cref="OpenAIClient"/> service, if any.
@@ -87,10 +85,4 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
 
     private static string? ConnectionStringValue(DbConnectionStringBuilder connectionString, string key)
         => connectionString.TryGetValue(key, out var value) ? value as string : null;
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }

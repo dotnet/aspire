@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
     <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+    <Compile Include="$(ComponentsDir)\Common\ArgumentExceptionExtensions.cs" Link="ArgumentExceptionExtensions.cs" />
   </ItemGroup>
   
   <ItemGroup>

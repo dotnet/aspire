@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(ComponentsDir)\Common\ArgumentExceptionExtensions.cs" Link="ArgumentExceptionExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -25,17 +22,17 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// <summary>
     /// Gets the name of the deployment.
     /// </summary>
-    public string Name { get; private set; } = ThrowIfNullOrEmpty(name);
+    public string Name { get; private set; } = name.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// Gets the name of the model.
     /// </summary>
-    public string ModelName { get; private set; } = ThrowIfNullOrEmpty(modelName);
+    public string ModelName { get; private set; } = modelName.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// Gets the version of the model.
     /// </summary>
-    public string ModelVersion { get; private set; } = ThrowIfNullOrEmpty(modelVersion);
+    public string ModelVersion { get; private set; } = modelVersion.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// Gets the name of the SKU.
@@ -52,10 +49,4 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// The default value is <inheritdoc cref="DefaultSkuCapacity"/>.
     /// </value>
     public int SkuCapacity { get; set; } = skuCapacity ?? DefaultSkuCapacity;
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }

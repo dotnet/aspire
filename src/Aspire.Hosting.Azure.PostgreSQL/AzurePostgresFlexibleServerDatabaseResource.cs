@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -29,7 +27,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
+    public string DatabaseName { get; } = databaseName.ThrowIfNullOrEmpty();
 
     /// <summary>
     /// Gets the inner PostgresDatabaseResource resource.
@@ -40,12 +38,6 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
 
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 
     internal void SetInnerResource(PostgresDatabaseResource innerResource)
     {
