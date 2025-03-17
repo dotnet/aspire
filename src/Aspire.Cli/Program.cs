@@ -70,8 +70,8 @@ public class Program
         rootCommand.Options.Add(waitForDebuggerOption);
         #endif
 
-        ConfigureDevCommand(rootCommand);
-        ConfigurePublishCommand(rootCommand);
+        ConfigureRunCommand(rootCommand);
+        ConfigureBuildCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
         ConfigureAddCommand(rootCommand);
         return rootCommand;
@@ -115,9 +115,9 @@ public class Program
         }
     }
 
-    private static void ConfigureDevCommand(Command parentCommand)
+    private static void ConfigureRunCommand(Command parentCommand)
     {
-        var command = new Command("dev", "Run a .NET Aspire AppHost project in development mode.");
+        var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -176,9 +176,9 @@ public class Program
         };
     }
 
-    private static void ConfigurePublishCommand(Command parentCommand)
+    private static void ConfigureBuildCommand(Command parentCommand)
     {
-        var command = new Command("publish", "Publish a .NET Aspire AppHost project.");
+        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
