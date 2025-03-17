@@ -25,6 +25,10 @@ param infra_outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
+param certificateName string
+
+param customDomain string
+
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api'
   location: location
@@ -45,6 +49,13 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: api_containerport
         transport: 'http'
+        customDomains: [
+          {
+            name: customDomain
+            bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
+            certificateId: (certificateName != '') ? '${infra_outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+          }
+        ]
       }
       registries: [
         {
