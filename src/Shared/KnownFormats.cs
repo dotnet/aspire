@@ -19,5 +19,5 @@ internal static class KnownFormats
     /// <summary>
     /// UI timestamp displayed on the console logs UI for UTC timestamps.
     /// </summary>
-    public const string ConsoleLogsUITimestampUTCFormat = "yyyy-MM-ddTHH:mm:ssK";
+    public const string ConsoleLogsUITimestampUtcFormat = "yyyy-MM-ddTHH:mm:ssK";
 }
