@@ -287,7 +287,7 @@ internal sealed class ContainerPortSpec
     public string? HostIP { get; set; }
 }
 
-internal sealed class ContainerCreateFileSystem
+internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFileSystem>
 {
     // The (absolute) base path to create the child file system entries in the container.
     [JsonPropertyName("destination")]
@@ -308,6 +308,20 @@ internal sealed class ContainerCreateFileSystem
     // The list of file system entries to create (or update) in the container.
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
+
+    public bool Equals(ContainerCreateFileSystem? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        return Destination == other.Destination
+            && DefaultOwner == other.DefaultOwner
+            && DefaultGroup == other.DefaultGroup
+            && Mode == other.Mode
+            && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
+    }
 }
 
 internal static class ContainerFileSystemItemExtensions
@@ -343,7 +357,7 @@ internal static class ContainerFileSystemItemExtensions
     }
 }
 
-internal sealed class ContainerFileSystemEntry
+internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemEntry>
 {
     // The type of the file system entry (file or directory)
     [JsonPropertyName("type")]
@@ -372,51 +386,21 @@ internal sealed class ContainerFileSystemEntry
     // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
-}
 
-internal sealed class ContainerCreateFileSystemComparer : IEqualityComparer<ContainerCreateFileSystem>
-{
-    public bool Equals(ContainerCreateFileSystem? x, ContainerCreateFileSystem? y)
+    public bool Equals(ContainerFileSystemEntry? other)
     {
-        if (x is null || y is null)
+        if (other is null)
         {
             return false;
         }
 
-        return x.Destination == y.Destination
-            && x.DefaultOwner == y.DefaultOwner
-            && x.DefaultGroup == y.DefaultGroup
-            && x.Mode == y.Mode
-            && (x.Entries?.SequenceEqual(y.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>(), new ContainerFileSystemEntryComparer()) ?? false);
-    }
-
-    public int GetHashCode(ContainerCreateFileSystem obj)
-    {
-        return HashCode.Combine(obj.Destination, obj.DefaultOwner, obj.DefaultGroup, obj.Mode);
-    }
-}
-
-internal sealed class ContainerFileSystemEntryComparer : IEqualityComparer<ContainerFileSystemEntry>
-{
-    public bool Equals(ContainerFileSystemEntry? x, ContainerFileSystemEntry? y)
-    {
-        if (x is null || y is null)
-        {
-            return false;
-        }
-
-        return x.Type == y.Type
-            && x.Name == y.Name
-            && x.Owner == y.Owner
-            && x.Group == y.Group
-            && x.Mode == y.Mode
-            && x.Contents == y.Contents
-            && ((x.Entries is null && y.Entries is null ) ||(x.Entries?.SequenceEqual(y.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>(), this) ?? false));
-    }
-
-    public int GetHashCode(ContainerFileSystemEntry obj)
-    {
-        return HashCode.Combine(obj.Type, obj.Name, obj.Owner, obj.Group, obj.Mode, obj.Contents);
+        return Type == other.Type
+            && Name == other.Name
+            && Owner == other.Owner
+            && Group == other.Group
+            && Mode == other.Mode
+            && Contents == other.Contents
+            && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
     }
 }
 

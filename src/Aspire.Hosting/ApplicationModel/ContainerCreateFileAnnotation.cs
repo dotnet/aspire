@@ -10,10 +10,26 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public abstract class ContainerFileSystemItem
 {
+    private string? _name;
+
     /// <summary>
-    /// The name of the file or directory.
+    /// The name of the file or directory. Must be a simple file or folder name and not include any path separators (eg, / or \). To specify parent folders, use one or more <see cref="ContainerDirectory"/> entries.
     /// </summary>
-    public required string Name { get; set; }
+    public string Name
+    {
+        get => _name!;
+        set
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+
+            if (Path.GetDirectoryName(value) != string.Empty)
+            {
+                throw new ArgumentException("Name must be a simple file or folder name and not include any path separators (eg, / or \\). To specify parent folders, use one or more ContainerDirectory entries.", nameof(value));
+            }
+
+            _name = value;
+        }
+    }
 
     /// <summary>
     /// The UID of the owner of the file or directory. If set to null, the UID will be inherited from the parent directory or defaults.
@@ -37,7 +53,7 @@ public abstract class ContainerFileSystemItem
 public sealed class ContainerFile : ContainerFileSystemItem
 {
     /// <summary>
-    /// The contents of the file to create in the container.
+    /// The contents of the file. If null, the file will be created as an empty file.
     /// </summary>
     public string? Contents { get; set; }
 }
@@ -48,7 +64,7 @@ public sealed class ContainerFile : ContainerFileSystemItem
 public sealed class ContainerDirectory : ContainerFileSystemItem
 {
     /// <summary>
-    /// The contents of the directory to create in the container.
+    /// The contents of the directory to create in the container. Will create specified <see cref="ContainerFile"/> and <see cref="ContainerDirectory"/> entries in the directory.
     /// </summary>
     public List<ContainerFileSystemItem> Entries { get; set; } = new();
 }

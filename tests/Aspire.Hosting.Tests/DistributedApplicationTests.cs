@@ -438,6 +438,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
+        var defaultMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite;
         var createFileEntries = new List<ContainerFileSystemItem>
         {
             new ContainerDirectory
@@ -455,7 +456,6 @@ public class DistributedApplicationTests
                 },
             },
         };
-        var defaultMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite;
 
         AddRedisContainer(testProgram.AppBuilder, "verify-container-create-file-redis")
             .WithCreateFile(destination, createFileEntries, defaultMode: defaultMode);
@@ -480,8 +480,7 @@ public class DistributedApplicationTests
                         Entries = createFileEntries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
                     }
                 },
-                item.Spec.CreateFiles,
-                new ContainerCreateFileSystemComparer());
+                item.Spec.CreateFiles);
             });
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);

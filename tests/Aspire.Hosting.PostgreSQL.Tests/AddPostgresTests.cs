@@ -472,10 +472,20 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
-        var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        using var stream = File.OpenRead(volume.Source!);
-        var document = JsonDocument.Parse(stream);
+        var createServersJson = pgadmin.Annotations.OfType<ContainerCreateFileAnnotation>().Single();
+
+        Assert.Equal("/pgadmin4", createServersJson.DestinationPath);
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead, createServersJson.DefaultMode);
+        Assert.Equal(0, createServersJson.DefaultOwner);
+        Assert.Equal(0, createServersJson.DefaultGroup);
+        Assert.Single(createServersJson.Entries);
+        Assert.IsType<ContainerFile>(createServersJson.Entries[0]);
+
+        var serversFile = (ContainerFile)createServersJson.Entries[0];
+        Assert.NotNull(serversFile.Contents);
+
+        var document = JsonDocument.Parse(serversFile.Contents!);
 
         var servers = document.RootElement.GetProperty("Servers");
 
