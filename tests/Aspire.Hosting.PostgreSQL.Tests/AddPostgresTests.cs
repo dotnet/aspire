@@ -381,10 +381,9 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
-        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var createFile = container.Annotations.OfType<ContainerCreateFileAnnotation>().Single();
 
-        Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
-        Assert.Equal("/pgadmin4/servers.json", volume.Target);
+        Assert.Equal("/pgadmin4", createFile.DestinationPath);
     }
 
     [Fact]

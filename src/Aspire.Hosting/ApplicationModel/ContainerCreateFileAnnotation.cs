@@ -70,9 +70,9 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
 }
 
 /// <summary>
-/// Represents an annotation that indicates the creation of a file in a container.
+/// Represents an annotation that specifies files and folders that should be created or updated in a container.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nw}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, DestinationPath = {DestinationPath}")]
 public sealed class ContainerCreateFileAnnotation : IResourceAnnotation
 {
     /// <summary>
