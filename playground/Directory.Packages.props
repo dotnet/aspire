@@ -1,4 +1,7 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Packages.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.FeatureManagement" Version="4.0.0" />
+  </ItemGroup>
 </Project>
