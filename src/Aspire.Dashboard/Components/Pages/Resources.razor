@@ -24,30 +24,30 @@
 
         <ToolbarSection>
             <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                          Immediate="true"
-                          ImmediateDelay="@FluentUIExtensions.InputDelay"
-                          @bind-Value="_filter"
-                          slot="end"
-                          Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
-                          @bind-Value:after="HandleSearchFilterChangedAsync" />
+            Immediate="true"
+            ImmediateDelay="@FluentUIExtensions.InputDelay"
+            @bind-Value="_filter"
+            slot="end"
+            Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
+            @bind-Value:after="HandleSearchFilterChangedAsync" />
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
 
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton id="resourceFilterButton" slot="end"
-                              Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
-                              IconEnd="@(new Icons.Regular.Size20.Filter())"
-                              @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
-                              Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
-                              aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
+                Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
+                IconEnd="@(new Icons.Regular.Size20.Filter())"
+                @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
+                Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
+                aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
 
                 @if (HasAnyChildResources())
                 {
                     <AspireMenuButton ButtonAppearance="Appearance.Stealth"
-                                      Icon="@(new Icons.Regular.Size20.Options())"
-                                      Items="@_resourcesMenuItems"
-                                      Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesChangeViewOptions)]"
-                                      slot="end" />
+                    Icon="@(new Icons.Regular.Size20.Options())"
+                    Items="@_resourcesMenuItems"
+                    Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesChangeViewOptions)]"
+                    slot="end" />
                 }
             }
             else
@@ -57,64 +57,67 @@
                     var showExpandAllButton = HasCollapsedResources();
 
                     <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
-                                  OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
+                    OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
                         @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
                     </FluentButton>
                 }
 
                 <div>
                     <ResourceFilters
-                        ResourceStates="@ResourceStatesToVisibility"
-                        ResourceTypes="@ResourceTypesToVisibility"
-                        ResourceHealthStates="@ResourceHealthStatusesToVisibility"
-                        OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
+                    ResourceStates="@ResourceStatesToVisibility"
+                    ResourceTypes="@ResourceTypesToVisibility"
+                    ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                    OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
                 </div>
             }
         </ToolbarSection>
 
         <MainSection>
             <FluentPopover AnchorId="resourceFilterButton"
-                           @bind-Open="_isFilterPopupVisible"
-                           AutoFocus="true"
-                           FixedPlacement="true"
-                           Class="resources-filter-popup">
+            @bind-Open="_isFilterPopupVisible"
+            AutoFocus="true"
+            FixedPlacement="true"
+            Class="resources-filter-popup">
                 <Body>
-                <ResourceFilters
-                        ResourceStates="@ResourceStatesToVisibility"
-                        ResourceTypes="@ResourceTypesToVisibility"
-                        ResourceHealthStates="@ResourceHealthStatusesToVisibility"
-                        OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
+                    <ResourceFilters
+                    ResourceStates="@ResourceStatesToVisibility"
+                    ResourceTypes="@ResourceTypesToVisibility"
+                    ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                    OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 
             <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
-                                ShowDetails="@showDetailsView"
-                                OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
-                                SelectedValue="@SelectedResource"
-                                ViewKey="ResourcesList"
-                                OnResize="@(r => _manager.SetWidthFraction(r.Orientation == Orientation.Horizontal ? r.Panel1Fraction : 1))">
+            ShowDetails="@showDetailsView"
+            OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
+            SelectedValue="@SelectedResource"
+            ViewKey="ResourcesList"
+            OnResize="@(r => _manager.SetWidthFraction(r.Orientation == Orientation.Horizontal ? r.Panel1Fraction : 1))">
                 <Summary>
                     <div class="resources-summary-layout">
-                        <div class="resource-tabs">
+                        <div class="@(!_hideResourceGraph ? "resource-tabs" : string.Empty)">
                             @*
                                 Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
                                 Content is located in manually created divs so they can be placed in their own CSS grid row.
                             *@
-                            <FluentTabs Class="resources-tab-header" ActiveTabId="@($"tab-{PageViewModel.SelectedViewKind}")" OnTabChange="@OnTabChangeAsync" Size="null">
-                                <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-{ResourceViewKind.Table}")"
-                                           Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]"
-                                           Icon="@(new Icons.Regular.Size24.Table())">
-                                </FluentTab>
-                                <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-{ResourceViewKind.Graph}")"
-                                           aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
-                                           Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]"
-                                           Icon="@(new Icons.Regular.Size24.ShareAndroid())">
-                                </FluentTab>
-                            </FluentTabs>
+                            @if (!_hideResourceGraph)
+                            {
+                                <FluentTabs Class="resources-tab-header" ActiveTabId="@($"tab-{PageViewModel.SelectedViewKind}")" OnTabChange="@OnTabChangeAsync" Size="null">
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-{ResourceViewKind.Table}")"
+                                               Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]"
+                                               Icon="@(new Icons.Regular.Size24.Table())">
+                                    </FluentTab>
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-{ResourceViewKind.Graph}")"
+                                               aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+                                               Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]"
+                                               Icon="@(new Icons.Regular.Size24.ShareAndroid())">
+                                    </FluentTab>
+                                </FluentTabs>
+                            }
                             <div class="resources-grid-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table)">
                                 <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                     <FluentDataGrid @ref="_dataGrid"
@@ -191,10 +194,13 @@
                                     </FluentDataGrid>
                                 </GridColumnManager>
                             </div>
-                            <div class="resource-graph-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Graph)">
-                                <svg class="resource-graph">
-                                </svg>
-                            </div>
+                            @if (_hideResourceGraph)
+                            {
+                                <div class="resource-graph-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Graph)">
+                                    <svg class="resource-graph">
+                                    </svg>
+                                </div>
+                            }
                         </div>
                     </div>
                 </Summary>
