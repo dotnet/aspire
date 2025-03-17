@@ -717,7 +717,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [InlineData(null)]
-    public async Task Configuration_DisableResourceGraph_DefaultAuthModes(bool? value)
+    public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
     {
         // Arrange & Act
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
