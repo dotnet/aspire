@@ -45,14 +45,21 @@ public static class AzureContainerAppExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds a container app environment resource to the distributed application builder.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
         builder.AddAzureContainerAppsInfrastructure();
+
+        // Only support one temporarily until we can support multiple environments
+        // and allowing each container app to be explicit about which environment it uses
+        if (builder.Resources.OfType<AzureContainerAppEnvironmentResource>().Any())
+        {
+            throw new InvalidOperationException("Only one container app environment is supported at this time. Please remove the existing container app environment.");
+        }
 
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
