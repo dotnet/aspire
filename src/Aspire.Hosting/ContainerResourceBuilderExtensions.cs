@@ -724,22 +724,20 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///     .WithContainerFiles("/usr/data", new()
-    ///     {
+    ///     .WithContainerFiles("/usr/data", [
     ///         new ContainerDirectory
     ///         {
     ///             Name = "custom-entry",
-    ///             Entries = new()
-    ///             {
+    ///             Entries = [
     ///                 new ContainerFile
     ///                 {
     ///                     Name = "entrypoint.sh",
     ///                     Contents = "echo hello world",
     ///                     Mode = UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite,
     ///                 },
-    ///             },
+    ///             ],
     ///         },
-    ///     },
+    ///     ],
     ///     defaultOwner: 1000,
     ///     defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
     /// </code>
