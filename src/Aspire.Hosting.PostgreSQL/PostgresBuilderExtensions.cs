@@ -281,15 +281,22 @@ public static class PostgresBuilderExtensions
 
                 var bookmarkFiles = WritePgWebBookmarks(postgresInstances);
 
-                pgwebContainerBuilder.WithCreateFile("/.pgweb", new()
+                pgwebContainerBuilder.WithCreateFile("/", new()
                 {
                     new ContainerDirectory
                     {
-                        Name = "bookmarks",
-                        Mode = FileMode644,
-                        Entries = bookmarkFiles,
+                        Name = ".pgweb",
+                        Entries = new()
+                        {
+                            new ContainerDirectory
+                            {
+                                Name = "bookmarks",
+                                Entries = bookmarkFiles,
+                            },
+                        },
                     },
-                });
+                },
+                defaultMode: FileMode755);
 
                 return Task.CompletedTask;
             });
@@ -387,7 +394,7 @@ public static class PostgresBuilderExtensions
             {
                 Name = $"{postgresDatabase.Name}.toml",
                 Contents = fileContent,
-                Mode = FileMode755,
+                Mode = FileMode644,
             });
         }
 
