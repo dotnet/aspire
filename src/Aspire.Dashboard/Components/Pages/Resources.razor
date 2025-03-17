@@ -192,7 +192,7 @@
                                     </FluentDataGrid>
                                 </GridColumnManager>
                             </div>
-                            @if (_hideResourceGraph)
+                            @if (!_hideResourceGraph)
                             {
                                 <div class="resource-graph-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Graph)">
                                     <svg class="resource-graph">
