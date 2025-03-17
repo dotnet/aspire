@@ -45,9 +45,48 @@ public sealed class SpanWaterfallViewModel
         return tooltip;
     }
 
-    public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
+    public bool MatchesFilter(string filter, Func<OtlpApplicationView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
     {
-        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
+        if (Filter(this))
+        {
+            matchedDescendents = Children.SelectMany(GetWithDescendents);
+            return true;
+        }
+
+        foreach (var child in Children)
+        {
+            if (child.MatchesFilter(filter, getResourceName, out var matchedChildDescendents))
+            {
+                matchedDescendents = [child, ..matchedChildDescendents];
+                return true;
+            }
+        }
+
+        matchedDescendents = null;
+        return false;
+
+        bool Filter(SpanWaterfallViewModel viewModel)
+        {
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                return true;
+            }
+
+            return viewModel.Span.SpanId.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || getResourceName(viewModel.Span.Source).Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || viewModel.Span.GetDisplaySummary().Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || viewModel.UninstrumentedPeer?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) is true;
+        }
+
+        static IEnumerable<SpanWaterfallViewModel> GetWithDescendents(SpanWaterfallViewModel s)
+        {
+            yield return s;
+
+            foreach (var descendent in s.Children.SelectMany(GetWithDescendents))
+            {
+                yield return descendent;
+            }
+        }
     }
 
     private void UpdateHidden(bool isParentCollapsed = false)
@@ -63,13 +102,18 @@ public sealed class SpanWaterfallViewModel
 
     public sealed record TraceDetailState(IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers, List<string> CollapsedSpanIds);
 
+    public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
+    {
+        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
+    }
+
     public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
 
         TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state);
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, s.Parent);
             orderedSpans.Add(viewModel);
 
             s.Parent?.Children.Add(viewModel);
@@ -79,7 +123,7 @@ public sealed class SpanWaterfallViewModel
 
         return orderedSpans;
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, SpanWaterfallViewModel? parent)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -99,6 +143,7 @@ public sealed class SpanWaterfallViewModel
 
             var viewModel = new SpanWaterfallViewModel
             {
+                Parent = parent,
                 Children = [],
                 Span = span,
                 LeftOffset = leftOffset,
@@ -121,6 +166,8 @@ public sealed class SpanWaterfallViewModel
             return viewModel;
         }
     }
+
+    public SpanWaterfallViewModel? Parent { get; set; }
 
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {

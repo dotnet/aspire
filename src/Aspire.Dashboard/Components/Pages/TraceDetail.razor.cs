@@ -80,9 +80,20 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = GetFilteredSpanWaterfalls(_spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList());
+        HashSet<SpanWaterfallViewModel> visibleViewModels = [];
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            {
+                visibleViewModels.Add(viewModel);
+                foreach (var descendent in matchedDescendents)
+                {
+                    visibleViewModels.Add(descendent);
+                }
+            }
+        }
 
-        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        var page = visibleViewModels.AsEnumerable();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -92,45 +103,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
             Items = page.ToList(),
-            TotalItemCount = visibleSpanWaterfallViewModels.Count
+            TotalItemCount = visibleViewModels.Count
         });
-
-        // Return spans where any child span matches the filter.
-        List<SpanWaterfallViewModel> GetFilteredSpanWaterfalls(List<SpanWaterfallViewModel> viewModels)
-        {
-            var viewModelsToFilterMatch = new Dictionary<SpanWaterfallViewModel, bool>();
-            return [.. viewModels.Where(AnyChildMatchFilter)];
-
-            bool AnyChildMatchFilter(SpanWaterfallViewModel span)
-            {
-                if (viewModelsToFilterMatch.TryGetValue(span, out var matchesFilter))
-                {
-                    return matchesFilter;
-                }
-
-                matchesFilter = span.Children.Any(AnyChildMatchFilter) || Filter(_filter, span);
-                viewModelsToFilterMatch.Add(span, matchesFilter);
-                return matchesFilter;
-            }
-
-            bool Filter(string filter, SpanWaterfallViewModel viewModel)
-            {
-                if (string.IsNullOrWhiteSpace(filter))
-                {
-                    return true;
-                }
-
-                if (viewModel.Span.SpanId.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-                    || GetResourceName(viewModel.Span.Source).Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-                    || viewModel.Span.GetDisplaySummary().Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-                    || viewModel.UninstrumentedPeer?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) is true)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
     }
 
     private string? GetPageTitle()
@@ -204,11 +178,13 @@ public partial class TraceDetail : ComponentBase, IDisposable
 
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
-        return;
     }
 
     private async Task HandleAfterFilterBindAsync()
     {
+        SelectedSpan = null;
+        await InvokeAsync(StateHasChanged);
+
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
