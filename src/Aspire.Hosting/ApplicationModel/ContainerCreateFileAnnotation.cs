@@ -66,7 +66,7 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
     /// <summary>
     /// The contents of the directory to create in the container. Will create specified <see cref="ContainerFile"/> and <see cref="ContainerDirectory"/> entries in the directory.
     /// </summary>
-    public List<ContainerFileSystemItem> Entries { get; set; } = new();
+    public IEnumerable<ContainerFileSystemItem> Entries { get; set; } = [];
 }
 
 /// <summary>
@@ -99,5 +99,5 @@ public sealed class ContainerCreateFileAnnotation : IResourceAnnotation
     /// <summary>
     /// The list of file system entries to create in the container.
     /// </summary>
-    public List<ContainerFileSystemItem> Entries { get; init; } = new();
+    public IEnumerable<ContainerFileSystemItem> Entries { get; init; } = [];
 }

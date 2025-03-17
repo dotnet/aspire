@@ -479,9 +479,8 @@ public class AddPostgresTests
         Assert.Equal(0, createServersJson.DefaultOwner);
         Assert.Equal(0, createServersJson.DefaultGroup);
         Assert.Single(createServersJson.Entries);
-        Assert.IsType<ContainerFile>(createServersJson.Entries[0]);
 
-        var serversFile = (ContainerFile)createServersJson.Entries[0];
+        var serversFile = Assert.IsType<ContainerFile>(createServersJson.Entries.First());
         Assert.NotNull(serversFile.Contents);
 
         var document = JsonDocument.Parse(serversFile.Contents!);
@@ -550,11 +549,11 @@ public class AddPostgresTests
         Assert.Equal(0, createBookmarks.DefaultGroup);
         Assert.Single(createBookmarks.Entries);
 
-        var pgWebDirectory = Assert.IsType<ContainerDirectory>(createBookmarks.Entries[0]);
+        var pgWebDirectory = Assert.IsType<ContainerDirectory>(createBookmarks.Entries.First());
         Assert.Equal(".pgweb", pgWebDirectory.Name);
         Assert.Single(pgWebDirectory.Entries);
 
-        var bookmarksDirectory = Assert.IsType<ContainerDirectory>(pgWebDirectory.Entries[0]);
+        var bookmarksDirectory = Assert.IsType<ContainerDirectory>(pgWebDirectory.Entries.First());
         Assert.Equal("bookmarks", bookmarksDirectory.Name);
 
         Assert.Collection(bookmarksDirectory.Entries,

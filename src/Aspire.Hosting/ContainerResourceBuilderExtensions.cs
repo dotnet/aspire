@@ -724,7 +724,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///     .WithCreateFile("/usr/data", new()
+    ///     .WithContainerFiles("/usr/data", new()
     ///     {
     ///         new ContainerDirectory
     ///         {
@@ -744,7 +744,7 @@ public static class ContainerResourceBuilderExtensions
     ///     defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithCreateFile<T>(this IResourceBuilder<T> builder, string destinationPath, List<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);

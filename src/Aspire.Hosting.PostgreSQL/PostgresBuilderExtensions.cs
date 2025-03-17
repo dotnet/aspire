@@ -167,14 +167,13 @@ public static class PostgresBuilderExtensions
                 var serversConfigFile = WritePgAdminServerJson(postgresInstances);
 
                 // Create a servers.json file in the container with necessary permissions
-                pgAdminContainerBuilder.WithCreateFile("/pgadmin4", new()
-                    {
+                pgAdminContainerBuilder.WithContainerFiles("/pgadmin4", [
                         new ContainerFile
                         {
                             Name = "servers.json",
                             Contents = serversConfigFile,
                         },
-                    },
+                    ],
                     defaultMode: FileMode644);
 
                 return Task.CompletedTask;
@@ -281,22 +280,20 @@ public static class PostgresBuilderExtensions
 
                 var bookmarkFiles = WritePgWebBookmarks(postgresInstances);
 
-                pgwebContainerBuilder.WithCreateFile("/", new()
-                {
-                    new ContainerDirectory
-                    {
-                        Name = ".pgweb",
-                        Entries = new()
+                pgwebContainerBuilder.WithContainerFiles("/", [
+                        new ContainerDirectory
                         {
-                            new ContainerDirectory
-                            {
-                                Name = "bookmarks",
-                                Entries = bookmarkFiles,
-                            },
+                            Name = ".pgweb",
+                            Entries = [
+                                new ContainerDirectory
+                                {
+                                    Name = "bookmarks",
+                                    Entries = bookmarkFiles,
+                                },
+                            ],
                         },
-                    },
-                },
-                defaultMode: FileMode755);
+                    ],
+                    defaultMode: FileMode755);
 
                 return Task.CompletedTask;
             });

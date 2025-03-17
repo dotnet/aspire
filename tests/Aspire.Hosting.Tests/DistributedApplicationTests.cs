@@ -445,20 +445,19 @@ public class DistributedApplicationTests
             {
                 Name = "test-folder",
                 Owner = 1000,
-                Entries = new()
-                {
+                Entries = [
                     new ContainerFile
                     {
                         Name = "test.txt",
                         Contents = "Hello World!",
                         Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
                     },
-                },
+                ],
             },
         };
 
         AddRedisContainer(testProgram.AppBuilder, "verify-container-create-file-redis")
-            .WithCreateFile(destination, createFileEntries, defaultMode: defaultMode);
+            .WithContainerFiles(destination, createFileEntries, defaultMode: defaultMode);
 
         await using var app = testProgram.Build();
 
