@@ -6,9 +6,9 @@ param sqlserver_volumes_0_storage string
 @secure()
 param sqlserver_password_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param env_outputs_azure_container_registry_managed_identity_id string
 
-param outputs_azure_container_apps_environment_id string
+param env_outputs_azure_container_apps_environment_id string
 
 resource sqlserver 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'sqlserver'
@@ -28,7 +28,7 @@ resource sqlserver 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
       }
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: env_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -67,7 +67,7 @@ resource sqlserver 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }
