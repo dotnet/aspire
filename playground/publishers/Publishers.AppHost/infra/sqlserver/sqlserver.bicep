@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param sqlserver_volumes_0_storage string
+param env_outputs_volumes_sqlserver_0 string
 
 @secure()
 param sqlserver_password_value string
@@ -59,7 +59,7 @@ resource sqlserver 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'v0'
           storageType: 'AzureFile'
-          storageName: sqlserver_volumes_0_storage
+          storageName: env_outputs_volumes_sqlserver_0
         }
       ]
     }

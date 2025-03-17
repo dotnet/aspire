@@ -13,6 +13,8 @@ internal interface IAzureContainerAppEnvironment
     IManifestExpressionProvider ContainerRegistryManagedIdentityId { get; }
     IManifestExpressionProvider ManagedIdentityId { get; }
     IManifestExpressionProvider LogAnalyticsWorkspaceId { get; }
+    IManifestExpressionProvider PrincipalName { get; }
+    IManifestExpressionProvider ContainerAppEnvironmentName { get; }
 
     IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource);
     IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex);

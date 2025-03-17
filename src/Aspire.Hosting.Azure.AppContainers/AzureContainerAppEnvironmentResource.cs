@@ -43,6 +43,16 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// </summary>
     public BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
 
+    /// <summary>
+    /// Gets the principal name of the managed identity.
+    /// </summary>
+    public BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
+
+    /// <summary>
+    /// Gets the name of the Container App Environment.
+    /// </summary>
+    public BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
+
     internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
 
     internal Dictionary<string, BicepOutputReference> SecretKeyVaultNames { get; } = [];
@@ -58,6 +68,10 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     IManifestExpressionProvider IAzureContainerAppEnvironment.ManagedIdentityId => ManagedIdentityId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.LogAnalyticsWorkspaceId => LogAnalyticsWorkspaceId;
+
+    IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalName => PrincipalName;
+
+    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {

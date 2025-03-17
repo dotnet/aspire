@@ -24,6 +24,10 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
 
     public IManifestExpressionProvider LogAnalyticsWorkspaceId => AzureContainerAppsEnvironment.AZURE_LOG_ANALYTICS_WORKSPACE_ID;
 
+    public IManifestExpressionProvider PrincipalName => AzureContainerAppsEnvironment.MANAGED_IDENTITY_NAME;
+
+    public IManifestExpressionProvider ContainerAppEnvironmentName => AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME;
+
     public IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource)
     {
         return SecretOutputExpression.GetSecretOutputKeyVault(resource);
@@ -50,6 +54,7 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_ID => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN");
         public static IManifestExpressionProvider AZURE_LOG_ANALYTICS_WORKSPACE_ID => GetExpression("AZURE_LOG_ANALYTICS_WORKSPACE_ID");
+        public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_NAME => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME");
 
         private static IManifestExpressionProvider GetExpression(string propertyExpression) =>
             new AzureContainerAppsEnvironment(propertyExpression);

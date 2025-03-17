@@ -90,6 +90,48 @@ resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   scope: cae
 }
 
+resource storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('storagevolume${uniqueString(resourceGroup().id)}', 24)
+  kind: 'StorageV2'
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    largeFileSharesState: 'Enabled'
+  }
+  tags: tags
+}
+
+resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileServices@2024-01-01' = {
+  name: 'default'
+  parent: storageVolume
+}
+
+resource shares_volumes_sqlserver_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+  name: take('sharesvolumessqlserver0-${uniqueString(resourceGroup().id)}', 63)
+  properties: {
+    enabledProtocols: 'SMB'
+    shareQuota: 1024
+  }
+  parent: storageVolumeFileService
+}
+
+resource managedStorage_volumes_sqlserver_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+  name: take('managedstoragevolumessqlserver${uniqueString(resourceGroup().id)}', 24)
+  properties: {
+    azureFile: {
+      accountName: storageVolume.name
+      accountKey: storageVolume.listKeys().keys[0].value
+      accessMode: 'ReadWrite'
+      shareName: shares_volumes_sqlserver_0.name
+    }
+  }
+  parent: cae
+}
+
+output volumes_sqlserver_0 string = managedStorage_volumes_sqlserver_0.name
+
 output MANAGED_IDENTITY_NAME string = mi.name
 
 output MANAGED_IDENTITY_PRINCIPAL_ID string = mi.properties.principalId

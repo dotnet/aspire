@@ -96,9 +96,15 @@ internal sealed class AzureContainerAppsInfrastructure(
             // REVIEW: the secret key vault resources aren't coupled to the container app environment. This
             // is a side effect from how azd worked. We can move them to another service in the future.
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
+
+            // Set the known parameters for the container app environment
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ManagedIdentityId);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
+
+            SetKnownParameterValue(r, "containerAppEnvironmentId", _ => environment.ContainerAppEnvironmentId);
+            SetKnownParameterValue(r, "containerAppEnvironmentName", _ => environment.ContainerAppEnvironmentName);
         }
     }
 

@@ -30,9 +30,9 @@ module azpg 'azpg/azpg.bicep' = {
   scope: rg
   params: {
     location: location
-    principalId: ''
-    principalType: ''
-    principalName: ''
+    principalId: env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+    principalType: 'ServicePrincipal'
+    principalName: env.outputs.MANAGED_IDENTITY_NAME
   }
 }
 
@@ -43,5 +43,7 @@ output env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = env.outputs.AZURE_CONTAI
 output env_AZURE_CONTAINER_REGISTRY_ENDPOINT string = env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 
 output azpg_connectionString string = azpg.outputs.connectionString
+
+output env_volumes_sqlserver_0 string = env.outputs.volumes_sqlserver_0
 
 output env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
