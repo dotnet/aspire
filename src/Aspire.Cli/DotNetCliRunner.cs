@@ -21,7 +21,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             args: cliArgs,
             workingDirectory: projectFile.Directory!,
             startBackchannel: true,
-            streamsCallback: null,
+            streamsCallback: (_, _, _) => { },
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
@@ -151,22 +151,6 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         startInfo.EnvironmentVariables["ASPIRE_CLI_PID"] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
         using var process = new Process { StartInfo = startInfo };
-
-        // Wiring up these event handlers so that we can interleave the stderror and stdout
-        // into the logs of the CLI. This means that the output of this will be driven by the
-        // logger settings in the CLI (probably with a --debug) switch.
-        process.OutputDataReceived += (sender, args) => {
-            if (args.Data is { } data)
-            {
-                logger.LogDebug("dotnet output: {Data}", data);
-            }
-        };
-        process.ErrorDataReceived += (sender, args) => {
-            if (args.Data is { } data)
-            {
-                logger.LogError("dotnet error: {Data}", data);
-            }
-        };
 
         logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
 

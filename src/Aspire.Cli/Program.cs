@@ -30,7 +30,6 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
         }
 
-        builder.Services.AddTransient<AppHostRunner>();
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
@@ -127,13 +126,35 @@ public class Program
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
-            var runner = app.Services.GetRequiredService<AppHostRunner>();
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
-            var exitCode = await runner.RunAppHostAsync(effectiveAppHostProjectFile, Array.Empty<string>(), ct).ConfigureAwait(false);
+            var pendingRun = runner.RunAsync(effectiveAppHostProjectFile, Array.Empty<string>(), ct).ConfigureAwait(false);
 
-            return exitCode;
+            // HACK: This is just a temporary hack to get a sense of when to
+            //       show the live display vs. runing the background apphost.
+            var table = new Table().Border(TableBorder.MinimalHeavyHead);
+
+            await AnsiConsole.Live(table).StartAsync(async context => {
+
+                table.AddColumn("Resource");
+                table.AddColumn("Status");
+                table.AddColumn("Endpoint");
+                table.AddRow(
+                    new Text("Dashboaard"),
+                    new Text("Running"),
+                    new Text("https://localhost:15887", new Style().Link("https://localhost:15887"))
+                    );
+
+                while (true)
+                {
+                    await Task.Delay(1000).ConfigureAwait(true);
+                    context.Refresh();
+                }
+            }).ConfigureAwait(true);
+
+            return await pendingRun;
         });
 
         parentCommand.Subcommands.Add(command);
@@ -194,13 +215,13 @@ public class Program
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
-            var runner = app.Services.GetRequiredService<AppHostRunner>();
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
-            var exitCode = await runner.RunAppHostAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
+            var exitCode = await runner.RunAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
 
             return exitCode;
         });
@@ -259,12 +280,18 @@ public class Program
         var outputOption = new Option<string?>("--output", "-o");
         command.Options.Add(outputOption);
 
+        var templateVersionOption = new Option<string?>("--template-version", "-v");
+        templateVersionOption.DefaultValueFactory = (result) => "9.2.0"; // HACK: We should make it use the version that matches the CLI.
+        command.Options.Add(templateVersionOption);
+
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
+            var templateVersion = parseResult.GetValue<string>("--template-version");
+
             var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            var templateInstallExitCode = await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", "*-*", true, ct).ConfigureAwait(false);
+            var templateInstallExitCode = await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
 
             if (templateInstallExitCode != 0)
             {
