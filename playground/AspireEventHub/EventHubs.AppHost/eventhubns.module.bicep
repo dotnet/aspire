@@ -28,9 +28,11 @@ resource eventhubns_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignm
   scope: eventhubns
 }
 
-resource eventhub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
+resource eventhubOne 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
   name: 'eventhub'
   parent: eventhubns
 }
 
 output eventHubsEndpoint string = eventhubns.properties.serviceBusEndpoint
+
+output name string = eventhubns.name

@@ -20,6 +20,13 @@ public static class AzureOpenAIExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure OpenAI resource will be assigned the following roles:
+    /// 
+    /// - <see cref="CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureOpenAIResource}, CognitiveServicesBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -58,12 +65,21 @@ public static class AzureOpenAIExtensions
                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
             });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
 
-            infrastructure.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, principalTypeParameter, principalIdParameter));
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
+            {
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(cogServicesAccount.CreateRoleAssignment(new CognitiveServicesBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
+            }
 
             var resource = (AzureOpenAIResource)infrastructure.AspireResource;
 
@@ -108,7 +124,9 @@ public static class AzureOpenAIExtensions
         };
 
         var resource = new AzureOpenAIResource(name, configureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
+                CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor);
     }
 
     /// <summary>
@@ -124,5 +142,34 @@ public static class AzureOpenAIExtensions
 
         builder.Resource.AddDeployment(deployment);
         return builder;
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure OpenAI resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure OpenAI resource.</param>
+    /// <param name="roles">The built-in Cognitive Services roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Assigns the CognitiveServicesOpenAIUser role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var openai = builder.AddAzureOpenAI("openai");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser)
+    ///   .WithReference(openai);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureOpenAIResource> target,
+        params CognitiveServicesBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, CognitiveServicesBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

@@ -575,6 +575,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output appConfigEndpoint string = appConfig.properties.endpoint
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -636,6 +638,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output eventHubsEndpoint string = eventHubs.properties.serviceBusEndpoint
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -697,6 +701,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = keyVault.properties.vaultUri
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -966,6 +972,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=https://${existingResourceName}.search.windows.net'
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1027,6 +1035,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output hostName string = signalR.properties.hostName
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1088,6 +1098,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${webPubSub.properties.hostName}'
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1467,6 +1479,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=${openAI.properties.endpoint}'
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);

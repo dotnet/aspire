@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -101,10 +100,10 @@ public static class AzureStorageExtensions
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithDefaultRoleAssignments(
-                        StorageBuiltInRole.StorageBlobDataContributor,
-                        StorageBuiltInRole.StorageTableDataContributor,
-                        StorageBuiltInRole.StorageQueueDataContributor);
+            .WithDefaultRoleAssignments(StorageBuiltInRole.GetBuiltInRoleName,
+                StorageBuiltInRole.StorageBlobDataContributor,
+                StorageBuiltInRole.StorageTableDataContributor,
+                StorageBuiltInRole.StorageQueueDataContributor);
     }
 
     /// <summary>
@@ -337,7 +336,7 @@ public static class AzureStorageExtensions
     /// <param name="roles">The built-in storage roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <example>
-    /// Adds the StorageBlobDataContributor role to the 'Projects.Api' project.
+    /// Assigns the StorageBlobDataContributor role to the 'Projects.Api' project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -355,14 +354,6 @@ public static class AzureStorageExtensions
         params StorageBuiltInRole[] roles)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(target.Resource, CreateRoleDefinitions(roles)));
+        return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, roles);
     }
-
-    private static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)
-    {
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
-    }
-
-    private static HashSet<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<StorageBuiltInRole> roles) =>
-        [.. roles.Select(r => new RoleDefinition(r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
 }

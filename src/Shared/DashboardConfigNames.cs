@@ -31,6 +31,7 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DebugSessionServerCertificateName = new("Dashboard:DebugSession:ServerCertificate", "DASHBOARD__DEBUGSESSION__SERVERCERTIFICATE");
     public static readonly ConfigName DebugSessionTelemetryOptOutName = new("Dashboard:DebugSession:TelemetryOptOut", "DASHBOARD__DEBUGSESSION__TELEMETRYOPTOUT");
     public static readonly ConfigName DebugSessionTokenName = new("Dashboard:DebugSession:Token", "DASHBOARD__DEBUGSESSION__TOKEN");
+    public static readonly ConfigName UIDisableResourceGraphName = new("Dashboard:UI:DisableResourceGraph", "DASHBOARD__UI__DISABLERESOURCEGRAPH");
 }
 
 internal readonly struct ConfigName(string configKey, string? envVarName = null)

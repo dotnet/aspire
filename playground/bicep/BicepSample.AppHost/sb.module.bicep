@@ -62,3 +62,5 @@ resource topic2sub 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01
 }
 
 output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+output name string = sb.name

@@ -64,7 +64,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
-        <target state="translated">Pokaż sygnatury czasowe</target>
+        <target state="new">Show timestamps</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShowUtc">
+        <source>UTC timestamps</source>
+        <target state="new">UTC timestamps</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

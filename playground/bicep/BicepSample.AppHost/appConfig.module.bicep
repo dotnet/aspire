@@ -32,3 +32,5 @@ resource appConfig_AppConfigurationDataOwner 'Microsoft.Authorization/roleAssign
 }
 
 output appConfigEndpoint string = appConfig.properties.endpoint
+
+output name string = appConfig.name

@@ -122,7 +122,8 @@ public static class AzureServiceBusExtensions
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithDefaultRoleAssignments(ServiceBusBuiltInRole.AzureServiceBusDataOwner);
+            .WithDefaultRoleAssignments(ServiceBusBuiltInRole.GetBuiltInRoleName,
+                ServiceBusBuiltInRole.AzureServiceBusDataOwner);
     }
 
     /// <summary>
@@ -674,7 +675,7 @@ public static class AzureServiceBusExtensions
     /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <example>
-    /// Adds the AzureServiceBusDataSender role to the 'Projects.Api' project.
+    /// Assigns the AzureServiceBusDataSender role to the 'Projects.Api' project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -691,14 +692,6 @@ public static class AzureServiceBusExtensions
         params ServiceBusBuiltInRole[] roles)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(target.Resource, CreateRoleDefinitions(roles)));
+        return builder.WithRoleAssignments(target, ServiceBusBuiltInRole.GetBuiltInRoleName, roles);
     }
-
-    private static IResourceBuilder<AzureServiceBusResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureServiceBusResource> builder, params ServiceBusBuiltInRole[] roles)
-    {
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
-    }
-
-    private static HashSet<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<ServiceBusBuiltInRole> roles) =>
-        [.. roles.Select(r => new RoleDefinition(r.ToString(), ServiceBusBuiltInRole.GetBuiltInRoleName(r)))];
 }

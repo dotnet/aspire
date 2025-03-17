@@ -42,3 +42,5 @@ resource signalrDefault_SignalRAppServer 'Microsoft.Authorization/roleAssignment
 }
 
 output hostName string = signalrDefault.properties.hostName
+
+output name string = signalrDefault.name

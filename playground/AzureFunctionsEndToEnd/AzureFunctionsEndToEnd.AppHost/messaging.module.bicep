@@ -37,3 +37,5 @@ resource myqueue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
 }
 
 output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+
+output name string = messaging.name

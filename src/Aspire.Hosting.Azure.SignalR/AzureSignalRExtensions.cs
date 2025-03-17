@@ -22,6 +22,13 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure SignalR resource will be assigned the following roles:
+    /// 
+    /// - <see cref="SignalRBuiltInRole.SignalRAppServer"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureSignalRResource}, SignalRBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         => AddAzureSignalR(builder, name, AzureSignalRServiceMode.Default);
 
@@ -32,6 +39,17 @@ public static class AzureSignalRExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="serviceMode">The service mode of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure SignalR resource will be assigned the following roles:
+    /// 
+    /// - <see cref="SignalRBuiltInRole.SignalRAppServer"/>
+    ///
+    /// Using <see cref="AzureSignalRServiceMode.Serverless"/> additionally adds:
+    ///
+    /// - <see cref="SignalRBuiltInRole.SignalRRestApiOwner"/>
+    /// 
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureSignalRResource}, SignalRBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, AzureSignalRServiceMode serviceMode)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -41,7 +59,7 @@ public static class AzureSignalRExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,(identifier, name) =>
+            var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure, (identifier, name) =>
             {
                 var resource = SignalRService.FromExisting(identifier);
                 resource.Name = name;
@@ -70,21 +88,32 @@ public static class AzureSignalRExtensions
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
 
-            infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, principalTypeParameter, principalIdParameter));
-
-            if (serviceMode == AzureSignalRServiceMode.Serverless)
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
             {
-                infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdParameter));
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(service.CreateRoleAssignment(new SignalRBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
             }
         };
 
+        List<SignalRBuiltInRole> defaultRoles = [SignalRBuiltInRole.SignalRAppServer];
+        if (serviceMode == AzureSignalRServiceMode.Serverless)
+        {
+            defaultRoles.Add(SignalRBuiltInRole.SignalRRestApiOwner);
+        }
+
         var resource = new AzureSignalRResource(name, configureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(SignalRBuiltInRole.GetBuiltInRoleName, defaultRoles.ToArray());
     }
 
     /// <summary>
@@ -120,5 +149,34 @@ public static class AzureSignalRExtensions
             configureContainer(surrogateBuilder);
         }
         return builder.WithHttpHealthCheck(endpointName: EmulatorEndpointName, path: "/api/health");
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure SignalR resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure SignalR resource.</param>
+    /// <param name="roles">The built-in SignalR roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Assigns the SignalRContributor role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var signalr = builder.AddAzureSignalR("signalr");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(signalr, SignalRBuiltInRole.SignalRContributor)
+    ///   .WithReference(signalr);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureSignalRResource> target,
+        params SignalRBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, SignalRBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

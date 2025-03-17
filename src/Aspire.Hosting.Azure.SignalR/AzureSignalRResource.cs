@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.SignalR;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -14,6 +16,7 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithEndpoints
 {
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
+
     /// <summary>
     /// Gets a value indicating whether the Azure SignalR resource is running in the local emulator.
     /// </summary>
@@ -24,6 +27,8 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
@@ -31,4 +36,13 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
         IsEmulator
         ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;")
         : ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = SignalRService.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
+    }
 }

@@ -322,6 +322,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             }
 
             output eventHubsEndpoint string = eh.properties.serviceBusEndpoint
+
+            output name string = eh.name
             """;
 
         Assert.Equal(expectedBicep, manifest.BicepText);

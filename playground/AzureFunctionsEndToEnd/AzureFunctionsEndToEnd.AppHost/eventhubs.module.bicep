@@ -34,3 +34,5 @@ resource myhub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
 }
 
 output eventHubsEndpoint string = eventhubs.properties.serviceBusEndpoint
+
+output name string = eventhubs.name
