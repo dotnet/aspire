@@ -14,7 +14,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class ResourcesTests : TestContext
+public partial class ResourcesTests : DashboardTestContext
 {
     [Fact]
     public void UpdateResources_FiltersUpdated()
@@ -72,7 +72,7 @@ public partial class ResourcesTests : TestContext
                     ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null))))
             ]);
 
-        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2, TestConstants.WaitTimeout);
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
 
         // Assert 2
         Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),

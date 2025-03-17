@@ -32,3 +32,5 @@ resource wps_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022
 }
 
 output endpoint string = 'https://${wps.properties.hostName}'
+
+output name string = wps.name

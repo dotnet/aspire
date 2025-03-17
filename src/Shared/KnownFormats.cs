@@ -12,7 +12,12 @@ internal static class KnownFormats
     public const string ConsoleLogsTimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffffffK";
 
     /// <summary>
-    /// UI timestamp displayed on the console logs UI.
+    /// UI timestamp displayed on the console logs UI for local timestamps.
     /// </summary>
-    public const string ConsoleLogsUITimestampFormat = "yyyy-MM-ddTHH:mm:ss";
+    public const string ConsoleLogsUITimestampLocalFormat = "yyyy-MM-ddTHH:mm:ss";
+
+    /// <summary>
+    /// UI timestamp displayed on the console logs UI for UTC timestamps.
+    /// </summary>
+    public const string ConsoleLogsUITimestampUtcFormat = "yyyy-MM-ddTHH:mm:ssK";
 }

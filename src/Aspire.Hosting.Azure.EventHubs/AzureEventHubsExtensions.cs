@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
+using Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 
@@ -27,6 +28,13 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure AppEvent Hubs Namespace resource will be assigned the following roles:
+    /// 
+    /// - <see cref="EventHubsBuiltInRole.AzureEventHubsDataOwner"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureEventHubsResource}, EventHubsBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
         this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
@@ -63,14 +71,23 @@ public static class AzureEventHubsExtensions
                     return resource;
                 });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
+            {
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
 
-            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(AzureProvisioning.EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(new EventHubsBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
+            }
 
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
+
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = eventHubsNamespace.Name });
 
             var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
 
@@ -90,7 +107,9 @@ public static class AzureEventHubsExtensions
         };
 
         var resource = new AzureEventHubsResource(name, configureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(EventHubsBuiltInRole.GetBuiltInRoleName,
+                EventHubsBuiltInRole.AzureEventHubsDataOwner);
     }
 
     /// <summary>
@@ -492,5 +511,34 @@ public static class AzureEventHubsExtensions
         writer.WriteEndObject();                        // } (/Root)
 
         return filePath;
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Event Hubs Namespace resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Event Hubs Namespace resource.</param>
+    /// <param name="roles">The built-in Event Hubs roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Assigns the AzureEventHubsDataSender role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var eventHubs = builder.AddAzureEventHubs("eventHubs");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(eventHubs, EventHubsBuiltInRole.AzureEventHubsDataSender)
+    ///   .WithReference(eventHubs);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureEventHubsResource> target,
+        params EventHubsBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, EventHubsBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

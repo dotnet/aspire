@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -90,16 +91,17 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
 
-            var selectCommand = conn.CreateCommand();
+            using var selectCommand = conn.CreateCommand();
             selectCommand.CommandText = $"SELECT 1";
-            var results = await selectCommand.ExecuteReaderAsync(token);
+            using var results = await selectCommand.ExecuteReaderAsync(token);
 
             Assert.True(results.HasRows);
         }, cts.Token);
@@ -194,14 +196,15 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    // the connection is scoped, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
-                    if (conn.State != System.Data.ConnectionState.Open)
+                    if (conn.State != ConnectionState.Open)
                     {
                         await conn.OpenAsync(token);
                     }
 
-                    var command = conn.CreateCommand();
+                    using var command = conn.CreateCommand();
                     command.CommandText = """
                         DROP TABLE IF EXISTS [Cars];
                         CREATE TABLE [Cars] ([Brand] nvarchar(max) NOT NULL);
@@ -209,7 +212,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                         SELECT * FROM [Cars];
                     """;
 
-                    var results = await command.ExecuteReaderAsync(token);
+                    using var results = await command.ExecuteReaderAsync(token);
 
                     Assert.True(results.HasRows);
                 }, cts.Token);
@@ -218,6 +221,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    // the connection is scoped, don't dispose if between retries
                     var conn = host1.Services.GetRequiredService<SqlConnection>();
 
                     try
@@ -277,18 +281,20 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
+                            // the connection is scoped, don't dispose if between retries
                             var conn = host2.Services.GetRequiredService<SqlConnection>();
 
-                            if (conn.State != System.Data.ConnectionState.Open)
+                            if (conn.State != ConnectionState.Open)
                             {
                                 await conn.OpenAsync(token);
                             }
                         }, cts.Token);
 
                         var conn = host2.Services.GetRequiredService<SqlConnection>();
-                        var command = conn.CreateCommand();
+
+                        using var command = conn.CreateCommand();
                         command.CommandText = $"SELECT * FROM [Cars];";
-                        var results = await command.ExecuteReaderAsync(cts.Token);
+                        using var results = await command.ExecuteReaderAsync(cts.Token);
 
                         Assert.True(await results.ReadAsync(cts.Token));
                         Assert.Equal("BatMobile", results.GetString(0));
@@ -373,17 +379,18 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
 
-            var selectCommand = conn.CreateCommand();
+            using var selectCommand = conn.CreateCommand();
             selectCommand.CommandText = "SELECT * FROM [Modeles]; -- Incorrect accent to verify the database collation";
 
-            var results = await selectCommand.ExecuteReaderAsync(token);
+            using var results = await selectCommand.ExecuteReaderAsync(token);
             Assert.True(results.HasRows);
         }, cts.Token);
     }
@@ -425,14 +432,145 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
         {
+            // the connection is scoped, don't dispose if between retries
             var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            if (conn.State != System.Data.ConnectionState.Open)
+            if (conn.State != ConnectionState.Open)
             {
                 await conn.OpenAsync(token);
             }
 
             Assert.Equal(System.Data.ConnectionState.Open, conn.State);
         }, cts.Token);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesDatabaseResiliently()
+    {
+        // Creating the database multiple times should not fail
+
+        const string databaseName = "db1";
+        const string resourceName = "db";
+
+        string? volumeName = null;
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 3, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var password = "p@ssw0rd1";
+
+        try
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+                var passwordParameter = builder.AddParameter("pwd", password, secret: true);
+
+                var sqlserver = builder.AddSqlServer("db1", passwordParameter);
+
+                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+                volumeName = VolumeNameGenerator.Generate(sqlserver, nameof(AddDatabaseCreatesDatabaseResiliently));
+
+                if (i == 0)
+                {
+                    // If the volume already exists (because of a crashing previous run), delete it
+                    DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                }
+
+                sqlserver.WithDataVolume(volumeName);
+
+                var newDb = sqlserver.AddDatabase(resourceName, databaseName);
+
+                using var app = builder.Build();
+
+                await app.StartAsync(cts.Token);
+
+                var hb = Host.CreateApplicationBuilder();
+
+                hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+                hb.AddSqlServerClient(newDb.Resource.Name);
+
+                using var host = hb.Build();
+
+                await host.StartAsync();
+
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(sqlserver.Resource.Name, cts.Token);
+
+                // Test connection
+                await pipeline.ExecuteAsync(async token =>
+                {
+                    // the connection is scoped, don't dispose if between retries
+                    var conn = host.Services.GetRequiredService<SqlConnection>();
+
+                    if (conn.State != ConnectionState.Open)
+                    {
+                        await conn.OpenAsync(token);
+                    }
+
+                    Assert.Equal(ConnectionState.Open, conn.State);
+                }, cts.Token);
+
+                await app.StopAsync(cts.Token);
+            }
+        }
+        finally
+        {
+            if (volumeName is not null)
+            {
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDatabaseCreatesMultipleDatabases()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+
+        var db1 = sqlserver.AddDatabase("db1");
+        var db2 = sqlserver.AddDatabase("db2");
+        var db3 = sqlserver.AddDatabase("db3");
+
+        var dbs = new[] { db1, db2, db3 };
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        foreach (var db in dbs)
+        {
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+            hb.AddKeyedSqlServerClient(db.Resource.Name);
+        }
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        foreach (var db in dbs)
+        {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
+            var conn = host.Services.GetRequiredKeyedService<SqlConnection>(db.Resource.Name);
+
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync(cts.Token);
+            }
+
+            Assert.Equal(ConnectionState.Open, conn.State);
+        }
     }
 }

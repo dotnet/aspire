@@ -16,7 +16,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
 [UseCulture("en-US")]
-public class PlotlyChartTests : TestContext
+public class PlotlyChartTests : DashboardTestContext
 {
     private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container"></div>""";
 

@@ -1,29 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-// using Aspire.Hosting.Azure;
-// using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Kubernetes;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddDockerCompose("docker-compose", options =>
-{
-    options.DefaultContainerRegistry = "override.azurecr.io";
-    // Do stuff here.
-});
+builder.AddAzureContainerAppsInfrastructure();
 
-builder.AddKubernetes("k8s", options =>
-{
-    // Do stuff here.
-});
+builder.AddDockerCompose("docker-compose");
 
-builder.AddAzureContainerApps("aca", options =>
-{
-    // Do stuff here.
-});
+builder.AddKubernetes("k8s");
+
+#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+builder.AddAzurePublisher("azure");
+
+#pragma warning restore ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);

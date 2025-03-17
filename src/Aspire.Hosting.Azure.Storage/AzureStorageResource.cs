@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Storage;
 
@@ -94,7 +93,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = StorageAccount.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        var account = StorageAccount.FromExisting(this.GetBicepIdentifier());
         account.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(account);
         return account;

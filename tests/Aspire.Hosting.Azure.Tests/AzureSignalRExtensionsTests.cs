@@ -77,6 +77,8 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
             }
 
             output hostName string = signalr.properties.hostName
+
+            output name string = signalr.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -159,6 +161,8 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
             }
 
             output hostName string = signalr.properties.hostName
+
+            output name string = signalr.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

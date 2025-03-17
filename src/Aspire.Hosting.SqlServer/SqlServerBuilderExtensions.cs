@@ -259,7 +259,7 @@ public static partial class SqlServerBuilderExtensions
         }
         catch (Exception e)
         {
-            var logger = serviceProvider.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+            var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
             logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
         }
     }

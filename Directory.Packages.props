@@ -70,12 +70,6 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
-    <!-- dotnet/extensions dependencies-->
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- NuGet dependencies -->
     <PackageVersion Include="NuGet.ProjectModel" Version="6.12.1" />
     <!-- external dependencies -->
@@ -175,9 +169,16 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used. -->
+  <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used.
+       The dependencies on any of these two groups should not be updated manually and should instead use arcade's dependency flow to get updated.-->
 
   <ItemGroup>
+    <!-- dotnet/extensions dependencies ** Common between net8 and net9 ** -->
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- EF -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosLTSVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignLTSVersion)" />
