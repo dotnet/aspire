@@ -198,7 +198,9 @@ public static class AzureContainerAppExtensions
                 }
             }
 
+            // REVIEW: These don't need to be coupled to the container app environment
             var kvs = new Dictionary<string, KeyVaultService>();
+
             foreach (var (key, _) in resource.SecretKeyVaultNames)
             {
                 var kvIdentifier = Infrastructure.NormalizeBicepIdentifier($"kv-{key}");

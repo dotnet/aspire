@@ -331,6 +331,7 @@ public static class AzureCosmosExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
 
         return builder;
     }

@@ -38,7 +38,7 @@ module account 'account/account.module.bicep' = {
   name: 'account'
   scope: rg
   params: {
-    keyVaultName: ''
+    keyVaultName: infra.outputs.secret_output_account
     location: location
   }
 }
