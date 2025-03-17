@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Lifecycle;
@@ -690,6 +689,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     BicepValue<string> s => s,
                     string s => s,
                     ProvisioningParameter p => p,
+                    BicepFormatString fs => BicepFunction2.Interpolate(fs),
                     _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
                 };
             }
@@ -856,7 +856,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                         args[index++] = val;
                     }
 
-                    return (Interpolate(expr.Format, args), finalSecretType);
+                    return (new BicepFormatString(expr.Format, args), finalSecretType);
 
                 }
 
@@ -1043,47 +1043,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 ];
             }
         }
-    }
-
-    private static BicepValue<string> Interpolate(string format, object[] args)
-    {
-        var bicepStringBuilder = new BicepStringBuilder();
-
-        var span = format.AsSpan();
-        var skip = 0;
-        var argumentIndex = 0;
-
-        foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
-        {
-            bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
-
-            var argument = args[argumentIndex];
-
-            if (argument is BicepValue<string> bicepValue)
-            {
-                bicepStringBuilder.Append($"{bicepValue}");
-            }
-            else if (argument is string s)
-            {
-                bicepStringBuilder.Append(s);
-            }
-            else if (argument is ProvisioningParameter provisioningParameter)
-            {
-                bicepStringBuilder.Append($"{provisioningParameter}");
-            }
-            else
-            {
-                throw new NotSupportedException($"{argument} is not supported");
-            }
-
-            argumentIndex++;
-            span = span[(match.Index + match.Length - skip)..];
-            skip = match.Index + match.Length;
-        }
-
-        bicepStringBuilder.Append(span.ToString());
-
-        return bicepStringBuilder.Build();
     }
 
     /// <summary>

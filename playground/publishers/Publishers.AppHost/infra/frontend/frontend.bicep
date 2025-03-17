@@ -33,7 +33,7 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--sqldb'
-          value: '${'Server=sqlserver,1433;User ID=sa;Password=${sqlserver_password_value};TrustServerCertificate=true'};Database=sqldb'
+          value: 'Server=sqlserver,1433;User ID=sa;Password=${sqlserver_password_value};TrustServerCertificate=true;Initial Catalog=sqldb'
         }
         {
           name: 'p1'

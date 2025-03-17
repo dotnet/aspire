@@ -22,7 +22,7 @@ resource dbsetup 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--db'
-          value: '${'Host=pg;Port=5432;Username=${'postgres'};Password=${pg_password_value}'};Database=db'
+          value: 'Host=pg;Port=5432;Username=postgres;Password=${pg_password_value};Database=db'
         }
       ]
       activeRevisionsMode: 'Single'

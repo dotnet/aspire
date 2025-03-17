@@ -3,8 +3,6 @@ param location string = resourceGroup().location
 
 param principalId string
 
-param principalType string
-
 param tags object = { }
 
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -81,7 +79,7 @@ resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   properties: {
     principalId: principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-    principalType: principalType
+    principalType: 'ServicePrincipal'
   }
   scope: cae
 }

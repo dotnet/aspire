@@ -57,7 +57,6 @@ module infra 'infra/infra.module.bicep' = {
   params: {
     location: location
     principalId: ''
-    principalType: ''
   }
 }
 module storage 'storage/storage.module.bicep' = {

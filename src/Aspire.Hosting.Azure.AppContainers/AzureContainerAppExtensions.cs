@@ -51,17 +51,11 @@ public static class AzureContainerAppExtensions
     {
         builder.AddAzureContainerAppsInfrastructure();
 
-        // TODO: Do we support adding multiple of these?
-
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, infra =>
         {
             var principalId = new ProvisioningParameter("principalId", typeof(string));
 
             infra.Add(principalId);
-
-            var principalType = new ProvisioningParameter("principalType", typeof(string));
-
-            infra.Add(principalType);
 
             var tags = new ProvisioningParameter("tags", typeof(object))
             {
@@ -100,16 +94,17 @@ public static class AzureContainerAppExtensions
                 Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
                 Tags = tags
             };
+
             infra.Add(laWorkspace);
 
             var containerAppEnvironment = new ContainerAppManagedEnvironment("cae")
             {
                 WorkloadProfiles = [
                     new ContainerAppWorkloadProfile()
-                {
-                    WorkloadProfileType = "Consumption",
-                    Name = "consumption"
-                }
+                    {
+                        WorkloadProfileType = "Consumption",
+                        Name = "consumption"
+                    }
                 ],
                 AppLogsConfiguration = new()
                 {
@@ -134,10 +129,8 @@ public static class AzureContainerAppExtensions
 
             infra.Add(dashboard);
 
-            var bicepPrincipalType = new BicepValue<RoleManagementPrincipalType>(((BicepExpression?)principalType.Value)!);
-
             var roleAssignment = containerAppEnvironment.CreateRoleAssignment(AppContainersBuiltInRole.Contributor,
-                bicepPrincipalType,
+                RoleManagementPrincipalType.ServicePrincipal,
                 principalId);
 
             infra.Add(roleAssignment);

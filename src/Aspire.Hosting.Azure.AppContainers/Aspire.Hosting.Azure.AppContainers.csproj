@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)BicepFunction2.cs" Link="Provisioning\Utils\BicepFunction2.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Azure.Provisioning.AppContainers" />
     <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
     <PackageReference Include="Azure.Provisioning.OperationalInsights" />
