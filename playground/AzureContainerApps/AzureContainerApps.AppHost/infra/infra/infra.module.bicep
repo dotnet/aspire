@@ -124,7 +124,33 @@ resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/stora
   parent: cae
 }
 
+resource kv_secret_output_account 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: take('kvsecretoutputaccount-${uniqueString(resourceGroup().id)}', 24)
+  location: location
+  properties: {
+    tenantId: tenant().tenantId
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    enableRbacAuthorization: true
+  }
+  tags: tags
+}
+
+resource kv_secret_output_account_mi_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(kv_secret_output_account.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+  properties: {
+    principalId: mi.properties.principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+    principalType: 'ServicePrincipal'
+  }
+  scope: kv_secret_output_account
+}
+
 output volumes_cache_0 string = managedStorage_volumes_cache_0.name
+
+output secret_output_account string = kv_secret_output_account.name
 
 output MANAGED_IDENTITY_NAME string = mi.name
 

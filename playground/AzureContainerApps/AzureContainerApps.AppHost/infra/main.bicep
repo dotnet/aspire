@@ -38,9 +38,8 @@ module account 'account/account.module.bicep' = {
   name: 'account'
   scope: rg
   params: {
+    keyVaultName: ''
     location: location
-    principalId: ''
-    principalType: ''
   }
 }
 module api_roles 'api-roles/api-roles.module.bicep' = {
@@ -66,12 +65,12 @@ module storage 'storage/storage.module.bicep' = {
     location: location
   }
 }
-output ACCOUNT_CONNECTIONSTRING string = account.outputs.connectionString
 output API_ROLES_CLIENTID string = api_roles.outputs.clientId
 output API_ROLES_ID string = api_roles.outputs.id
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output INFRA_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 output INFRA_AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output INFRA_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+output INFRA_SECRET_OUTPUT_ACCOUNT string = infra.outputs.secret_output_account
 output INFRA_VOLUMES_CACHE_0 string = infra.outputs.volumes_cache_0
 output STORAGE_BLOBENDPOINT string = storage.outputs.blobEndpoint

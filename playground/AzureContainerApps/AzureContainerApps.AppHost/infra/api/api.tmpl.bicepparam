@@ -1,6 +1,5 @@
 using './api.module.bicep'
 
-param account_outputs_connectionstring = '{{ .Env.ACCOUNT_CONNECTIONSTRING }}'
 param api_containerimage = '{{ .Image }}'
 param api_containerport = '{{ targetPortOrDefault 8080 }}'
 param api_roles_outputs_clientid = '{{ .Env.API_ROLES_CLIENTID }}'
@@ -11,5 +10,6 @@ param customDomain = '{{ parameter "customDomain" }}'
 param infra_outputs_azure_container_apps_environment_id = '{{ .Env.INFRA_AZURE_CONTAINER_APPS_ENVIRONMENT_ID }}'
 param infra_outputs_azure_container_registry_endpoint = '{{ .Env.INFRA_AZURE_CONTAINER_REGISTRY_ENDPOINT }}'
 param infra_outputs_azure_container_registry_managed_identity_id = '{{ .Env.INFRA_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}'
+param infra_outputs_secret_output_account = '{{ .Env.INFRA_SECRET_OUTPUT_ACCOUNT }}'
 param secretparam_value = '{{ securedParameter "secretparam" }}'
 param storage_outputs_blobendpoint = '{{ .Env.STORAGE_BLOBENDPOINT }}'
