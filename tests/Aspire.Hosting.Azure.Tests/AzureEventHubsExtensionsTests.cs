@@ -75,7 +75,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        await app.ResourceNotifications.WaitForResourceAsync(eventHubns.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -88,8 +88,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         else
         {
             hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = hubName);
-            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = hubName);
+            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
+            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
         }
 
         using var host = hb.Build();
