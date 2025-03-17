@@ -3,8 +3,6 @@ param location string = resourceGroup().location
 
 param infra_outputs_azure_container_registry_managed_identity_id string
 
-param infra_outputs_managed_identity_client_id string
-
 param infra_outputs_azure_container_apps_environment_id string
 
 param infra_outputs_azure_container_registry_endpoint string
@@ -30,12 +28,6 @@ resource pythonapp 'Microsoft.App/containerApps@2024-03-01' = {
         {
           image: pythonapp_containerimage
           name: 'pythonapp'
-          env: [
-            {
-              name: 'AZURE_CLIENT_ID'
-              value: infra_outputs_managed_identity_client_id
-            }
-          ]
         }
       ]
       scale: {
