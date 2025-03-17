@@ -86,8 +86,6 @@ resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   scope: cae
 }
 
-output MANAGED_IDENTITY_CLIENT_ID string = mi.properties.clientId
-
 output MANAGED_IDENTITY_NAME string = mi.name
 
 output MANAGED_IDENTITY_PRINCIPAL_ID string = mi.properties.principalId

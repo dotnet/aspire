@@ -43,6 +43,14 @@ module account 'account/account.module.bicep' = {
     principalType: ''
   }
 }
+module api_roles 'api-roles/api-roles.module.bicep' = {
+  name: 'api-roles'
+  scope: rg
+  params: {
+    location: location
+    storage_outputs_name: storage.outputs.name
+  }
+}
 module infra 'infra/infra.module.bicep' = {
   name: 'infra'
   scope: rg
@@ -57,14 +65,13 @@ module storage 'storage/storage.module.bicep' = {
   scope: rg
   params: {
     location: location
-    principalId: ''
-    principalType: ''
   }
 }
 output ACCOUNT_CONNECTIONSTRING string = account.outputs.connectionString
+output API_ROLES_CLIENTID string = api_roles.outputs.clientId
+output API_ROLES_ID string = api_roles.outputs.id
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output INFRA_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 output INFRA_AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output INFRA_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
-output INFRA_MANAGED_IDENTITY_CLIENT_ID string = infra.outputs.MANAGED_IDENTITY_CLIENT_ID
 output STORAGE_BLOBENDPOINT string = storage.outputs.blobEndpoint
