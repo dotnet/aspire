@@ -29,19 +29,20 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private IJSObjectReference? _jsModule;
     private List<SelectViewModel<string>> _options = null!;
     private string? _currentValue;
-    private bool _showContainsSecretsWarning;
+    private string _formattedText = string.Empty;
 
     public HashSet<string?> EnabledOptions { get; } = [];
+    internal bool? ShowContainsSecretsWarning { get; private set; }
 
     public string FormattedText
     {
-        get;
+        get => _formattedText;
         private set
         {
-            field = value;
+            _formattedText = value;
             FormattedLines = GetLines();
         }
-    } = string.Empty;
+    }
 
     public ICollection<StringLogLine> FormattedLines { get; set; } = [];
 
@@ -66,7 +67,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         // We need to make users perform an explicit action once before being able to see secret values
         // We do this by making them agree to a warning in the text visualizer dialog.
         var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
-        _showContainsSecretsWarning = settingsResult.Value is not { ContainsSecretsWarningShown: true };
+        ShowContainsSecretsWarning = settingsResult.Value is not { ContainsSecretsWarningShown: true };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -298,7 +299,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private async Task UnmaskContentAsync()
     {
         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.TextVisualizerDialogSettings, new TextVisualizerDialogSettings(ContainsSecretsWarningShown: true));
-        _showContainsSecretsWarning = false;
+        ShowContainsSecretsWarning = false;
     }
 }
 

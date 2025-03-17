@@ -30,14 +30,14 @@
 </FluentDialogHeader>
 
 <FluentDialogBody>
-    @if (_showContainsSecretsWarning)
+    @if (Content.ContainsSecret && ShowContainsSecretsWarning is true)
     {
         <FluentStack Orientation="Orientation.Vertical">
-            <FluentMessageBar Title="This is a sensitive value" Intent="@MessageIntent.Warning" AllowDismiss="false">
-                In the future, opening the text visualizer will automatically unmask any secrets.
+            <FluentMessageBar Title="@Loc[nameof(Dialogs.TextVisualizerSecretWarningTitle)]" Intent="@MessageIntent.Warning" AllowDismiss="false">
+                @Loc[nameof(Dialogs.TextVisualizerSecretWarningDescription)]
             </FluentMessageBar>
 
-            <FluentButton OnClick="@UnmaskContentAsync">I acknowledge</FluentButton>
+            <FluentButton Class="text-visualizer-unmask-content" OnClick="@UnmaskContentAsync">@Loc[nameof(Dialogs.TextVisualizerSecretWarningAcknowledge)]</FluentButton>
         </FluentStack>
     }
     else

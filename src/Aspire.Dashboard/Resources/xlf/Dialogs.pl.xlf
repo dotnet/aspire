@@ -242,6 +242,21 @@
         <target state="translated">Formatuj kod XML</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>I acknowledge</source>
+        <target state="new">I acknowledge</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>In the future, opening the text visualizer will automatically unmask any secrets.</source>
+        <target state="new">In the future, opening the text visualizer will automatically unmask any secrets.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>This is a sensitive value</source>
+        <target state="new">This is a sensitive value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
         <target state="translated">Wybierz format</target>
