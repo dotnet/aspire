@@ -1,16 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureFunctionsTests
+public class AzureFunctionsTests(ITestOutputHelper output)
 {
     [Fact]
     public void AddAzureFunctionsProject_Works()
@@ -251,6 +254,110 @@ public class AzureFunctionsTests
             arg => Assert.Equal("9876", arg)
         );
     }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppsInfrastructure();
+
+        // hardcoded sha256 to make the storage name deterministic
+        builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles"));
+
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        var expectedRolesManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcapp-roles.module.bicep",
+              "params": {
+                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+
+        var expectedRolesBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param funcstorage634f8_outputs_name string
+
+            resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource funcstorage634f8 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: funcstorage634f8_outputs_name
+            }
+
+            resource funcstorage634f8_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            output id string = funcapp_identity.id
+
+            output clientId string = funcapp_identity.properties.clientId
+
+            output principalId string = funcapp_identity.properties.principalId
+            """;
+        output.WriteLine(rolesBicep);
+        Assert.Equal(expectedRolesBicep, rolesBicep);
+    }
+
+    private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
+        AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class TestProject : IProjectMetadata
     {
