@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Resources
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -68,22 +69,17 @@
                                 HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentLabel slot="end">@FilterLoc[nameof(StructuredFiltering.Filters)]</FluentLabel>
             @if (ViewModel.Filters.Count == 0)
             {
                 <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
             }
             else
             {
-                for (var i = 0; i < ViewModel.Filters.Count; i++)
-                {
-                    var filter = ViewModel.Filters[i];
-                    if (i != 0)
-                    {
-                        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                    }
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)" class="telemetry-filter-button" title="@filter.GetDisplayText(FilterLoc)">@filter.GetDisplayText(FilterLoc)</FluentButton>
-                }
+                <div slot="end">
+                    <FluentCounterBadge HorizontalPosition="70" Count="@(ViewModel.Filters.Count)" Appearance="Appearance.Accent">
+                        <AspireMenuButton DisableIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
+                    </FluentCounterBadge>
+                </div>
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)

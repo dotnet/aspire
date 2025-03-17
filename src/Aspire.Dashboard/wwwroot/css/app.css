@@ -535,12 +535,6 @@ fluent-switch.table-switch::part(label) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
-.telemetry-filter-button::part(content) {
-    max-width: 350px;
-    overflow: hidden;
-    text-overflow: ellipsis
-}
-
 .mobile-toolbar {
     width: 100%;
     height: max(5vh, 30px);

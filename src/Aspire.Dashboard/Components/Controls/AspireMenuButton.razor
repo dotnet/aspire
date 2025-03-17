@@ -21,7 +21,11 @@
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+
+        @if (!DisableIcon)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+        }
     }
 </FluentButton>
 
