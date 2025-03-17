@@ -94,14 +94,14 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.5.11" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.3" />
-    <PackageVersion Include="OpenAI" Version="2.2.0-beta.1" />
-    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="9.23.60" />
+    <PackageVersion Include="OpenAI" Version="2.2.0-beta.2" />
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.70" /> <!-- Can't update passed to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.7.0" />
     <PackageVersion Include="Polly.Core" Version="8.5.2" />
     <PackageVersion Include="Polly.Extensions" Version="8.5.2" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
     <PackageVersion Include="Qdrant.Client" Version="1.13.0" />
-    <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console" Version="0.49.2-preview.0.76" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.31" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.3" />
@@ -125,7 +125,7 @@
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.25072.1" />
     <!-- unit test dependencies -->
-    <PackageVersion Include="bUnit" Version="1.38.5" />
+    <PackageVersion Include="bUnit" Version="1.36.0" /> <!-- Can't update passed to 1.37.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="JsonSchema.Net" Version="7.3.3" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
