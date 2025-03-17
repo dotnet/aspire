@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ResourceGraph;
@@ -13,6 +14,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -31,6 +33,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private Subscription? _logsSubscription;
     private IList<GridColumn>? _gridColumns;
+    private bool _hideResourceGraph;
     private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
@@ -47,6 +50,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => "Resources_PageState";
@@ -159,6 +164,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
+
+        _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
 
         PageViewModel = new ResourcesViewModel
         {
@@ -673,7 +680,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     public Task UpdateViewModelFromQueryAsync(ResourcesViewModel viewModel)
     {
-        if (Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
+        // Don't allow the view to be updated from the query string if the resource graph is disabled.
+        if (!_hideResourceGraph && Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
         {
             viewModel.SelectedViewKind = vk;
         }
