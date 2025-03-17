@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Hashing;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -278,54 +277,19 @@ public static class PostgresBuilderExtensions
             {
                 // Add the bookmarks to the pgweb container
 
-                // Create a folder using IAspireStore. Its name is deterministic, based on all the database resources
-                // such that the same folder is reused across persistent usages, and changes in configuration require
-                // new folders.
-
                 var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
-                var aspireStore = e.Services.GetRequiredService<IAspireStore>();
+                var bookmarkFiles = WritePgWebBookmarks(postgresInstances);
 
-                var tempDir = WritePgWebBookmarks(postgresInstances, out var contentHash);
-
-                // Create a deterministic folder name based on the content hash such that the same folder is reused across
-                // persistent usages.
-                var pgwebBookmarks = Path.Combine(aspireStore.BasePath, $"{pgwebContainer.Name}.{Convert.ToHexString(contentHash)[..12].ToLowerInvariant()}");
-
-                try
+                pgwebContainerBuilder.WithCreateFile("/.pgweb", new()
                 {
-                    Directory.CreateDirectory(pgwebBookmarks);
-
-                    // Grant listing access to the bookmarks folder on unix like systems.
-                    if (!OperatingSystem.IsWindows())
+                    new ContainerDirectory
                     {
-                        File.SetUnixFileMode(pgwebBookmarks, FileMode755);
-                    }
-
-                    foreach (var file in Directory.GetFiles(tempDir))
-                    {
-                        // Target is overwritten just in case the previous attempts has failed
-                        var destinationPath = Path.Combine(pgwebBookmarks, Path.GetFileName(file));
-                        File.Copy(file, destinationPath, overwrite: true);
-
-                        if (!OperatingSystem.IsWindows())
-                        {
-                            File.SetUnixFileMode(destinationPath, FileMode644);
-                        }
-                    }
-
-                    pgwebContainerBuilder.WithBindMount(pgwebBookmarks, "/.pgweb/bookmarks");
-                }
-                finally
-                {
-                    try
-                    {
-                        Directory.Delete(tempDir, true);
-                    }
-                    catch
-                    {
-                    }
-                }
+                        Name = "bookmarks",
+                        Mode = FileMode644,
+                        Entries = bookmarkFiles,
+                    },
+                });
 
                 return Task.CompletedTask;
             });
@@ -400,12 +364,9 @@ public static class PostgresBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
-    private static string WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances, out byte[] contentHash)
+    private static List<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
     {
-        var dir = Directory.CreateTempSubdirectory().FullName;
-
-        // Fast, non-cryptographic hash.
-        var hash = new XxHash3();
+        var bookmarkFiles = new List<ContainerFileSystemItem>();
 
         foreach (var postgresDatabase in postgresInstances)
         {
@@ -422,14 +383,15 @@ public static class PostgresBuilderExtensions
                     sslmode = "disable"
                     """;
 
-            hash.Append(Encoding.UTF8.GetBytes(fileContent));
-
-            File.WriteAllText(Path.Combine(dir, $"{postgresDatabase.Name}.toml"), fileContent);
+            bookmarkFiles.Add(new ContainerFile
+            {
+                Name = $"{postgresDatabase.Name}.toml",
+                Contents = fileContent,
+                Mode = FileMode755,
+            });
         }
 
-        contentHash = hash.GetCurrentHash();
-
-        return dir;
+        return bookmarkFiles;
     }
 
     private static string WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances)
