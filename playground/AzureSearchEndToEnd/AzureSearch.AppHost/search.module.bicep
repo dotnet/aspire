@@ -43,3 +43,5 @@ resource search_SearchServiceContributor 'Microsoft.Authorization/roleAssignment
 }
 
 output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
+
+output name string = search.name

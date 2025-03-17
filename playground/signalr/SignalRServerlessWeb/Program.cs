@@ -11,7 +11,8 @@ var serviceManager = new ServiceManagerBuilder()
             option.ConnectionString = builder.Configuration.GetConnectionString("signalrServerless");
         })
         .BuildServiceManager();
-var hubContext = await serviceManager.CreateHubContextAsync("myHubName", default);
+var hubName = "notificationHub";
+var hubContext = await serviceManager.CreateHubContextAsync(hubName, default);
 builder.Services.AddHostedService(sp => new PeriodicBroadcaster(hubContext));
 
 var app = builder.Build();
@@ -31,7 +32,7 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapPost("/negotiate", async (string? userId) =>
+app.MapPost($"{hubName}/negotiate", async (string? userId) =>
 {
     var negotiateResponse = await hubContext.NegotiateAsync(new NegotiationOptions
     {
