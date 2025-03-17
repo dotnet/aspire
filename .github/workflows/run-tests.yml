@@ -57,7 +57,7 @@ jobs:
           echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
@@ -164,7 +164,7 @@ jobs:
       # Upload that result file to artifact named test-job-result-{name}
       - name: Upload test result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}
           path: result-*.rst
@@ -179,7 +179,7 @@ jobs:
 
       - name: Upload logs, and test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: logs-${{ inputs.testShortName }}-${{ inputs.os }}
           path: |
