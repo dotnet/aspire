@@ -9,7 +9,10 @@
                     BarSize="5"
                     @ref="_splitterRef">
         <Panel1>
-            @* The summary container should never be added/removed from the DOM *@
+            @*
+                The summary container should never be added/removed from the DOM. If it is added/removed then content dynamically
+                added by JS libraries, such as the resource graph, will be lost when switching between desktop and mobile views.
+            *@
             <div class="summary-container" style="@(_internalShowDetails && !ViewportInformation.IsDesktop ? "display:none" : string.Empty)">
                 @Summary
             </div>
