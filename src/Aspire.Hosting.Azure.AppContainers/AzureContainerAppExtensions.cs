@@ -138,8 +138,6 @@ public static class AzureContainerAppExtensions
 
             infra.Add(roleAssignment);
 
-            // TODO: Add secret outputs and volume generation
-
             var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
 
             var resource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
