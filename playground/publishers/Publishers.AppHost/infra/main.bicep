@@ -21,7 +21,7 @@ module env 'env/env.bicep' = {
   scope: rg
   params: {
     location: location
-    principalId: ''
+    userPrincipalId: principalId
   }
 }
 

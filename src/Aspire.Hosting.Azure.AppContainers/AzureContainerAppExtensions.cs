@@ -63,9 +63,9 @@ public static class AzureContainerAppExtensions
 
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
-            var principalId = new ProvisioningParameter("principalId", typeof(string));
+            var userPrincipalId = new ProvisioningParameter("userPrincipalId", typeof(string));
 
-            infra.Add(principalId);
+            infra.Add(userPrincipalId);
 
             var tags = new ProvisioningParameter("tags", typeof(object))
             {
@@ -94,10 +94,6 @@ public static class AzureContainerAppExtensions
             // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
             pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
             infra.Add(pullRa);
-
-            var pushRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPush, identity);
-            pushRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pushRa.RoleDefinitionId);
-            infra.Add(pushRa);
 
             var laWorkspace = new OperationalInsightsWorkspace("law")
             {
@@ -141,7 +137,7 @@ public static class AzureContainerAppExtensions
 
             var roleAssignment = containerAppEnvironment.CreateRoleAssignment(AppContainersBuiltInRole.Contributor,
                 RoleManagementPrincipalType.ServicePrincipal,
-                principalId);
+                userPrincipalId);
 
             infra.Add(roleAssignment);
 
