@@ -12,7 +12,9 @@ using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Roles;
+using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using FileShare = Azure.Provisioning.Storage.FileShare;
 
 namespace Aspire.Hosting;
 
@@ -51,7 +53,7 @@ public static class AzureContainerAppExtensions
     {
         builder.AddAzureContainerAppsInfrastructure();
 
-        var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, infra =>
+        var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
             var principalId = new ProvisioningParameter("principalId", typeof(string));
 
@@ -136,6 +138,72 @@ public static class AzureContainerAppExtensions
             infra.Add(roleAssignment);
 
             // TODO: Add secret outputs and volume generation
+
+            var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
+
+            var resource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
+
+            if (resource.VolumeNames.Count > 0)
+            {
+                var storageVolume = new StorageAccount("storageVolume")
+                {
+                    Tags = tags,
+                    Sku = new StorageSku() { Name = StorageSkuName.StandardLrs },
+                    Kind = StorageKind.StorageV2,
+                    LargeFileSharesState = LargeFileSharesState.Enabled
+                };
+
+                infra.Add(storageVolume);
+
+                var storageVolumeFileService = new FileService("storageVolumeFileService")
+                {
+                    Parent = storageVolume
+                };
+
+                infra.Add(storageVolumeFileService);
+
+                foreach (var (outputName, output) in resource.VolumeNames)
+                {
+                    var shareName = Infrastructure.NormalizeBicepIdentifier($"shares_{outputName}");
+                    var managedStorageName = Infrastructure.NormalizeBicepIdentifier($"managedStorage_{outputName}");
+
+                    var share = new FileShare(shareName)
+                    {
+                        Parent = storageVolumeFileService,
+                        ShareQuota = 1024,
+                        EnabledProtocol = FileShareEnabledProtocol.Smb
+                    };
+
+                    infra.Add(share);
+
+                    var keysExpr = storageVolume.GetKeys()[0].Compile();
+                    var keyValue = new MemberExpression(keysExpr, "value");
+
+                    var containerAppStorage = new ContainerAppManagedEnvironmentStorage(managedStorageName)
+                    {
+                        Parent = containerAppEnvironment,
+                        ManagedEnvironmentStorageAzureFile = new()
+                        {
+                            ShareName = share.Name,
+                            AccountName = storageVolume.Name,
+                            AccountKey = keyValue,
+                            AccessMode = ContainerAppAccessMode.ReadWrite
+                        }
+                    };
+
+                    infra.Add(containerAppStorage);
+
+                    managedStorages[outputName] = containerAppStorage;
+                }
+            }
+
+            foreach (var (key, value) in managedStorages)
+            {
+                infra.Add(new ProvisioningOutput(key, typeof(string))
+                {
+                    Value = value.Name
+                });
+            }
 
             infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_NAME", typeof(string))
             {

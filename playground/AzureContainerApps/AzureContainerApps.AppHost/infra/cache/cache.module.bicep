@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param cache_volumes_0_storage string
+param infra_outputs_volumes_cache_0 string
 
 @secure()
 param cache_password_value string
@@ -62,7 +62,7 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'v0'
           storageType: 'AzureFile'
-          storageName: cache_volumes_0_storage
+          storageName: infra_outputs_volumes_cache_0
         }
       ]
     }

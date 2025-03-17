@@ -34,16 +34,14 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
-        var environment = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().LastOrDefault();
+        // TODO: We need support direct association between a compute resource and the container app environment.
+        // right now we assume the last container app environment is the one we want to use and we'll fall back to 
+        // azd based environment if we don't have one.
+        var environment = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().LastOrDefault() as IAzureContainerAppEnvironment ?? new AzdAzureContainerAppEnvironment();
 
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
-            environment,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_ID,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_ENDPOINT,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID);
+            environment);
 
         var additionalBicepResources = new List<AzureBicepResource>();
 
@@ -77,20 +75,17 @@ internal sealed class AzureContainerAppsInfrastructure(
 
     private sealed class ContainerAppEnvironmentContext(
         ILogger logger,
-        AzureContainerAppEnvironmentResource? environmentResource,
-        IManifestExpressionProvider containerAppEnvironmentId,
-        IManifestExpressionProvider containerAppDomain,
-        IManifestExpressionProvider managedIdentityId,
-        IManifestExpressionProvider containerRegistryUrl,
-        IManifestExpressionProvider containerRegistryManagedIdentityId
+        IAzureContainerAppEnvironment environment
         )
     {
         private ILogger Logger => logger;
-        private IManifestExpressionProvider ContainerAppEnvironmentId => environmentResource?.ContainerAppEnvironmentId ?? containerAppEnvironmentId;
-        private IManifestExpressionProvider ContainerAppDomain => environmentResource?.ContainerAppDomain ?? containerAppDomain;
-        private IManifestExpressionProvider ManagedIdentityId => environmentResource?.ManagedIdentityId ?? managedIdentityId;
-        private IManifestExpressionProvider ContainerRegistryUrl => environmentResource?.ContainerRegistryUrl ?? containerRegistryUrl;
-        private IManifestExpressionProvider ContainerRegistryManagedIdentityId => environmentResource?.ContainerRegistryManagedIdentityId ?? containerRegistryManagedIdentityId;
+        private IManifestExpressionProvider ContainerAppEnvironmentId => environment.ContainerAppEnvironmentId;
+        private IManifestExpressionProvider ContainerAppDomain => environment.ContainerAppDomain;
+        private IManifestExpressionProvider ManagedIdentityId => environment.ManagedIdentityId;
+        private IManifestExpressionProvider ContainerRegistryUrl => environment.ContainerRegistryUrl;
+        private IManifestExpressionProvider ContainerRegistryManagedIdentityId => environment.ContainerRegistryManagedIdentityId;
+
+        public IAzureContainerAppEnvironment Environment => environment;
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
@@ -864,14 +859,14 @@ internal sealed class AzureContainerAppsInfrastructure(
             }
 
             private ProvisioningParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex) =>
-                AllocateParameter(VolumeStorageExpression.GetVolumeStorage(resource, type, volumeIndex));
+                AllocateParameter(_containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, type, volumeIndex));
 
             private BicepValue<string> AllocateKeyVaultSecretUriReference(BicepSecretOutputReference secretOutputReference)
             {
                 if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
                 {
                     // We resolve the keyvault that represents the storage for secret outputs
-                    var parameter = AllocateParameter(SecretOutputExpression.GetSecretOutputKeyVault(secretOutputReference.Resource));
+                    var parameter = AllocateParameter(_containerAppEnvironmentContext.Environment.GetSecretOutputKeyVault(secretOutputReference.Resource));
                     kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
                     kv.Name = parameter;
 
@@ -1045,33 +1040,6 @@ internal sealed class AzureContainerAppsInfrastructure(
         }
     }
 
-    /// <summary>
-    /// These are referencing outputs from azd's main.bicep file. We represent the global namespace in the manifest
-    /// by using {.outputs.property} expressions.
-    /// </summary>
-    private sealed class AzureContainerAppsEnvironment(string outputName) : IManifestExpressionProvider
-    {
-        public string ValueExpression => $"{{.outputs.{outputName}}}";
-
-        public static IManifestExpressionProvider MANAGED_IDENTITY_CLIENT_ID => GetExpression("MANAGED_IDENTITY_CLIENT_ID");
-        public static IManifestExpressionProvider MANAGED_IDENTITY_NAME => GetExpression("MANAGED_IDENTITY_NAME");
-        public static IManifestExpressionProvider MANAGED_IDENTITY_PRINCIPAL_ID => GetExpression("MANAGED_IDENTITY_PRINCIPAL_ID");
-        public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID => GetExpression("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID");
-        public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_ENDPOINT => GetExpression("AZURE_CONTAINER_REGISTRY_ENDPOINT");
-        public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_ID => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_ID");
-        public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN");
-
-        private static IManifestExpressionProvider GetExpression(string propertyExpression) =>
-            new AzureContainerAppsEnvironment(propertyExpression);
-    }
-
-    private sealed class SecretOutputExpression(AzureBicepResource resource) : IManifestExpressionProvider
-    {
-        public string ValueExpression => $"{{{resource.Name}.secretOutputs}}";
-        public static IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource) =>
-            new SecretOutputExpression(resource);
-    }
-
     private sealed class ResourceExpression(IResource resource, string propertyExpression) : IManifestExpressionProvider
     {
         public string ValueExpression => $"{{{resource.Name}.{propertyExpression}}}";
@@ -1081,22 +1049,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         public static IManifestExpressionProvider GetContainerPortExpression(IResource p) =>
             new ResourceExpression(p, "containerPort");
-    }
-
-    /// <summary>
-    /// Generates expressions for the volume storage account. That azd creates.
-    /// </summary>
-    private sealed class VolumeStorageExpression(IResource resource, ContainerMountType type, string index) : IManifestExpressionProvider
-    {
-        public string ValueExpression => type switch
-        {
-            ContainerMountType.BindMount => $"{{{resource.Name}.bindMounts.{index}.storage}}",
-            ContainerMountType.Volume => $"{{{resource.Name}.volumes.{index}.storage}}",
-            _ => throw new NotSupportedException()
-        };
-
-        public static IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, string index) =>
-            new VolumeStorageExpression(resource, type, index);
     }
 
     private sealed class PortAllocator(int startPort = 8000)
