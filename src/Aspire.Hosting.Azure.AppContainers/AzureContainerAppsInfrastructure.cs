@@ -115,12 +115,6 @@ internal sealed class AzureContainerAppsInfrastructure(
         )
     {
         private ILogger Logger => logger;
-        private IManifestExpressionProvider ContainerAppEnvironmentId => environment.ContainerAppEnvironmentId;
-        private IManifestExpressionProvider ContainerAppDomain => environment.ContainerAppDomain;
-        private IManifestExpressionProvider ManagedIdentityId => environment.ManagedIdentityId;
-        private IManifestExpressionProvider ContainerRegistryUrl => environment.ContainerRegistryUrl;
-        private IManifestExpressionProvider ContainerRegistryManagedIdentityId => environment.ContainerRegistryManagedIdentityId;
-
         public IAzureContainerAppEnvironment Environment => environment;
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
@@ -201,7 +195,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 AllocateManagedIdentityIdParameter();
 
-                var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
+                var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
 
@@ -778,7 +772,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 {
                     if (isHttpIngress)
                     {
-                        var domain = AllocateParameter(_containerAppEnvironmentContext.ContainerAppDomain);
+                        var domain = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
 
                         return external ? BicepFunction.Interpolate($$"""{{prefix}}{{host}}.{{domain}}{{suffix}}""") : BicepFunction.Interpolate($$"""{{prefix}}{{host}}.internal.{{domain}}{{suffix}}""");
                     }
@@ -930,12 +924,12 @@ internal sealed class AzureContainerAppsInfrastructure(
                 => AllocateParameter(ResourceExpression.GetContainerPortExpression(resource));
 
             private ProvisioningParameter AllocateManagedIdentityIdParameter()
-                => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ManagedIdentityId);
+                => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ManagedIdentityId);
 
             private void AllocateContainerRegistryParameters()
             {
-                _containerRegistryUrlParameter ??= AllocateParameter(_containerAppEnvironmentContext.ContainerRegistryUrl);
-                _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ContainerRegistryManagedIdentityId);
+                _containerRegistryUrlParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerRegistryUrl);
+                _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerRegistryManagedIdentityId);
             }
 
             private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null, SecretType secretType = SecretType.None)
