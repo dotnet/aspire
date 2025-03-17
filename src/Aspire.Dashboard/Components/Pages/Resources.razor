@@ -35,11 +35,11 @@
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton id="resourceFilterButton" slot="end"
-                              Appearance="@(NoFiltersSet? Appearance.Stealth: Appearance.Accent)"
+                              Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
                               IconEnd="@(new Icons.Regular.Size20.Filter())"
                               @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
-                              Title="@(NoFiltersSet? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
-                              aria-label="@(NoFiltersSet? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
+                              Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
+                              aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
 
                 @if (HasAnyChildResources())
                 {
@@ -58,7 +58,7 @@
 
                     <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
                                   OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
-                        @(showExpandAllButton? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
+                        @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
                     </FluentButton>
                 }
 
