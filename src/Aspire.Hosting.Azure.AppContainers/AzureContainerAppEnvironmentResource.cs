@@ -6,37 +6,42 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure.AppContainers;
 
 /// <summary>
-/// 
+/// Represents an Azure Container App Environment resource.
 /// </summary>
-/// <param name="name"></param>
-/// <param name="configureInfrastructure"></param>
+/// <param name="name">The name of the Container App Environment.</param>
+/// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment
 {
     /// <summary>
-    /// 
+    /// Gets the unique identifier of the Container App Environment.
     /// </summary>
     public BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);
 
     /// <summary>
-    /// 
+    /// Gets the default domain associated with the Container App Environment.
     /// </summary>
     public BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
-    /// 
+    /// Gets the managed identity ID associated with the Container App Environment.
     /// </summary>
     public BicepOutputReference ManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
     /// <summary>
-    /// 
+    /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
     public BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
 
     /// <summary>
-    /// 
+    /// Gets the managed identity ID associated with the Azure Container Registry.
     /// </summary>
     public BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
+
+    /// <summary>
+    /// Gets the unique identifier of the Log Analytics workspace.
+    /// </summary>
+    public BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
 
     internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
 
@@ -51,6 +56,8 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerRegistryManagedIdentityId => ContainerRegistryManagedIdentityId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ManagedIdentityId => ManagedIdentityId;
+
+    IManifestExpressionProvider IAzureContainerAppEnvironment.LogAnalyticsWorkspaceId => LogAnalyticsWorkspaceId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {

@@ -72,17 +72,33 @@ internal sealed class AzureContainerAppsInfrastructure(
             appModel.Resources.Add(additionalModule);
         }
 
-        // REVIEW: the secret key vault resources aren't coupled to the container app environment. This
-        // is a side effect from how azd worked. We can move them to another service in the future.
+        static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)
+        {
+            if (r.Parameters.TryGetValue(key, out var existingValue) && existingValue is null)
+            {
+                var value = factory(r);
+
+                if (value is BicepOutputReference b && b.Resource == r)
+                {
+                    return;
+                }
+
+                r.Parameters[key] = value;
+            }
+        }
 
         // Resolve the known parameters for the container app environment
         foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
         {
-            if (r.Parameters.TryGetValue(AzureBicepResource.KnownParameters.KeyVaultName, out var value) && value is null)
-            {
-                // Resolve the secret key vault name from the container app environment
-                r.Parameters[AzureBicepResource.KnownParameters.KeyVaultName] = environment.GetSecretOutputKeyVault(r);
-            }
+            // HACK: This forces parameters to be resolved for any AzureProvisioningResource
+            r.GetBicepTemplateFile();
+
+            // REVIEW: the secret key vault resources aren't coupled to the container app environment. This
+            // is a side effect from how azd worked. We can move them to another service in the future.
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ManagedIdentityId);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
         }
     }
 
