@@ -708,7 +708,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="entries">The file system entries to create.</param>
     /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
     /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="mode">The default (unix style) ownership permissions for the created or updated file system. 0 will be treated as 0600.</param>
+    /// <param name="defaultMode">The default <see cref="UnixFileMode"/> ownership permissions for the created or updated file system. <see cref="UnixFileMode.None"/> will be treated as 0600 by DCP.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -734,15 +734,17 @@ public static class ContainerResourceBuilderExtensions
     ///                 new ContainerFile
     ///                 {
     ///                     Name = "entrypoint.sh",
-    ///                     Content = "echo hello world",
-    ///                     Mode = 0760,
+    ///                     Contents = "echo hello world",
+    ///                     Mode = UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite,
     ///                 },
     ///             },
     ///         },
-    ///     }, mode = 0660);
+    ///     },
+    ///     defaultOwner: 1000,
+    ///     defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithCreateFile<T>(this IResourceBuilder<T> builder, string destinationPath, List<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, int mode = 0) where T : ContainerResource
+    public static IResourceBuilder<T> WithCreateFile<T>(this IResourceBuilder<T> builder, string destinationPath, List<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -759,7 +761,7 @@ public static class ContainerResourceBuilderExtensions
             Entries = entries,
             DefaultOwner = defaultOwner,
             DefaultGroup = defaultGroup,
-            Mode = mode
+            DefaultMode = defaultMode,
         };
 
         builder.Resource.Annotations.Add(annotation);

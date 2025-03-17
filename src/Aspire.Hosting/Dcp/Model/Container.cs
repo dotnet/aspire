@@ -327,7 +327,7 @@ internal static class ContainerFileSystemItemExtensions
             Name = item.Name,
             Owner = item.Owner,
             Group = item.Group,
-            Mode = item.Mode,
+            Mode = (int)item.Mode,
         };
 
         if (item is ContainerFile file)
@@ -372,6 +372,52 @@ internal sealed class ContainerFileSystemEntry
     // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
+}
+
+internal sealed class ContainerCreateFileSystemComparer : IEqualityComparer<ContainerCreateFileSystem>
+{
+    public bool Equals(ContainerCreateFileSystem? x, ContainerCreateFileSystem? y)
+    {
+        if (x is null || y is null)
+        {
+            return false;
+        }
+
+        return x.Destination == y.Destination
+            && x.DefaultOwner == y.DefaultOwner
+            && x.DefaultGroup == y.DefaultGroup
+            && x.Mode == y.Mode
+            && (x.Entries?.SequenceEqual(y.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>(), new ContainerFileSystemEntryComparer()) ?? false);
+    }
+
+    public int GetHashCode(ContainerCreateFileSystem obj)
+    {
+        return HashCode.Combine(obj.Destination, obj.DefaultOwner, obj.DefaultGroup, obj.Mode);
+    }
+}
+
+internal sealed class ContainerFileSystemEntryComparer : IEqualityComparer<ContainerFileSystemEntry>
+{
+    public bool Equals(ContainerFileSystemEntry? x, ContainerFileSystemEntry? y)
+    {
+        if (x is null || y is null)
+        {
+            return false;
+        }
+
+        return x.Type == y.Type
+            && x.Name == y.Name
+            && x.Owner == y.Owner
+            && x.Group == y.Group
+            && x.Mode == y.Mode
+            && x.Contents == y.Contents
+            && ((x.Entries is null && y.Entries is null ) ||(x.Entries?.SequenceEqual(y.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>(), this) ?? false));
+    }
+
+    public int GetHashCode(ContainerFileSystemEntry obj)
+    {
+        return HashCode.Combine(obj.Type, obj.Name, obj.Owner, obj.Group, obj.Mode, obj.Contents);
+    }
 }
 
 internal static class ContainerFileSystemEntryType

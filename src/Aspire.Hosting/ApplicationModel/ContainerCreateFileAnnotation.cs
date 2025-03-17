@@ -28,7 +28,7 @@ public abstract class ContainerFileSystemItem
     /// <summary>
     /// The permissions of the file or directory. If set to 0, the permissions will be inherited from the parent directory or defaults.
     /// </summary>
-    public int Mode { get; set; }
+    public UnixFileMode Mode { get; set; }
 }
 
 /// <summary>
@@ -78,7 +78,7 @@ public sealed class ContainerCreateFileAnnotation : IResourceAnnotation
     /// <summary>
     /// The default permissions for files/directories to be created or updated in the container. 0 will be treated as 0600.
     /// </summary>
-    public int Mode { get; init; }
+    public UnixFileMode DefaultMode { get; init; }
 
     /// <summary>
     /// The list of file system entries to create in the container.

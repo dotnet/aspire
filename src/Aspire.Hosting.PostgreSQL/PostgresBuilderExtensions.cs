@@ -176,7 +176,7 @@ public static class PostgresBuilderExtensions
                             Contents = serversConfigFile,
                         },
                     },
-                    mode: (int)FileMode644);
+                    defaultMode: FileMode644);
 
                 return Task.CompletedTask;
             });
