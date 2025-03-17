@@ -16,7 +16,6 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
     public async Task<int> RunAsync(FileInfo projectFile, string[] args, CancellationToken cancellationToken)
     {
-
         string[] cliArgs = ["run", "--project", projectFile.FullName, "--", ..args];
         return await ExecuteAsync(
             args: cliArgs,
