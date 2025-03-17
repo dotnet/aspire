@@ -265,7 +265,7 @@ public sealed class DashboardTelemetryService(
             return OperationContext.Empty;
         }
 
-        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostAsset)));
+        var context = OperationContext.Create(propertyCount: 1, name: GetCompositeEventName(eventName, TelemetryEndpoints.TelemetryPostAsset));
         telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var request = new PostAssetRequest(
