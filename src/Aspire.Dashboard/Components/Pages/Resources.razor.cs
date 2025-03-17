@@ -51,7 +51,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
     [Inject]
-    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => "Resources_PageState";
@@ -165,7 +165,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
 
-        _hideResourceGraph = DashboardOptions.Value.UI.DisableResourceGraph ?? false;
+        _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
 
         PageViewModel = new ResourcesViewModel
         {
