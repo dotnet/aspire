@@ -88,8 +88,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         else
         {
             hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
-            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = hubName);
+            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = hubName);
         }
 
         using var host = hb.Build();
