@@ -169,6 +169,8 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             }
         };
 
+        logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+
         var started = process.Start();
 
         if (!started)
