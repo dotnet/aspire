@@ -8,7 +8,7 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddContainerAppEnvironment("infra")
+builder.AddAzureContainerAppEnvironment("infra")
        .ConfigureInfrastructure(infra =>
        {
            var env = infra.GetProvisionableResources().OfType<ContainerAppManagedEnvironment>().Single();

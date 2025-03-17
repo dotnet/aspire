@@ -50,7 +50,7 @@ public static class AzureContainerAppExtensions
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddAzureContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
         builder.AddAzureContainerAppsInfrastructure();
 

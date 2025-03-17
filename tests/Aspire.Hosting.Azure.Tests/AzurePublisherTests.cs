@@ -28,7 +28,7 @@ public class AzurePublisherTests
 
         // The azure publisher is not tied to azure container apps but this is 
         // a good way to test the end to end scenario
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("acaEnv");
 
         var storageSku = builder.AddParameter("storageSku", "Standard_LRS", publishValueAsDefault: true);
         var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
@@ -105,14 +105,23 @@ public class AzurePublisherTests
               tags: tags
             }
             
+            module acaEnv 'acaEnv/acaEnv.bicep' = {
+              name: 'acaEnv'
+              scope: rg
+              params: {
+                location: location
+                principalId: ''
+              }
+            }
+            
             module pg 'pg/pg.bicep' = {
               name: 'pg'
               scope: rg
               params: {
                 location: location
-                principalId: ''
-                principalType: ''
-                principalName: ''
+                principalId: acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+                principalType: 'ServicePrincipal'
+                principalName: acaEnv.outputs.MANAGED_IDENTITY_NAME
               }
             }
             
@@ -121,8 +130,8 @@ public class AzurePublisherTests
               scope: rg
               params: {
                 location: location
-                principalType: ''
-                principalId: ''
+                principalType: 'ServicePrincipal'
+                principalId: acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
               }
             }
             
@@ -156,11 +165,17 @@ public class AzurePublisherTests
             
             output account_connectionString string = account.outputs.connectionString
             
+            output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+            
+            output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
+            
             output fe_roles_id string = fe_roles.outputs.id
             
             output fe_roles_clientId string = fe_roles.outputs.clientId
             
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
+            
+            output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
             """,
                 content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }

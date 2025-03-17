@@ -7,7 +7,7 @@ using Aspire.Hosting.Kubernetes;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddContainerAppEnvironment("env");
+builder.AddAzureContainerAppEnvironment("env");
 
 builder.AddDockerCompose("docker-compose");
 
