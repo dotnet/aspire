@@ -215,7 +215,7 @@ public partial class WorkloadTestsBase
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
+                    // testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
                 AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
@@ -225,20 +225,30 @@ public partial class WorkloadTestsBase
                 var matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
-                var endpointsFound =
-                    (await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync())
+                var overflowItems = await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync();
+                IEnumerable<ILocator> endpointsTextLocs;
+                if (overflowItems.Count == 0)
+                {
+                    var tdItems = (await rowLoc.Locator("td").AllAsync()).ToArray();
+                    endpointsTextLocs = [tdItems[5]];
+                }
+                else
+                {
+                    endpointsTextLocs = overflowItems;
+                }
+                var endpointsFound = endpointsTextLocs
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
-                        .ToList();
+                        .ToArray();
 
-                if (expectedEndpoints.Length != endpointsFound.Count)
+                if (expectedEndpoints.Length != endpointsFound.Length)
                 {
                     // _testOutput.WriteLine($"For resource '{resourceName}, found ")
                     // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
                     continue;
                 }
 
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
+                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
 
                 // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
