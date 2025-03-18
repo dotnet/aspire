@@ -34,8 +34,8 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
-        // TODO: We need support direct association between a compute resource and the container app environment.
-        // Right now we support a single container app environment is the one we want to use and we'll fall back to 
+        // TODO: We need to support direct association between a compute resource and the container app environment.
+        // Right now we support a single container app environment as the one we want to use and we'll fall back to 
         // azd based environment if we don't have one.
         var environment = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().SingleOrDefault() as IAzureContainerAppEnvironment ??
             new AzdAzureContainerAppEnvironment();
