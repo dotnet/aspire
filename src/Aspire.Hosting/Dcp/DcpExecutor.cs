@@ -1508,12 +1508,18 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
 
             var resourceNotFound = false;
+            string? uid = null;
             try
             {
-                await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var r = await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
+                uid = r.Uid();
+
+                _logger.LogDebug("Delete request for '{ResourceName}' successfully completed. Resource to delete has UID '{Uid}'.", resourceName, uid);
             }
             catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
+                _logger.LogDebug("Delete request for '{ResourceName}' returned NotFound.", resourceName);
+
                 // No-op if the resource wasn't found.
                 // This could happen in a race condition, e.g. double clicking start button.
                 resourceNotFound = true;
@@ -1525,15 +1531,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
+                _logger.LogDebug("Polling DCP to check if '{ResourceName}' is deleted.", resourceName);
+
                 var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
-                        await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        var r = await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        _logger.LogDebug("Get request for '{ResourceName}' returned resource with UID '{Uid}'.", resourceName, uid);
+
                         return false;
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
+                        _logger.LogDebug("Get request for '{ResourceName}' returned NotFound.", resourceName);
+
                         // Success.
                         return true;
                     }
