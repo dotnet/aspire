@@ -278,3 +278,4 @@ jobs:
             **/*.binlog
             testresults/**
             artifacts/bin/Aspire.Workload.Tests/Debug/net8.0/logs/**
+            artifacts/log/test-logs/**
