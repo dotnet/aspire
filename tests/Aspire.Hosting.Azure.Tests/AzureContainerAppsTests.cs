@@ -6,6 +6,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -1092,6 +1093,148 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         output.WriteLine(rolesBicep);
         Assert.Equal(expectedRolesBicep, rolesBicep);
+    }
+
+    [Fact]
+    public async Task ProjectWithManyReferenceTypesAndContainerAppEnvironment()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("cae");
+
+        // CosmosDB uses secret outputs
+        var db = builder.AddAzureCosmosDB("mydb");
+        db.AddCosmosDatabase("cosmosdb", databaseName: "db");
+
+        // Postgres uses secret outputs + a literal connection string
+        var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
+
+        var rawCs = builder.AddConnectionString("cs");
+
+        // Connection string (should be considered a secret)
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
+
+        // Secret parameters (_ isn't supported and will be replaced by -)
+        var secretValue = builder.AddParameter("value0", "x", secret: true);
+
+        // Normal parameters
+        var value = builder.AddParameter("value1", "y");
+
+        var project = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithHttpsEndpoint()
+            .WithHttpEndpoint(name: "internal")
+            .WithReference(db)
+            .WithReference(blob)
+            .WithReference(pgdb)
+            .WithEnvironment("SecretVal", secretValue)
+            .WithEnvironment("secret_value_1", secretValue)
+            .WithEnvironment("Value", value)
+            .WithEnvironment("CS", rawCs);
+
+        project.WithEnvironment(context =>
+        {
+            var httpEp = project.GetEndpoint("http");
+            var httpsEp = project.GetEndpoint("https");
+            var internalEp = project.GetEndpoint("internal");
+
+            context.EnvironmentVariables["HTTP_EP"] = project.GetEndpoint("http");
+            context.EnvironmentVariables["HTTPS_EP"] = project.GetEndpoint("https");
+            context.EnvironmentVariables["INTERNAL_EP"] = project.GetEndpoint("internal");
+            context.EnvironmentVariables["TARGET_PORT"] = httpEp.Property(EndpointProperty.TargetPort);
+            context.EnvironmentVariables["PORT"] = httpEp.Property(EndpointProperty.Port);
+            context.EnvironmentVariables["HOST"] = httpEp.Property(EndpointProperty.Host);
+            context.EnvironmentVariables["HOSTANDPORT"] = httpEp.Property(EndpointProperty.HostAndPort);
+            context.EnvironmentVariables["SCHEME"] = httpEp.Property(EndpointProperty.Scheme);
+            context.EnvironmentVariables["INTERNAL_HOSTANDPORT"] = internalEp.Property(EndpointProperty.HostAndPort);
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var proj = Assert.Single(model.GetProjectResources());
+        var rolesName = $"{proj.Name}-roles";
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == rolesName));
+
+        proj.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "api_roles_outputs_id": "{api-roles.outputs.id}",
+            "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+            "api_containerport": "{api.containerPort}",
+            "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
+            "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+            "cae_outputs_secret_output_pg": "{cae.outputs.secret_output_pg}",
+            "cae_outputs_azure_container_registry_managed_identity_id": "{cae.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "value0_value": "{value0.value}",
+            "value1_value": "{value1.value}",
+            "cs_connectionstring": "{cs.connectionString}",
+            "cae_outputs_azure_container_apps_environment_default_domain": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "cae_outputs_azure_container_apps_environment_id": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "cae_outputs_azure_container_registry_endpoint": "{cae.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "api_containerimage": "{api.containerImage}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedRolesManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api-roles.module.bicep",
+          "params": {
+            "storage_outputs_name": "{storage.outputs.name}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+    }
+
+    [Fact]
+    public void MultipleCallsToAddAzureContainerAppEnvironmentThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env1");
+        var ex = Assert.Throws<NotSupportedException>(() => builder.AddAzureContainerAppEnvironment("env2"));
+
+        Assert.Equal("Only one container app environment is supported at this time. Found: env1", ex.Message);
+    }
+
+    [Fact]
+    public async Task MultipleAzureContainerAppEnvironmentThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env1");
+
+        builder.Resources.Add(new AzureContainerAppEnvironmentResource("env2", infra => { }));
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal("Multiple container app environments are not supported.", ex.Message);
     }
 
     [Fact]
@@ -2618,6 +2761,238 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
 
         Assert.Equal($"The endpoint 'https' is an https endpoint and must use port 443", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddContainerAppEnvironmentDoesNotAddEnvironmentResourceInRunMode()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Empty(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+    }
+
+    [Fact]
+    public async Task AddContainerAppEnvironmentAddsEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var pg = builder.AddAzurePostgresFlexibleServer("pg")
+                        .WithPasswordAuthentication()
+                        .AddDatabase("db");
+
+        builder.AddContainer("cache", "redis")
+               .WithVolume("data", "/data")
+               .WithReference(pg);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "env.module.bicep",
+          "params": {
+            "userPrincipalId": ""
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+        
+        param userPrincipalId string
+        
+        param tags object = { }
+        
+        resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+          name: take('mi-${uniqueString(resourceGroup().id)}', 128)
+          location: location
+          tags: tags
+        }
+        
+        resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+          name: take('acr${uniqueString(resourceGroup().id)}', 50)
+          location: location
+          sku: {
+            name: 'Basic'
+          }
+          tags: tags
+        }
+        
+        resource acr_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+          name: guid(acr.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
+          properties: {
+            principalId: mi.properties.principalId
+            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+            principalType: 'ServicePrincipal'
+          }
+          scope: acr
+        }
+        
+        resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+          name: take('law-${uniqueString(resourceGroup().id)}', 63)
+          location: location
+          properties: {
+            sku: {
+              name: 'PerGB2018'
+            }
+          }
+          tags: tags
+        }
+        
+        resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
+          name: take('cae${uniqueString(resourceGroup().id)}', 24)
+          location: location
+          properties: {
+            appLogsConfiguration: {
+              destination: 'log-analytics'
+              logAnalyticsConfiguration: {
+                customerId: law.properties.customerId
+                sharedKey: law.listKeys().primarySharedKey
+              }
+            }
+            workloadProfiles: [
+              {
+                name: 'consumption'
+                workloadProfileType: 'Consumption'
+              }
+            ]
+          }
+          tags: tags
+        }
+        
+        resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@2024-10-02-preview' = {
+          name: 'aspire-dashboard'
+          properties: {
+            componentType: 'AspireDashboard'
+          }
+          parent: cae
+        }
+        
+        resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+          name: guid(cae.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
+          properties: {
+            principalId: userPrincipalId
+            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+            principalType: 'ServicePrincipal'
+          }
+          scope: cae
+        }
+        
+        resource storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+          name: take('storagevolume${uniqueString(resourceGroup().id)}', 24)
+          kind: 'StorageV2'
+          location: location
+          sku: {
+            name: 'Standard_LRS'
+          }
+          properties: {
+            largeFileSharesState: 'Enabled'
+          }
+          tags: tags
+        }
+        
+        resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileServices@2024-01-01' = {
+          name: 'default'
+          parent: storageVolume
+        }
+        
+        resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+          name: take('sharesvolumescache0-${uniqueString(resourceGroup().id)}', 63)
+          properties: {
+            enabledProtocols: 'SMB'
+            shareQuota: 1024
+          }
+          parent: storageVolumeFileService
+        }
+        
+        resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+          name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
+          properties: {
+            azureFile: {
+              accountName: storageVolume.name
+              accountKey: storageVolume.listKeys().keys[0].value
+              accessMode: 'ReadWrite'
+              shareName: shares_volumes_cache_0.name
+            }
+          }
+          parent: cae
+        }
+        
+        resource kv_secret_output_pg 'Microsoft.KeyVault/vaults@2023-07-01' = {
+          name: take('kvsecretoutputpg-${uniqueString(resourceGroup().id)}', 24)
+          location: location
+          properties: {
+            tenantId: tenant().tenantId
+            sku: {
+              family: 'A'
+              name: 'standard'
+            }
+            enableRbacAuthorization: true
+          }
+          tags: tags
+        }
+        
+        resource kv_secret_output_pg_mi_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+          name: guid(kv_secret_output_pg.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+          properties: {
+            principalId: mi.properties.principalId
+            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+            principalType: 'ServicePrincipal'
+          }
+          scope: kv_secret_output_pg
+        }
+        
+        output volumes_cache_0 string = managedStorage_volumes_cache_0.name
+        
+        output secret_output_pg string = kv_secret_output_pg.name
+        
+        output MANAGED_IDENTITY_NAME string = mi.name
+        
+        output MANAGED_IDENTITY_PRINCIPAL_ID string = mi.properties.principalId
+        
+        output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = law.name
+        
+        output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = law.id
+        
+        output AZURE_CONTAINER_REGISTRY_NAME string = acr.name
+        
+        output AZURE_CONTAINER_REGISTRY_ENDPOINT string = acr.properties.loginServer
+        
+        output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = mi.id
+        
+        output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = cae.name
+        
+        output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = cae.id
+        
+        output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = cae.properties.defaultDomain
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

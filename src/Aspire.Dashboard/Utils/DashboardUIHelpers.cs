@@ -32,7 +32,12 @@ internal static class DashboardUIHelpers
         var resizeLabels = ColumnResizeLabels.Default with
         {
             ExactLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
+            ResizeMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)],
+            DiscreteLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeDiscreteLabel)],
+            GrowAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellGrowAriaLabelText)],
+            ResetAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResetAriaLabelText)],
+            ShrinkAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellShrinkAriaLabelText)],
+            SubmitAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSubmitAriaLabelText)]
         };
         var sortLabels = ColumnSortLabels.Default with
         {

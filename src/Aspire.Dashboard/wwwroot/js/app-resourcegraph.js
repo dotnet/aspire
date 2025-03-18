@@ -134,10 +134,12 @@ class ResourceGraph {
     }
 
     resize() {
-        var container = document.getElementsByClassName("resources-summary-layout")[0];
-        var width = container.clientWidth;
-        var height = Math.max(container.clientHeight - 50, 0);
-        this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        var container = document.querySelector(".resources-summary-layout");
+        if (container) {
+            var width = container.clientWidth;
+            var height = Math.max(container.clientHeight - 50, 0);
+            this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        }
     }
 
     switchTo(resourceName) {

@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.0.0" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.1.2" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 

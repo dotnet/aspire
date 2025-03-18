@@ -22,7 +22,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7175")]
     public async Task VerifyWaitForOnEventHubsEmulatorBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -46,17 +45,14 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -64,19 +60,22 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [InlineData(true, null)]
+    [InlineData(false, "random")]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6751")]
-    public async Task VerifyAzureEventHubsEmulatorResource(bool referenceHub)
+    public async Task VerifyAzureEventHubsEmulatorResource(bool referenceHub, string? hubName)
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var eventHubns = builder.AddAzureEventHubs("eventhubns")
             .RunAsEmulator();
-        var eventHub = eventHubns.AddHub("hub");
+        var resourceName = "hub";
+        var eventHub = eventHubns.AddHub(resourceName, hubName);
 
         using var app = builder.Build();
         await app.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -89,8 +88,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         else
         {
             hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
-            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
+            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
         }
 
         using var host = hb.Build();
@@ -102,50 +101,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         // If no exception is thrown when awaited, the Event Hubs service has acknowledged
         // receipt and assumed responsibility for delivery of the set of events to its partition.
         await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))]);
-
-        await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
-        {
-            Assert.Equal("hello worlds", Encoding.UTF8.GetString(partitionEvent.Data.EventBody.ToArray()));
-            break;
-        }
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("random")]
-    [RequiresDocker]
-    public async Task AzureEventHubsNs_ProducesAndConsumes(string? hubName)
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        var eventHubNs = builder.AddAzureEventHubs("eventhubns")
-            .RunAsEmulator();
-
-        var resourceName = "hub";
-        var eventHub = eventHubNs.AddHub(resourceName, hubName);
-
-        using var app = builder.Build();
-        await app.StartAsync();
-
-        var hb = Host.CreateApplicationBuilder();
-
-        hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubNs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
-        hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
-
-        using var host = hb.Build();
-        await host.StartAsync();
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(eventHubNs.Resource.Name, cts.Token);
-
-        var producerClient = host.Services.GetRequiredService<EventHubProducerClient>();
-        var consumerClient = host.Services.GetRequiredService<EventHubConsumerClient>();
-
-        // If no exception is thrown when awaited, the Event Hubs service has acknowledged
-        // receipt and assumed responsibility for delivery of the set of events to its partition.
-        await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))], cts.Token);
 
         await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
         {

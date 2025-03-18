@@ -7,6 +7,8 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("infra");
+
 var customDomain = builder.AddParameter("customDomain");
 var certificateName = builder.AddParameter("certificateName");
 
@@ -20,7 +22,9 @@ var redis = builder.AddRedis("cache")
 
 // Testing secret outputs
 var cosmosDb = builder.AddAzureCosmosDB("account")
+                      .WithAccessKeyAuthentication()
                       .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+
 cosmosDb.AddCosmosDatabase("db");
 
 // Testing a connection string
