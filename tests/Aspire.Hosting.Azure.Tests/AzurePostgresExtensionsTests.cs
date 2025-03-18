@@ -121,6 +121,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${principalName}'
+
+            output name string = postgres_data.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -244,6 +246,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = postgres_data.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
