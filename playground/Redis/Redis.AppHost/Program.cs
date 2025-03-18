@@ -1,21 +1,24 @@
 var builder = DistributedApplication.CreateBuilder(args);
+builder.AddAzureContainerAppsInfrastructure();
 
-var redis = builder.AddRedis("redis");
-redis.WithDataVolume()
-    .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redis))
-    .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis));
+var redis = builder.AddAzureRedis("redis")
+    .PublishAsExisting("redis-26cn5agkaxmwo", "rg-eerhardt-redis")
+    .RunAsContainer(redisContainer =>
+        redisContainer.WithDataVolume()
+            .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redisContainer))
+            .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redisContainer)));
 
-var garnet = builder.AddGarnet("garnet")
-    .WithDataVolume();
+//var garnet = builder.AddGarnet("garnet")
+//    .WithDataVolume();
 
-var valkey = builder.AddValkey("valkey")
-    .WithDataVolume("valkey-data");
+//var valkey = builder.AddValkey("valkey")
+//    .WithDataVolume("valkey-data");
 
 builder.AddProject<Projects.Redis_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
-    .WithReference(redis).WaitFor(redis)
-    .WithReference(garnet).WaitFor(garnet)
-    .WithReference(valkey).WaitFor(valkey);
+    .WithReference(redis).WaitFor(redis);
+    //.WithReference(garnet).WaitFor(garnet)
+    //.WithReference(valkey).WaitFor(valkey);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

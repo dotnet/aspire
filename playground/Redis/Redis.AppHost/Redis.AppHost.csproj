@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Garnet" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Valkey" />

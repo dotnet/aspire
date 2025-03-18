@@ -86,19 +86,19 @@ public class AzurePublisherTests
             targetScope = 'subscription'
 
             param environmentName string
-            
+
             param location string
-            
+
             param principalId string
-            
+
             param storageSku string = 'Standard_LRS'
-            
+
             param skuDescription string = 'The sku is '
-            
+
             var tags = {
               'aspire-env-name': environmentName
             }
-            
+
             resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
               name: 'rg-${environmentName}'
               location: location
@@ -124,17 +124,15 @@ public class AzurePublisherTests
                 principalName: acaEnv.outputs.MANAGED_IDENTITY_NAME
               }
             }
-            
+
             module account 'account/account.bicep' = {
               name: 'account'
               scope: rg
               params: {
                 location: location
-                principalType: 'ServicePrincipal'
-                principalId: acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
               }
             }
-            
+
             module storage 'storage/storage.bicep' = {
               name: 'storage'
               scope: rg
@@ -144,7 +142,7 @@ public class AzurePublisherTests
                 sku_description: '${skuDescription} ${storageSku}'
               }
             }
-            
+
             module mod 'mod/mod.bicep' = {
               name: 'mod'
               scope: rg
@@ -153,7 +151,16 @@ public class AzurePublisherTests
                 pgdb: '${pg.outputs.connectionString};Database=pgdb'
               }
             }
-            
+
+            module myapp_roles 'myapp-roles/myapp-roles.bicep' = {
+              name: 'myapp-roles'
+              scope: rg
+              params: {
+                location: location
+                account_outputs_name: account.outputs.name
+              }
+            }
+
             module fe_roles 'fe-roles/fe-roles.bicep' = {
               name: 'fe-roles'
               scope: rg
@@ -162,7 +169,11 @@ public class AzurePublisherTests
                 storage_outputs_name: storage.outputs.name
               }
             }
-            
+
+            output myapp_roles_id string = myapp_roles.outputs.id
+
+            output myapp_roles_clientId string = myapp_roles.outputs.clientId
+
             output account_connectionString string = account.outputs.connectionString
             
             output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
@@ -170,9 +181,9 @@ public class AzurePublisherTests
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
             
             output fe_roles_id string = fe_roles.outputs.id
-            
+
             output fe_roles_clientId string = fe_roles.outputs.clientId
-            
+
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
             
             output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT

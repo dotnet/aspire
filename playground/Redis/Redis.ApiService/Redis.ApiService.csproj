@@ -9,6 +9,8 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <PackageReference Include="Microsoft.Azure.StackExchangeRedis" VersionOverride="3.2.1" />
+    <PackageReference Include="StackExchange.Redis" VersionOverride="2.8.31" />
   </ItemGroup>
 
 </Project>

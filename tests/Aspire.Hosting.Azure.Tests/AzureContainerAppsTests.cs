@@ -1226,7 +1226,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api-roles.module.bicep",
           "params": {
-            "storage_outputs_name": "{storage.outputs.name}"
+            "storage_outputs_name": "{storage.outputs.name}",
+            "mydb_outputs_name": "{mydb.outputs.name}"
           }
         }
         """;
@@ -3084,7 +3085,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId

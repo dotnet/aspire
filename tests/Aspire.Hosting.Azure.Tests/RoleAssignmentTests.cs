@@ -426,7 +426,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis.id, api_identity.id, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: api_identity.properties.principalId

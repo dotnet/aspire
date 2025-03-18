@@ -62,7 +62,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             }
 
             resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscachecontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis_cache.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
@@ -72,6 +72,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             }
 
             output connectionString string = '${redis_cache.properties.hostName},ssl=true'
+
+            output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -133,6 +135,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

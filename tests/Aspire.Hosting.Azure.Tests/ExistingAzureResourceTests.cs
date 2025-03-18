@@ -1294,7 +1294,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
