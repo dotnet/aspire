@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
+param userPrincipalId string
 
 param tags object = { }
 
@@ -30,16 +30,6 @@ resource acr_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: acr
 }
 
-resource acr_mi_AcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec'))
-  properties: {
-    principalId: mi.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
-    principalType: 'ServicePrincipal'
-  }
-  scope: acr
-}
-
 resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: take('law-${uniqueString(resourceGroup().id)}', 63)
   location: location
@@ -62,6 +52,12 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
         sharedKey: law.listKeys().primarySharedKey
       }
     }
+    workloadProfiles: [
+      {
+        name: 'consumption'
+        workloadProfileType: 'Consumption'
+      }
+    ]
   }
   tags: tags
 }
@@ -75,9 +71,9 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
 }
 
 resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cae.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
+  name: guid(cae.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
   properties: {
-    principalId: principalId
+    principalId: userPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
     principalType: 'ServicePrincipal'
   }

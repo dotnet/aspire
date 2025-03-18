@@ -55,7 +55,7 @@ module infra 'infra/infra.module.bicep' = {
   scope: rg
   params: {
     location: location
-    principalId: ''
+    userPrincipalId: ''
   }
 }
 module storage 'storage/storage.module.bicep' = {

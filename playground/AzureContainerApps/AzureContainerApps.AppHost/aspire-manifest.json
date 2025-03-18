@@ -5,7 +5,7 @@
       "type": "azure.bicep.v0",
       "path": "infra.module.bicep",
       "params": {
-        "principalId": ""
+        "userPrincipalId": ""
       }
     },
     "customDomain": {
