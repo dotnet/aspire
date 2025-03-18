@@ -137,6 +137,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
+        WaitForDebugger();
+
         ArgumentNullException.ThrowIfNull(args);
 
         var builder = new DistributedApplicationBuilder(new DistributedApplicationOptions() { Args = args });
@@ -182,10 +184,41 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
+        WaitForDebugger();
+
         ArgumentNullException.ThrowIfNull(options);
 
         var builder = new DistributedApplicationBuilder(options);
         return builder;
+    }
+
+    private static void WaitForDebugger()
+    {
+        if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER") == "true")
+        {
+            var startedWaiting = DateTimeOffset.UtcNow;
+            TimeSpan timeout = TimeSpan.FromSeconds(30);
+
+            if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER_TIMEOUT") is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
+            {
+                timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            }
+
+            while (Debugger.IsAttached == false)
+            {
+                Console.WriteLine($"Waiting for debugger to attach to process: {Environment.ProcessId}");
+
+                if (DateTimeOffset.UtcNow - startedWaiting > timeout)
+                {
+                    Console.WriteLine($"Timeout waiting for debugger to attach to process: {Environment.ProcessId}");
+                    break;
+                }
+                else
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+        }
     }
 
     /// <summary>

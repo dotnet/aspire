@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli;
 
@@ -30,6 +31,7 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
         }
 
+        builder.Services.AddSingleton<ConsoleAppModel>();
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
@@ -126,35 +128,109 @@ public class Program
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
+            var model = app.Services.GetRequiredService<ConsoleAppModel>();
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
-            var pendingRun = runner.RunAsync(effectiveAppHostProjectFile, Array.Empty<string>(), ct).ConfigureAwait(false);
+            var env = new Dictionary<string, string>();
 
-            // HACK: This is just a temporary hack to get a sense of when to
-            //       show the live display vs. runing the background apphost.
-            var table = new Table().Border(TableBorder.MinimalHeavyHead);
+            var debug = parseResult.GetValue<bool>("--debug");
+            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+            var useRichConsole = !debug && !waitForDebugger;
 
-            await AnsiConsole.Live(table).StartAsync(async context => {
+            if (waitForDebugger)
+            {
+                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+            }
 
-                table.AddColumn("Resource");
-                table.AddColumn("Status");
-                table.AddColumn("Endpoint");
-                table.AddRow(
-                    new Text("Dashboaard"),
-                    new Text("Running"),
-                    new Text("https://localhost:15887", new Style().Link("https://localhost:15887"))
-                    );
+            var pendingRun = runner.RunAsync(effectiveAppHostProjectFile, Array.Empty<string>(), env, ct).ConfigureAwait(false);
 
-                while (true)
-                {
-                    await Task.Delay(1000).ConfigureAwait(true);
-                    context.Refresh();
-                }
-            }).ConfigureAwait(true);
+            if (useRichConsole)
+            {
+                // We wait for the first update of the console model via RPC from the AppHost.
+                await AnsiConsole.Status().StartAsync("Waiting for Aspire AppHost to start...", async context => {
+                    await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                    }).ConfigureAwait(true);
 
-            return await pendingRun;
+                // We wait for the first update of the console model via RPC from the AppHost.
+                await AnsiConsole.Status().StartAsync("Waiting for Aspire Dashboard to start...", async context => {
+
+                    // Possible we already have it, if so this will be quick.
+                    if (model.DashboardLoginUrl is { })
+                    {
+                        return;
+                    }
+
+                    // Otherwise we wait.
+                    while (true)
+                    {
+                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                        if (model.DashboardLoginUrl is { })
+                        {
+                            break;
+                        }
+                    }
+                    }).ConfigureAwait(true);
+
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+                AnsiConsole.MarkupLine($"[link={model.DashboardLoginUrl}]{model.DashboardLoginUrl}[/]");
+                AnsiConsole.WriteLine();
+
+                var table = new Table().Border(TableBorder.Rounded);
+
+                await AnsiConsole.Live(table).StartAsync(async context => {
+
+                    table.AddColumn("Resource");
+                    table.AddColumn("Type");
+                    table.AddColumn("State");
+                    table.AddColumn("Endpoint(s)");
+
+                    while (true)
+                    {
+                        var modelUpdate = await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                        table.Rows.Clear();
+
+                        foreach (var resource in model.Resources.OrderBy(r => r.Name))
+                        {
+                            var resourceName = new Text(resource.Name, new Style().Foreground(Color.White));
+
+                            var type = new Text(resource.Type ?? "Unknown", new Style().Foreground(Color.White));
+
+                            var state = resource.State switch {
+                                "Running" => new Text(resource.State, new Style().Foreground(Color.Green)),
+                                "Starting" => new Text(resource.State, new Style().Foreground(Color.LightGreen)),
+                                "FailedToStart" => new Text(resource.State, new Style().Foreground(Color.Red)),
+                                "Waiting" => new Text(resource.State, new Style().Foreground(Color.White)),
+                                "Unhealthy" => new Text(resource.State, new Style().Foreground(Color.Yellow)),
+                                "Exited" => new Text(resource.State, new Style().Foreground(Color.Grey)),
+                                "Finished" => new Text(resource.State, new Style().Foreground(Color.Grey)),
+                                "NotStarted" => new Text(resource.State, new Style().Foreground(Color.Grey)),
+                                _ => new Text(resource.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                            };
+
+                            IRenderable endpoints = new Text("None");
+                            if (resource.Endpoints?.Length > 0)
+                            {
+                                endpoints = new Rows(
+                                    resource.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                );
+                            }
+
+                            table.AddRow(resourceName, type, state, endpoints);
+                        }
+
+                        context.Refresh();
+                    }
+                }).ConfigureAwait(true);
+
+                return await pendingRun;
+            }
+            else
+            {
+                return await pendingRun;
+            }
         });
 
         parentCommand.Subcommands.Add(command);
@@ -219,9 +295,16 @@ public class Program
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
+            var env = new Dictionary<string, string>();
+
+            if (parseResult.GetValue<bool>("--wait-for-debugger"))
+            {
+                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+            }
+
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
-            var exitCode = await runner.RunAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], ct).ConfigureAwait(false);
+            var exitCode = await runner.RunAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], env, ct).ConfigureAwait(false);
 
             return exitCode;
         });
