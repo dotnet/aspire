@@ -110,7 +110,7 @@ public class AzurePublisherTests
               scope: rg
               params: {
                 location: location
-                principalId: ''
+                userPrincipalId: principalId
               }
             }
             
