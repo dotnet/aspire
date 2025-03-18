@@ -210,7 +210,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
                 process.Id
                 );
 
-            while (!cancellationToken.IsCancellationRequested || !reader.EndOfStream)
+            while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
             {
                 var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 logger.LogDebug(
