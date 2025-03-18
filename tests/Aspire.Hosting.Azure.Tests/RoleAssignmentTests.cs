@@ -400,6 +400,57 @@ public class RoleAssignmentTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public Task CosmosDBSupport()
+    {
+        return RoleAssignmentTest("cosmos",
+            builder =>
+            {
+                var redis = builder.AddAzureCosmosDB("cosmos");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            },
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param cosmos_outputs_name string
+
+            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: cosmos_outputs_name
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(api_identity.id, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: api_identity.properties.principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+
+            output id string = api_identity.id
+
+            output clientId string = api_identity.properties.clientId
+
+            output principalId string = api_identity.properties.principalId
+
+            output principalName string = api_identity.name
+            """);
+    }
+
+    [Fact]
     public Task RedisSupport()
     {
         return RoleAssignmentTest("redis",
