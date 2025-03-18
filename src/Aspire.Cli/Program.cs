@@ -149,12 +149,18 @@ public class Program
             if (useRichConsole)
             {
                 // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status().StartAsync("Waiting for Aspire AppHost to start...", async context => {
-                    await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
-                    }).ConfigureAwait(true);
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots3)
+                    .SpinnerStyle(Style.Parse("purple"))
+                    .StartAsync(":linked_paperclips: Starting Aspire app host...", async context => {
+                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                        }).ConfigureAwait(true);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status().StartAsync("Waiting for Aspire Dashboard to start...", async context => {
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots3)
+                    .SpinnerStyle(Style.Parse("purple"))
+                    .StartAsync(":chart_increasing: Starting Aspire dashboard...", async context => {
 
                     // Possible we already have it, if so this will be quick.
                     if (model.DashboardLoginUrl is { })
@@ -297,7 +303,7 @@ public class Program
             
             var env = new Dictionary<string, string>();
 
-            if (parseResult.GetValue<bool>("--wait-for-debugger"))
+            if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
@@ -529,6 +535,7 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
+        System.Console.OutputEncoding = Encoding.UTF8;
         var rootCommand = GetRootCommand();
         var result = rootCommand.Parse(args);
         var exitCode = await result.InvokeAsync().ConfigureAwait(false);
