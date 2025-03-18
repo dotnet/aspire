@@ -33,7 +33,9 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, connectionName);
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
     }
 
     /// <summary>
@@ -51,7 +53,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, connectionName);
+        if (cosmosConnectionInfo is null || string.IsNullOrEmpty(cosmosConnectionInfo.Value.DatabaseName))
+        {
+            throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the database name.");
+        }
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
     }
 
     /// <summary>
@@ -69,7 +76,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, connectionName);
+        if (cosmosConnectionInfo is null || string.IsNullOrEmpty(cosmosConnectionInfo.Value.ContainerName) || string.IsNullOrEmpty(cosmosConnectionInfo.Value.DatabaseName))
+        {
+            throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the container name or database name.");
+        }
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
     }
 
     /// <summary>
@@ -90,7 +102,8 @@ public static class AspireMicrosoftAzureCosmosExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, name);
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName: name, cosmosConnectionInfo, serviceKey: name);
     }
 
     /// <summary>
@@ -108,7 +121,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
        Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
        Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, serviceKey: name);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, name);
+        if (cosmosConnectionInfo is null || string.IsNullOrEmpty(cosmosConnectionInfo.Value.DatabaseName))
+        {
+            throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the database name.");
+        }
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, cosmosConnectionInfo, serviceKey: name);
     }
 
     /// <summary>
@@ -126,7 +144,26 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, serviceKey: name);
+        var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, name);
+        if (cosmosConnectionInfo is null || string.IsNullOrEmpty(cosmosConnectionInfo.Value.ContainerName) || string.IsNullOrEmpty(cosmosConnectionInfo.Value.DatabaseName))
+        {
+            throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the container name or database name.");
+        }
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, cosmosConnectionInfo, serviceKey: name);
+    }
+
+    private static CosmosConnectionInfo? GetCosmosConnectionInfo(this IHostApplicationBuilder builder, string connectionName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        var connectionString = builder.Configuration.GetConnectionString(connectionName);
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            return null;
+        }
+
+        return CosmosUtils.ParseConnectionString(connectionString);
     }
 
     private static void AddAzureCosmosClient(
@@ -134,6 +171,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings,
         Action<CosmosClientOptions>? configureClientOptions,
         string connectionName,
+        CosmosConnectionInfo? cosmosConnectionInfo,
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -146,25 +184,16 @@ public static class AspireMicrosoftAzureCosmosExtensions
         configSection.Bind(settings);
         namedConfigSection.Bind(settings);
 
-        string? databaseName = null;
-        string? containerName = null;
-
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        if (cosmosConnectionInfo is { AccountEndpoint: { } accountEndpoint })
         {
-            var cosmosConnectionInfo = CosmosUtils.ParseConnectionString(connectionString);
-
-            if (cosmosConnectionInfo.AccountEndpoint is not null)
-            {
-                settings.AccountEndpoint = cosmosConnectionInfo.AccountEndpoint;
-            }
-            else
-            {
-                settings.ConnectionString = cosmosConnectionInfo.ConnectionString;
-            }
-
-            databaseName = cosmosConnectionInfo.DatabaseName;
-            containerName = cosmosConnectionInfo.ContainerName;
+            settings.AccountEndpoint = accountEndpoint;
         }
+        else if (cosmosConnectionInfo is { ConnectionString: { } connectionString })
+        {
+            settings.ConnectionString = connectionString;
+        }
+        var databaseName = cosmosConnectionInfo?.DatabaseName;
+        var containerName = cosmosConnectionInfo?.ContainerName;
 
         configureSettings?.Invoke(settings);
 
