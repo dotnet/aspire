@@ -79,7 +79,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
         if (_jsModule is not null)
         {
-            if (FormatKind is not PlaintextFormat)
+            if (FormatKind is not PlaintextFormat && ShowContainsSecretsWarning is false)
             {
                 await _jsModule.InvokeVoidAsync("connectObserver", _logContainerId);
             }
