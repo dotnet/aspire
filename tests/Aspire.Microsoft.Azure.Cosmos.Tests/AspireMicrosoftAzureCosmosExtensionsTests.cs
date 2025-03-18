@@ -56,12 +56,12 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
 
         using var host = builder.Build();
         var database = host.Services.GetRequiredService<Database>();
-        var client = host.Services.GetRequiredService<CosmosClient>();
+        var client = host.Services.GetService<CosmosClient>();
 
-        Assert.NotNull(client);
+        Assert.Null(client);
         Assert.NotNull(database);
         Assert.Equal(databaseName, database.Id);
-        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.Equal(expectedEndpoint, database.Client.Endpoint.ToString());
     }
 
     [Fact]
@@ -79,13 +79,13 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         using var host = builder.Build();
         var container = host.Services.GetRequiredService<Container>();
         var database = host.Services.GetService<Database>();
-        var client = host.Services.GetRequiredService<CosmosClient>();
+        var client = host.Services.GetService<CosmosClient>();
 
         Assert.NotNull(container);
-        Assert.NotNull(client);
+        Assert.Null(client);
         Assert.Null(database);
         Assert.Equal(containerName, container.Id);
-        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.Equal(expectedEndpoint, container.Database.Client.Endpoint.ToString());
     }
 
     [Fact]
@@ -102,12 +102,12 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
 
         using var host = builder.Build();
         var database = host.Services.GetRequiredKeyedService<Database>(serviceKey);
-        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
+        var client = host.Services.GetKeyedService<CosmosClient>(serviceKey);
 
-        Assert.NotNull(client);
+        Assert.Null(client);
         Assert.NotNull(database);
         Assert.Equal(databaseName, database.Id);
-        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.Equal(expectedEndpoint, database.Client.Endpoint.ToString());
     }
 
     [Fact]
@@ -126,13 +126,13 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         using var host = builder.Build();
         var container = host.Services.GetRequiredKeyedService<Container>(serviceKey);
         var database = host.Services.GetKeyedService<Database>(serviceKey);
-        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
+        var client = host.Services.GetKeyedService<CosmosClient>(serviceKey);
 
         Assert.NotNull(container);
-        Assert.NotNull(client);
+        Assert.Null(client);
         Assert.Null(database);
         Assert.Equal(containerName, container.Id);
-        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.Equal(expectedEndpoint, container.Database.Client.Endpoint.ToString());
     }
 
     [Theory]

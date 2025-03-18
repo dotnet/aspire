@@ -35,11 +35,13 @@ public static class AspireMicrosoftAzureCosmosExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
         var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, connectionName);
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
+        var settings = builder.GetSettings(connectionName, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddSingleton(sp => ConfigureDb(connectionName, settings, clientOptions));
     }
 
     /// <summary>
-    /// Registers <see cref="CosmosClient" /> and <see cref="Database"/> as singletons in the services provided by the <paramref name="builder"/>.
+    /// Registers the <see cref="Database"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
@@ -58,11 +60,17 @@ public static class AspireMicrosoftAzureCosmosExtensions
         {
             throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the database name.");
         }
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
+        var settings = builder.GetSettings(connectionName, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddSingleton(sp =>
+        {
+            var client = ConfigureDb(connectionName, settings, clientOptions);
+            return client.GetDatabase(cosmosConnectionInfo.Value.DatabaseName);
+        });
     }
 
     /// <summary>
-    /// Registers <see cref="CosmosClient" /> and <see cref="Container"/> as singletons in the services provided by the <paramref name="builder"/>.
+    /// Registers the <see cref="Container"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
@@ -81,11 +89,17 @@ public static class AspireMicrosoftAzureCosmosExtensions
         {
             throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the container name or database name.");
         }
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, cosmosConnectionInfo, serviceKey: null);
+        var settings = builder.GetSettings(connectionName, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddSingleton(sp =>
+        {
+            var client = ConfigureDb(connectionName, settings, clientOptions);
+            return client.GetContainer(cosmosConnectionInfo.Value.DatabaseName, cosmosConnectionInfo.Value.ContainerName);
+        });
     }
 
     /// <summary>
-    /// Registers <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
+    /// Registers the <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
     /// Configures logging and telemetry for the <see cref="CosmosClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -103,11 +117,17 @@ public static class AspireMicrosoftAzureCosmosExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var cosmosConnectionInfo = GetCosmosConnectionInfo(builder, name);
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName: name, cosmosConnectionInfo, serviceKey: name);
+        var settings = builder.GetSettings(name, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddKeyedSingleton(name, (sp, key) =>
+        {
+            var client = ConfigureDb(name, settings, clientOptions);
+            return client;
+        });
     }
 
     /// <summary>
-    /// Registers <see cref="CosmosClient" /> and <see cref="Database"/> as singletons for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
+    /// Registers the <see cref="Database"/> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -126,11 +146,17 @@ public static class AspireMicrosoftAzureCosmosExtensions
         {
             throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the database name.");
         }
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, cosmosConnectionInfo, serviceKey: name);
+        var settings = builder.GetSettings(name, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddKeyedSingleton(name, (sp, key) =>
+        {
+            var client = ConfigureDb(name, settings, clientOptions);
+            return client.GetDatabase(cosmosConnectionInfo.Value.DatabaseName);
+        });
     }
 
     /// <summary>
-    /// Registers <see cref="CosmosClient" /> and <see cref="Container"/> as singletons for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
+    /// Registers the <see cref="Container"/> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -149,7 +175,13 @@ public static class AspireMicrosoftAzureCosmosExtensions
         {
             throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the container name or database name.");
         }
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, name, cosmosConnectionInfo, serviceKey: name);
+        var settings = builder.GetSettings(name, configureSettings, cosmosConnectionInfo);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        builder.Services.AddKeyedSingleton(name, (sp, key) =>
+        {
+            var client = ConfigureDb(name, settings, clientOptions);
+            return client.GetContainer(cosmosConnectionInfo.Value.DatabaseName, cosmosConnectionInfo.Value.ContainerName);
+        });
     }
 
     private static CosmosConnectionInfo? GetCosmosConnectionInfo(this IHostApplicationBuilder builder, string connectionName)
@@ -165,18 +197,13 @@ public static class AspireMicrosoftAzureCosmosExtensions
 
         return CosmosUtils.ParseConnectionString(connectionString);
     }
-
-    private static void AddAzureCosmosClient(
+    private static MicrosoftAzureCosmosSettings GetSettings(
         this IHostApplicationBuilder builder,
-        Action<MicrosoftAzureCosmosSettings>? configureSettings,
-        Action<CosmosClientOptions>? configureClientOptions,
         string connectionName,
-        CosmosConnectionInfo? cosmosConnectionInfo,
-        string? serviceKey)
+        Action<MicrosoftAzureCosmosSettings>? configureSettings,
+        CosmosConnectionInfo? cosmosConnectionInfo = null
+    )
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         var settings = new MicrosoftAzureCosmosSettings();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);
@@ -197,6 +224,14 @@ public static class AspireMicrosoftAzureCosmosExtensions
 
         configureSettings?.Invoke(settings);
 
+        return settings;
+    }
+
+    private static CosmosClientOptions GetClientOptions(
+        this IHostApplicationBuilder builder,
+        MicrosoftAzureCosmosSettings settings,
+        Action<CosmosClientOptions>? configureClientOptions)
+    {
         var clientOptions = new CosmosClientOptions();
         // Needs to be enabled for either logging or tracing to work.
         clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
@@ -207,6 +242,8 @@ public static class AspireMicrosoftAzureCosmosExtensions
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
         }
+
+        configureClientOptions?.Invoke(clientOptions);
 
         if (CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
         {
@@ -223,69 +260,27 @@ public static class AspireMicrosoftAzureCosmosExtensions
         }
 
         clientOptions.ApplicationName = cosmosApplicationName;
-        if (serviceKey is null)
-        {
-            builder.Services.AddSingleton(_ => ConfigureDb());
-            // Configure database and container services if specified
-            if (!string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
-            {
-                builder.Services.AddSingleton(sp =>
-                {
-                    var client = sp.GetRequiredService<CosmosClient>();
-                    return client.GetDatabase(databaseName);
-                });
 
-            }
-            if (!string.IsNullOrEmpty(databaseName) && !string.IsNullOrEmpty(containerName))
-            {
-                builder.Services.AddSingleton(sp =>
-                {
-                    var client = sp.GetRequiredService<CosmosClient>();
-                    return client.GetContainer(databaseName, containerName);
-                });
-            }
+        return clientOptions;
+    }
+
+    private static CosmosClient ConfigureDb(string connectionName, MicrosoftAzureCosmosSettings settings, CosmosClientOptions clientOptions)
+    {
+        if (!string.IsNullOrEmpty(settings.ConnectionString))
+        {
+            return new CosmosClient(settings.ConnectionString, clientOptions);
+        }
+        else if (settings.AccountEndpoint is not null)
+        {
+            var credential = settings.Credential ?? new DefaultAzureCredential();
+            return new CosmosClient(settings.AccountEndpoint.OriginalString, credential, clientOptions);
         }
         else
         {
-            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureDb());
-            // Configure database and container services associated with the serviceKey
-            if (!string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
-            {
-                builder.Services.AddKeyedSingleton(serviceKey, (sp, key) =>
-                {
-                    var client = sp.GetRequiredKeyedService<CosmosClient>(serviceKey);
-                    return client.GetDatabase(databaseName);
-                });
-
-            }
-            if (!string.IsNullOrEmpty(databaseName) && !string.IsNullOrEmpty(containerName))
-            {
-                builder.Services.AddKeyedSingleton(serviceKey, (sp, key) =>
-                {
-                    var client = sp.GetRequiredKeyedService<CosmosClient>(serviceKey);
-                    return client.GetContainer(databaseName, containerName);
-                });
-            }
-        }
-
-        CosmosClient ConfigureDb()
-        {
-            if (!string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                return new CosmosClient(settings.ConnectionString, clientOptions);
-            }
-            else if (settings.AccountEndpoint is not null)
-            {
-                var credential = settings.Credential ?? new DefaultAzureCredential();
-                return new CosmosClient(settings.AccountEndpoint.OriginalString, credential, clientOptions);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                        $"A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                        $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                        $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
-            }
+            throw new InvalidOperationException(
+                    $"A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                    $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
+                    $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
         }
     }
 }
