@@ -37,8 +37,15 @@ internal sealed class AzureContainerAppsInfrastructure(
         // TODO: We need to support direct association between a compute resource and the container app environment.
         // Right now we support a single container app environment as the one we want to use and we'll fall back to 
         // azd based environment if we don't have one.
-        var environment = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().SingleOrDefault() as IAzureContainerAppEnvironment ??
-            new AzdAzureContainerAppEnvironment();
+
+        var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
+
+        if (caes.Length > 1)
+        {
+            throw new NotSupportedException("Multiple container app environments are not supported.");
+        }
+
+        var environment = caes.FirstOrDefault() as IAzureContainerAppEnvironment ?? new AzdAzureContainerAppEnvironment();
 
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,

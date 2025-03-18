@@ -56,9 +56,11 @@ public static class AzureContainerAppExtensions
 
         // Only support one temporarily until we can support multiple environments
         // and allowing each container app to be explicit about which environment it uses
-        if (builder.Resources.OfType<AzureContainerAppEnvironmentResource>().Any())
+        var existingContainerAppEnvResource = builder.Resources.OfType<AzureContainerAppEnvironmentResource>().FirstOrDefault();
+
+        if (existingContainerAppEnvResource != null)
         {
-            throw new InvalidOperationException("Only one container app environment is supported at this time. Please remove the existing container app environment.");
+            throw new NotSupportedException($"Only one container app environment is supported at this time. Found: {existingContainerAppEnvResource.Name}");
         }
 
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
