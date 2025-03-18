@@ -30,6 +30,11 @@
 </FluentDialogHeader>
 
 <FluentDialogBody>
+    @if (Content.ContainsSecret && ShowContainsSecretsWarning is null)
+    {
+        return;
+    }
+
     @if (Content.ContainsSecret && ShowContainsSecretsWarning is true)
     {
         <FluentStack Orientation="Orientation.Vertical">
