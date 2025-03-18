@@ -26,6 +26,7 @@ public class EmptyTemplateRunTests : WorkloadTestsBase, IClassFixture<EmptyTempl
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             [],
-            timeoutSecs: 1_000);
+            timeoutSecs: 1_000,
+            logPath: _testFixture.Project.LogPath);
     }
 }

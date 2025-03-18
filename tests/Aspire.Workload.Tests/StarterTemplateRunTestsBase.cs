@@ -30,7 +30,8 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
     }
 
     [Theory]
@@ -43,7 +44,8 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
         var resourceRows = await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
 
         string url = resourceRows.First(r => r.Name == "webfrontend")
                         .Endpoints.First(e => e.StartsWith(urlPrefix));
@@ -60,7 +62,8 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
         var resourceRows = await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
 
         string url = resourceRows.First(r => r.Name == "apiservice")
                         .Endpoints.First(e => e.StartsWith(urlPrefix));

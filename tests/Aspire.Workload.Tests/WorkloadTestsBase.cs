@@ -139,10 +139,29 @@ public partial class WorkloadTestsBase
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 
-    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
-        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
+    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
+        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, logPath, timeoutSecs);
 
-    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
+    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage,
+                                                                               IEnumerable<ResourceRow> expectedResources,
+                                                                               ITestOutputHelper testOutput,
+                                                                               string logPath,
+                                                                               int timeoutSecs = 120)
+    {
+        try
+        {
+            return await CheckDashboardHasResourcesActualAsync(dashboardPage, expectedResources, testOutput, timeoutSecs);
+        }
+        catch
+        {
+            string screenshotPath = Path.Combine(logPath, "dashboard-fail.png");
+            await dashboardPage.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+            throw;
+        }
+    }
+
+    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
     {
         // FIXME: check the page has 'Resources' label
         // fluent-toolbar/h1 resources
@@ -286,21 +305,11 @@ public partial class WorkloadTestsBase
         if (context is not null)
         {
             var page = await project.OpenDashboardPageAsync(context);
-            ResourceRow[] resourceRows;
-            try
-            {
-                resourceRows = await CheckDashboardHasResourcesAsync(
-                                        page,
-                                        StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                        _testOutput).ConfigureAwait(false);
-            }
-            catch
-            {
-                string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-                await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-                _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-                throw;
-            }
+            var resourceRows = await CheckDashboardHasResourcesAsync(
+                page,
+                StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                _testOutput,
+                project.LogPath).ConfigureAwait(false);
 
             string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);

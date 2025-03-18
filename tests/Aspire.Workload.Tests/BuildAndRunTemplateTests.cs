@@ -58,7 +58,7 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, []);
+            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
         }
     }
 
@@ -158,7 +158,7 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, []);
+            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
         }
     }
 
