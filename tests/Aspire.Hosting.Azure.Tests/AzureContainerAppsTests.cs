@@ -2776,7 +2776,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        Assert.Empty(model.Resources.OfType<AzureProvisioningResource>());
+        Assert.Empty(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
     }
 
     [Fact]
@@ -2786,13 +2786,21 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         builder.AddAzureContainerAppEnvironment("env");
 
+        var pg = builder.AddAzurePostgresFlexibleServer("pg")
+                        .WithPasswordAuthentication()
+                        .AddDatabase("db");
+
+        builder.AddContainer("cache", "redis")
+               .WithVolume("data", "/data")
+               .WithReference(pg);
+
         using var app = builder.Build();
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var environment = Assert.Single(model.Resources.OfType<AzureProvisioningResource>());
+        var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
 
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
@@ -2894,6 +2902,74 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           }
           scope: cae
         }
+        
+        resource storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+          name: take('storagevolume${uniqueString(resourceGroup().id)}', 24)
+          kind: 'StorageV2'
+          location: location
+          sku: {
+            name: 'Standard_LRS'
+          }
+          properties: {
+            largeFileSharesState: 'Enabled'
+          }
+          tags: tags
+        }
+        
+        resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileServices@2024-01-01' = {
+          name: 'default'
+          parent: storageVolume
+        }
+        
+        resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+          name: take('sharesvolumescache0-${uniqueString(resourceGroup().id)}', 63)
+          properties: {
+            enabledProtocols: 'SMB'
+            shareQuota: 1024
+          }
+          parent: storageVolumeFileService
+        }
+        
+        resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+          name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
+          properties: {
+            azureFile: {
+              accountName: storageVolume.name
+              accountKey: storageVolume.listKeys().keys[0].value
+              accessMode: 'ReadWrite'
+              shareName: shares_volumes_cache_0.name
+            }
+          }
+          parent: cae
+        }
+        
+        resource kv_secret_output_pg 'Microsoft.KeyVault/vaults@2023-07-01' = {
+          name: take('kvsecretoutputpg-${uniqueString(resourceGroup().id)}', 24)
+          location: location
+          properties: {
+            tenantId: tenant().tenantId
+            sku: {
+              family: 'A'
+              name: 'standard'
+            }
+            enableRbacAuthorization: true
+          }
+          tags: tags
+        }
+        
+        resource kv_secret_output_pg_mi_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+          name: guid(kv_secret_output_pg.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+          properties: {
+            principalId: mi.properties.principalId
+            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+            principalType: 'ServicePrincipal'
+          }
+          scope: kv_secret_output_pg
+        }
+        
+        output volumes_cache_0 string = managedStorage_volumes_cache_0.name
+        
+        output secret_output_pg string = kv_secret_output_pg.name
         
         output MANAGED_IDENTITY_NAME string = mi.name
         
