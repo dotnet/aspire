@@ -301,6 +301,13 @@ public static class AzureContainerAppExtensions
             });
         });
 
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // HACK: We need to return a valid resource builder for the container app environment
+            // but in run mode, we don't want to add the resource to the builder.
+            return builder.CreateResourceBuilder(containerAppEnvResource);
+        }
+
         return builder.AddResource(containerAppEnvResource);
     }
 }
