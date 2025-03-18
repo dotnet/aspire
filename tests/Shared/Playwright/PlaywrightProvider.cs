@@ -11,9 +11,7 @@ public class PlaywrightProvider
     public const string BrowserPathEnvironmentVariableName = "BROWSER_PATH";
     private const string PlaywrightBrowsersPathEnvironmentVariableName = "PLAYWRIGHT_BROWSERS_PATH";
 
-    // Playwright is not installed on the helix agents - https://github.com/dotnet/aspire/issues/4921
-    public static bool DoesNotHavePlaywrightSupport => PlatformDetection.IsLinux && PlatformDetection.IsRunningOnHelix;
-    public static bool HasPlaywrightSupport => !DoesNotHavePlaywrightSupport;
+    public static bool HasPlaywrightSupport => RequiresPlaywrightAttribute.IsSupported;
 
     public static async Task<IBrowser> CreateBrowserAsync(BrowserTypeLaunchOptions? options = null)
     {

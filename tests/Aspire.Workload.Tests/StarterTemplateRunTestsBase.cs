@@ -7,6 +7,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
 using System.Net.Http.Json;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Workload.Tests;
 
@@ -23,7 +24,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();
@@ -37,7 +38,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task WebFrontendWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
@@ -55,7 +56,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task ApiServiceWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();

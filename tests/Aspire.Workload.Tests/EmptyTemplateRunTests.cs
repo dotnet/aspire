@@ -18,7 +18,7 @@ public class EmptyTemplateRunTests : WorkloadTestsBase, IClassFixture<EmptyTempl
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     [RequiresSSLCertificate("Needed for dashboard access")]
     public async Task ResourcesShowUpOnDashboad()
     {
