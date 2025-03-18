@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -17,7 +18,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent)
     : Resource(name), IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _hubName = hubName.ThrowIfNullOrEmpty();
+    private string _hubName = ThrowIfNullOrEmpty(hubName);
 
     /// <summary>
     /// The event hub name.
@@ -25,7 +26,7 @@ public class AzureEventHubResource(string name, string hubName, AzureEventHubsRe
     public string HubName
     {
         get => _hubName;
-        set => _hubName = value.ThrowIfNullOrEmpty(nameof(hubName));
+        set => _hubName = ThrowIfNullOrEmpty(value, nameof(hubName));
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,7 +19,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusSubscriptionResource(string name, string subscriptionName, AzureServiceBusTopicResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusTopicResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _subscriptionName = subscriptionName.ThrowIfNullOrEmpty();
+    private string _subscriptionName = ThrowIfNullOrEmpty(subscriptionName);
 
     /// <summary>
     /// The subscription name.
@@ -26,7 +27,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
     public string SubscriptionName
     {
         get => _subscriptionName;
-        set => _subscriptionName = value.ThrowIfNullOrEmpty(nameof(subscriptionName));
+        set => _subscriptionName = ThrowIfNullOrEmpty(value, nameof(subscriptionName));
     }
 
     /// <summary>

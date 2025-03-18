@@ -16,7 +16,7 @@ internal static class ArgumentExceptionExtensions
     /// <param name="paramName"></param>
     /// <returns>argument not null</returns>
     public static string ThrowIfNullOrEmpty(
-        [NotNull] this string? argument,
+        [NotNull] string? argument,
         [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
@@ -24,7 +24,7 @@ internal static class ArgumentExceptionExtensions
     }
 
     public static string[] ThrowIfNullOrContainsIsNullOrEmpty(
-        [NotNull] this string[] args,
+        [NotNull] string[] args,
         [CallerArgumentExpression(nameof(args))] string? paramName = null)
     {
         ArgumentNullException.ThrowIfNull(args, paramName);

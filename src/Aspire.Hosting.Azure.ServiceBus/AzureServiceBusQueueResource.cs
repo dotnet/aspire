@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,7 +19,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusQueueResource(string name, string queueName, AzureServiceBusResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _queueName = queueName.ThrowIfNullOrEmpty();
+    private string _queueName = ThrowIfNullOrEmpty(queueName);
 
     /// <summary>
     /// The queue name.
@@ -26,7 +27,7 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
     public string QueueName
     {
         get => _queueName;
-        set => _queueName = value.ThrowIfNullOrEmpty(nameof(queueName));
+        set => _queueName = ThrowIfNullOrEmpty(value, nameof(queueName));
     }
 
     /// <summary>

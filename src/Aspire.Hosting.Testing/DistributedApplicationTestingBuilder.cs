@@ -8,6 +8,7 @@ using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Testing;
 
@@ -102,7 +103,7 @@ public static class DistributedApplicationTestingBuilder
     public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entryPoint);
-        args.ThrowIfNullOrContainsIsNullOrEmpty();
+        ThrowIfNullOrContainsIsNullOrEmpty(args);
         ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
 
         var factory = new SuspendingDistributedApplicationFactory(entryPoint, args, configureBuilder);
@@ -129,7 +130,7 @@ public static class DistributedApplicationTestingBuilder
     /// </returns>
     public static IDistributedApplicationTestingBuilder Create(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
     {
-        args.ThrowIfNullOrContainsIsNullOrEmpty();
+        ThrowIfNullOrContainsIsNullOrEmpty(args);
         ArgumentNullException.ThrowIfNull(configureBuilder);
 
         return new TestingBuilder(args, configureBuilder);

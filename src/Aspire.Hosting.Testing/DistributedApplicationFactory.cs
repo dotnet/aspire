@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Testing;
 
@@ -21,7 +22,7 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
-    private readonly string[] _args = args.ThrowIfNullOrContainsIsNullOrEmpty();
+    private readonly string[] _args = ThrowIfNullOrContainsIsNullOrEmpty(args);
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);

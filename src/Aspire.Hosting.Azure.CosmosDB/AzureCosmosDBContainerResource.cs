@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -15,7 +16,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent)
     : Resource(name), IResourceWithParent<AzureCosmosDBDatabaseResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _containerName = containerName.ThrowIfNullOrEmpty();
+    private string _containerName = ThrowIfNullOrEmpty(containerName);
 
     /// <summary>
     /// Gets or sets the container name.
@@ -23,10 +24,10 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     public string ContainerName
     {
         get => _containerName;
-        set => _containerName = value.ThrowIfNullOrEmpty(nameof(containerName));
+        set => _containerName = ThrowIfNullOrEmpty(value, nameof(containerName));
     }
 
-    private string _partitionKeyPath = partitionKeyPath.ThrowIfNullOrEmpty();
+    private string _partitionKeyPath = ThrowIfNullOrEmpty(partitionKeyPath);
 
     /// <summary>
     /// Gets or sets the partition key path.
@@ -34,7 +35,7 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     public string PartitionKeyPath
     {
         get => _partitionKeyPath;
-        set => _partitionKeyPath = value.ThrowIfNullOrEmpty(nameof(partitionKeyPath));
+        set => _partitionKeyPath = ThrowIfNullOrEmpty(value, nameof(partitionKeyPath));
     }
 
     /// <summary>

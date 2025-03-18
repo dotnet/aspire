@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,7 +19,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _topicName = topicName.ThrowIfNullOrEmpty();
+    private string _topicName = ThrowIfNullOrEmpty(topicName);
 
     /// <summary>
     /// The topic name.
@@ -26,7 +27,7 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     public string TopicName
     {
         get => _topicName;
-        set => _topicName = value.ThrowIfNullOrEmpty(nameof(topicName));
+        set => _topicName = ThrowIfNullOrEmpty(value, nameof(topicName));
     }
 
     /// <summary>

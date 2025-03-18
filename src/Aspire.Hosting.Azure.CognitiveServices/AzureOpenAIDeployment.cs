@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using static Aspire.ArgumentExceptionExtensions;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -22,17 +24,17 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// <summary>
     /// Gets the name of the deployment.
     /// </summary>
-    public string Name { get; private set; } = name.ThrowIfNullOrEmpty();
+    public string Name { get; private set; } = ThrowIfNullOrEmpty(name);
 
     /// <summary>
     /// Gets the name of the model.
     /// </summary>
-    public string ModelName { get; private set; } = modelName.ThrowIfNullOrEmpty();
+    public string ModelName { get; private set; } = ThrowIfNullOrEmpty(modelName);
 
     /// <summary>
     /// Gets the version of the model.
     /// </summary>
-    public string ModelVersion { get; private set; } = modelVersion.ThrowIfNullOrEmpty();
+    public string ModelVersion { get; private set; } = ThrowIfNullOrEmpty(modelVersion);
 
     /// <summary>
     /// Gets the name of the SKU.

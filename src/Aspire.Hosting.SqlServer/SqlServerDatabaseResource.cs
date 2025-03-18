@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Data.SqlClient;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -38,5 +39,5 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = databaseName.ThrowIfNullOrEmpty();
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 }

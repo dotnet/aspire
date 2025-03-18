@@ -5,6 +5,7 @@ using System.Data.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using OpenAI;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.OpenAI;
 
@@ -29,7 +30,7 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
     /// <summary>
     /// Gets the name used to retrieve the connection string from the ConnectionStrings configuration section.
     /// </summary>
-    public string ConnectionName { get; } = connectionName.ThrowIfNullOrEmpty();
+    public string ConnectionName { get; } = ThrowIfNullOrEmpty(connectionName);
 
     /// <summary>
     /// Gets the service key used to register the <see cref="OpenAIClient"/> service, if any.

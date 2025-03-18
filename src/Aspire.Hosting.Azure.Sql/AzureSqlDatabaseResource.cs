@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -28,7 +29,7 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = databaseName.ThrowIfNullOrEmpty();
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.

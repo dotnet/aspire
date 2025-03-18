@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -17,7 +18,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureEventHubConsumerGroupResource(string name, string consumerGroupName, AzureEventHubResource parent)
     : Resource(name), IResourceWithParent<AzureEventHubResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _consumerGroupName = consumerGroupName.ThrowIfNullOrEmpty();
+    private string _consumerGroupName = ThrowIfNullOrEmpty(consumerGroupName);
 
     /// <summary>
     /// The event hub consumer group name.
@@ -25,7 +26,7 @@ public class AzureEventHubConsumerGroupResource(string name, string consumerGrou
     public string ConsumerGroupName
     {
         get => _consumerGroupName;
-        set => _consumerGroupName = value.ThrowIfNullOrEmpty(nameof(consumerGroupName));
+        set => _consumerGroupName = ThrowIfNullOrEmpty(value, nameof(consumerGroupName));
     }
 
     /// <summary>

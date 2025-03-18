@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Milvus;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -27,5 +28,5 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = databaseName.ThrowIfNullOrEmpty();
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 }

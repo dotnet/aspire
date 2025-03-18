@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -15,7 +16,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent)
     : Resource(name), IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    private string _databaseName = databaseName.ThrowIfNullOrEmpty();
+    private string _databaseName = ThrowIfNullOrEmpty(databaseName);
 
     /// <summary>
     /// Gets or sets the database name.
@@ -23,7 +24,7 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
     public string DatabaseName
     {
         get => _databaseName;
-        set => _databaseName = value.ThrowIfNullOrEmpty(nameof(databaseName));
+        set => _databaseName = ThrowIfNullOrEmpty(value, nameof(databaseName));
     }
 
     /// <summary>

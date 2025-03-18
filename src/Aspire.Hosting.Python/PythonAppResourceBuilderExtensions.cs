@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
 using Aspire.Hosting.Utils;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting;
 
@@ -111,7 +112,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
-        scriptArgs.ThrowIfNullOrContainsIsNullOrEmpty();
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)

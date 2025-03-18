@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -15,7 +16,7 @@ namespace Aspire.Hosting.Azure;
 /// </remarks>
 public class AzureServiceBusRule(string name)
 {
-    private string _name = name.ThrowIfNullOrEmpty();
+    private string _name = ThrowIfNullOrEmpty(name);
 
     /// <summary>
     /// The rule name.
@@ -23,7 +24,7 @@ public class AzureServiceBusRule(string name)
     public string Name
     {
         get => _name;
-        set => _name = value.ThrowIfNullOrEmpty(nameof(name));
+        set => _name = ThrowIfNullOrEmpty(value, nameof(name));
     }
 
     /// <summary>

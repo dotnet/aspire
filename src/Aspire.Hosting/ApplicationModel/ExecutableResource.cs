@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using static Aspire.ArgumentExceptionExtensions;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -15,10 +17,10 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// <summary>
     /// Gets the command associated with this executable resource.
     /// </summary>
-    public string Command { get; } = command.ThrowIfNullOrEmpty();
+    public string Command { get; } = ThrowIfNullOrEmpty(command);
 
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = workingDirectory.ThrowIfNullOrEmpty();
+    public string WorkingDirectory { get; } = ThrowIfNullOrEmpty(workingDirectory);
 }
