@@ -1,5 +1,9 @@
 # Aspire.Template.Tests
 
+The purpose of the `Aspire.Workload.Tests` project is to run end-to-end tests against pre-built NuGet packages (nupkgs). These tests validate the ability to build, run, and interact with Aspire projects in both `in-repo` and `outside-of-repo` modes, ensuring compatibility with CI pipelines and local development environments.
+
+On the CI the tests are run via GitHub actions defined in `tests-templates.yml`.
+
 ## TL;DR or How do I use this?
 
 1. [Install the sdk+workload](#install-the-sdkworkload)

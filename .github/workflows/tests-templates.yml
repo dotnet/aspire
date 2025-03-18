@@ -1,3 +1,4 @@
+# Executes the template tests on all platforms
 name: Templates
 
 on:

@@ -1,5 +1,9 @@
 # Aspire.EndToEnd.Tests
 
+The purpose of the `Aspire.EndToEnd.Tests` project is to run end-to-end tests against pre-built NuGet packages (nupkgs). These tests validate the ability to build, run, and interact with Aspire projects in both `in-repo` and `outside-of-repo` modes, ensuring compatibility with CI pipelines and local development environments.
+
+On the CI the tests are run via GitHub actions defined in `tests-integration.yml`.
+
 ## TL;DR or How do I use this?
 
 ### Steps to prepare for `outside-of-repo` runs
