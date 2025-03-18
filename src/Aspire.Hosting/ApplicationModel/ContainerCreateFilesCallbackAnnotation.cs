@@ -99,5 +99,21 @@ public sealed class ContainerCreateFilesCallbackAnnotation : IResourceAnnotation
     /// <summary>
     /// The callback to be executed when the container is created. Should return a tree of <see cref="ContainerFileSystemItem"/> entries to create (or update) in the container.
     /// </summary>
-    public required Func<DistributedApplicationExecutionContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> Callback { get; init; }
+    public required Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> Callback { get; init; }
+}
+
+/// <summary>
+/// Represents the context for a <see cref="ContainerCreateFilesCallbackAnnotation"/> callback.
+/// </summary>
+public sealed class ContainerCreateFilesCallbackContext
+{
+    /// <summary>
+    /// A <see cref="IServiceProvider"/> that can be used to resolve services in the callback.
+    /// </summary>
+    public required IServiceProvider ServiceProvider { get; init; }
+
+    /// <summary>
+    /// The app model resource the callback is associated with.
+    /// </summary>
+    public required IResource Model { get; init; }
 }

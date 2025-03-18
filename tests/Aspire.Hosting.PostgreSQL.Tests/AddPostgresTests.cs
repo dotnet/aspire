@@ -479,7 +479,7 @@ public class AddPostgresTests
         Assert.Equal(0, createServers.DefaultOwner);
         Assert.Equal(0, createServers.DefaultGroup);
 
-        var entries = await createServers.Callback(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), CancellationToken.None);
+        var entries = await createServers.Callback(new() { Model = pgadmin, ServiceProvider = app.Services }, CancellationToken.None);
 
         var serversFile = Assert.IsType<ContainerFile>(entries.First());
         Assert.NotNull(serversFile.Contents);
@@ -550,7 +550,7 @@ public class AddPostgresTests
         Assert.Equal(0, createBookmarks.DefaultOwner);
         Assert.Equal(0, createBookmarks.DefaultGroup);
 
-        var entries = await createBookmarks.Callback(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), CancellationToken.None);
+        var entries = await createBookmarks.Callback(new() { Model = pgweb, ServiceProvider = app.Services }, CancellationToken.None);
 
         var pgWebDirectory = Assert.IsType<ContainerDirectory>(entries.First());
         Assert.Equal(".pgweb", pgWebDirectory.Name);

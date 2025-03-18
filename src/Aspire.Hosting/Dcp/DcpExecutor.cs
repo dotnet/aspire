@@ -1587,7 +1587,14 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             foreach (var a in createFileAnnotations)
             {
-                var entries = await a.Callback(_executionContext, cancellationToken).ConfigureAwait(false);
+                var entries = await a.Callback(
+                    new()
+                    {
+                        Model = modelResource,
+                        ServiceProvider = _executionContext.ServiceProvider
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
                 createFiles.Add(new ContainerCreateFileSystem
                 {
                     Destination = a.DestinationPath,
