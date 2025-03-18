@@ -27,7 +27,7 @@ resource cache 'Microsoft.Cache/redis@2024-03-01' = {
 }
 
 resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-  name: take('cachecontributor${uniqueString(resourceGroup().id)}', 24)
+  name: guid(cache.id, principalId, 'Data Contributor')
   properties: {
     accessPolicyName: 'Data Contributor'
     objectId: principalId

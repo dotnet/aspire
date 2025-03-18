@@ -348,6 +348,8 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             output clientId string = funcapp_identity.properties.clientId
 
             output principalId string = funcapp_identity.properties.principalId
+
+            output principalName string = funcapp_identity.name
             """;
         output.WriteLine(rolesBicep);
         Assert.Equal(expectedRolesBicep, rolesBicep);

@@ -140,17 +140,17 @@ internal sealed class AzureResourcePreparer(
                         }
                         // in PublishMode, this is a no-op since the publish infrastructure will handle the role assignments
                     }
-                    else if (azureReference.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults) &&
-                        defaults.Roles.Count > 0)
+                    else if (azureReference.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults))
                     {
                         if (executionContext.IsRunMode)
                         {
-                            // in RunMode, we copy the default role assignments to the Azure reference
+                            // in RunMode, we copy the default role assignments to the Azure reference,
+                            // even if the roles are empty, since empty roles are used by some resources - like databases
                             AppendAppliedRoleAssignmentsAnnotation(azureReference, defaults.Roles);
                         }
-                        else
+                        else if (defaults.Roles.Count > 0)
                         {
-                            // in PublishMode, we copy the default role assignments to the compute resource
+                            // in PublishMode, if there are roles we copy the default role assignments to the compute resource
                             resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, defaults.Roles));
                         }
                     }
