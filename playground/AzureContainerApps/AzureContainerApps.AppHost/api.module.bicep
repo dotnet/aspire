@@ -12,22 +12,31 @@ param storage_outputs_blobendpoint string
 @secure()
 param cache_password_value string
 
-param account_outputs_connectionstring string
+param infra_outputs_secret_output_account string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
 
 @secure()
 param secretparam_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param infra_outputs_azure_container_apps_environment_id string
 
-param outputs_azure_container_apps_environment_id string
-
-param outputs_azure_container_registry_endpoint string
+param infra_outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
 param certificateName string
 
 param customDomain string
+
+resource infra_outputs_secret_output_account_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: infra_outputs_secret_output_account
+}
+
+resource infra_outputs_secret_output_account_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+  name: 'connectionString'
+  parent: infra_outputs_secret_output_account_kv
+}
 
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api'
@@ -38,6 +47,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'connectionstrings--cache'
           value: 'cache:6379,password=${cache_password_value}'
+        }
+        {
+          name: 'connectionstrings--account'
+          identity: infra_outputs_azure_container_registry_managed_identity_id
+          keyVaultUrl: infra_outputs_secret_output_account_kv_connectionString.properties.secretUri
         }
         {
           name: 'value'
@@ -53,18 +67,18 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           {
             name: customDomain
             bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
-            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+            certificateId: (certificateName != '') ? '${infra_outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
           }
         ]
       }
       registries: [
         {
-          server: outputs_azure_container_registry_endpoint
-          identity: outputs_azure_container_registry_managed_identity_id
+          server: infra_outputs_azure_container_registry_endpoint
+          identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: infra_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -101,7 +115,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__account'
-              value: account_outputs_connectionstring
+              secretRef: 'connectionstrings--account'
             }
             {
               name: 'VALUE'
@@ -123,7 +137,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
     type: 'UserAssigned'
     userAssignedIdentities: {
       '${api_roles_outputs_id}': { }
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }
