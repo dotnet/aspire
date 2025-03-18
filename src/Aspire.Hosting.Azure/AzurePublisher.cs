@@ -172,7 +172,7 @@ internal sealed class AzurePublisher(
                 // azd and aspire. Once the infra moves to aspire, we can throw for 
                 // unresolved "known parameters".
 
-                if (parameter.Key == "userPrincipalId" && parameter.Value is null)
+                if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);
                     continue;
