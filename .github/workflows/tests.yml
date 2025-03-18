@@ -21,9 +21,6 @@ jobs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
     steps:
       - uses: actions/checkout@v4
-        env:
-          DISABLE_PLAYWRIGHT_TESTS: true
-
       - uses: ./.github/actions/enumerate-tests
         id: generate_test_matrix
 
