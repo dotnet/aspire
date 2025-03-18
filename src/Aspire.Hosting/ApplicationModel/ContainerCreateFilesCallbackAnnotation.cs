@@ -70,10 +70,10 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
 }
 
 /// <summary>
-/// Represents an annotation that specifies files and folders that should be created or updated in a container.
+/// Represents a callback annotation that specifies files and folders that should be created or updated in a container.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, DestinationPath = {DestinationPath}")]
-public sealed class ContainerCreateFileAnnotation : IResourceAnnotation
+[DebuggerDisplay("Type = {GetType().Name,nw}, DestinationPath = {DestinationPath}")]
+public sealed class ContainerCreateFilesCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// The (absolute) base path to create the new file (and any parent directories) in the container.
@@ -97,7 +97,7 @@ public sealed class ContainerCreateFileAnnotation : IResourceAnnotation
     public UnixFileMode DefaultMode { get; init; }
 
     /// <summary>
-    /// The list of file system entries to create in the container.
+    /// The callback to be executed when the container is created. Should return a tree of <see cref="ContainerFileSystemItem"/> entries to create (or update) in the container.
     /// </summary>
-    public IEnumerable<ContainerFileSystemItem> Entries { get; init; } = [];
+    public required Func<DistributedApplicationExecutionContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> Callback { get; init; }
 }

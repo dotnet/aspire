@@ -159,25 +159,22 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-            {
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
+            pgAdminContainerBuilder.WithContainerFiles(
+                destinationPath: "/pgadmin4",
+                callback: (context, _) =>
+                {
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
 
-                // Generate the contents of the servers.json file
-                var serversConfigFile = WritePgAdminServerJson(postgresInstances);
-
-                // Create a servers.json file in the container with necessary permissions
-                pgAdminContainerBuilder.WithContainerFiles("/pgadmin4", [
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
                         new ContainerFile
                         {
                             Name = "servers.json",
-                            Contents = serversConfigFile,
+                            Contents = WritePgAdminServerJson(postgresInstances),
+                            Mode = FileMode644,
                         },
-                    ],
-                    defaultMode: FileMode644);
-
-                return Task.CompletedTask;
-            });
+                    ]);
+                });
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
@@ -272,15 +269,15 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithHttpHealthCheck();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-            {
-                // Add the bookmarks to the pgweb container
+            pgwebContainerBuilder.WithContainerFiles(
+                destinationPath: "/",
+                callback: (context, _) =>
+                {
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
-
-                var bookmarkFiles = WritePgWebBookmarks(postgresInstances);
-
-                pgwebContainerBuilder.WithContainerFiles("/", [
+                    // Add the bookmarks to the pgweb container
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
                         new ContainerDirectory
                         {
                             Name = ".pgweb",
@@ -288,15 +285,13 @@ public static class PostgresBuilderExtensions
                                 new ContainerDirectory
                                 {
                                     Name = "bookmarks",
-                                    Entries = bookmarkFiles,
+                                    Entries = WritePgWebBookmarks(postgresInstances),
                                 },
                             ],
                         },
-                    ],
-                    defaultMode: FileMode755);
-
-                return Task.CompletedTask;
-            });
+                    ]);
+                },
+                defaultMode: FileMode755);
 
             return builder;
         }
@@ -368,7 +363,7 @@ public static class PostgresBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
-    private static List<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
+    private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
     {
         var bookmarkFiles = new List<ContainerFileSystemItem>();
 

@@ -381,7 +381,7 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
-        var createFile = container.Annotations.OfType<ContainerCreateFileAnnotation>().Single();
+        var createFile = container.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createFile.DestinationPath);
     }
@@ -472,16 +472,18 @@ public class AddPostgresTests
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
 
-        var createServersJson = pgadmin.Annotations.OfType<ContainerCreateFileAnnotation>().Single();
+        var createServers = pgadmin.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
 
-        Assert.Equal("/pgadmin4", createServersJson.DestinationPath);
-        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead, createServersJson.DefaultMode);
-        Assert.Equal(0, createServersJson.DefaultOwner);
-        Assert.Equal(0, createServersJson.DefaultGroup);
-        Assert.Single(createServersJson.Entries);
+        Assert.Equal("/pgadmin4", createServers.DestinationPath);
+        Assert.Equal(UnixFileMode.None, createServers.DefaultMode);
+        Assert.Equal(0, createServers.DefaultOwner);
+        Assert.Equal(0, createServers.DefaultGroup);
 
-        var serversFile = Assert.IsType<ContainerFile>(createServersJson.Entries.First());
+        var entries = await createServers.Callback(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), CancellationToken.None);
+
+        var serversFile = Assert.IsType<ContainerFile>(entries.First());
         Assert.NotNull(serversFile.Contents);
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead, serversFile.Mode);
 
         var document = JsonDocument.Parse(serversFile.Contents!);
 
@@ -541,15 +543,16 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var pgweb = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
-        var createBookmarks = pgweb.Annotations.OfType<ContainerCreateFileAnnotation>().Single();
+        var createBookmarks = pgweb.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
 
         Assert.Equal("/", createBookmarks.DestinationPath);
         Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute, createBookmarks.DefaultMode);
         Assert.Equal(0, createBookmarks.DefaultOwner);
         Assert.Equal(0, createBookmarks.DefaultGroup);
-        Assert.Single(createBookmarks.Entries);
 
-        var pgWebDirectory = Assert.IsType<ContainerDirectory>(createBookmarks.Entries.First());
+        var entries = await createBookmarks.Callback(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), CancellationToken.None);
+
+        var pgWebDirectory = Assert.IsType<ContainerDirectory>(entries.First());
         Assert.Equal(".pgweb", pgWebDirectory.Name);
         Assert.Single(pgWebDirectory.Entries);
 

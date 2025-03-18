@@ -748,15 +748,87 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(destinationPath);
         ArgumentNullException.ThrowIfNull(entries);
 
-        foreach (var existingAnnotation in builder.Resource.Annotations.OfType<ContainerCreateFileAnnotation>().Where(a => string.Equals(a.DestinationPath, destinationPath, StringComparison.Ordinal)))
-        {
-            builder.Resource.Annotations.Remove(existingAnnotation);
-        }
-
-        var annotation = new ContainerCreateFileAnnotation
+        var annotation = new ContainerCreateFilesCallbackAnnotation
         {
             DestinationPath = destinationPath,
-            Entries = entries,
+            Callback = (_, _) => Task.FromResult(entries),
+            DefaultOwner = defaultOwner,
+            DefaultGroup = defaultGroup,
+            DefaultMode = defaultMode,
+        };
+
+        builder.Resource.Annotations.Add(annotation);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container. Receives a callback that will be invoked
+    /// when the container is started to allow the files to be created based on other resources in the application model.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="callback">The callback that will be invoked when the resource is being created.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultMode">The default <see cref="UnixFileMode"/> ownership permissions for the created or updated file system. <see cref="UnixFileMode.None"/> will be treated as 0600 by DCP.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// For containers with a <see cref="ContainerLifetime.Persistent"/> lifetime, changing the contents of create file entries will result in the container being recreated.
+    /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
+    /// unique on a per-run basis.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Create a configuration file for every Postgres instance in the application model.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///     .WithContainerFiles("/", (context, cancellationToken) =>
+    ///     {
+    ///         var appModel = context.ServiceProvider.GetRequiredService{DistributedApplicationModel}();
+    ///         var postgresInstances = appModel.Resources.OfType{PostgresDatabaseResource}();
+    ///
+    ///         return [
+    ///             new ContainerDirectory
+    ///             {
+    ///                 Name = ".pgweb",
+    ///                 Entries = [
+    ///                     new ContainerDirectory
+    ///                     {
+    ///                         Name = "bookmarks",
+    ///                         Entries = postgresInstances.Select(instance =>
+    ///                         new ContainerFile
+    ///                         {
+    ///                             Name = $"{instance.Name}.toml",
+    ///                             Contents = instance.ToPgWebBookmark(),
+    ///                             Owner = defaultOwner,
+    ///                             Group = defaultGroup,
+    ///                             Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead,
+    ///                         }),
+    ///                 },
+    ///             ],
+    ///         },
+    ///     ];
+    /// },
+    /// defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+    ///     UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+    ///     UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<DistributedApplicationExecutionContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var annotation = new ContainerCreateFilesCallbackAnnotation
+        {
+            DestinationPath = destinationPath,
+            Callback = callback,
             DefaultOwner = defaultOwner,
             DefaultGroup = defaultGroup,
             DefaultMode = defaultMode,
