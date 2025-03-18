@@ -186,18 +186,30 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
         if (!started)
         {
+            logger.LogDebug("Failed to start dotnet process with args: {Args}", string.Join(" ", args));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        else
+        {
+            logger.LogDebug("Started dotnet with PID: {ProcessId}", process.Id);
         }
 
         // This is so that callers can get a handle to the raw stream output. This is important
         // because some commmands (like package search) return JSON data that we need to parse.
         streamsCallback?.Invoke(process.StandardInput, process.StandardOutput, process.StandardError);
 
+        logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
+
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
         if (!process.HasExited)
         {
+            logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, killing it.", process.Id);
             process.Kill(false);
+        }
+        else
+        {
+            logger.LogDebug("dotnet process with PID: {ProcessId} has exited with code: {ExitCode}", process.Id, process.ExitCode);
         }
 
         return process.ExitCode;
@@ -256,9 +268,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, int take, int skip, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, CancellationToken cancellationToken)
     {
-        string[] cliArgs = [
+        List<string> cliArgs = [
             "package",
             "search",
             query,
@@ -270,28 +282,46 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             "json"
         ];
 
-        StreamReader? standardOutput = null;
+        if (prerelease)
+        {
+            cliArgs.Add("--prerelease");
+        }
+
+        string? stdout = null;
+        string? stderr = null;
 
         var result = await ExecuteAsync(
-            args: cliArgs,
+            args: cliArgs.ToArray(),
             env: null,
             workingDirectory: projectFilePath.Directory!,
             startBackchannel: false,
             streamsCallback: (_, output, _) => {
-                standardOutput = output;
+                // We need to read the output of the streams
+                // here otherwise th process will never exit.
+                stdout = output.ReadToEnd();
+                stderr = output.ReadToEnd();
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (result != 0)
         {
-            logger.LogError("Failed to search for packages. See debug logs for more details.");
+            logger.LogError(
+                "Failed to search for packages. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                stderr,
+                stdout
+                );
             return (result, null);
         }
         else
         {
-            var json = standardOutput?.ReadToEnd();
+            if (stdout is null)
+            {
+                logger.LogError("Failed to read stdout from the process. This should never happen.");
+                return (ExitCodeConstants.FailedToAddPackage, null);
+            }
+
             var foundPackages = new List<NuGetPackage>();
-            var document = JsonDocument.Parse(json!);
+            var document = JsonDocument.Parse(stdout);
 
             var searchResultsArray = document.RootElement.GetProperty("searchResult");
 

@@ -423,13 +423,22 @@ public class Program
 
     private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
     {
-        var prompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
+        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
             .Title("Please select the integration you want to add:")
             .UseConverter(PackageNameWithFriendlyNameIfAvailable)
             .PageSize(10)
             .AddChoices(knownPackages);
 
-        var selectedIntegration = AnsiConsole.Prompt(prompt);
+        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
+
+        var versionPrompt = new TextPrompt<string>("Specify version of integration to add:")
+            .DefaultValue(selectedIntegration.Package.Version)
+            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
+            .ShowDefaultValue(true);
+
+        var version = AnsiConsole.Prompt(versionPrompt);
+
+        selectedIntegration.Package.Version = version;
 
         return selectedIntegration;
 
@@ -480,6 +489,12 @@ public class Program
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
+        var versionOption = new Option<string>("--version", "-v");
+        command.Options.Add(versionOption);
+
+        var prereleaseOption = new Option<bool>("--prerelease");
+        command.Options.Add(prereleaseOption);
+
         command.SetAction(async (parseResult, ct) => {
             try
             {
@@ -492,9 +507,11 @@ public class Program
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
                 var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
+                var prerelease = parseResult.GetValue<bool>("--prerelease");
+
                 var packages = await AnsiConsole.Status().StartAsync(
                     "Searching for Aspire packages...",
-                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, ct)
+                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, ct)
                     ).ConfigureAwait(false);
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
@@ -504,6 +521,16 @@ public class Program
                 if (selectedNuGetPackage == default)
                 {
                     selectedNuGetPackage = GetPackageByInteractiveFlow(packagesWithShortName);
+                }
+                else
+                {
+                    // If we find an exact match we will use it, but override the version
+                    // if the version option is specified.
+                    var version = parseResult.GetValue<string?>("--version");
+                    if (version is not null)
+                    {
+                        selectedNuGetPackage.Package.Version = version;
+                    }
                 }
 
                 var addPackageResult = await AnsiConsole.Status().StartAsync(
