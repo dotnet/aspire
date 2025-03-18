@@ -69,9 +69,12 @@
 }
 
 ::deep .resources-grid-container {
-    margin-top: 10px;
     overflow: auto;
     grid-area: resources-tab-content;
+}
+
+::deep .resource-tabs .resources-grid-container {
+    margin-top: 10px;
 }
 
 ::deep .resource-graph-container {

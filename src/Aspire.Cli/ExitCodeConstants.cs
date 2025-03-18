@@ -10,4 +10,5 @@ internal static class ExitCodeConstants
     public const int FailedToDotnetRunAppHost = 2;
     public const int FailedToInstallTemplates = 3;
     public const int FailedToCreateNewProject = 4;
+    public const int FailedToAddPackage = 5;
 }
