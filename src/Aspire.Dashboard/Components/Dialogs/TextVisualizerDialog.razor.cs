@@ -294,7 +294,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             new TextVisualizerDialogViewModel(value, valueDescription, containsSecret), parameters);
     }
 
-    private sealed record TextVisualizerDialogSettings(bool ContainsSecretsWarningShown);
+    internal sealed record TextVisualizerDialogSettings(bool ContainsSecretsWarningShown);
 
     private async Task UnmaskContentAsync()
     {

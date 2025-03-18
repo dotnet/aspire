@@ -153,7 +153,17 @@ public class TextVisualizerDialogTests : DashboardTestContext
     {
         const string rawText = """my text with a secret""";
 
-        var cut = SetUpDialog(out var dialogService);
+        bool? setShownDialog = null;
+        var localStorage = new TestLocalStorage { OnSetUnprotectedAsync = (_, o) =>
+            {
+                if (o is TextVisualizerDialog.TextVisualizerDialogSettings s)
+                {
+                    setShownDialog = s.ContainsSecretsWarningShown;
+                }
+            }
+        };
+
+        var cut = SetUpDialog(out var dialogService, localStorage: localStorage);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty, ContainsSecret: true), []);
         cut.WaitForAssertion(() => Assert.True(cut.HasComponent<TextVisualizerDialog>()));
 
@@ -161,6 +171,23 @@ public class TextVisualizerDialogTests : DashboardTestContext
         Assert.False(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
 
         cut.Find(".text-visualizer-unmask-content").Click();
+
+        cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowContainsSecretsWarning));
+        Assert.False(cut.HasComponent<FluentMessageBar>());
+        Assert.True(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
+        Assert.True(setShownDialog);
+    }
+
+    [Fact]
+    public async Task Render_TextVisualizerDialog_WithSecret_DoesNotShowWarningIfSetLocallyFirstOpenAsync()
+    {
+        const string rawText = """my text with a secret""";
+
+        var localStorage = new TestLocalStorage();
+        localStorage.OnGetUnprotectedAsync = _ => new ValueTuple<bool, object>(true, new TextVisualizerDialog.TextVisualizerDialogSettings(ContainsSecretsWarningShown: true));
+        var cut = SetUpDialog(out var dialogService, localStorage: localStorage);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty, ContainsSecret: true), []);
+        cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowContainsSecretsWarning));
 
         cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowContainsSecretsWarning));
         Assert.False(cut.HasComponent<FluentMessageBar>());
