@@ -106,7 +106,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.1" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
-    <PackageVersion Include="StreamJsonRpc" Version="2.22.3-alpha" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.21.69" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />
@@ -168,10 +168,8 @@
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
-
   <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used.
        The dependencies on any of these two groups should not be updated manually and should instead use arcade's dependency flow to get updated.-->
-
   <ItemGroup>
     <!-- dotnet/extensions dependencies ** Common between net8 and net9 ** -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
@@ -208,7 +206,6 @@
     <PackageVersion Include="System.Formats.Asn1" Version="$(SystemFormatsAsn1LTSVersion)" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonLTSVersion)" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!-- EF -->
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosVersion)" />
