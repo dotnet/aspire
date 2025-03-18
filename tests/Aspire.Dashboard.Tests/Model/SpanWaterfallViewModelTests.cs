@@ -90,6 +90,51 @@ public sealed class SpanWaterfallViewModelTests
         Assert.Equal(expected, result);
     }
 
+    [Fact]
+    public void MatchesFilter_ParentSpanIncludedWhenChildMatched()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpApplication("app1", "instance", context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
+        var childSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "child", parentSpanId: "parent", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc));
+        trace.AddSpan(parentSpan);
+        trace.AddSpan(childSpan);
+
+        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var parent = vms[0];
+        var child = vms[1];
+
+        // Act and assert
+        Assert.True(parent.MatchesFilter("child", a => a.Application.ApplicationName, out _));
+        Assert.True(child.MatchesFilter("child", a => a.Application.ApplicationName, out _));
+    }
+
+    [Fact]
+    public void MatchesFilter_ChildSpanIncludedWhenParentMatched()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpApplication("app1", "instance", context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
+        var childSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "child", parentSpanId: "parent", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc));
+        trace.AddSpan(parentSpan);
+        trace.AddSpan(childSpan);
+
+        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var parent = vms[0];
+        var child = vms[1];
+
+        // Act and assert
+        Assert.True(parent.MatchesFilter("parent", a => a.Application.ApplicationName, out var descendents));
+        Assert.Equal("child", Assert.Single(descendents).Span.SpanId);
+        Assert.False(child.MatchesFilter("parent", a => a.Application.ApplicationName, out _));
+    }
+
     private sealed class TestPeerResolver : IOutgoingPeerResolver
     {
         public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name)

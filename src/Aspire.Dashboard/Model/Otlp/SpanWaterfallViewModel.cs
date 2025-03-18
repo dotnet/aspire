@@ -80,11 +80,18 @@ public sealed class SpanWaterfallViewModel
 
         static IEnumerable<SpanWaterfallViewModel> GetWithDescendents(SpanWaterfallViewModel s)
         {
-            yield return s;
+            var stack = new Stack<SpanWaterfallViewModel>();
+            stack.Push(s);
 
-            foreach (var descendent in s.Children.SelectMany(GetWithDescendents))
+            while (stack.Count > 0)
             {
-                yield return descendent;
+                var current = stack.Pop();
+                yield return current;
+
+                foreach (var child in current.Children)
+                {
+                    stack.Push(child);
+                }
             }
         }
     }
@@ -113,7 +120,7 @@ public sealed class SpanWaterfallViewModel
 
         TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, s.Parent);
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state);
             orderedSpans.Add(viewModel);
 
             s.Parent?.Children.Add(viewModel);
@@ -123,7 +130,7 @@ public sealed class SpanWaterfallViewModel
 
         return orderedSpans;
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, SpanWaterfallViewModel? parent)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -143,7 +150,6 @@ public sealed class SpanWaterfallViewModel
 
             var viewModel = new SpanWaterfallViewModel
             {
-                Parent = parent,
                 Children = [],
                 Span = span,
                 LeftOffset = leftOffset,
@@ -166,8 +172,6 @@ public sealed class SpanWaterfallViewModel
             return viewModel;
         }
     }
-
-    public SpanWaterfallViewModel? Parent { get; set; }
 
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {

@@ -80,7 +80,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        HashSet<SpanWaterfallViewModel> visibleViewModels = [];
+        var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
         foreach (var viewModel in _spanWaterfallViewModels)
         {
             if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
