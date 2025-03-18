@@ -819,7 +819,7 @@ public static class ContainerResourceBuilderExtensions
     ///     UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<DistributedApplicationExecutionContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
