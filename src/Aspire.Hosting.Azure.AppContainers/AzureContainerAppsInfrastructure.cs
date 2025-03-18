@@ -79,11 +79,6 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 var value = factory(r);
 
-                if (value is BicepOutputReference b && b.Resource == r)
-                {
-                    return;
-                }
-
                 r.Parameters[key] = value;
             }
         }
