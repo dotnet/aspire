@@ -66,8 +66,7 @@ public static class ContainerAppExtensions
             throw new ArgumentException("Cannot configure custom domain when resource is not parented by ResourceModuleConstruct.", nameof(app));
         }
 
-        var containerAppManagedEnvironmentIdParameter = module.GetProvisionableResources().OfType<ProvisioningParameter>().Single(
-            p => p.BicepIdentifier == "outputs_azure_container_apps_environment_id");
+        var containerAppManagedEnvironmentId = app.EnvironmentId;
         var certificateNameParameter = certificateName.AsProvisioningParameter(module);
         var customDomainParameter = customDomain.AsProvisioningParameter(module);
 
@@ -87,7 +86,7 @@ public static class ContainerAppExtensions
                 new StringLiteralExpression(string.Empty)),
             new InterpolatedStringExpression(
                 [
-                    new IdentifierExpression(containerAppManagedEnvironmentIdParameter.BicepIdentifier),
+                    containerAppManagedEnvironmentId.Compile(),
                     new StringLiteralExpression("/managedCertificates/"),
                     new IdentifierExpression(certificateNameParameter.BicepIdentifier)
                  ]),
