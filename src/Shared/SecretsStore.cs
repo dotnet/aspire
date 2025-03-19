@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
+using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 
@@ -90,6 +92,30 @@ internal sealed class SecretsStore
             .AsEnumerable()
             .Where(i => i.Value != null)
             .ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Sets a value in user secrets for the project associated with the given assembly if it's not already present in configuration.
+    /// </summary>
+    public static void GetOrSetUserSecret(IConfigurationManager configuration, Assembly? appHostAssembly, string name, Func<string> valueGenerator)
+    {
+        var existingValue = configuration[name];
+        if (existingValue is null)
+        {
+            var value = valueGenerator();
+            configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    [name] = value
+                }
+            );
+            if (!TrySetUserSecret(appHostAssembly, name, value))
+            {
+                // This is a best-effort operation, so we don't throw if it fails. Common reason for failure is that the user secrets ID is not set
+                // in the application's assembly. Note there's no ILogger available this early in the application lifecycle.
+                Debug.WriteLine($"Failed to save value to application user secrets.");
+            }
+        }
     }
 
     /// <summary>
