@@ -41,7 +41,7 @@ public class Program
 
     private static RootCommand GetRootCommand()
     {
-        var rootCommand = new RootCommand(".NET Aspire CLI");
+        var rootCommand = new RootCommand("Aspire CLI");
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Recursive = true;
@@ -424,7 +424,7 @@ public class Program
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync(
-                    ":ice:  Installing templates...",
+                    ":ice:  Getting latest templates...",
                     async context => {
                         return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
                     }).ConfigureAwait(false);

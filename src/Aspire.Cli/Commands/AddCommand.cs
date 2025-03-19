@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Text;
 using Aspire.Cli;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +18,7 @@ public static class AddCommand
         command.Arguments.Add(resourceArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
+        projectOption.Validators.Add(BaseCommand.ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -29,6 +28,7 @@ public static class AddCommand
         command.Options.Add(prereleaseOption);
 
         command.SetAction(async (parseResult, ct) => {
+
             try
             {
                 var app = Program.BuildApplication(parseResult);
@@ -38,7 +38,7 @@ public static class AddCommand
                 var integrationName = parseResult.GetValue<string>("resource");
 
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+                var effectiveAppHostProjectFile = BaseCommand.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
@@ -91,30 +91,9 @@ public static class AddCommand
         });
 
         parentCommand.Subcommands.Add(command);
-
-        }
-
-    private static void ValidateProjectOption(OptionResult result)
-    {
-        if (result.Tokens.Count == 0)
-        {
-            return;
-        }
-
-        var filePath = result.GetValueOrDefault<FileInfo?>();
-        if (filePath is null || !filePath.Exists)
-        {
-            result.ErrorMessage = $"The specified project file '{filePath}' does not exist.";
-        }
     }
 
-    private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? passedAppHostProjectFile)
-    {
-        // Logic to find or use the passed project file.
-        return passedAppHostProjectFile ?? new FileInfo("default.csproj");
-    }
-
-        private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
+    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
     {
         var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
             .Title("Select an integration to add:")
