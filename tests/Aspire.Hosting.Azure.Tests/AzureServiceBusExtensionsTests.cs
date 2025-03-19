@@ -671,10 +671,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue456" ],
+                    "Queues": [ { "Name": "queue456" } ],
                     "Topics": []
                   }
-                ]
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
               }
             }
             """);
@@ -697,10 +700,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue456" ],
+                    "Queues": [ { "Name": "queue456" } ],
                     "Topics": []
                   }
-                ]
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
               }
             }
             """, configJsonContent);
@@ -800,5 +806,65 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__FullyQualifiedNamespace", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
+    }
+
+    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [RequiresDocker]
+    public async Task AzureServiceBusEmulator_WithCustomConfig()
+    {
+        const string queueName = "queue456";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
+
+        var configJsonPath = Path.GetTempFileName();
+
+        File.WriteAllText(configJsonPath,
+            $$"""
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "sbemulatorns",
+                    "Queues": [ { "Name": "{{queueName}}" } ],
+                    "Topics": []
+                  }
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
+              }
+            }
+            """);
+
+        var serviceBus = builder
+            .AddAzureServiceBus("servicebusns")
+            .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
+
+        var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureServiceBusClient("servicebusns");
+
+        await app.ResourceNotifications.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
+
+        await using var sender = serviceBusClient.CreateSender(queueResource.Resource.QueueName);
+        await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
+
+        await using var receiver = serviceBusClient.CreateReceiver(queueResource.Resource.QueueName);
+        var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
+
+        Assert.Equal("Hello, World!", message.Body.ToString());
     }
 }

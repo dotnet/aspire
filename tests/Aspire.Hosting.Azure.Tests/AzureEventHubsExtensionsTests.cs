@@ -109,6 +109,50 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task AzureEventHubsHealthChecksUsesSettingsEventHubName(bool useSettings)
+    {
+        const string hubName = "myhub";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var eventHubns = builder.AddAzureEventHubs("eventhubns")
+            .RunAsEmulator();
+        var resourceName = "hub";
+        var eventHub = eventHubns.AddHub(resourceName, hubName);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        if (useSettings)
+        {
+            hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
+            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = eventHub.Resource.HubName);
+        }
+        else
+        {
+            hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None) + $";EntityPath={hubName};";
+            hb.AddAzureEventHubProducerClient("eventhubns");
+            hb.AddAzureEventHubConsumerClient("eventhubns");
+        }
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+
+        Assert.Equal(HealthStatus.Healthy, healthCheckReport.Status);
+    }
+
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {

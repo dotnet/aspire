@@ -46,7 +46,6 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
     {
         public string ValueExpression => $"{{.outputs.{outputName}}}";
 
-        public static IManifestExpressionProvider MANAGED_IDENTITY_CLIENT_ID => GetExpression("MANAGED_IDENTITY_CLIENT_ID");
         public static IManifestExpressionProvider MANAGED_IDENTITY_NAME => GetExpression("MANAGED_IDENTITY_NAME");
         public static IManifestExpressionProvider MANAGED_IDENTITY_PRINCIPAL_ID => GetExpression("MANAGED_IDENTITY_PRINCIPAL_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID => GetExpression("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID");

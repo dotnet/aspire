@@ -5,14 +5,13 @@ using Aspire.Components.Common.Tests;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
-using Aspire.Workload.Tests;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4921", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[RequiresPlaywright]
 public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenAuthenticationTests.BrowserTokenDashboardServerFixture>
 {
     public class BrowserTokenDashboardServerFixture : DashboardServerFixture

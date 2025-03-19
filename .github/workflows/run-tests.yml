@@ -23,6 +23,10 @@ on:
       extraTestArgs:
         required: false
         type: string
+      requiresNugets:
+        required: false
+        type: boolean
+        default: false
       os:
         required: false
         type: string
@@ -34,7 +38,9 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
-    if: inputs.os != 'windows-latest' || inputs.testShortName != 'Playground'
+    # Playground, and EndToEnd tests are disabled on windows
+    # because of missing docker support
+    if: inputs.os != 'windows-latest' || (inputs.testShortName != 'EndToEnd' && inputs.testShortName != 'Playground')
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -49,15 +55,26 @@ jobs:
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
 
       - name: Setup vars (Windows)
         if: ${{ inputs.os == 'windows-latest' }}
         run: |
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
           echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        # Used for running tests outside the repo
+        if: ${{ inputs.requiresNugets }}
+        with:
+          dotnet-version: |
+            8.x
+            9.x
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
@@ -69,13 +86,13 @@ jobs:
         run: docker info
 
       - name: Build with packages
-        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+        if: ${{ inputs.requiresNugets }}
         env:
           CI: false
         run: ${{ env.BUILD_SCRIPT }} -restore -build -ci -pack -testnobuild /bl
 
-      - name: Install sdk for workload testing
-        if: ${{ contains(inputs.testProjectPath, 'Aspire.Workload.Tests') }}
+      - name: Install sdk for nuget based testing
+        if: ${{ inputs.requiresNugets }}
         env:
           CI: false
         run: >
@@ -111,13 +128,25 @@ jobs:
               exit 1
           }
 
+          $filenameWithoutExtension = (Get-Item $projectPath).BaseName
           echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+          echo "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV
 
       - name: Build test project
+        if: ${{ ! inputs.requiresNugets }}
         env:
           CI: false
         run: |
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+
+      - name: Build and archive test project
+        if: ${{ inputs.requiresNugets }}
+        env:
+          CI: false
+        run: >
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          /p:ArchiveTests=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/ArchiveTests.binlog
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -127,13 +156,76 @@ jobs:
         run: |
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
-      - name: Run tests
-        id: run-tests
+      - name: Unpack tests
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run: |
+          # Find all zip files in the given path
+          $path = "${{ github.workspace }}/artifacts/helix"
+          $zipFiles = Get-ChildItem -Path $path -Filter *.zip -Recurse
+
+          # Check the number of zip files found
+          if ($zipFiles.Count -eq 0) {
+              Write-Error "No zip files found in path : $path"
+              exit 1
+          } elseif ($zipFiles.Count -gt 1) {
+              $zipFilesList = $zipFiles.FullName -join ", "
+              Write-Error "Multiple zip files found in path: $path : $zipFilesList"
+              exit 1
+          } else {
+              Write-Output "One zip file found: $($zipFiles[0].FullName)"
+          }
+
+          $zipFilePath = $zipFiles[0].FullName
+          $destinationPath = "$env:TEST_RUN_PATH"
+
+          if (-not (Test-Path $destinationPath)) {
+              New-Item -ItemType Directory -Path $destinationPath -Force
+          }
+
+          if ($IsWindows) {
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $destinationPath)
+          } else {
+              $unzipCommand = "unzip -o $zipFilePath -d $destinationPath"
+              Invoke-Expression $unzipCommand
+          }
+
+          Write-Output "Unzipped $zipFilePath to $destinationPath"
+
+      - name: Run nuget dependent tests
+        if: ${{ inputs.requiresNugets }}
+        working-directory: ${{ github.workspace }}/run-tests/
         env:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           DISABLE_PLAYWRIGHT_TESTS: ${{ inputs.os == 'ubuntu-latest' }}
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+        run: >
+          dotnet test -s .runsettings -v:n ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          -l "console;verbosity=normal"
+          -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
+          -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
+          --blame
+          --blame-hang-timeout ${{ inputs.testHangTimeout }}
+          --blame-crash
+          --results-directory ${{ github.workspace }}/testresults
+          ${{ inputs.extraTestArgs }}
+          --
+          RunConfiguration.CollectSourceInformation=true
+          RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
+
+      - name: Run tests
+        if: ${{ ! inputs.requiresNugets }}
+        id: run-tests
+        env:
+          CI: false
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
@@ -164,7 +256,7 @@ jobs:
       # Upload that result file to artifact named test-job-result-{name}
       - name: Upload test result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}
           path: result-*.rst
@@ -179,9 +271,11 @@ jobs:
 
       - name: Upload logs, and test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: logs-${{ inputs.testShortName }}-${{ inputs.os }}
           path: |
             **/*.binlog
             testresults/**
+            artifacts/bin/Aspire.Workload.Tests/Debug/net8.0/logs/**
+            artifacts/log/test-logs/**

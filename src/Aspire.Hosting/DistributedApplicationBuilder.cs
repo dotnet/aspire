@@ -6,12 +6,15 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +23,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspire.Hosting.Devcontainers;
-using Aspire.Hosting.Orchestrator;
-using Aspire.Hosting.Cli;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting;
 
@@ -251,7 +252,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
-        _innerBuilder.Services.AddHostedService<CliBackchannel>();
+        _innerBuilder.Services.AddSingleton<CliBackchannel>();
+        _innerBuilder.Services.AddHostedService<CliBackchannel>(sp => sp.GetRequiredService<CliBackchannel>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
@@ -263,14 +265,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             {
                 if (!IsDashboardUnsecured(_innerBuilder.Configuration))
                 {
-                    // Set a random API key for the OTLP exporter.
                     // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-                    _innerBuilder.Configuration.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
-                        }
-                    );
+                    // Set a random API key for the OTLP exporter if one isn't already present in configuration.
+                    // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
+                    // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
+                    // of persistent containers (as a new key would be a spec change).
+                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)

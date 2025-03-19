@@ -21,9 +21,6 @@ jobs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
     steps:
       - uses: actions/checkout@v4
-        env:
-          DISABLE_PLAYWRIGHT_TESTS: true
-
       - uses: ./.github/actions/enumerate-tests
         id: generate_test_matrix
 
@@ -37,6 +34,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.os.name }}
+      requiresNugets: ${{ matrix.shortname == 'EndToEnd' }}
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
@@ -45,19 +43,19 @@ jobs:
     needs: [test]
     steps:
       # get all the test-job-result* artifacts into a single directory
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: test-job-result-*
           merge-multiple: true
           path: test-job-result
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
           path: testresults/ubuntu-latest
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: logs-*-windows-latest
           merge-multiple: true
@@ -65,7 +63,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: Integration-TestResults
           path: testresults/**/*.trx

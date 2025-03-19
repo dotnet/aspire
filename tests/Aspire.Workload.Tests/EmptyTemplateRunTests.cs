@@ -18,7 +18,7 @@ public class EmptyTemplateRunTests : WorkloadTestsBase, IClassFixture<EmptyTempl
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     [RequiresSSLCertificate("Needed for dashboard access")]
     public async Task ResourcesShowUpOnDashboad()
     {
@@ -26,6 +26,7 @@ public class EmptyTemplateRunTests : WorkloadTestsBase, IClassFixture<EmptyTempl
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             [],
-            timeoutSecs: 1_000);
+            timeoutSecs: 1_000,
+            logPath: _testFixture.Project.LogPath);
     }
 }

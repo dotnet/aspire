@@ -3152,6 +3152,39 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task KnownParametersAreNotSetWhenUsingAzdResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var pg = builder.AddAzurePostgresFlexibleServer("pg")
+                        .WithPasswordAuthentication()
+                        .AddDatabase("db");
+
+        builder.AddContainer("cache", "redis")
+               .WithVolume("data", "/data")
+               .WithReference(pg);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        {
+            foreach (var param in resource.Parameters)
+            {
+                if (AzureBicepResource.KnownParameters.IsKnownParameterName(param.Key))
+                {
+                    Assert.Equal(string.Empty, param.Value);
+                }
+            }
+        }
+    }
+
+    [Fact]
     public async Task AddContainerAppEnvironmentAddsEnvironmentResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -3270,7 +3303,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           properties: {
             principalId: userPrincipalId
             roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-            principalType: 'ServicePrincipal'
           }
           scope: cae
         }
