@@ -1800,8 +1800,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "mydb_secretoutputs": "{mydb.secretOutputs}",
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
@@ -1817,10 +1815,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param api_identity_outputs_id string
-
-        param api_identity_outputs_clientid string
 
         param mydb_secretoutputs string
 
@@ -1903,10 +1897,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                       name: 'complex'
                       secretRef: 'complex'
                     }
-                    {
-                      name: 'AZURE_CLIENT_ID'
-                      value: api_identity_outputs_clientid
-                    }
                   ]
                 }
               ]
@@ -1918,7 +1908,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           identity: {
             type: 'UserAssigned'
             userAssignedIdentities: {
-              '${api_identity_outputs_id}': { }
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
           }

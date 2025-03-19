@@ -7,7 +7,6 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Redis;
-using Azure.Provisioning.Roles;
 using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
 using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
@@ -123,8 +122,7 @@ public static class AzureRedisExtensions
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
         return builder.AddResource(resource)
-            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()))
-            .WithAnnotation(new RoleAssignmentCustomizationAnnotation(ConfigureRedisRoleInfrastructure));
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -196,6 +194,13 @@ public static class AzureRedisExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
 
         return builder;
     }
@@ -279,65 +284,7 @@ public static class AzureRedisExtensions
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
     }
 
-    private static void ConfigureRedisRoleInfrastructure(AzureResourceInfrastructure infra, AzureProvisioningResource resource)
-    {
-        var azureResource = (AzureRedisCacheResource)resource;
-        if (azureResource.UseAccessKeyAuthentication)
-        {
-            // nothing to do for access key authentication
-            return;
-        }
-
-        var redis = GetOrAddExistingRedisResource(infra, azureResource);
-
-        var (principalId, principalName, principalUnqiueId) = GetPrincipalInfo(infra);
-        AddContributorPolicyAssignment(infra, redis, principalUnqiueId, principalId, principalName);
-    }
-
-    private static CdkRedisResource GetOrAddExistingRedisResource(AzureResourceInfrastructure infra, AzureRedisCacheResource azureResource)
-    {
-        var existingResource = infra.GetProvisionableResources()
-            .OfType<CdkRedisResource>()
-            .FirstOrDefault(r => r.BicepIdentifier == azureResource.GetBicepIdentifier());
-
-        if (existingResource is null)
-        {
-            existingResource = (CdkRedisResource)azureResource.AddAsExistingResource(infra);
-        }
-
-        return existingResource;
-    }
-
-    private static (BicepValue<Guid> PrincipalId, BicepValue<string> PrincipalName, BicepValue<string> PrincipalUnqiueId) GetPrincipalInfo(AzureResourceInfrastructure infra)
-    {
-        if (infra.GetProvisionableResources()
-            .OfType<UserAssignedIdentity>()
-            .SingleOrDefault() is { } identity)
-        {
-            return (identity.PrincipalId, identity.Name, identity.Id);
-        }
-
-        if (infra.GetProvisionableResources()
-            .OfType<ProvisioningParameter>()
-            .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId) is { } principalIdParameter)
-        {
-            if (infra.GetProvisionableResources()
-                .OfType<ProvisioningParameter>()
-                .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalName) is not { } principalNameParameter)
-            {
-                // add the principal name parameter if it doesn't exist
-                principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-                infra.Add(principalNameParameter);
-            }
-
-            // since the principalIdParameter is a parameter, we can use it as the principal unique id
-            return (principalIdParameter, principalNameParameter, principalIdParameter);
-        }
-
-        throw new InvalidOperationException($"Could not resolve a principalId.");
-    }
-
-    private static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<string> principalUniqueId, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<string> principalUniqueId, BicepValue<Guid> principalId, BicepValue<string> principalName)
     {
         infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
         {

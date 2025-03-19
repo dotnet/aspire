@@ -12,7 +12,6 @@ using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
-using Azure.Provisioning.Roles;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -38,8 +37,7 @@ public static class AzureCosmosExtensions
 
         var resource = new AzureCosmosDBResource(name, ConfigureCosmosDBInfrastructure);
         return builder.AddResource(resource)
-            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()))
-            .WithAnnotation(new RoleAssignmentCustomizationAnnotation(ConfigureCosmosDBRoleInfrastructure));
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -335,6 +333,13 @@ public static class AzureCosmosExtensions
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
 
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
+
         return builder;
     }
 
@@ -440,57 +445,7 @@ public static class AzureCosmosExtensions
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
     }
 
-    private static void ConfigureCosmosDBRoleInfrastructure(AzureResourceInfrastructure infra, AzureProvisioningResource resource)
-    {
-        var azureResource = (AzureCosmosDBResource)resource;
-        if (azureResource.UseAccessKeyAuthentication)
-        {
-            // nothing to do for access key authentication
-            return;
-        }
-
-        var cosmosAccount = GetOrAddExistingCosmosDBResource(infra, azureResource);
-
-        var (principalId, uniqueId) = GetPrincipalId(infra);
-        AddContributorRoleAssignment(infra, cosmosAccount, principalId, uniqueId);
-    }
-
-    private static CosmosDBAccount GetOrAddExistingCosmosDBResource(AzureResourceInfrastructure infra, AzureCosmosDBResource azureResource)
-    {
-        var existingResource = infra.GetProvisionableResources()
-            .OfType<CosmosDBAccount>()
-            .FirstOrDefault(r => r.BicepIdentifier == azureResource.GetBicepIdentifier());
-
-        if (existingResource is null)
-        {
-            existingResource = (CosmosDBAccount)azureResource.AddAsExistingResource(infra);
-        }
-
-        return existingResource;
-    }
-
-    private static (BicepValue<Guid> PrincipalId, BicepValue<string> UniqueId) GetPrincipalId(AzureResourceInfrastructure infra)
-    {
-        if (infra.GetProvisionableResources()
-            .OfType<UserAssignedIdentity>()
-            .SingleOrDefault() is { } identity)
-        {
-            return (identity.PrincipalId, identity.Id);
-        }
-
-        if (infra.GetProvisionableResources()
-            .OfType<ProvisioningParameter>()
-            .SingleOrDefault(p => p.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId) is { } principalIdParameter)
-        {
-            // for parameters, return the parameter as the principalId AND as the uniqueId
-            var principalId = (BicepValue<Guid>)principalIdParameter;
-            return (principalId, principalId);
-        }
-
-        throw new InvalidOperationException($"Could not resolve a principalId.");
-    }
-
-    private static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId, BicepValue<string> uniqueId)
+    internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId, BicepValue<string> uniqueId)
     {
         var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
         roleDefinition.Parent = cosmosAccount;

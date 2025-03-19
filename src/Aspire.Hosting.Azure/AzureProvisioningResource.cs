@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
@@ -34,6 +36,39 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// <param name="infra">The <see cref="AzureResourceInfrastructure"/> to add the existing resource into.</param>
     /// <returns>A new <see cref="ProvisionableResource"/>, typically using the FromExisting method on the derived <see cref="ProvisionableResource"/> class.</returns>
     public virtual ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) => throw new NotImplementedException();
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public virtual void AddRoleAssignments(AddRoleAssignmentsContext roleAssignmentContext)
+    {
+        var infra = roleAssignmentContext.Infrastructure;
+        var prefix = this.GetBicepIdentifier();
+        var existingResource = AddAsExistingResource(infra);
+
+        var principalType = roleAssignmentContext.PrincipalType;
+        var principalId = roleAssignmentContext.PrincipalId;
+
+        foreach (var role in roleAssignmentContext.Roles)
+        {
+            infra.Add(CreateRoleAssignment(prefix, existingResource, role.Id, role.Name, principalType, principalId));
+        }
+    }
+
+    private static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string roleId, string roleName, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
+    {
+        var raName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_{roleName}");
+        var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
+
+        return new RoleAssignment(raName)
+        {
+            Name = BicepFunction.CreateGuid(id, principalId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", roleId)),
+            Scope = new IdentifierExpression(scope.BicepIdentifier),
+            PrincipalType = principalType,
+            RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", roleId),
+            PrincipalId = principalId
+        };
+    }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)

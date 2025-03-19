@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -96,5 +97,18 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(AddRoleAssignmentsContext roleAssignmentContext)
+    {
+        Debug.Assert(!UseAccessKeyAuthentication, "AddRoleAssignments should not be called when using AccessKeyAuthentication");
+
+        var infra = roleAssignmentContext.Infrastructure;
+        var cosmosAccount = (CosmosDBAccount)AddAsExistingResource(infra);
+
+        var principalId = roleAssignmentContext.PrincipalId;
+
+        AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId, principalId);
     }
 }

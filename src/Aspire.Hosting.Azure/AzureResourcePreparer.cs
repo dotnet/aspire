@@ -148,24 +148,10 @@ internal sealed class AzureResourcePreparer(
                             // even if the roles are empty, since empty roles are used by some resources - like databases
                             AppendAppliedRoleAssignmentsAnnotation(azureReference, defaults.Roles);
                         }
-                        else if (defaults.Roles.Count > 0)
+                        else
                         {
-                            // in PublishMode, if there are roles we copy the default role assignments to the compute resource
+                            // in PublishMode, we copy the default role assignments to the compute resource
                             resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, defaults.Roles));
-                        }
-                    }
-
-                    // In PublishMode, if the Azure resource has a RoleAssignmentCustomizationAnnotation, we need to copy it to the compute resource
-                    // so the publish infrastructure can apply it for that compute resource.
-                    if (executionContext.IsPublishMode &&
-                        azureReference.TryGetAnnotationsOfType<RoleAssignmentCustomizationAnnotation>(out var customizationAnnotations))
-                    {
-                        foreach (var customizationAnnotation in customizationAnnotations)
-                        {
-                            resource.Annotations.Add(new RoleAssignmentCustomizationAnnotation(customizationAnnotation.Configure)
-                            {
-                                Target = azureReference
-                            });
                         }
                     }
                 }
