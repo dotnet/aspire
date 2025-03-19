@@ -562,7 +562,7 @@ public class Program
 
             try
             {
-                var app = Program.BuildApplication(parseResult);
+                var app = BuildApplication(parseResult);
                 
                 var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
 
