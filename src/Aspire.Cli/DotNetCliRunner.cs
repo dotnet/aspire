@@ -273,7 +273,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
     {
         List<string> cliArgs = [
             "package",
@@ -284,10 +284,14 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             "--skip",
             skip.ToString(CultureInfo.InvariantCulture),
             "--format",
-            "json",
-            "--source",
-            "https://api.nuget.org/v3/index.json"
+            "json"
         ];
+
+        if (nugetSource is not null)
+        {
+            cliArgs.Add("--source");
+            cliArgs.Add(nugetSource);
+        }
 
         if (prerelease)
         {

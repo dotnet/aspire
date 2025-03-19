@@ -20,6 +20,10 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
 
         var collectedPackages = new List<NuGetPackage>();
         var skip = 0;
+
+        // The source is hardcoded to the official NuGet source for now.
+        // To use your nuget config just don't pass the source parameter to the search command.
+        var source = "https://api.nuget.org/v3/index.json";
         bool continueFetching;
         do
         {
@@ -30,6 +34,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
                 prerelease,
                 SearchPageSize,
                 skip,
+                source,
                 cancellationToken
                 ).ConfigureAwait(false);
 
