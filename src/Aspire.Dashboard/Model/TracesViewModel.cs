@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -72,12 +73,17 @@ public class TracesViewModel
         _traces = null;
     }
 
-    public PagedResult<OtlpTrace> GetTraces()
+    public PagedResult<OtlpTrace> GetTraces(DateTime? pausedAt)
     {
         var traces = _traces;
         if (traces == null)
         {
             var filters = Filters.ToList();
+
+            if (pausedAt is not null)
+            {
+                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.TimeStamp), Condition = FilterCondition.LessThanOrEqual, Value = pausedAt.Value.ToString(CultureInfo.InvariantCulture) });
+            }
 
             var result = _telemetryRepository.GetTraces(new GetTracesRequest
             {

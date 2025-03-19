@@ -75,7 +75,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs(DateTime? _pausedAt)
+    public PagedResult<OtlpLogEntry> GetLogs(DateTime? pausedAt)
     {
         var logs = _logs;
         if (logs == null)
@@ -91,9 +91,9 @@ public class StructuredLogsViewModel
                 filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }
 
-            if (_pausedAt is not null)
+            if (pausedAt is not null)
             {
-                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.TimeStamp), Condition = FilterCondition.LessThanOrEqual, Value = _pausedAt.Value.ToString(CultureInfo.InvariantCulture) });
+                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.TimeStamp), Condition = FilterCondition.LessThanOrEqual, Value = pausedAt.Value.ToString(CultureInfo.InvariantCulture) });
             }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
