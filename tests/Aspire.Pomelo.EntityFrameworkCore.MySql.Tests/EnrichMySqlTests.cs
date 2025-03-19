@@ -4,7 +4,6 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -16,6 +15,7 @@ using MySqlConnector.Logging;
 using OpenTelemetry.Trace;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
@@ -63,7 +63,7 @@ public class EnrichMySqlTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        throw SkipException.ForSkip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

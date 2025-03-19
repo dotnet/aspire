@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,7 +12,7 @@ using OpenTelemetry.Trace;
 using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
@@ -50,7 +49,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        throw SkipException.ForSkip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

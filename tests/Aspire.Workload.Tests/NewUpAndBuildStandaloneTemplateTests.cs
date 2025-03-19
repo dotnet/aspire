@@ -2,15 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
 public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
 {
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-starter")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-starter")]
     public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");

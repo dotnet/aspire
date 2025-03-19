@@ -42,7 +42,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
 
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 

@@ -9,7 +9,6 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
-using Xunit.Abstractions;
 using Polly;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -104,7 +103,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7293")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7293")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -248,7 +247,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.

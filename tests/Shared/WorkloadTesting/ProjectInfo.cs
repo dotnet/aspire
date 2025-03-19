@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Aspire.Workload.Tests;
 

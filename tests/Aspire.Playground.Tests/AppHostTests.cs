@@ -8,13 +8,11 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Timeout;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
@@ -32,7 +30,7 @@ public class AppHostTests
 
     [Theory]
     [MemberData(nameof(TestEndpoints))]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6866")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/6866")]
     public async Task TestEndpointsReturnOk(TestEndpoints testEndpoints)
     {
         var appHostType = testEndpoints.AppHostType!;
@@ -270,7 +268,7 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new SkipTestException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
+            throw SkipException.ForSkip($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;

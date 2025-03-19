@@ -6,8 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Aspire.Hosting.NodeJs.Tests;
 
@@ -25,7 +25,7 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
     public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _builder = TestDistributedApplicationBuilder.Create()
             .WithTestAndResourceLogging(new TestOutputWrapper(diagnosticMessageSink));
@@ -48,7 +48,7 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
         await WaitReadyStateAsync(cts.Token);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _builder?.Dispose();
 
@@ -115,6 +115,18 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 
     private sealed class TestOutputWrapper(IMessageSink messageSink) : ITestOutputHelper
     {
+        public string Output => throw new NotImplementedException();
+
+        public void Write(string message)
+        {
+            WriteLine(message);
+        }
+
+        public void Write(string format, params object[] args)
+        {
+            WriteLine(format, args);
+        }
+
         public void WriteLine(string message)
         {
             messageSink.OnMessage(new DiagnosticMessage(message));

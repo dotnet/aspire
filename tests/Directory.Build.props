@@ -1,6 +1,12 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
+  <PropertyGroup>
+    <!-- https://github.com/dotnet/arcade/issues/15654 -->
+    <!-- We currently have our own Xunit3.targets in eng/Xunit3, which Arcade will import -->
+    <TestRunnerName>Xunit3</TestRunnerName>
+  </PropertyGroup>
+
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
 
   <PropertyGroup>

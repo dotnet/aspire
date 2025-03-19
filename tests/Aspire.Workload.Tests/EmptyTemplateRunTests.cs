@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 

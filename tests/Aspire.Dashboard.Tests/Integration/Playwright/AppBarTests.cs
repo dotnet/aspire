@@ -17,7 +17,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
@@ -64,7 +64,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange

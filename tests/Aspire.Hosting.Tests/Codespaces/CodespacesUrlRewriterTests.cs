@@ -5,7 +5,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Codespaces;
 
@@ -53,7 +52,7 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6648")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/6648")]
     public async Task VerifyUrlsRewrittenWhenInCodespaces()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

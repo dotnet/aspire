@@ -11,11 +11,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/5362", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+// [ActiveIssue("https://github.com/dotnet/aspire/issues/5362", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
 public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     // Folders created for mounted folders need to be granted specific permissions

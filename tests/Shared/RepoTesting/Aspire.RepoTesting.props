@@ -2,6 +2,11 @@
   <PropertyGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Arcade doesn't support such test runner yet. -->
+    <!-- https://github.com/dotnet/arcade/issues/15654 -->
+    <!-- But setting it this way prevents Arcade from importing XUnit.targets which is done for xUnit v2 -->
+    <TestRunnerName>Xunit3</TestRunnerName>
   </PropertyGroup>
 
   <PropertyGroup>

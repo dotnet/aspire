@@ -15,7 +15,6 @@ using Azure.Provisioning.SignalR;
 using Azure.Provisioning.WebPubSub;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 

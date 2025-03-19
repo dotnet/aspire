@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Microsoft.Data.SqlClient.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
@@ -49,7 +49,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        throw SkipException.ForSkip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

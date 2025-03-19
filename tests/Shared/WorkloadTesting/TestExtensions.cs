@@ -4,8 +4,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Playwright;
-using Xunit.Abstractions;
 using Xunit.Sdk;
+using Xunit;
 
 namespace Aspire.Workload.Tests;
 

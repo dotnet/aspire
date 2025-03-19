@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />

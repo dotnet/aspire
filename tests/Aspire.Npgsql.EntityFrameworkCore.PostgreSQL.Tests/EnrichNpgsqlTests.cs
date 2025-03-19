@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -14,6 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
 using Aspire.Npgsql.Tests;
 using OpenTelemetry.Trace;
+using Xunit.Sdk;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
@@ -50,7 +50,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        throw SkipException.ForSkip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

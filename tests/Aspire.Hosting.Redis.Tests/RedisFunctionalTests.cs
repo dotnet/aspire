@@ -14,7 +14,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.Hosting.Tests.Dcp;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
@@ -25,7 +24,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7177")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7177")]
     public async Task VerifyWaitForOnRedisBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -124,7 +123,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7291")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7291")]
     public async Task VerifyDatabasesAreNotDuplicatedForPersistentRedisInsightContainer()
     {
         var randomResourceSuffix = Random.Shared.Next(10000).ToString();
@@ -229,7 +228,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -537,7 +536,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [InlineData(true)]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7176")]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/7176")]
     public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));

@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
+using Xunit.Sdk;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -57,7 +57,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
@@ -107,7 +107,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         return Project.DumpComponentLogsAsync(component, testOutputArg);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_project is not null)
         {

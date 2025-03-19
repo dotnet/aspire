@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
@@ -33,7 +33,7 @@ public class TemplateAppFixture : IAsyncLifetime
         _tfm = tfm;
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         Project = await AspireProject.CreateNewTemplateProjectAsync(
             Id,
@@ -47,7 +47,7 @@ public class TemplateAppFixture : IAsyncLifetime
         await Project.StartAppHostAsync(extraArgs: [$"-c {_config}"]);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Project is not null)
         {
