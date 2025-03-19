@@ -245,7 +245,54 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};");
 
-        builder.AddCosmosDbContext<TestDbContext>("cosmos");
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => capturedSettings = settings);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(databaseName, capturedSettings.DatabaseName);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", databaseName);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseNameInSettings_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => settings.DatabaseName = databaseName);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

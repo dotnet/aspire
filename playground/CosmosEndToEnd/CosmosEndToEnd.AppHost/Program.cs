@@ -13,9 +13,8 @@ var container = db.AddContainer("entries", "/id");
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(cosmos).WaitFor(cosmos)
-       .WithReference(db)
-       .WithReference(container);
+       .WithReference(db).WaitFor(db)
+       .WithReference(container).WaitFor(container);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

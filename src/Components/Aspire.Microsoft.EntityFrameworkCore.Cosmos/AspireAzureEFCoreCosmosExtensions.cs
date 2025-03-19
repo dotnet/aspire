@@ -48,6 +48,7 @@ public static class AspireAzureEFCoreCosmosExtensions
             var cosmosConnectionInfo = CosmosUtils.ParseConnectionString(connectionString);
             if (cosmosConnectionInfo.DatabaseName is not null)
             {
+                var targetDatabaseName = cosmosConnectionInfo.DatabaseName;
                 AddCosmosDbContext<TContext>(
                     builder,
                     connectionName,
@@ -59,7 +60,7 @@ public static class AspireAzureEFCoreCosmosExtensions
             {
                 throw new InvalidOperationException(
                   "A DbContext could not be configured with this AddCosmosDbContext overload. "
-                  + $"Ensure the connection string '{connectionName}' contains a database name or use the overload that takes a database name as a parameter. ");
+                  + $"Ensure the connection string '{connectionName}' contains a database name or use the overload that takes a database name as a parameter.");
             }
         }
     }
@@ -107,6 +108,17 @@ public static class AspireAzureEFCoreCosmosExtensions
             {
                 settings.ConnectionString = cosmosConnectionInfo.ConnectionString;
             }
+            if (cosmosConnectionInfo.DatabaseName is not null)
+            {
+                settings.DatabaseName = cosmosConnectionInfo.DatabaseName;
+            }
+        }
+
+        // Favor explicitly provided database name over the one resolved in the
+        // connection string.
+        if (settings.DatabaseName != databaseName)
+        {
+            settings.DatabaseName = databaseName;
         }
 
         configureSettings?.Invoke(settings);
@@ -119,12 +131,12 @@ public static class AspireAzureEFCoreCosmosExtensions
         {
             if (!string.IsNullOrEmpty(settings.ConnectionString))
             {
-                dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, databaseName, UseCosmosBody);
+                dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, settings.DatabaseName, UseCosmosBody);
             }
             else if (settings.AccountEndpoint is not null)
             {
                 var credential = settings.Credential ?? new DefaultAzureCredential();
-                dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, databaseName, UseCosmosBody);
+                dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, settings.DatabaseName, UseCosmosBody);
             }
             else
             {

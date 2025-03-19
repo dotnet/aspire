@@ -43,6 +43,25 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         Assert.Contains("AccountEndpoint", e.Message);
     }
 
+    [Theory]
+    [InlineData("AccountEndpoint=https://localhost:8081;AccountKey=fake;Database=testdb;Container=mycontainers")]
+    [InlineData("AccountEndpoint=https://localhost:8081;AccountKey=fake;Database=testdb;")]
+    public void AddAzureCosmosClient_WorksWithChildConnectionStrings(string connectionString)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, connectionString);
+
+        builder.AddAzureCosmosClient("cosmos");
+
+        using var host = builder.Build();
+        var client = host.Services.GetService<CosmosClient>();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+    }
+
     [Fact]
     public void AddAzureCosmosDatabase_RegistersDatabaseService()
     {
@@ -145,8 +164,10 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         var serviceKey = "cosmos-key";
 
         PopulateConfiguration(builder.Configuration, connectionString);
+        builder.AddAzureCosmosContainer(serviceKey);
+        using var host = builder.Build();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddAzureCosmosContainer(serviceKey));
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<Container>);
         Assert.Equal("The connection string 'cosmos-key' does not exist or is missing the container name or database name.", exception.Message);
     }
 
@@ -160,8 +181,10 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         var serviceKey = "cosmos-key";
 
         PopulateConfiguration(builder.Configuration, connectionString, serviceKey);
+        builder.AddKeyedAzureCosmosContainer(serviceKey);
+        using var host = builder.Build();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddKeyedAzureCosmosContainer(serviceKey));
+        var exception = Assert.Throws<InvalidOperationException>(() => host.Services.GetKeyedService<Container>(serviceKey));
         Assert.Equal("The connection string 'cosmos-key' does not exist or is missing the container name or database name.", exception.Message);
     }
 
@@ -174,8 +197,10 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         var serviceKey = "cosmos-key";
 
         PopulateConfiguration(builder.Configuration, connectionString);
+        builder.AddAzureCosmosDatabase(serviceKey);
+        using var host = builder.Build();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddAzureCosmosDatabase(serviceKey));
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<Database>);
         Assert.Equal("The connection string 'cosmos-key' does not exist or is missing the database name.", exception.Message);
     }
 
@@ -188,8 +213,10 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         var serviceKey = "cosmos-key";
 
         PopulateConfiguration(builder.Configuration, connectionString, serviceKey);
+        builder.AddKeyedAzureCosmosDatabase(serviceKey);
+        using var host = builder.Build();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddKeyedAzureCosmosDatabase(serviceKey));
+        var exception = Assert.Throws<InvalidOperationException>(() => host.Services.GetRequiredKeyedService<Database>(serviceKey));
         Assert.Contains("The connection string 'cosmos-key' does not exist or is missing the database name.", exception.Message);
     }
 
