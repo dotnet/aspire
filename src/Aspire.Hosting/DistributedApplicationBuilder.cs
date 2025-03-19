@@ -6,12 +6,15 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +23,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspire.Hosting.Devcontainers;
-using Aspire.Hosting.Orchestrator;
-using Aspire.Hosting.Cli;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting;
 
@@ -263,14 +264,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             {
                 if (!IsDashboardUnsecured(_innerBuilder.Configuration))
                 {
-                    // Set a random API key for the OTLP exporter.
                     // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-                    _innerBuilder.Configuration.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
-                        }
-                    );
+                    EnsureOtlpApiKey(_innerBuilder.Configuration, AppHostAssembly);
 
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
@@ -371,6 +366,33 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private static void EnsureOtlpApiKey(ConfigurationManager configuration, Assembly? appHostAssembly)
+    {
+        // Set a random API key for the OTLP exporter if one isn't already present in configuration.
+        // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
+        // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
+        // of persistent containers (as a new key would be a spec change).
+        var key = "AppHost:OtlpApiKey";
+        var existingValue = configuration[key];
+        if (existingValue is null)
+        {
+            // Create the key and store in user secrets
+            var apiKey = TokenGenerator.GenerateToken();
+            configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AppHost:OtlpApiKey"] = apiKey
+                }
+            );
+            if (!SecretsStore.TrySetUserSecret(appHostAssembly, key, apiKey))
+            {
+                // This is a best-effort operation, so we don't throw if it fails. Common reason for failure is that the user secrets ID is not set
+                // in the application's assembly. Note there's no ILogger available this early in the application lifecycle.
+                Debug.WriteLine($"Failed to save OTLP API key in application to user secrets.");
+            }
+        }
     }
 
     private void ConfigureHealthChecks()

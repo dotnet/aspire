@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
@@ -89,5 +90,28 @@ internal sealed class SecretsStore
             .AsEnumerable()
             .Where(i => i.Value != null)
             .ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Attempts to save a user secret value for the project associated with the given assembly. Returns a boolean indicating
+    /// success or failure. If the assembly does not have a <see cref="UserSecretsIdAttribute"/>, or if the user secrets store
+    /// save operation fails, this method will return false.
+    /// </summary>
+    public static bool TrySetUserSecret(Assembly? assembly, string name, string value)
+    {
+        if (assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
+        {
+            // Save the value to the secret store
+            try
+            {
+                var secretsStore = new SecretsStore(userSecretsId);
+                secretsStore.Set(name, value);
+                secretsStore.Save();
+                return true;
+            }
+            catch (Exception) { } // Ignore user secret store errors
+        }
+
+        return false;
     }
 }
