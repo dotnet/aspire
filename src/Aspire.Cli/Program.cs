@@ -47,10 +47,11 @@ public class Program
         debugOption.Recursive = true;
         rootCommand.Options.Add(debugOption);
         
-        #if DEBUG
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger", "-w");
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
+
+        #if DEBUG
         waitForDebuggerOption.Validators.Add((result) => {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
@@ -68,8 +69,9 @@ public class Program
                 );
             }
         });
-        rootCommand.Options.Add(waitForDebuggerOption);
         #endif
+
+        rootCommand.Options.Add(waitForDebuggerOption);
 
         ConfigureRunCommand(rootCommand);
         ConfigureBuildCommand(rootCommand);
@@ -137,13 +139,7 @@ public class Program
 
             var debug = parseResult.GetValue<bool>("--debug");
 
-            #if DEBUG
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
-            #endif
-            
-            #if !DEBUG
-            var waitForDebugger = false;
-            #endif
             
             var useRichConsole = !debug && !waitForDebugger;
 
@@ -311,12 +307,10 @@ public class Program
             
             var env = new Dictionary<string, string>();
 
-            #if DEBUG
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
-            #endif
 
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
