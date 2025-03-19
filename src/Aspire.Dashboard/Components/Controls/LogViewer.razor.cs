@@ -84,7 +84,7 @@ public sealed partial class LogViewer
             : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
     }
 
-    private ICollection<LogEntry>? GetEntries()
+    internal ICollection<LogEntry>? GetEntries()
     {
         if (LogEntries is not { } logEntries)
         {
