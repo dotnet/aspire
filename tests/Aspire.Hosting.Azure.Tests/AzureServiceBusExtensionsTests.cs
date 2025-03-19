@@ -851,9 +851,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureServiceBusClient("servicebusns");
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
-        await rns.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
 
         using var host = hb.Build();
         await host.StartAsync();
