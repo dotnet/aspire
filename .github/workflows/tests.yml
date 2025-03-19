@@ -37,6 +37,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.os.name }}
+      requiresNugets: ${{ matrix.shortname == 'EndToEnd' }}
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}

@@ -49,6 +49,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8113")]
     public async Task AppHostConnectsBackToCliWithPingRequest()
     {
         var testStartedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

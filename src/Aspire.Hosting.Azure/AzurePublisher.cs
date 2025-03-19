@@ -118,7 +118,7 @@ internal sealed class AzurePublisher(
 
         BicepFormatString EvalExpr(ReferenceExpression expr)
         {
-            var args = new BicepValue<string>[expr.ValueProviders.Count];
+            var args = new object[expr.ValueProviders.Count];
 
             for (var i = 0; i < expr.ValueProviders.Count; i++)
             {
@@ -128,16 +128,28 @@ internal sealed class AzurePublisher(
             return new BicepFormatString(expr.Format, args);
         }
 
-        BicepValue<string> Eval(object? value) => value switch
+        object Eval(object? value) => value switch
         {
             BicepOutputReference b => GetOutputs(moduleMap[b.Resource], b.Name),
             ParameterResource p => parameterMap[p],
             ConnectionStringReference r => Eval(r.Resource.ConnectionStringExpression),
             IResourceWithConnectionString cs => Eval(cs.ConnectionStringExpression),
-            ReferenceExpression re => BicepFunction2.Interpolate(EvalExpr(re)),
+            ReferenceExpression re => EvalExpr(re),
             string s => s,
             _ => ""
         };
+
+        static BicepValue<string> ResolveValue(object val)
+        {
+            return val switch
+            {
+                BicepValue<string> s => s,
+                string s => s,
+                ProvisioningParameter p => p,
+                BicepFormatString fs => BicepFunction2.Interpolate(fs),
+                _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
+            };
+        }
 
         foreach (var resource in model.Resources.OfType<AzureBicepResource>())
         {
@@ -160,7 +172,13 @@ internal sealed class AzurePublisher(
                 // azd and aspire. Once the infra moves to aspire, we can throw for 
                 // unresolved "known parameters".
 
-                var value = Eval(parameter.Value);
+                if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
+
+                var value = ResolveValue(Eval(parameter.Value));
 
                 module.Parameters.Add(parameter.Key, value);
             }
