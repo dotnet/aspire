@@ -271,8 +271,7 @@ public static class AzureRedisExtensions
                 var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
                 infrastructure.Add(principalNameParameter);
 
-                // since the principalIdParameter is a parameter, we can use it as the principalUniqueId
-                AddContributorPolicyAssignment(infrastructure, redis, principalIdParameter, principalIdParameter, principalNameParameter);
+                AddContributorPolicyAssignment(infrastructure, redis, principalIdParameter, principalNameParameter);
             }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
@@ -284,11 +283,11 @@ public static class AzureRedisExtensions
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
     }
 
-    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<string> principalUniqueId, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)
     {
         infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
         {
-            Name = BicepFunction.CreateGuid(redis.Id, principalUniqueId, "Data Contributor"),
+            Name = BicepFunction.CreateGuid(redis.Id, principalId, "Data Contributor"),
             Parent = redis,
             AccessPolicyName = "Data Contributor",
             ObjectId = principalId,

@@ -433,7 +433,7 @@ public static class AzureCosmosExtensions
                 var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
                 infrastructure.Add(principalIdParameter);
 
-                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter, principalIdParameter);
+                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter);
             }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
@@ -445,7 +445,7 @@ public static class AzureCosmosExtensions
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
     }
 
-    internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId, BicepValue<string> uniqueId)
+    internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId)
     {
         var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
         roleDefinition.Parent = cosmosAccount;
@@ -454,7 +454,7 @@ public static class AzureCosmosExtensions
 
         infra.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
         {
-            NameOverride = BicepFunction.CreateGuid(uniqueId, roleDefinition.Id, cosmosAccount.Id),
+            NameOverride = BicepFunction.CreateGuid(principalId, roleDefinition.Id, cosmosAccount.Id),
             Parent = cosmosAccount,
             Scope = cosmosAccount.Id,
             RoleDefinitionId = roleDefinition.Id,

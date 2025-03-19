@@ -109,6 +109,6 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var principalId = roleAssignmentContext.PrincipalId;
 
-        AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId, principalId);
+        AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
     }
 }

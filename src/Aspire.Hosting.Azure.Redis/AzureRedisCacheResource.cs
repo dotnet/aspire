@@ -89,6 +89,6 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
         var principalId = roleAssignmentContext.PrincipalId;
         var principalName = roleAssignmentContext.PrincipalName;
 
-        AzureRedisExtensions.AddContributorPolicyAssignment(infra, redis, principalId, principalId, principalName);
+        AzureRedisExtensions.AddContributorPolicyAssignment(infra, redis, principalId, principalName);
     }
 }
