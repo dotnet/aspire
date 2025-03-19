@@ -38,19 +38,16 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param sb_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
               name: sb_outputs_name
             }
 
             resource sb_AzureServiceBusDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(sb.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'))
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')
                 principalType: 'ServicePrincipal'
               }
@@ -58,22 +55,14 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             }
 
             resource sb_AzureServiceBusDataSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(sb.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'))
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39')
                 principalType: 'ServicePrincipal'
               }
               scope: sb
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-
-            output principalName string = api_identity.name
             """);
     }
 
@@ -91,35 +80,24 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-    
+            
             param config_outputs_name string
-    
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
-    
+            
+            param principalId string
+            
             resource config 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
               name: config_outputs_name
             }
-    
+            
             resource config_AppConfigurationDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(config.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '516239f1-63e1-4d78-a4de-a74fb236a071'))
+              name: guid(config.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '516239f1-63e1-4d78-a4de-a74fb236a071'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '516239f1-63e1-4d78-a4de-a74fb236a071')
                 principalType: 'ServicePrincipal'
               }
               scope: config
             }
-    
-            output id string = api_identity.id
-    
-            output clientId string = api_identity.properties.clientId
-    
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -140,32 +118,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param openai_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
               name: openai_outputs_name
             }
 
             resource openai_CognitiveServicesOpenAIUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(openai.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
+              name: guid(openai.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
                 principalType: 'ServicePrincipal'
               }
               scope: openai
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -186,32 +153,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param eventhubs_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource eventhubs 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
               name: eventhubs_outputs_name
             }
 
             resource eventhubs_AzureEventHubsDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(eventhubs.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'))
+              name: guid(eventhubs.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde')
                 principalType: 'ServicePrincipal'
               }
               scope: eventhubs
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -232,32 +188,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param keyvault_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource keyvault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyvault_outputs_name
             }
 
             resource keyvault_KeyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(keyvault.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
+              name: guid(keyvault.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
                 principalType: 'ServicePrincipal'
               }
               scope: keyvault
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -278,32 +223,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param search_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource search 'Microsoft.Search/searchServices@2023-11-01' existing = {
               name: search_outputs_name
             }
 
             resource search_SearchIndexDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(search.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f'))
+              name: guid(search.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')
                 principalType: 'ServicePrincipal'
               }
               scope: search
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -324,32 +258,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param signalr_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
               name: signalr_outputs_name
             }
 
             resource signalr_SignalRContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(signalr.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8cf5e20a-e4b2-4e9d-b3a1-5ceb692c2761'))
+              name: guid(signalr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8cf5e20a-e4b2-4e9d-b3a1-5ceb692c2761'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8cf5e20a-e4b2-4e9d-b3a1-5ceb692c2761')
                 principalType: 'ServicePrincipal'
               }
               scope: signalr
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -370,32 +293,21 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param webpubsub_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource webpubsub 'Microsoft.SignalRService/webPubSub@2024-03-01' existing = {
               name: webpubsub_outputs_name
             }
 
             resource webpubsub_WebPubSubServiceReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(webpubsub.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'bfb1c7d2-fb1a-466b-b2ba-aee63b92deaf'))
+              name: guid(webpubsub.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'bfb1c7d2-fb1a-466b-b2ba-aee63b92deaf'))
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'bfb1c7d2-fb1a-466b-b2ba-aee63b92deaf')
                 principalType: 'ServicePrincipal'
               }
               scope: webpubsub
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
             """);
     }
 
@@ -416,10 +328,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param cosmos_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
               name: cosmos_outputs_name
@@ -431,22 +340,14 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             }
 
             resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
-              name: guid(api_identity.id, cosmos_roleDefinition.id, cosmos.id)
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
               properties: {
-                principalId: api_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: cosmos_roleDefinition.id
                 scope: cosmos.id
               }
               parent: cosmos
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-
-            output principalName string = api_identity.name
             """);
     }
 
@@ -467,36 +368,32 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param redis_outputs_name string
 
-            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
+
+            param principalName string
 
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: redis_outputs_name
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: guid(redis.id, api_identity.id, 'Data Contributor')
+              name: guid(redis.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
-                objectId: api_identity.properties.principalId
-                objectIdAlias: api_identity.name
+                objectId: principalId
+                objectIdAlias: principalName
               }
               parent: redis
             }
-
-            output id string = api_identity.id
-
-            output clientId string = api_identity.properties.clientId
-
-            output principalId string = api_identity.properties.principalId
-            
-            output principalName string = api_identity.name
-            """);
+            """,
+            includePrincipalName: true);
     }
 
-    private async Task RoleAssignmentTest(string azureResourceName, Action<IDistributedApplicationBuilder> configureBuilder, string expectedRolesBicep)
+    private async Task RoleAssignmentTest(
+        string azureResourceName,
+        Action<IDistributedApplicationBuilder> configureBuilder,
+        string expectedRolesBicep,
+        bool includePrincipalName = false)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppsInfrastructure();
@@ -509,17 +406,23 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles"));
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles-{azureResourceName}"));
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        var principalNameSegment = includePrincipalName ? """
+            ,
+                "principalName": "{api-identity.outputs.principalName}"
+            """ : null;
 
         var expectedRolesManifest =
             $$"""
             {
               "type": "azure.bicep.v0",
-              "path": "api-roles.module.bicep",
+              "path": "api-roles-{{azureResourceName}}.module.bicep",
               "params": {
-                "{{azureResourceName}}_outputs_name": "{{{azureResourceName}}.outputs.name}"
+                "{{azureResourceName}}_outputs_name": "{{{azureResourceName}}.outputs.name}",
+                "principalId": "{api-identity.outputs.principalId}"{{principalNameSegment}}
               }
             }
             """;
