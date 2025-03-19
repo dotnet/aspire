@@ -328,8 +328,8 @@ internal sealed class AzureContainerAppsInfrastructure(
                     ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
                 };
 
-                var existingResourceRoleAssignments = CreateRoleAssignmentsResources(provisioningOptions, identityResource);
-                return (identityResource, existingResourceRoleAssignments);
+                var roleAssignmentResources = CreateRoleAssignmentsResources(provisioningOptions, identityResource);
+                return (identityResource, roleAssignmentResources);
             }
 
             private void ConfigureIdentityInfrastructure(AzureResourceInfrastructure infra)

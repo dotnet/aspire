@@ -18,7 +18,7 @@ public sealed class AddRoleAssignmentsContext
     /// <summary>
     /// Initializes a new instance of the <see cref="AddRoleAssignmentsContext"/> class.
     /// </summary>
-    /// <param name="infrastructure">The Azure resource infrastructure.</param>
+    /// <param name="infrastructure">The Azure resource infrastructure to add the role assignments into.</param>
     /// <param name="roles">The roles to be assigned.</param>
     /// <param name="getPrincipalType">A Lazy instance that will retrieve the principal type when requested.</param>
     /// <param name="getPrincipalId">A Lazy instance that will retrieve the principal ID when requested.</param>
