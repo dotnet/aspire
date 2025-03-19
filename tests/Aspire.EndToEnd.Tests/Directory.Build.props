@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <!-- This triggers the import of targets needed for workload testing -->
+    <!-- This triggers the import of targets needed for template testing -->
     <IsTemplateTestProject>true</IsTemplateTestProject>
   </PropertyGroup>
 
