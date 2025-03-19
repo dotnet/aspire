@@ -72,7 +72,7 @@ public class AzureCosmosDBExtensionsTests
     [Fact]
     public void AddAzureCosmosDBWithDataExplorer()
     {
-#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
@@ -85,7 +85,7 @@ public class AzureCosmosDBExtensionsTests
         // WithDataExplorer doesn't work against the non-preview emulator
         var cosmos2 = builder.AddAzureCosmosDB("cosmos2");
         Assert.Throws<NotSupportedException>(() => cosmos2.RunAsEmulator(e => e.WithDataExplorer()));
-#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning restore ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
     }
 
     [Fact]
@@ -117,18 +117,21 @@ public class AzureCosmosDBExtensionsTests
         ((IResourceWithAzureFunctionsConfig)cosmos.Resource).ApplyAzureFunctionsConfiguration(target, "cosmos");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__cosmos__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmos__AccountEndpoint", k),
             k => Assert.Equal("cosmos__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__AccountEndpoint", k),
             k => Assert.Equal("db1__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
             k => Assert.Equal("container1__accountEndpoint", k));
     }
 }

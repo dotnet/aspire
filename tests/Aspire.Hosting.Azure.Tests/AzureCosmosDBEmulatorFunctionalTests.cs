@@ -46,17 +46,15 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -94,8 +92,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -349,9 +346,9 @@ internal static class CosmosExtensions
         }
 
         return usePreview
-#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
             ? builder.RunAsPreviewEmulator(WithVolume)
-#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning restore ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
             : builder.RunAsEmulator(WithVolume);
     }
 }

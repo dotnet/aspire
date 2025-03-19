@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
@@ -41,7 +43,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
-    public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
+    public ImmutableList<DimensionFilterViewModel> DimensionFilters { get; set; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
 
@@ -158,10 +160,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         PreviousMeterName = MeterName;
         PreviousInstrumentName = InstrumentName;
 
-        var filters = CreateUpdatedFilters(hasInstrumentChanged);
-
-        DimensionFilters.Clear();
-        DimensionFilters.AddRange(filters);
+        // Replace filters collection on change. Filters can be accessed from a background task so it is immutable for thread safety.
+        DimensionFilters = ImmutableList.Create(CollectionsMarshal.AsSpan(CreateUpdatedFilters(hasInstrumentChanged)));
 
         await UpdateInstrumentDataAsync(_instrument);
     }

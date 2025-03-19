@@ -20,6 +20,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource>>? configureContainer = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> WithApiVersionCheck(this ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> builder, bool enable = true) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> WithBlobPort(this ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> builder, int port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource> builder, string? path = null, bool isReadOnly = false) { throw null; }

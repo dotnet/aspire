@@ -7,10 +7,6 @@
     <Description>An Oracle Database provider for Entity Framework Core that integrates with Aspire, including connection pooling, health check, logging, and telemetry.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>89</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />

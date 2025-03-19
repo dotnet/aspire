@@ -257,7 +257,20 @@ public static class ResourceExtensions
         return [.. args];
     }
 
-    internal static async ValueTask ProcessArgumentValuesAsync(
+    /// <summary>
+    /// Processes argument values for the specified resource in the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource containing the argument values to process.</param>
+    /// <param name="executionContext">The execution context used during the processing of argument values.</param>
+    /// <param name="processValue">
+    /// A callback invoked for each argument value. This action provides the unprocessed value, processed string representation,
+    /// an exception if one occurs, and a boolean indicating the success of processing.
+    /// </param>
+    /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
+    /// <param name="containerHostName">An optional container host name to consider during processing, if applicable.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         // (unprocessed, processed, exception, isSensitive)
@@ -288,8 +301,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -307,7 +321,17 @@ public static class ResourceExtensions
         }
     }
 
-    internal static async ValueTask ProcessEnvironmentVariableValuesAsync(
+    /// <summary>
+    /// Processes environment variable values for the specified resource within the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource from which the environment variables are retrieved and processed.</param>
+    /// <param name="executionContext">The execution context to be used for processing the environment variables.</param>
+    /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
+    /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
+    /// <param name="containerHostName">The optional container host name associated with the resource being processed.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
@@ -336,7 +360,9 @@ public static class ResourceExtensions
                     {
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
                     };
@@ -551,6 +577,24 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
+    /// </summary>
+    /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
+    /// <returns>True if an annotation exists, false otherwise</returns>
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
+    {
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
+            return true;
+        }
+
+        pullPolicy = null;
+        return false;
     }
 
     /// <summary>

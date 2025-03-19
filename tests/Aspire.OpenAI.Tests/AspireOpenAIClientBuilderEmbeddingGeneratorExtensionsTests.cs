@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.ConformanceTests;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Aspire.OpenAI.Tests;
@@ -38,7 +40,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -68,7 +70,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -96,7 +98,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -217,6 +219,50 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
 
         var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
         Assert.Equal(1.23f, vector.ToArray().Single());
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task LogsCorrectly(bool useKeyed, bool disableOpenTelemetry)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake"),
+            new("Aspire:OpenAI:DisableTracing", disableOpenTelemetry.ToString()),
+        ]);
+
+        builder.Services.AddSingleton<ILoggerFactory, TestLoggerFactory>();
+
+        if (useKeyed)
+        {
+            builder.AddOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_embeddinggenerator", "testdeployment1").Use(TestMiddleware);
+        }
+        else
+        {
+            builder.AddOpenAIClient("openai").AddEmbeddingGenerator("testdeployment1").Use(TestMiddleware);
+        }
+
+        using var host = builder.Build();
+        var generator = useKeyed ?
+            host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
+            host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+        var loggerFactory = (TestLoggerFactory)host.Services.GetRequiredService<ILoggerFactory>();
+
+        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        Assert.Equal(1.23f, vector.ToArray().Single());
+
+        const string category = "Microsoft.Extensions.AI.OpenTelemetryEmbeddingGenerator";
+        if (disableOpenTelemetry)
+        {
+            Assert.DoesNotContain(category, loggerFactory.Categories);
+        }
+        else
+        {
+            Assert.Contains(category, loggerFactory.Categories);
+        }
     }
 
     private Task<GeneratedEmbeddings<Embedding<float>>> TestMiddleware(IEnumerable<string> inputs, EmbeddingGenerationOptions? options, IEmbeddingGenerator<string, Embedding<float>> nextAsync, CancellationToken cancellationToken)

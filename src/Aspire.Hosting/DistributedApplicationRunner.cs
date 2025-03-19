@@ -8,15 +8,15 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider) : BackgroundService
+internal sealed class DistributedApplicationRunner(IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (executionContext.IsPublishMode)
         {
-            return serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest").PublishAsync(model, stoppingToken);
+            var publisher = serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>(executionContext.PublisherName);
+            await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
+            lifetime.StopApplication();
         }
-
-        return Task.CompletedTask;
     }
 }

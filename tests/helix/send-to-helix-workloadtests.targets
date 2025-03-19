@@ -59,8 +59,7 @@
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml;logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

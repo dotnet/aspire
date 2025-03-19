@@ -4,25 +4,65 @@
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
+using Azure.Identity;
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
+using HealthChecks.Azure.Messaging.EventHubs;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
 internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     AzureComponent<TSettings, TClient, TClientOptions>
-    where TClientOptions: class
+    where TClientOptions : class
     where TClient : class
     where TSettings : AzureMessagingEventHubsSettings, new()
 {
+    private EventHubProducerClient? _healthCheckClient;
+
     // each EventHub client class is in a different namespace, so the base AzureComponent.ActivitySourceNames logic doesn't work
     protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
 
     protected override IHealthCheck CreateHealthCheck(TClient client, TSettings settings)
-        => throw new NotImplementedException();
+    {
+        // HealthChecks.Azure.Messaging.EventHubs currently only supports EventHubProducerClient.
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2258 tracks supporting other client types.
+
+        // Reuse the client if it's an EventHubProducerClient
+        if (client is EventHubProducerClient producerClient)
+        {
+            _healthCheckClient = producerClient;
+        }
+
+        // Create a custom EventHubProducerClient otherwise
+        if (_healthCheckClient == null)
+        {
+            var producerClientOptions = new EventHubProducerClientOptions
+            {
+                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
+            };
+
+            // If no connection is provided use TokenCredential
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+            }
+            // If no specific EventHubName is provided, it has to be in the connection string
+            else if (string.IsNullOrEmpty(settings.EventHubName))
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.ConnectionString, producerClientOptions);
+            }
+            else
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, producerClientOptions);
+            }
+        }
+
+        return new AzureEventHubHealthCheck(_healthCheckClient);
+    }
 
     protected override bool GetHealthCheckEnabled(TSettings settings)
-        => false;
+        => !settings.DisableHealthChecks;
 
     protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;
@@ -104,6 +144,8 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                         $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                         $"the '{configurationSectionName}' configuration section, or include an EntityPath in the ConnectionString.");
                 }
+                // The connection string has an EventHubName, but we'll set this anyway so the health check can use it
+                settings.EventHubName = props.EventHubName;
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName

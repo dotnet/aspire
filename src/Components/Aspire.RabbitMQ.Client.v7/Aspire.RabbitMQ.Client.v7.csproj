@@ -1,11 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
     <Description>A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>
-    <MinCodeCoverage>80</MinCodeCoverage>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
@@ -31,7 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.0.0" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.1.2" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 

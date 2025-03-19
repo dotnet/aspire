@@ -35,12 +35,10 @@
       "type": "container.v0",
       "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port},password={basketcache-password.value}",
       "image": "docker.io/library/redis:7.4",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--requirepass",
-        "{basketcache-password.value}",
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -49,6 +47,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "REDIS_PASSWORD": "{basketcache-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -251,7 +252,8 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 22
+              "minLength": 22,
+              "special": false
             }
           }
         }

@@ -324,9 +324,10 @@ public sealed class UrlViewModel
     public string Name { get; }
     public Uri Url { get; }
     public bool IsInternal { get; }
+    public bool IsInactive { get; }
     public UrlDisplayPropertiesViewModel DisplayProperties { get; }
 
-    public UrlViewModel(string name, Uri url, bool isInternal, UrlDisplayPropertiesViewModel displayProperties)
+    public UrlViewModel(string name, Uri url, bool isInternal, bool isInactive, UrlDisplayPropertiesViewModel displayProperties)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(url);
@@ -336,6 +337,7 @@ public sealed class UrlViewModel
         Url = url;
         IsInternal = isInternal;
         DisplayProperties = displayProperties;
+        IsInactive = isInactive;
     }
 }
 

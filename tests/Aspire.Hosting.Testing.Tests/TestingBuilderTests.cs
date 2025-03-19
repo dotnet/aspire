@@ -107,6 +107,20 @@ public class TestingBuilderTests(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public async Task CanSetEnvironment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--environment=Testing"]);
+        Assert.Equal("Testing", builder.Environment.EnvironmentName);
+    }
+
+    [Fact]
+    public async Task EnvironmentDefaultsToDevelopment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        Assert.Equal(Environments.Development, builder.Environment.EnvironmentName);
+    }
+
     [Theory]
     [RequiresDocker]
     [InlineData(false)]
@@ -125,10 +139,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
 
-        // Get a connection string from a resource
-        var pgConnectionString = await app.GetConnectionStringAsync("postgres1");
-        Assert.NotNull(pgConnectionString);
-        Assert.True(pgConnectionString.Length > 0);
+        // Get a connection string
+        var connectionString = await app.GetConnectionStringAsync("cs");
+        Assert.NotNull(connectionString);
+        Assert.True(connectionString.Length > 0);
     }
 
     [Theory]
@@ -146,7 +160,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
         // Ensure that the resource which we added is present in the model.
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
@@ -198,6 +211,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7930", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
     public async Task ArgsPropagateToAppHostConfiguration(bool genericEntryPoint, bool directArgs)
     {
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];
@@ -456,12 +470,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-
-            // DisposeAsync should throw the same exception.
-            exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.DisposeAsync().AsTask().WaitAsync(cts.Token));
-            Assert.Contains(crashArg, exception.Message);
-
-            return;
         }
         else
         {
@@ -469,15 +477,82 @@ public class TestingBuilderTests(ITestOutputHelper output)
         }
 
         cts.CancelAfter(timeout);
-        if (crashArg is "after-shutdown" or "after-start")
+        await app.DisposeAsync().AsTask().WaitAsync(cts.Token);
+    }
+
+    /// <summary>
+    /// Checks that DisposeAsync does not throw an exception when the application is disposed with a still on-going StartAsync call.
+    /// </summary>
+    [Fact]
+    [RequiresDocker]
+    public async Task StartAsyncAbandonedAfterCrash()
+    {
+        var timeout = TimeSpan.FromMinutes(5);
+        using var cts = new CancellationTokenSource(timeout);
+
+        try
         {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.DisposeAsync().AsTask().WaitAsync(cts.Token));
-            Assert.Contains(crashArg, exception.Message);
-            return;
+            using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--add-unknown-container"], cts.Token).WaitAsync(cts.Token);
+            cts.CancelAfter(timeout);
+            await using var app = await builder.BuildAsync(cts.Token).WaitAsync(cts.Token);
+            await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Fail();
         }
-        else
+        catch (Exception ex)
         {
-            await app.DisposeAsync().AsTask().WaitAsync(cts.Token);
+            Assert.IsType<TimeoutException>(ex);
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task StartAsyncAbandonedAfterHang()
+    {
+        var timeout = TimeSpan.FromMinutes(5);
+        using var cts = new CancellationTokenSource(timeout);
+
+        try
+        {
+            var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(
+                ["--wait-for-healthy", "--add-redis"],
+                cts.Token).WaitAsync(cts.Token);
+
+            // Make the redis container hang forever.
+            var redis1 = builder.CreateResourceBuilder<RedisResource>("redis1");
+            redis1.WithImage("busybox:latest");
+            redis1.WithEntrypoint("tail");
+            redis1.WithArgs(a => { a.Args.Clear(); a.Args.AddRange(["-f", "/dev/null"]); });
+
+            var project = builder.CreateResourceBuilder<ProjectResource>("mywebapp1");
+            project.WaitFor(redis1);
+
+            cts.CancelAfter(timeout);
+            DistributedApplication? app = null;
+            try
+            {
+                app = await builder.BuildAsync(cts.Token).WaitAsync(cts.Token);
+
+                await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            }
+            finally
+            {
+                Assert.NotNull(app);
+                try
+                {
+                    await app.DisposeAsync().AsTask().WaitAsync(cts.Token);
+                }
+                catch (Exception exception)
+                {
+                    Assert.Fail($"DisposeAsync should not have thrown, but it threw '{exception}'.");
+                }
+            }
+
+            Assert.Fail();
+        }
+        catch (Exception ex)
+        {
+            Assert.False(cts.IsCancellationRequested);
+            Assert.IsType<TimeoutException>(ex);
         }
     }
 

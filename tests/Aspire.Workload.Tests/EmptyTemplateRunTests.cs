@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -17,13 +18,15 @@ public class EmptyTemplateRunTests : WorkloadTestsBase, IClassFixture<EmptyTempl
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
+    [RequiresSSLCertificate("Needed for dashboard access")]
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             [],
-            timeoutSecs: 1_000);
+            timeoutSecs: 1_000,
+            logPath: _testFixture.Project.LogPath);
     }
 }

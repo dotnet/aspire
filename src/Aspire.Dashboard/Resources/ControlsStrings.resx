@@ -377,6 +377,9 @@
   <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
     <value>Column width (in pixels)</value>
   </data>
+  <data name="FluentDataGridHeaderCellResizeDiscreteLabel" xml:space="preserve">
+    <value>Column width</value>
+  </data>
   <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
     <value>Sort</value>
   </data>
@@ -388,6 +391,18 @@
   </data>
   <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
     <value>Resize</value>
+  </data>
+  <data name="FluentDataGridHeaderCellGrowAriaLabelText" xml:space="preserve">
+    <value>Grow column width</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResetAriaLabelText" xml:space="preserve">
+    <value>Reset column widths</value>
+  </data>
+  <data name="FluentDataGridHeaderCellShrinkAriaLabelText" xml:space="preserve">
+    <value>Shrink column width</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSubmitAriaLabelText" xml:space="preserve">
+    <value>Set column widths</value>
   </data>
   <data name="StructuredFilteringFilters" xml:space="preserve">
     <value>Filters</value>
@@ -439,5 +454,16 @@
   </data>
   <data name="ClearPendingSelectedResource" xml:space="preserve">
     <value>Remove for resource</value>
+  </data>
+  <data name="ChartContainerOverflowDescription" xml:space="preserve">
+    <value>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="ChartContainerOverflowTitle" xml:space="preserve">
+    <value>Cardinality capping has been detected</value>
+  </data>
+  <data name="ChartContainerOverflowLink" xml:space="preserve">
+    <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
   </data>
 </root>

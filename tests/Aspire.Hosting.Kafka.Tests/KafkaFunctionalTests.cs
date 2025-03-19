@@ -40,17 +40,15 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await pendingStart;
 
@@ -144,7 +142,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                     // to the bind mount directory.
                     // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
                     const UnixFileMode BindMountPermissions =
@@ -154,6 +152,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     File.SetUnixFileMode(bindMountPath, BindMountPermissions);
                 }
+
                 kafka1.WithDataBindMount(bindMountPath);
             }
 

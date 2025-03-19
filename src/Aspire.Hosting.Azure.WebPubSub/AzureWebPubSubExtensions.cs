@@ -22,8 +22,18 @@ public static class AzureWebPubSubExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure Web PubSub resource will be assigned the following roles:
+    /// 
+    /// - <see cref="WebPubSubBuiltInRole.WebPubSubServiceOwner"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureWebPubSubResource}, WebPubSubBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -66,12 +76,21 @@ public static class AzureWebPubSubExtensions
 
             infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
 
-            infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
+            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
+            {
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+
+                foreach (var role in appliedRoleAssignments.Roles)
+                {
+                    infrastructure.Add(service.CreateRoleAssignment(new WebPubSubBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
+                }
+            }
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)
@@ -122,7 +141,8 @@ public static class AzureWebPubSubExtensions
 
         var resource = new AzureWebPubSubResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+            .WithDefaultRoleAssignments(WebPubSubBuiltInRole.GetBuiltInRoleName,
+                WebPubSubBuiltInRole.WebPubSubServiceOwner);
     }
 
     /// <summary>
@@ -133,6 +153,9 @@ public static class AzureWebPubSubExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(hubName);
+
         AzureWebPubSubHubResource? hubResource;
         if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
         {
@@ -153,13 +176,19 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
+        this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression,
+        string userEventPattern = "*",
+        string[]? systemEvents = null,
+        UpstreamAuthSettings? authSettings = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(userEventPattern);
+
         var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
 
-        return builder.AddEventHandler(urlExpression, userEventPattern, systemEvents, authSettings);
+        return AddEventHandler(builder, urlExpression, userEventPattern, systemEvents, authSettings);
     }
 
     /// <summary>
@@ -172,10 +201,18 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
+        this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-        ReferenceExpression urlExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+        ReferenceExpression urlExpression,
+        string userEventPattern = "*",
+        string[]? systemEvents = null,
+        UpstreamAuthSettings? authSettings = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(urlExpression);
+        ArgumentException.ThrowIfNullOrEmpty(userEventPattern);
+
         builder.Resource.EventHandlers.Add((urlExpression, userEventPattern, systemEvents, authSettings));
         return builder;
     }
@@ -198,5 +235,34 @@ public static class AzureWebPubSubExtensions
             handler.Auth = authSettings;
         }
         return handler;
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Web PubSub resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Web PubSub resource.</param>
+    /// <param name="roles">The built-in Web PubSub roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Assigns the WebPubSubServiceReader role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var webPubSub = builder.AddAzureWebPubSub("webPubSub");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(webPubSub, WebPubSubBuiltInRole.WebPubSubServiceReader)
+    ///   .WithReference(webPubSub);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureWebPubSubResource> target,
+        params WebPubSubBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, WebPubSubBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

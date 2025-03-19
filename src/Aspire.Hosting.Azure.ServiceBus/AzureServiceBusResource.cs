@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.ServiceBus;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -14,13 +15,15 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig, IResourceWithEndpoints
 {
-    internal List<ServiceBusQueue> Queues { get; } = [];
-    internal List<ServiceBusTopic> Topics { get; } = [];
+    internal List<AzureServiceBusQueueResource> Queues { get; } = [];
+    internal List<AzureServiceBusTopicResource> Topics { get; } = [];
 
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
+
+    private BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
@@ -34,7 +37,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
         : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
@@ -53,5 +56,14 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
             target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var sbNamespace = ServiceBusNamespace.FromExisting(this.GetBicepIdentifier());
+        sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(sbNamespace);
+        return sbNamespace;
     }
 }

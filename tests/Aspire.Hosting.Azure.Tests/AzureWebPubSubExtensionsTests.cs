@@ -35,7 +35,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var hub = wps.AddHub(hubName);
 
         Assert.Equal(hubName, hub.Resource.Name);
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         Assert.NotNull(realHub);
         Assert.Equal(hubName, realHub.Name.Value);
         Assert.Equal("a_b_c", realHub.BicepIdentifier);
@@ -60,7 +60,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -107,6 +107,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -135,7 +137,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -185,6 +187,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -210,7 +214,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -267,6 +271,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -287,7 +293,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         wps.AddHub("abc");
 
         wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -344,6 +350,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -392,7 +400,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
 
         Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -496,6 +504,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }

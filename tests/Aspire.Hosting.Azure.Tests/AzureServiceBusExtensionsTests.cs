@@ -18,29 +18,25 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task NameResourcesAreReused()
+    public async Task ResourceNamesCanBeDifferentThanAzureNames()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
-#pragma warning disable CS0618 // Type or member is obsolete
-        serviceBus.AddQueue("queue1");
-        serviceBus.AddQueue("queue1");
-        serviceBus.WithQueue("queue1", queue => queue.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1));
-        serviceBus.AddTopic("topic1");
-        serviceBus.AddTopic("topic1");
-        serviceBus.WithTopic("topic1", topic =>
-        {
-            topic.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1);
-            var subscription = new ServiceBusSubscription("subscription1");
-            subscription.Rules.Add(new ServiceBusRule("rule1"));
-            topic.Subscriptions.Add(subscription);
-        });
-        serviceBus.AddSubscription("topic1", "subscription1");
-        serviceBus.AddSubscription("topic1", "subscription2");
-#pragma warning restore CS0618 // Type or member is obsolete
+        serviceBus.AddServiceBusQueue("queue1", "queueName")
+            .WithProperties(queue => queue.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1));
+        var topic1 = serviceBus.AddServiceBusTopic("topic1", "topicName")
+            .WithProperties(topic =>
+            {
+                topic.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1);
+            });
+        topic1.AddServiceBusSubscription("subscription1", "subscriptionName")
+            .WithProperties(sub =>
+            {
+                sub.Rules.Add(new AzureServiceBusRule("rule1"));
+            });
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -77,7 +73,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue1'
+              name: 'queueName'
               properties: {
                 defaultMessageTimeToLive: 'PT1S'
               }
@@ -85,7 +81,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 'topic1'
+              name: 'topicName'
               properties: {
                 defaultMessageTimeToLive: 'PT1S'
               }
@@ -93,7 +89,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
-              name: 'subscription1'
+              name: 'subscriptionName'
               parent: topic1
             }
 
@@ -104,13 +100,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               }
               parent: subscription1
             }
-            
-            resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
-              name: 'subscription2'
-              parent: topic1
-            }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -132,10 +125,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         }
         else
         {
-            serviceBus.WithTopic("device-connection-state-events1234567890-even-longer");
+            serviceBus.AddServiceBusTopic("device-connection-state-events1234567890-even-longer");
         }
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -177,6 +170,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -188,7 +183,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
-        
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -197,9 +191,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         });
 
         var resource = builder.AddAzureServiceBus("resource")
-                              .WithQueue("queue1")
                               .RunAsEmulator()
                               .WithHealthCheck("blocking_check");
+
+        resource.AddServiceBusQueue("queue1");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
@@ -208,34 +203,35 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [Theory(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [InlineData(null)]
+    [InlineData("other")]
     [RequiresDocker]
-    public async Task VerifyAzureServiceBusEmulatorResource()
+    public async Task VerifyAzureServiceBusEmulatorResource(string? queueName)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .RunAsEmulator()
-            .WithQueue("queue123");
+            .RunAsEmulator();
+
+        var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -253,10 +249,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 
-        await using var sender = serviceBusClient.CreateSender("queue123");
+        await using var sender = serviceBusClient.CreateSender(queueResource.Resource.QueueName);
         await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
 
-        await using var receiver = serviceBusClient.CreateReceiver("queue123");
+        await using var receiver = serviceBusClient.CreateReceiver(queueResource.Resource.QueueName);
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());
@@ -316,8 +312,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         global::Azure.Provisioning.ServiceBus.ServiceBusSubscription? subscription = null;
         global::Azure.Provisioning.ServiceBus.ServiceBusRule? rule = null;
 
-        var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .WithQueue("queue1", queue =>
+        var serviceBus = builder.AddAzureServiceBus("servicebusns");
+        serviceBus.AddServiceBusQueue("queue1")
+            .WithProperties(queue =>
             {
                 queue.DeadLetteringOnMessageExpiration = true;
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
@@ -327,27 +324,28 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 queue.MaxDeliveryCount = 10;
                 queue.RequiresDuplicateDetection = true;
                 queue.RequiresSession = true;
-            })
-            .WithTopic("topic1", topic =>
+            });
+
+        var topic1 = serviceBus.AddServiceBusTopic("topic1")
+            .WithProperties(topic =>
             {
                 topic.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
+            });
+        topic1.AddServiceBusSubscription("subscription1")
+            .WithProperties(sub =>
+            {
+                sub.DeadLetteringOnMessageExpiration = true;
+                sub.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
+                sub.LockDuration = TimeSpan.FromMinutes(5);
+                sub.MaxDeliveryCount = 10;
+                sub.ForwardDeadLetteredMessagesTo = "";
+                sub.RequiresSession = true;
 
-                var subscription = new ServiceBusSubscription("subscription1")
+                var rule = new AzureServiceBusRule("rule1")
                 {
-                    DeadLetteringOnMessageExpiration = true,
-                    DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
-                    LockDuration = TimeSpan.FromMinutes(5),
-                    MaxDeliveryCount = 10,
-                    ForwardDeadLetteredMessagesTo = "",
-                    RequiresSession = true,
-                };
-                topic.Subscriptions.Add(subscription);
-
-                var rule = new ServiceBusRule("rule1")
-                {
-                    FilterType = ServiceBusFilterType.SqlFilter,
+                    FilterType = AzureServiceBusFilterType.SqlFilter,
                     CorrelationFilter = new()
                     {
                         ContentType = "application/text",
@@ -360,8 +358,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                         SendTo = "xyz"
                     }
                 };
-                subscription.Rules.Add(rule);
-            })
+                sub.Rules.Add(rule);
+            });
+
+        serviceBus
             .ConfigureInfrastructure(infrastructure =>
             {
                 queue = infrastructure.GetProvisionableResources().OfType<global::Azure.Provisioning.ServiceBus.ServiceBusQueue>().Single();
@@ -372,7 +372,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         Assert.NotNull(queue);
         Assert.Equal("queue1", queue.Name.Value);
@@ -420,8 +420,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .RunAsEmulator()
-            .WithQueue("queue1", queue =>
+            .RunAsEmulator();
+        serviceBus.AddServiceBusQueue("queue1")
+            .WithProperties(queue =>
             {
                 queue.DeadLetteringOnMessageExpiration = true;
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
@@ -431,27 +432,28 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 queue.MaxDeliveryCount = 10;
                 queue.RequiresDuplicateDetection = true;
                 queue.RequiresSession = true;
-            })
-            .WithTopic("topic1", topic =>
+            });
+
+        var topic1 = serviceBus.AddServiceBusTopic("topic1")
+            .WithProperties(topic =>
             {
                 topic.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
+            });
+        topic1.AddServiceBusSubscription("subscription1")
+            .WithProperties(sub =>
+            {
+                sub.DeadLetteringOnMessageExpiration = true;
+                sub.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
+                sub.LockDuration = TimeSpan.FromMinutes(5);
+                sub.MaxDeliveryCount = 10;
+                sub.ForwardDeadLetteredMessagesTo = "";
+                sub.RequiresSession = true;
 
-                var subscription = new ServiceBusSubscription("subscription1")
+                var rule = new AzureServiceBusRule("rule1")
                 {
-                    DeadLetteringOnMessageExpiration = true,
-                    DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
-                    LockDuration = TimeSpan.FromMinutes(5),
-                    MaxDeliveryCount = 10,
-                    ForwardDeadLetteredMessagesTo = "",
-                    RequiresSession = true,
-                };
-                topic.Subscriptions.Add(subscription);
-
-                var rule = new ServiceBusRule("rule1")
-                {
-                    FilterType = ServiceBusFilterType.SqlFilter,
+                    FilterType = AzureServiceBusFilterType.SqlFilter,
                     CorrelationFilter = new()
                     {
                         ContentType = "application/text",
@@ -464,7 +466,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                         SendTo = "xyz"
                     }
                 };
-                subscription.Rules.Add(rule);
+                sub.Rules.Add(rule);
             });
 
         using var app = builder.Build();
@@ -472,6 +474,16 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        if (!OperatingSystem.IsWindows())
+        {
+            // Ensure the configuration file has correct attributes
+            var fileInfo = new FileInfo(volumeAnnotation.Source!);
+
+            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
+        }
 
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 
@@ -556,8 +568,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .RunAsEmulator()
-            .WithQueue("queue1", queue =>
+            .RunAsEmulator();
+        serviceBus.AddServiceBusQueue("queue1")
+            .WithProperties(queue =>
             {
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
             });
@@ -658,10 +671,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue456" ],
+                    "Queues": [ { "Name": "queue456" } ],
                     "Topics": []
                   }
-                ]
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
               }
             }
             """);
@@ -684,10 +700,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue456" ],
+                    "Queues": [ { "Name": "queue456" } ],
                     "Topics": []
                   }
-                ]
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
               }
             }
             """, configJsonContent);
@@ -734,5 +753,118 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator();
 
         Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
+    }
+
+    [Fact]
+    public void AzureServiceBusHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var serviceBus = builder.AddAzureServiceBus("sb");
+        var queue = serviceBus.AddServiceBusQueue("queue");
+        var topic = serviceBus.AddServiceBusTopic("topic");
+        var subscription = topic.AddServiceBusSubscription("sub");
+
+        // queue, topic, and subscription should have the same connection string as the service bus account, for now.
+        // In the future, we can add the queue/topic/sub info to the connection string.
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", queue.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", topic.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", subscription.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureServiceBusAppliesAzureFunctionsConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var serviceBus = builder.AddAzureServiceBus("sb");
+        var queue = serviceBus.AddServiceBusQueue("queue");
+        var topic = serviceBus.AddServiceBusTopic("topic");
+        var subscription = topic.AddServiceBusSubscription("sub");
+
+        var target = new Dictionary<string, object>();
+        ((IResourceWithAzureFunctionsConfig)serviceBus.Resource).ApplyAzureFunctionsConfiguration(target, "sb");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sb__FullyQualifiedNamespace", k),
+            k => Assert.Equal("sb__fullyQualifiedNamespace", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)queue.Resource).ApplyAzureFunctionsConfiguration(target, "queue");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__FullyQualifiedNamespace", k),
+            k => Assert.Equal("queue__fullyQualifiedNamespace", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)topic.Resource).ApplyAzureFunctionsConfiguration(target, "topic");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__FullyQualifiedNamespace", k),
+            k => Assert.Equal("topic__fullyQualifiedNamespace", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)subscription.Resource).ApplyAzureFunctionsConfiguration(target, "sub");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__FullyQualifiedNamespace", k),
+            k => Assert.Equal("sub__fullyQualifiedNamespace", k));
+    }
+
+    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [RequiresDocker]
+    public async Task AzureServiceBusEmulator_WithCustomConfig()
+    {
+        const string queueName = "queue456";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
+
+        var configJsonPath = Path.GetTempFileName();
+
+        File.WriteAllText(configJsonPath,
+            $$"""
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "sbemulatorns",
+                    "Queues": [ { "Name": "{{queueName}}" } ],
+                    "Topics": []
+                  }
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
+              }
+            }
+            """);
+
+        var serviceBus = builder
+            .AddAzureServiceBus("servicebusns")
+            .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
+
+        var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureServiceBusClient("servicebusns");
+
+        await app.ResourceNotifications.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
+
+        await using var sender = serviceBusClient.CreateSender(queueResource.Resource.QueueName);
+        await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
+
+        await using var receiver = serviceBusClient.CreateReceiver(queueResource.Resource.QueueName);
+        var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
+
+        Assert.Equal("Hello, World!", message.Body.ToString());
     }
 }

@@ -185,20 +185,17 @@ internal class ResourceSnapshotBuilder
 
     private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
     {
-        var name = resource.Metadata.Name;
-
         var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
 
-        foreach (var (_, endpoint) in _resourceState.EndpointsMap)
-        {
-            if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) != true)
-            {
-                continue;
-            }
+        var allServices = _resourceState.AppResources.OfType<ServiceAppResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
+        var name = resource.Metadata.Name;
 
-            if (endpoint.Spec.ServiceName is not null &&
-                _resourceState.ServicesMap.TryGetValue(endpoint.Spec.ServiceName, out var service) &&
-                service.AppModelResourceName is string resourceName &&
+        foreach (var service in allServices)
+        {
+            var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
+            var isInactive = activeEndpoint is null;
+
+            if (service.AppModelResourceName is string resourceName &&
                 _resourceState.ApplicationModel.TryGetValue(resourceName, out var appModelResource) &&
                 appModelResource is IResourceWithEndpoints resourceWithEndpoints &&
                 service.EndpointName is string endpointName)
@@ -236,21 +233,21 @@ internal class ResourceSnapshotBuilder
                     {
                         var url = CombineUrls(ep.Url, launchUrl);
 
-                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false) { DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder)});
+                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder)});
                     }
                 }
                 else
                 {
                     if (ep.IsAllocated)
                     {
-                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false) { DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder) });
+                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder) });
                     }
                 }
 
-                if (ep.EndpointAnnotation.IsProxied)
+                if (ep.EndpointAnnotation.IsProxied && activeEndpoint != null)
                 {
-                    var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
-                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true) { DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder) });
+                    var endpointString = $"{ep.Scheme}://{activeEndpoint.Spec.Address}:{activeEndpoint.Spec.Port}";
+                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true) { IsInactive = isInactive, DisplayProperties = new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder) });
                 }
             }
         }

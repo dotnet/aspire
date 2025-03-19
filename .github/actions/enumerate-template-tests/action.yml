@@ -1,0 +1,51 @@
+name: 'Enumerate Workload tests'
+description: 'Enumerate list of workload tests'
+outputs:
+  tests_matrix:
+    description: tests matrix
+    value: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+
+    - name: Generate list of tests
+      env:
+        CI: false
+      shell: pwsh
+      run: >
+          dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+          "/t:Build;ExtractTestClassNames"
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+          -p:ExtractTestClassNamesForHelix=true
+          -p:ArchiveTests=true
+          -p:ExtractTestClassNamesPrefix=Aspire.Workload.Tests
+
+    - name: Generate tests matrix
+      id: generate_test_matrix
+      shell: pwsh
+      env:
+        CI: false
+      run: |
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list"
+        $lines = Get-Content $inputFilePath
+
+        $prefix = "Aspire.Workload.Tests."
+        $lines = Get-Content $inputFilePath | ForEach-Object {
+            $_ -replace "^$prefix", ""
+        }
+
+        $jsonObject = @{
+            "shortname" = $lines | Sort-Object
+        }
+        $jsonString = ConvertTo-Json $jsonObject -Compress
+        "tests_matrix=$jsonString"
+        "tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT

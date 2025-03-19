@@ -173,4 +173,31 @@ public class AspireServiceBusExtensionsTests
         var client = host.Services.GetRequiredService<ServiceBusClient>();
         Assert.Equal("local-identifier", client.Identifier);
     }
+
+    [Theory]
+    [InlineData("Endpoint=sb://aspireservicebustests.servicebus.windows.net;EntityPath=myqueue;", "aspireservicebustests.servicebus.windows.net")]
+    [InlineData("Endpoint=sb://aspireservicebustests.servicebus.windows.net;EntityPath=mytopic;", "aspireservicebustests.servicebus.windows.net")]
+    [InlineData("Endpoint=sb://aspireservicebustests.servicebus.windows.net;EntityPath=mytopic/Subscriptions/mysub;", "aspireservicebustests.servicebus.windows.net")]
+    [InlineData("Endpoint=sb://localhost:50418;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true", "localhost")]
+    [InlineData("Endpoint=sb://localhost:50418;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=myqueue", "localhost")]
+    [InlineData("Endpoint=sb://localhost:50418;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=mytopic/Subscriptions/mysub;", "localhost")]
+    [InlineData("aspireservicebustests.servicebus.windows.net", "aspireservicebustests.servicebus.windows.net")]
+    public void AddAzureServiceBusClient_EnsuresConnectionStringIsCorrect(string connectionString, string expectedEndpoint)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        PopulateConfiguration(builder.Configuration, connectionString);
+
+        builder.AddAzureServiceBusClient("sb");
+
+        using var host = builder.Build();
+        var client = host.Services.GetRequiredService<ServiceBusClient>();
+
+        Assert.Equal(expectedEndpoint, client.FullyQualifiedNamespace);
+    }
+
+    private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>
+    configuration.AddInMemoryCollection([
+        new KeyValuePair<string, string?>("ConnectionStrings:sb", connectionString)
+    ]);
 }

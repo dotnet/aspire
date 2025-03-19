@@ -13,7 +13,7 @@ var db4 = pg3.AddDatabase("db4");
 // Containerized resources.
 var db5 = builder.AddPostgres("pg4").WithPgAdmin().PublishAsContainer().AddDatabase("db5");
 var db6 = builder.AddPostgres("pg5").WithPgAdmin().PublishAsContainer().AddDatabase("db6");
-var pg6 = builder.AddPostgres("pg6").WithPgAdmin(c => c.WithHostPort(8999).WithImageTag("8.3")).PublishAsContainer();
+var pg6 = builder.AddPostgres("pg6").WithPgAdmin(c => c.WithHostPort(8999)).PublishAsContainer();
 var db7 = pg6.AddDatabase("db7");
 var db8 = pg6.AddDatabase("db8");
 var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on same database as db8

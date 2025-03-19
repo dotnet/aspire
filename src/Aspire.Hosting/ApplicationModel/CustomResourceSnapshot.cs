@@ -184,6 +184,21 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal)
     /// The UI display properties for the url.
     /// </summary>
     public UrlDisplayPropertiesSnapshot DisplayProperties { get; init; } = new();
+
+    /// Whether this URL is inactive or not.
+    /// </summary>
+    /// <remarks>
+    /// Inactive URLs are not displayed in UI.
+    /// </remarks>
+    public bool IsInactive { get; init; }
+
+    internal void Deconstruct(out string name, out string url, out bool isInternal, out bool isInactive)
+    {
+        name = Name;
+        url = Url;
+        isInternal = IsInternal;
+        isInactive = IsInactive;
+    }
 }
 
 /// <summary>

@@ -95,7 +95,7 @@ partial class Resource
             return (from u in Urls
                     let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
                     where parsedUri != null
-                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal,new UrlDisplayPropertiesViewModel(u.DisplayProperties.DisplayName, u.DisplayProperties.SortOrder)))
+                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal, u.IsInactive, new UrlDisplayPropertiesViewModel(u.DisplayProperties.DisplayName, u.DisplayProperties.SortOrder)))
                     .ToImmutableArray();
         }
 

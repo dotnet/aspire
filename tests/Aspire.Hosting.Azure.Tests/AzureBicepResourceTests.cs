@@ -253,7 +253,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = """
                                {
@@ -365,7 +365,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = """
                                {
@@ -487,7 +487,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = """
                                {
@@ -599,7 +599,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = """
                                {
@@ -712,7 +712,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
         Assert.Equal("https://myendpoint", await appConfig.Resource.ConnectionStringExpression.GetValueAsync(default));
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(appConfig.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(appConfig.Resource);
 
         var connectionStringResource = (IResourceWithConnectionString)appConfig.Resource;
 
@@ -764,6 +764,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output appConfigEndpoint string = appConfig.properties.endpoint
+
+            output name string = appConfig.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -784,7 +786,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
         var expectedManifest = """
            {
              "type": "azure.bicep.v0",
@@ -841,7 +843,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
         var expectedManifest = """
            {
              "type": "azure.bicep.v0",
@@ -859,19 +861,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param kind string = 'web'
 
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
-              kind: kind
-              location: location
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: law_appInsights.id
-              }
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-            }
-
             resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
               name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -882,6 +871,19 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               tags: {
                 'aspire-resource-name': 'law_appInsights'
+              }
+            }
+
+            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
+              kind: kind
+              location: location
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: law_appInsights.id
+              }
+              tags: {
+                'aspire-resource-name': 'appInsights'
               }
             }
 
@@ -907,7 +909,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
         var expectedManifest = """
            {
              "type": "azure.bicep.v0",
@@ -959,7 +961,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("logAnalyticsWorkspace", logAnalyticsWorkspace.Resource.Name);
         Assert.Equal("{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}", logAnalyticsWorkspace.Resource.WorkspaceId.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(logAnalyticsWorkspace.Resource);
+        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(logAnalyticsWorkspace.Resource);
         var expectedManifest = """
            {
              "type": "azure.bicep.v0",
@@ -1123,7 +1125,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
@@ -1183,7 +1185,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(mykv.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
 
         var expectedManifest = """
             {
@@ -1233,6 +1235,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1245,7 +1249,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(mykv.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
 
         var expectedManifest = """
             {
@@ -1295,6 +1299,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1310,7 +1316,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
 
         Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
         var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
@@ -1404,7 +1410,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
 
         Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
         var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
@@ -1494,7 +1500,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
         Assert.NotNull(azurePostgres);
@@ -1612,7 +1618,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
         Assert.NotNull(azurePostgres);
@@ -1718,7 +1724,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         postgres.AddDatabase("db");
 #pragma warning restore CS0618 // Type or member is obsolete
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
@@ -1826,12 +1832,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         }
         else
         {
-            serviceBus
-                .WithQueue("queue1")
-                .WithQueue("queue2")
-                .WithTopic("t1")
-                .WithTopic("t2")
-                .WithTopic("t1", topic => topic.Subscriptions.Add(new("s3")));
+            serviceBus.AddServiceBusQueue("queue1");
+            serviceBus.AddServiceBusQueue("queue2");
+            serviceBus.AddServiceBusTopic("t1")
+                .AddServiceBusSubscription("s3");
+            serviceBus.AddServiceBusTopic("t2");
         }
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
@@ -1842,7 +1847,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("mynamespaceEndpoint", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{sb.outputs.serviceBusEndpoint}", connectionStringResource.ConnectionStringExpression.ValueExpression);
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
         var expected = """
             {
               "type": "azure.bicep.v0",
@@ -1916,6 +1921,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
             
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+
+            output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1944,7 +1951,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
 
         Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         Assert.Equal("wps1", wps.Resource.Name);
@@ -1984,6 +1991,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -2011,7 +2020,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
             """;
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         Assert.Equal("wps1", wps.Resource.Name);
@@ -2051,6 +2060,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -2116,7 +2127,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
 
-        var storageManifest = await ManifestUtils.GetManifestWithBicep(storage.Resource);
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         var expectedStorageManifest = """
             {
@@ -2201,6 +2212,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2275,7 +2288,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
 
-        var storageManifest = await ManifestUtils.GetManifestWithBicep(storage.Resource);
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         var expectedStorageManifest = """
             {
@@ -2360,6 +2373,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2433,7 +2448,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
 
-        var storageManifest = await ManifestUtils.GetManifestWithBicep(storage.Resource);
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         var expectedStorageManifest = """
             {
@@ -2518,6 +2533,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2592,7 +2609,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
 
-        var storageManifest = await ManifestUtils.GetManifestWithBicep(storage.Resource);
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         var expectedStorageManifest = """
             {
@@ -2605,6 +2622,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
             """;
+
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         var expectedBicep = """
@@ -2612,11 +2630,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param principalType string
-            
+
             param principalId string
-            
+
             param storagesku string
-            
+
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2677,6 +2695,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2752,7 +2772,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("{search.outputs.connectionString}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(fakeConnectionString, await connectionStringResource.GetConnectionStringAsync());
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(search.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
 
         // Validate the manifest
         var expectedManifest =
@@ -2818,6 +2838,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
+
+            output name string = search.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -2870,7 +2892,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
             .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(openai.Resource);
 
         Assert.NotNull(aiDeployments);
         Assert.Collection(
@@ -2962,6 +2984,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Endpoint=${openai.properties.endpoint}'
+
+            output name string = openai.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -3025,7 +3049,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             });
         });
 
-        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(provisioningResource.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(provisioningResource.Resource);
 
         var expectedManifest = """
             {

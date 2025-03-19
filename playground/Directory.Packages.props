@@ -1,7 +1,4 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Packages.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-  <ItemGroup>
-    <PackageVersion Include="Dapr.Client" Version="1.14.0" />
-  </ItemGroup>
 </Project>

@@ -20,28 +20,18 @@ public class TestingFactoryCrashTests
         var timeout = TimeSpan.FromMinutes(5);
         using var cts = new CancellationTokenSource(timeout);
 
-        using var factory = new DistributedApplicationFactory(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"]);
+        var factory = new DistributedApplicationFactory(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"]);
 
         if (crashArg is "before-build" or "after-build")
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-            return;
         }
         else
         {
             await factory.StartAsync().WaitAsync(cts.Token);
         }
 
-        if (crashArg is "after-start" or "after-shutdown")
-        {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.DisposeAsync().AsTask().WaitAsync(cts.Token));
-            Assert.Contains(crashArg, exception.Message);
-            return;
-        }
-        else
-        {
-            await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);
-        }
+        await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);
     }
 }

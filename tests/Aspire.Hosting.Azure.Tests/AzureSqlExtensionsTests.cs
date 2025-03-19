@@ -22,7 +22,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         sql.AddDatabase("db1");
         sql.AddDatabase("db2", "db2Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
 
         var principalTypeParam = "";
         if (!publishMode)

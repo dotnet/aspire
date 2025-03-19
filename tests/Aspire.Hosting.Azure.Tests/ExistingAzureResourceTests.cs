@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ExistingAzureResourceTests
+public class ExistingAzureResourceTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task AddExistingAzureServiceBusInRunMode()
@@ -15,10 +17,10 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
+        serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -64,7 +66,11 @@ public class ExistingAzureResourceTests
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+
+            output name string = existingResourceName
             """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -75,10 +81,10 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
+        serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -133,7 +139,11 @@ public class ExistingAzureResourceTests
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = messaging.name
             """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -144,10 +154,10 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .PublishAsExisting(existingResourceName, resourceGroupParameter: default);
+        serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -193,7 +203,11 @@ public class ExistingAzureResourceTests
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = existingResourceName
             """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -205,10 +219,10 @@ public class ExistingAzureResourceTests
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName)
-            .WithQueue("queue");
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+        serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -258,10 +272,12 @@ public class ExistingAzureResourceTests
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
-
     }
 
     [Fact]
@@ -269,10 +285,10 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting("existingResourceName", "existingResourceGroupName")
-            .WithQueue("queue");
+            .PublishAsExisting("existingResourceName", "existingResourceGroupName");
+        serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -319,10 +335,12 @@ public class ExistingAzureResourceTests
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            
+            output name string = messaging.name
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
-
     }
 
     [Fact]
@@ -335,7 +353,7 @@ public class ExistingAzureResourceTests
         var storageAccount = builder.AddAzureStorage("storage")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(storageAccount.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(storageAccount.Resource);
 
         var expectedManifest = """
             {
@@ -408,10 +426,12 @@ public class ExistingAzureResourceTests
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
-
     }
 
     [Fact]
@@ -422,7 +442,7 @@ public class ExistingAzureResourceTests
         var storageAccount = builder.AddAzureStorage("storage")
             .PublishAsExisting("existingResourcename", "existingResourceGroupName");
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(storageAccount.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(storageAccount.Resource);
 
         var expectedManifest = """
             {
@@ -492,8 +512,11 @@ public class ExistingAzureResourceTests
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -507,7 +530,7 @@ public class ExistingAzureResourceTests
         var appConfiguration = builder.AddAzureAppConfiguration("appConfig")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(appConfiguration.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(appConfiguration.Resource);
 
         var expectedManifest = """
             {
@@ -552,8 +575,11 @@ public class ExistingAzureResourceTests
             }
 
             output appConfigEndpoint string = appConfig.properties.endpoint
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -567,7 +593,7 @@ public class ExistingAzureResourceTests
         var eventHubs = builder.AddAzureEventHubs("eventHubs")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
         var expectedManifest = """
             {
@@ -612,8 +638,11 @@ public class ExistingAzureResourceTests
             }
 
             output eventHubsEndpoint string = eventHubs.properties.serviceBusEndpoint
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -627,7 +656,7 @@ public class ExistingAzureResourceTests
         var keyVault = builder.AddAzureKeyVault("keyVault")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(keyVault.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(keyVault.Resource);
 
         var expectedManifest = """
             {
@@ -672,8 +701,11 @@ public class ExistingAzureResourceTests
             }
 
             output vaultUri string = keyVault.properties.vaultUri
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -687,7 +719,7 @@ public class ExistingAzureResourceTests
         var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("logAnalytics")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(logAnalytics.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(logAnalytics.Resource);
 
         var expectedManifest = """
             {
@@ -717,6 +749,7 @@ public class ExistingAzureResourceTests
             output logAnalyticsWorkspaceId string = logAnalytics.id
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -730,7 +763,7 @@ public class ExistingAzureResourceTests
         var postgresSql = builder.AddAzurePostgresFlexibleServer("postgresSql")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(postgresSql.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(postgresSql.Resource);
 
         var expectedManifest = """
             {
@@ -765,12 +798,6 @@ public class ExistingAzureResourceTests
 
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
-              properties: {
-                authConfig: {
-                  activeDirectoryAuth: 'Enabled'
-                  passwordAuth: 'Disabled'
-                }
-              }
             }
 
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
@@ -798,6 +825,85 @@ public class ExistingAzureResourceTests
             output connectionString string = 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${principalName}'
             """;
 
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingPostgresSqlWithResourceGroupWithPasswordAuth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var existingUserName = builder.AddParameter("existingUserName");
+        var existingPassword = builder.AddParameter("existingPassword");
+
+        var postgresSql = builder.AddAzurePostgresFlexibleServer("postgresSql")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName)
+            .WithPasswordAuthentication(existingUserName, existingPassword);
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(postgresSql.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{postgresSql.secretOutputs.connectionString}",
+              "path": "postgresSql.module.bicep",
+              "params": {
+                "administratorLogin": "{existingUserName.value}",
+                "administratorLoginPassword": "{existingPassword.value}",
+                "existingResourceName": "{existingResourceName.value}",
+                "keyVaultName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param administratorLogin string
+
+            @secure()
+            param administratorLoginPassword string
+
+            param keyVaultName string
+
+            resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+              name: existingResourceName
+            }
+
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+              name: 'AllowAllAzureIps'
+              properties: {
+                endIpAddress: '0.0.0.0'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: postgresSql
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
+            """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -811,7 +917,7 @@ public class ExistingAzureResourceTests
         var search = builder.AddAzureSearch("search")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(search.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
 
         var expectedManifest = """
             {
@@ -866,8 +972,11 @@ public class ExistingAzureResourceTests
             }
 
             output connectionString string = 'Endpoint=https://${existingResourceName}.search.windows.net'
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -881,7 +990,7 @@ public class ExistingAzureResourceTests
         var signalR = builder.AddAzureSignalR("signalR")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(signalR.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(signalR.Resource);
 
         var expectedManifest = """
             {
@@ -926,8 +1035,11 @@ public class ExistingAzureResourceTests
             }
 
             output hostName string = signalR.properties.hostName
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -941,7 +1053,7 @@ public class ExistingAzureResourceTests
         var webPubSub = builder.AddAzureWebPubSub("webPubSub")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(webPubSub.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(webPubSub.Resource);
 
         var expectedManifest = """
             {
@@ -986,8 +1098,11 @@ public class ExistingAzureResourceTests
             }
 
             output endpoint string = 'https://${webPubSub.properties.hostName}'
+
+            output name string = existingResourceName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -1001,7 +1116,7 @@ public class ExistingAzureResourceTests
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
         var expectedManifest = """
             {
@@ -1033,15 +1148,15 @@ public class ExistingAzureResourceTests
 
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
+            }
+
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
               properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
+                login: principalName
+                sid: principalId
               }
+              parent: sqlServer
             }
 
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
@@ -1056,6 +1171,7 @@ public class ExistingAzureResourceTests
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -1066,9 +1182,9 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
         var expectedManifest = """
             {
@@ -1078,8 +1194,7 @@ public class ExistingAzureResourceTests
               "params": {
                 "existingResourceName": "{existingResourceName.value}",
                 "principalId": "",
-                "principalName": "",
-                "principalType": ""
+                "principalName": ""
               }
             }
             """;
@@ -1096,20 +1211,17 @@ public class ExistingAzureResourceTests
 
             param existingResourceName string
 
-            param principalType string
-
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
+            }
+
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
               properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  principalType: principalType
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
+                login: principalName
+                sid: principalId
               }
+              parent: sqlServer
             }
 
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
@@ -1132,6 +1244,8 @@ public class ExistingAzureResourceTests
 
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
             """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -1145,7 +1259,7 @@ public class ExistingAzureResourceTests
         var redis = builder.AddAzureRedis("redis")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
@@ -1177,12 +1291,6 @@ public class ExistingAzureResourceTests
 
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: existingResourceName
-              properties: {
-                disableAccessKeyAuthentication: true
-                redisConfiguration: {
-                  'aad-enabled': 'true'
-                }
-              }
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
@@ -1198,6 +1306,7 @@ public class ExistingAzureResourceTests
             output connectionString string = '${redis.properties.hostName},ssl=true'
             """;
 
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 
@@ -1210,7 +1319,7 @@ public class ExistingAzureResourceTests
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
             .WithAccessKeyAuthentication();
 
-        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
@@ -1236,9 +1345,6 @@ public class ExistingAzureResourceTests
 
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
-              properties: {
-                disableAccessKeyAuthentication: false
-              }
             }
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
@@ -1254,6 +1360,313 @@ public class ExistingAzureResourceTests
             }
             """;
 
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureApplicationInsightsWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+              "path": "appInsights.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}"
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+              name: existingResourceName
+            }
+
+            output appInsightsConnectionString string = appInsights.properties.ConnectionString
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureOpenAIWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var openAI = builder.AddAzureOpenAI("openAI")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName)
+            .AddDeployment(new AzureOpenAIDeployment("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(openAI.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{openAI.outputs.connectionString}",
+              "path": "openAI.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "principalType": "",
+                "principalId": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param principalType string
+
+            param principalId string
+
+            resource openAI 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+              name: existingResourceName
+            }
+
+            resource openAI_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(openAI.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
+                principalType: principalType
+              }
+              scope: openAI
+            }
+
+            resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+              name: 'mymodel'
+              properties: {
+                model: {
+                  format: 'OpenAI'
+                  name: 'gpt-35-turbo'
+                  version: '0613'
+                }
+              }
+              sku: {
+                name: 'Basic'
+                capacity: 4
+              }
+              parent: openAI
+            }
+
+            output connectionString string = 'Endpoint=${openAI.properties.endpoint}'
+
+            output name string = existingResourceName
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureCosmosDBWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        cosmos.AddCosmosDatabase("mydb")
+            .AddContainer("container", "/id");
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{cosmos.outputs.connectionString}",
+              "path": "cosmos.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "principalType": "",
+                "principalId": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param principalType string
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: existingResourceName
+            }
+
+            resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
+              name: 'mydb'
+              location: location
+              properties: {
+                resource: {
+                  id: 'mydb'
+                }
+              }
+              parent: cosmos
+            }
+
+            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+              name: 'container'
+              location: location
+              properties: {
+                resource: {
+                  id: 'container'
+                  partitionKey: {
+                    paths: [
+                      '/id'
+                    ]
+                  }
+                }
+              }
+              parent: mydb
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+
+            output connectionString string = cosmos.properties.documentEndpoint
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureCosmosDBWithResourceGroupAccessKey()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName)
+            .WithAccessKeyAuthentication();
+
+        cosmos.AddCosmosDatabase("mydb")
+            .AddContainer("container", "/id");
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{cosmos.secretOutputs.connectionString}",
+              "path": "cosmos.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "keyVaultName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param keyVaultName string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: existingResourceName
+            }
+
+            resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
+              name: 'mydb'
+              location: location
+              properties: {
+                resource: {
+                  id: 'mydb'
+                }
+              }
+              parent: cosmos
+            }
+
+            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+              name: 'container'
+              location: location
+              properties: {
+                resource: {
+                  id: 'container'
+                  partitionKey: {
+                    paths: [
+                      '/id'
+                    ]
+                  }
+                }
+              }
+              parent: mydb
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
+              }
+              parent: keyVault
+            }
+            """;
+
+        output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
 }

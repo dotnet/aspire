@@ -32,7 +32,12 @@ internal static class DashboardUIHelpers
         var resizeLabels = ColumnResizeLabels.Default with
         {
             ExactLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
+            ResizeMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)],
+            DiscreteLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeDiscreteLabel)],
+            GrowAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellGrowAriaLabelText)],
+            ResetAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResetAriaLabelText)],
+            ShrinkAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellShrinkAriaLabelText)],
+            SubmitAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSubmitAriaLabelText)]
         };
         var sortLabels = ColumnSortLabels.Default with
         {
@@ -43,16 +48,42 @@ internal static class DashboardUIHelpers
         return (resizeLabels, sortLabels);
     }
 
-    private static readonly ConcurrentDictionary<int, string> s_cachedMasking = new();
+    private static readonly ConcurrentDictionary<int, TextMask> s_cachedMasking = new();
 
-    public static MarkupString GetMaskingText(int length)
+    public static TextMask GetMaskingText(int length)
     {
-        return new MarkupString(s_cachedMasking.GetOrAdd(length, static i =>
+        return s_cachedMasking.GetOrAdd(length, static i =>
         {
-            const string maskingChar = "&#x25cf;";
-            return new StringBuilder(maskingChar.Length * i)
-              .Insert(0, maskingChar, i)
-              .ToString();
-        }));
+            const string markupMaskingChar = "&#x25cf;";
+            const string textMaskingChar = "●";
+
+            return new TextMask(
+                new MarkupString(Repeat(markupMaskingChar, i)),
+                Repeat(textMaskingChar, i)
+            );
+
+            static string Repeat(string s, int n) => new StringBuilder(s.Length * n)
+                .Insert(0, s, n)
+                .ToString();
+        });
+    }
+
+    public static async Task<Message> DisplayMaxLimitMessageAsync(IMessageService messageService, string title, string message, Action onClose)
+    {
+        return await messageService.ShowMessageBarAsync(options =>
+        {
+            options.Title = title;
+            options.Body = message;
+            options.Intent = MessageIntent.Info;
+            options.Section = "MessagesTop";
+            options.AllowDismiss = true;
+            options.OnClose = m =>
+            {
+                onClose();
+                return Task.CompletedTask;
+            };
+        }).ConfigureAwait(false);
     }
 }
+
+internal record TextMask(MarkupString MarkupString, string Text);

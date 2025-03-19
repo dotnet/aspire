@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Dependencies>
   <ProductDependencies>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.11.4">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.12.8">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>65810644c5cefe9e5e84170cce3225bf3b4bf000</Sha>
+      <Sha>287b2fd865f713e4c46f0d89f045bb44f2511987</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.1.0">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.3.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
+      <Sha>f1f17e642a685df7e87b805be1efe4729ff725e4</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="9.1.0">
+    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="9.3.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
+      <Sha>f1f17e642a685df7e87b805be1efe4729ff725e4</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.1.0">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.3.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
+      <Sha>f1f17e642a685df7e87b805be1efe4729ff725e4</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
@@ -65,9 +65,9 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2">
+    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
+      <Sha>eba546b0f0d448e0176a2222548fd7a2fbf464c0</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Options" Version="8.0.2">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
@@ -77,65 +77,65 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.1-servicing.24603.14">
+    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.3-servicing.25111.13">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>69ae1ac0682f4b69b1d733fbf3bdee2825a2aab2</Sha>
+      <Sha>831d23e56149cd59c40fc00c7feb7c5334bd19c4</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.12">
+    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.12">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.12">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Features" Version="8.0.12">
+    <Dependency Name="Microsoft.Extensions.Features" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.TestHost" Version="8.0.12">
+    <Dependency Name="Microsoft.AspNetCore.TestHost" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.12">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
+      <Sha>d00955545e8afc997726aead9b0e6103b1ceade6</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.12">
+    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
+      <Sha>d00955545e8afc997726aead9b0e6103b1ceade6</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
+      <Sha>d00955545e8afc997726aead9b0e6103b1ceade6</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Design" Version="8.0.12">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Design" Version="8.0.14">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
+      <Sha>d00955545e8afc997726aead9b0e6103b1ceade6</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
     <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="9.0.0-alpha.1.24453.2">
@@ -143,44 +143,48 @@
       <Sha>eb436a482c2a0c6aa45578ea0a48fd3782c275b2</Sha>
       <SourceBuild RepoName="source-build-reference-packages" ManagedOnly="true" />
     </Dependency>
+    <Dependency Name="Microsoft.AspNetCore.SignalR.Client" Version="8.0.14">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
+      <Sha>25ef4aa38b77974263cb10f6e9cbd10135f17b59</Sha>
+    </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Build.Tasks.Installers" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.Build.Tasks.Installers" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Build.Tasks.Workloads" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.Build.Tasks.Workloads" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Helix.Sdk" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.Helix.Sdk" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.SharedFramework.Sdk" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.SharedFramework.Sdk" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.RemoteExecutor" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.RemoteExecutor" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.XliffTasks" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.DotNet.XliffTasks" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
-    <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="9.0.0-beta.25077.4">
+    <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="9.0.0-beta.25164.2">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>bac7e1caea791275b7c3ccb4cb75fd6a04a26618</Sha>
+      <Sha>5ba9ca776c1d0bb72b2791591e54cf51fc52dfee</Sha>
       <SourceBuild RepoName="arcade" ManagedOnly="true" />
     </Dependency>
   </ToolsetDependencies>

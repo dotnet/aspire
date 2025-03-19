@@ -4,6 +4,7 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
@@ -18,6 +19,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class AppHostTests
 {
     private readonly ITestOutputHelper _testOutput;
@@ -66,7 +68,6 @@ public class AppHostTests
         else
         {
             var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-            var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
             await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(5));
 

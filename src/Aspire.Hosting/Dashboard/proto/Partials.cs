@@ -42,7 +42,7 @@ partial class Resource
 
         foreach (var urlSnapshot in snapshot.Urls)
         {
-            var url = new Url { Name = urlSnapshot.Name, FullUrl = urlSnapshot.Url, IsInternal = urlSnapshot.IsInternal };
+            var url = new Url { Name = urlSnapshot.Name, FullUrl = urlSnapshot.Url, IsInternal = urlSnapshot.IsInternal, IsInactive = urlSnapshot.IsInactive };
             var displayProperties = new UrlDisplayProperties();
             if (urlSnapshot.DisplayProperties?.DisplayName is not null)
             {

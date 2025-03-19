@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -38,7 +39,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        if (PlaywrightProvider.HasPlaywrightSupport)
+        if (PlaywrightProvider.HasPlaywrightSupport && RequiresSSLCertificateAttribute.IsSupported)
         {
             await using (var context = await CreateNewBrowserContextAsync())
             {
@@ -65,7 +66,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             try
             {
                 var page = await project.OpenDashboardPageAsync(context);
-                await CheckDashboardHasResourcesAsync(page, []);
+                await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
             }
             finally
             {

@@ -24,13 +24,13 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: false);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: false);
 
     [Obsolete]
     private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -83,9 +83,7 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: true);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure Cache for Redis resource to the application model.
@@ -117,11 +115,13 @@ public static class AzureRedisExtensions
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -149,6 +149,8 @@ public static class AzureRedisExtensions
         this IResourceBuilder<AzureRedisCacheResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -185,8 +187,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(
-        this IResourceBuilder<AzureRedisCacheResource> builder)
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -201,11 +202,8 @@ public static class AzureRedisExtensions
         return AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
         {
-            var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
-            var resource = new ExistingCdkRedisResource(identifier, !redisResource.UseAccessKeyAuthentication)
-            {
-                Name = name,
-            };
+            var resource = CdkRedisResource.FromExisting(identifier);
+            resource.Name = name;
             return resource;
         },
         (infrastructure) => new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
@@ -249,12 +247,12 @@ public static class AzureRedisExtensions
         }
         else
         {
-            redis.RedisConfiguration = new RedisCommonConfiguration()
-            {
-                IsAadEnabled = "true"
-            };
             if (!redis.IsExistingResource)
             {
+                redis.RedisConfiguration = new RedisCommonConfiguration()
+                {
+                    IsAadEnabled = "true"
+                };
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
@@ -275,21 +273,6 @@ public static class AzureRedisExtensions
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
-        }
-    }
-
-    /// <remarks>
-    /// The provisioning APIs will mark the IsAccessKeyAuthenticationDisabled as `ReadOnly` after the
-    /// `IsExistingResource` property is set, making it impossible to configure the
-    /// `IsAccessKeyAuthenticationDisabled` property in our usual flows. This is a workaround to
-    /// allow us to set the property on existing resources.
-    /// </remarks>
-    private sealed class ExistingCdkRedisResource : CdkRedisResource
-    {
-        public ExistingCdkRedisResource(string bicepIdentifier, bool isAccessKeyAuthenticationDisabled, string? resourceVersion = null) : base(bicepIdentifier, resourceVersion)
-        {
-            IsAccessKeyAuthenticationDisabled = isAccessKeyAuthenticationDisabled;
-            IsExistingResource = true;
         }
     }
 }

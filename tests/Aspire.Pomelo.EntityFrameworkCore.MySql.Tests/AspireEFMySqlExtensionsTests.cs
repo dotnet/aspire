@@ -293,4 +293,58 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 
         Assert.Null(exception);
     }
+
+    [Fact]
+    public void AddMySqlDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Pomelo:EntityFrameworkCore:MySql:{connectionName}:CommandTimeout"] = "60",
+            [$"Aspire:Pomelo:EntityFrameworkCore:MySql:{connectionName}:DisableRetry"] = "true",
+            [$"Aspire:Pomelo:EntityFrameworkCore:MySql:{connectionName}:DisableHealthChecks"] = "true"
+        });
+
+        PomeloEntityFrameworkCoreMySqlSettings? capturedSettings = null;
+        builder.AddMySqlDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(60, capturedSettings.CommandTimeout);
+        Assert.True(capturedSettings.DisableRetry);
+        Assert.True(capturedSettings.DisableHealthChecks);
+    }
+
+    [Fact]
+    public void AddMySqlDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Pomelo:EntityFrameworkCore:MySql:{connectionName}:CommandTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Pomelo:EntityFrameworkCore:MySql:TestDbContext:CommandTimeout"] = "120"
+        });
+
+        PomeloEntityFrameworkCoreMySqlSettings? capturedSettings = null;
+        builder.AddMySqlDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(120, capturedSettings.CommandTimeout);
+    }
 }

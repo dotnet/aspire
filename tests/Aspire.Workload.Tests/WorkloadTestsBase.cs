@@ -139,10 +139,29 @@ public partial class WorkloadTestsBase
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 
-    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
-        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
+    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
+        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, logPath, timeoutSecs);
 
-    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
+    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage,
+                                                                               IEnumerable<ResourceRow> expectedResources,
+                                                                               ITestOutputHelper testOutput,
+                                                                               string logPath,
+                                                                               int timeoutSecs = 120)
+    {
+        try
+        {
+            return await CheckDashboardHasResourcesActualAsync(dashboardPage, expectedResources, testOutput, timeoutSecs);
+        }
+        catch
+        {
+            string screenshotPath = Path.Combine(logPath, "dashboard-fail.png");
+            await dashboardPage.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+            throw;
+        }
+    }
+
+    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
     {
         // FIXME: check the page has 'Resources' label
         // fluent-toolbar/h1 resources
@@ -196,7 +215,7 @@ public partial class WorkloadTestsBase
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
+                    // testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
                 AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
@@ -206,20 +225,30 @@ public partial class WorkloadTestsBase
                 var matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
-                var endpointsFound =
-                    (await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync())
+                var overflowItems = await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync();
+                IEnumerable<ILocator> endpointsTextLocs;
+                if (overflowItems.Count == 0)
+                {
+                    var tdItems = (await rowLoc.Locator("td").AllAsync()).ToArray();
+                    endpointsTextLocs = [tdItems[5]];
+                }
+                else
+                {
+                    endpointsTextLocs = overflowItems;
+                }
+                var endpointsFound = endpointsTextLocs
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
-                        .ToList();
+                        .ToArray();
 
-                if (expectedEndpoints.Length != endpointsFound.Count)
+                if (expectedEndpoints.Length != endpointsFound.Length)
                 {
                     // _testOutput.WriteLine($"For resource '{resourceName}, found ")
                     // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
                     continue;
                 }
 
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
+                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
 
                 // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
@@ -286,21 +315,11 @@ public partial class WorkloadTestsBase
         if (context is not null)
         {
             var page = await project.OpenDashboardPageAsync(context);
-            ResourceRow[] resourceRows;
-            try
-            {
-                resourceRows = await CheckDashboardHasResourcesAsync(
-                                        page,
-                                        StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                        _testOutput).ConfigureAwait(false);
-            }
-            catch
-            {
-                string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-                await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-                _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-                throw;
-            }
+            var resourceRows = await CheckDashboardHasResourcesAsync(
+                page,
+                StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                _testOutput,
+                project.LogPath).ConfigureAwait(false);
 
             string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);

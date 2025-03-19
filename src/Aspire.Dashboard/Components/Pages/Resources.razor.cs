@@ -6,19 +6,22 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Resources : ComponentBase, IAsyncDisposable
+public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<Resources.ResourcesViewModel, Resources.ResourcesPageState>
 {
     private const string TypeColumn = nameof(TypeColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -30,6 +33,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private Subscription? _logsSubscription;
     private IList<GridColumn>? _gridColumns;
+    private bool _hideResourceGraph;
     private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
@@ -46,6 +50,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
+
+    public string BasePath => DashboardUrls.ResourcesBasePath;
+    public string SessionStorageKey => "Resources_PageState";
+    public ResourcesViewModel PageViewModel { get; set; } = null!;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? ViewKindName { get; set; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -80,6 +94,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
     private readonly List<MenuButtonItem> _resourcesMenuItems = new();
+    private DotNetObjectReference<ResourcesInterop>? _resourcesInteropReference;
+    private IJSObjectReference? _jsModule;
+    private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
@@ -111,6 +128,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
     {
+        await UpdateResourceGraphResourcesAsync();
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
@@ -118,6 +136,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private async Task HandleSearchFilterChangedAsync()
     {
+        await UpdateResourceGraphResourcesAsync();
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
     }
@@ -146,6 +165,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
+
+        _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
+
+        PageViewModel = new ResourcesViewModel
+        {
+            SelectedViewKind = ResourceViewKind.Table
+        };
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
         UpdateMenuButtons();
@@ -232,6 +258,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     }
 
                     UpdateMaxHighlightedCount();
+                    await UpdateResourceGraphResourcesAsync();
                     await InvokeAsync(async () =>
                     {
                         await _dataGrid.SafeRefreshDataAsync();
@@ -267,6 +294,50 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             UpdateMenuButtons();
 
             return added;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && !_graphInitialized)
+        {
+            // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.
+            _graphInitialized = true;
+
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-resourcegraph.js");
+
+            _resourcesInteropReference = DotNetObjectReference.Create(new ResourcesInterop(this));
+
+            await _jsModule.InvokeVoidAsync("initializeResourcesGraph", _resourcesInteropReference);
+            await UpdateResourceGraphResourcesAsync();
+        }
+    }
+
+    private async Task UpdateResourceGraphResourcesAsync()
+    {
+        if (PageViewModel.SelectedViewKind != ResourceViewKind.Graph || _jsModule == null)
+        {
+            return;
+        }
+
+        var activeResources = _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).ToList();
+        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc)).ToList();
+        await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
+    }
+
+    private class ResourcesInterop(Resources resources)
+    {
+        [JSInvokable]
+        public async Task SelectResource(string id)
+        {
+            if (resources._resourceByName.TryGetValue(id, out var resource))
+            {
+                await resources.InvokeAsync(async () =>
+                {
+                    await resources.ShowResourceDetailsAsync(resource, null!);
+                    resources.StateHasChanged();
+                });
+            }
         }
     }
 
@@ -355,11 +426,21 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
+
         if (ResourceName is not null)
         {
             if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
             {
                 await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+
+                if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph)
+                {
+                    await UpdateResourceGraphSelectedAsync();
+                }
             }
 
             // Navigate to remove ?resource=xxx in the URL.
@@ -422,6 +503,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         SelectedResource = null;
 
         await InvokeAsync(StateHasChanged);
+
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph)
+        {
+            await UpdateResourceGraphSelectedAsync();
+        }
 
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
@@ -546,11 +632,88 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return _resourceByName.Values.Any(r => !string.IsNullOrEmpty(r.GetResourcePropertyValue(KnownProperties.Resource.ParentName)));
     }
 
+    private Task OnTabChangeAsync(FluentTab newTab)
+    {
+        var id = newTab.Id?.Substring("tab-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(ResourceViewKind), id, out var o)
+            || o is not ResourceViewKind viewKind)
+        {
+            return Task.CompletedTask;
+        }
+
+        return OnViewChangedAsync(viewKind);
+    }
+
+    private async Task OnViewChangedAsync(ResourceViewKind newView)
+    {
+        PageViewModel.SelectedViewKind = newView;
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+
+        if (newView == ResourceViewKind.Graph)
+        {
+            await UpdateResourceGraphResourcesAsync();
+            await UpdateResourceGraphSelectedAsync();
+        }
+    }
+
+    private async Task UpdateResourceGraphSelectedAsync()
+    {
+        if (_jsModule != null)
+        {
+            await _jsModule.InvokeVoidAsync("updateResourcesGraphSelected", SelectedResource?.Name);
+        }
+    }
+
+    public sealed class ResourcesViewModel
+    {
+        public required ResourceViewKind SelectedViewKind { get; set; }
+    }
+
+    public class ResourcesPageState
+    {
+        public required string? ViewKind { get; set; }
+    }
+
+    public enum ResourceViewKind
+    {
+        Table,
+        Graph
+    }
+
+    public Task UpdateViewModelFromQueryAsync(ResourcesViewModel viewModel)
+    {
+        // Don't allow the view to be updated from the query string if the resource graph is disabled.
+        if (!_hideResourceGraph && Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
+        {
+            viewModel.SelectedViewKind = vk;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public string GetUrlFromSerializableViewModel(ResourcesPageState serializable)
+    {
+        return DashboardUrls.ResourcesUrl(view: serializable.ViewKind);
+    }
+
+    public ResourcesPageState ConvertViewModelToSerializable()
+    {
+        return new ResourcesPageState
+        {
+            ViewKind = (PageViewModel.SelectedViewKind != ResourceViewKind.Table) ? PageViewModel.SelectedViewKind.ToString() : null
+        };
+    }
+
     public async ValueTask DisposeAsync()
     {
+        _resourcesInteropReference?.Dispose();
         _watchTaskCancellationTokenSource.Cancel();
         _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
+
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }

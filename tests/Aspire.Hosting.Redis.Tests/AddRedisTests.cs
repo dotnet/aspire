@@ -140,10 +140,14 @@ public class AddRedisTests
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "entrypoint": "/bin/sh",
               "args": [
-                "--requirepass",
-                "{redis-password.value}"
+                "-c",
+                "redis-server --requirepass $REDIS_PASSWORD"
               ],
+              "env": {
+                "REDIS_PASSWORD": "{redis-password.value}"
+              },
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -174,10 +178,14 @@ public class AddRedisTests
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "entrypoint": "/bin/sh",
               "args": [
-                "--requirepass",
-                "{pass.value}"
+                "-c",
+                "redis-server --requirepass $REDIS_PASSWORD"
               ],
+              "env": {
+                "REDIS_PASSWORD": "{pass.value}"
+              },
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -205,10 +213,14 @@ public class AddRedisTests
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "entrypoint": "/bin/sh",
               "args": [
-                "--requirepass",
-                "{pass.value}"
+                "-c",
+                "redis-server --requirepass $REDIS_PASSWORD"
               ],
+              "env": {
+                "REDIS_PASSWORD": "{pass.value}"
+              },
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

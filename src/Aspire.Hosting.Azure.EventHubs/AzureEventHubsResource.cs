@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -10,11 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure Event Hubs resource.</param>
-public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString,
-    IResourceWithEndpoints,
-    IResourceWithAzureFunctionsConfig
+public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
 {
     private static readonly string[] s_eventHubClientNames =
     [
@@ -34,6 +33,8 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
@@ -52,7 +53,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         if (IsEmulator)
         {
-            builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
+            builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
         }
         else
         {
@@ -118,5 +119,14 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
                 target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConsumerGroup"] = consumerGroup;
             }
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var hubs = EventHubsNamespace.FromExisting(this.GetBicepIdentifier());
+        hubs.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(hubs);
+        return hubs;
     }
 }

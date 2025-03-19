@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
         <source>Collapse child resources</source>
-        <target state="new">Collapse child resources</target>
+        <target state="translated">Zwiń zasoby podrzędne</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
-        <target state="new">Expand child resources</target>
+        <target state="translated">Rozwiń zasoby podrzędne</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -81,6 +81,11 @@
         <source>Actions</source>
         <target state="translated">Akcje</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResourcesChangeViewOptions">
+        <source>View options</source>
+        <target state="translated">Wyświetl opcje</target>
+        <note>An icon allowing the user to expand or collapse all child resources.</note>
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
@@ -179,12 +184,12 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="needs-review-translation">Ma filtry</target>
+        <target state="translated">Ma filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
-        <target state="needs-review-translation">Brak filtrów</target>
+        <target state="translated">Brak filtrów</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
