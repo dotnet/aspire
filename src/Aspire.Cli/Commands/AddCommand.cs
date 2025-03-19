@@ -116,7 +116,7 @@ public static class AddCommand
 
         var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
 
-        var versionPrompt = new TextPrompt<string>("Specify a version of the integration:")
+        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
             .DefaultValue(selectedIntegration.Package.Version)
             .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
             .ShowDefaultValue(true)

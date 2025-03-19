@@ -30,7 +30,7 @@ Pulls the latest Aspire templates, then creates a new `aspire-starter` app, unle
 
 Getting the latest templates is a passthrough to `dotnet new install --force` so it always pulls that latest templates even if they are already installed. `--version` is used to specify what version of `Aspire.ProjectTemplates` to pull, defaulting to `9.2.0` currently as a hack or `*-*` if `--prerelease` is specified.
 
-Creating the app is a passthrough to `dotnet new` and propogates the `--name` and `--output` options.
+Creating the app is a passthrough to `dotnet new` and propagates the `--name` and `--output` options.
 
 ###  add / add <PACKAGE_NAME> (current implementation)
 
@@ -40,3 +40,9 @@ aspire add [<PACKAGE_NAME>] [--project <PATH_TO_CSPROJ>]
                         [--prerelease]
                         [--use-nuget-config]
 ```
+
+Adds an Aspire integration if specified, or lists all possible integrations in a selection prompt. Integrations are given friendly names based on the last section of the package id (ie `Aspire.Hosting.Redis` can be referenced as `redis`), with specific subsets having prefixes (az- for `Aspire.Hosting.Azure.*`, aws- for aws, ct- for communitytoolkit).
+
+If no package name is given, it first runs a passthrough to `dotnet package search`. `--prerelease` is propagated. `--use-nuget-config` is a bool that defaults to the public nuget feed (ie, propagates `--source "https://api.nuget.org/v3/index.json"`), but if set it **will not** pass a source and thus will do what the dotnet CLI does - find the nearest `nuget.config` and use all those sources.
+
+Once a package is selected, or if one is specified, it runs `dotnet package add` with the fully qualified package ID, and 
