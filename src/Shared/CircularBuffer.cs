@@ -113,7 +113,6 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
             }
             else if (internalIndex < _end && _end < _buffer.Count - 1)
             {
-                //data.Slice(internalIndex, _end - internalIndex).CopyTo(data.Slice(_end));
                 data.Slice(internalIndex, _end - internalIndex).CopyTo(data.Slice(internalIndex + 1));
             }
             else
