@@ -7,6 +7,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -351,6 +352,319 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             """;
         output.WriteLine(rolesBicep);
         Assert.Equal(expectedRolesBicep, rolesBicep);
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppsInfrastructure();
+
+        // hardcoded sha256 to make the storage name deterministic
+        var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
+        builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
+            .WithHostStorage(storage);
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles"));
+
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        var expectedRolesManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcapp-roles.module.bicep",
+              "params": {
+                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+
+        var expectedRolesBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param my_own_storage_outputs_name string
+
+            resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: my_own_storage_outputs_name
+            }
+
+            resource my_own_storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(my_own_storage.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: 'ServicePrincipal'
+              }
+              scope: my_own_storage
+            }
+
+            resource my_own_storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(my_own_storage.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: 'ServicePrincipal'
+              }
+              scope: my_own_storage
+            }
+
+            resource my_own_storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(my_own_storage.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: 'ServicePrincipal'
+              }
+              scope: my_own_storage
+            }
+
+            output id string = funcapp_identity.id
+
+            output clientId string = funcapp_identity.properties.clientId
+
+            output principalId string = funcapp_identity.properties.principalId
+            """;
+        output.WriteLine(rolesBicep);
+        Assert.Equal(expectedRolesBicep, rolesBicep);
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage_WithRoleAssignments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppsInfrastructure();
+
+        // hardcoded sha256 to make the storage name deterministic
+        var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
+        builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
+            .WithHostStorage(storage)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles"));
+
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        var expectedRolesManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcapp-roles.module.bicep",
+              "params": {
+                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+
+        var expectedRolesBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param my_own_storage_outputs_name string
+
+            resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: my_own_storage_outputs_name
+            }
+
+            resource my_own_storage_StorageBlobDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(my_own_storage.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+                principalType: 'ServicePrincipal'
+              }
+              scope: my_own_storage
+            }
+
+            output id string = funcapp_identity.id
+
+            output clientId string = funcapp_identity.properties.clientId
+
+            output principalId string = funcapp_identity.properties.principalId
+            """;
+        output.WriteLine(rolesBicep);
+        Assert.Equal(expectedRolesBicep, rolesBicep);
+    }
+
+    [Fact]
+    public async Task MultipleAddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage_WithRoleAssignments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppsInfrastructure();
+
+        // hardcoded sha256 to make the storage name deterministic
+        var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
+        builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
+            .WithHostStorage(storage)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
+
+        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp2");
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles"));
+        var projRoles2 = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp2-roles"));
+
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (rolesManifest2, rolesBicep2) = await GetManifestWithBicep(projRoles2);
+
+        var expectedRolesManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcapp-roles.module.bicep",
+              "params": {
+                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+
+        var expectedRolesManifest2 =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcapp2-roles.module.bicep",
+              "params": {
+                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest2, rolesManifest2.ToString());
+
+        var expectedRolesBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param my_own_storage_outputs_name string
+
+            resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: my_own_storage_outputs_name
+            }
+
+            resource my_own_storage_StorageBlobDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(my_own_storage.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'))
+              properties: {
+                principalId: funcapp_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+                principalType: 'ServicePrincipal'
+              }
+              scope: my_own_storage
+            }
+
+            output id string = funcapp_identity.id
+
+            output clientId string = funcapp_identity.properties.clientId
+
+            output principalId string = funcapp_identity.properties.principalId
+            """;
+        output.WriteLine(rolesBicep);
+        Assert.Equal(expectedRolesBicep, rolesBicep);
+
+        var expectedRolesBicep2 =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param funcstorage634f8_outputs_name string
+
+            resource funcapp2_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('funcapp2_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            resource funcstorage634f8 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: funcstorage634f8_outputs_name
+            }
+
+            resource funcstorage634f8_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp2_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: funcapp2_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp2_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: funcapp2_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp2_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: funcapp2_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, funcapp2_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
+              properties: {
+                principalId: funcapp2_identity.properties.principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            output id string = funcapp2_identity.id
+
+            output clientId string = funcapp2_identity.properties.clientId
+
+            output principalId string = funcapp2_identity.properties.principalId
+            """;
+        output.WriteLine(rolesBicep2);
+        Assert.Equal(expectedRolesBicep2, rolesBicep2);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
