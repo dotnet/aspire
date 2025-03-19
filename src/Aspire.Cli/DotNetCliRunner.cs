@@ -28,10 +28,15 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
     public async Task<int> InstallTemplateAsync(string packageName, string version, bool force, CancellationToken cancellationToken)
     {
-        string[] forceArgs = force ? ["--force"] : [];
-        string[] cliArgs = ["new", "install", $"{packageName}::{version}", ..forceArgs];
+        List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
+
+        if (force)
+        {
+            cliArgs.Add("--force");
+        }
+
         return await ExecuteAsync(
-            args: cliArgs,
+            args: cliArgs.ToArray(),
             env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             startBackchannel: false,
