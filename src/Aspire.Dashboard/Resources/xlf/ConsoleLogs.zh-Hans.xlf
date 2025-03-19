@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShowUtc">
         <source>UTC timestamps</source>
-        <target state="new">UTC timestamps</target>
+        <target state="translated">UTC 时间戳</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
