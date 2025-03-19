@@ -7,23 +7,20 @@ namespace Aspire.Cli;
 
 internal interface INuGetPackageCache
 {
-    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
 {
     private const int SearchPageSize = 100;
 
-    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, CancellationToken cancellationToken)
+    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         logger.LogDebug("Getting integrations from NuGet");
 
         var collectedPackages = new List<NuGetPackage>();
         var skip = 0;
 
-        // The source is hardcoded to the official NuGet source for now.
-        // To use your nuget config just don't pass the source parameter to the search command.
-        var source = "https://api.nuget.org/v3/index.json";
         bool continueFetching;
         do
         {

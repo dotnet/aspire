@@ -27,6 +27,9 @@ public static class AddCommand
         var prereleaseOption = new Option<bool>("--prerelease");
         command.Options.Add(prereleaseOption);
 
+        var nugetConfigOption = new Option<bool>("--use-nuget-config");
+        command.Options.Add(nugetConfigOption);
+
         command.SetAction(async (parseResult, ct) => {
 
             try
@@ -42,9 +45,17 @@ public static class AddCommand
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
+                var nugetConfigRequested = parseResult.GetValue<bool>("--use-nuget-config");
+                var nugetSource = nugetConfigRequested ? null : "https://api.nuget.org/v3/index.json";
+                if (nugetConfigRequested)
+                {
+                    
+                    AnsiConsole.MarkupLine("[yellow]Using nearest nuget.config[/]");
+                }
+
                 var packages = await AnsiConsole.Status().StartAsync(
                     "Searching for Aspire packages...",
-                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, ct)
+                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, nugetSource, ct)
                     ).ConfigureAwait(false);
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
@@ -121,7 +132,7 @@ public static class AddCommand
         {
             if (packageWithFriendlyName.FriendlyName is { } friendlyName)
             {
-                return $"{packageWithFriendlyName.Package.Id} ({friendlyName})";
+                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
             }
             else
             {

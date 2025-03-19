@@ -38,4 +38,5 @@ Creating the app is a passthrough to `dotnet new` and propogates the `--name` an
 aspire add [<PACKAGE_NAME>] [--project <PATH_TO_CSPROJ>]
                         [-v|--version <VERSION>]
                         [--prerelease]
+                        [--use-nuget-config]
 ```
