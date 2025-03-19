@@ -604,7 +604,7 @@ public class Program
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occured while adding the package: {ex.Message}[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while adding the package: {ex.Message}[/]");
                 return ExitCodeConstants.FailedToAddPackage;
             }
         });
