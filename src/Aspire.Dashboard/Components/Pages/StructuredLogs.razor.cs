@@ -375,7 +375,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             OnClick = () =>
             {
                 ViewModel.ClearFilters();
-                return InvokeAsync(StateHasChanged);
+                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }
         });
 
