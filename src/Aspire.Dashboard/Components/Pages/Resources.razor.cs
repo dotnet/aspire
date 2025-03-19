@@ -96,6 +96,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     private readonly List<MenuButtonItem> _resourcesMenuItems = new();
     private DotNetObjectReference<ResourcesInterop>? _resourcesInteropReference;
     private IJSObjectReference? _jsModule;
+    private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
@@ -298,8 +299,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && _jsModule == null)
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && !_graphInitialized)
         {
+            // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.
+            _graphInitialized = true;
+
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-resourcegraph.js");
 
             _resourcesInteropReference = DotNetObjectReference.Create(new ResourcesInterop(this));
