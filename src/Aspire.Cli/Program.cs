@@ -15,7 +15,7 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static IHost BuildApplication(ParseResult parseResult)
+    public static IHost BuildApplication(ParseResult parseResult)
     {
         var builder = Host.CreateApplicationBuilder();
 
@@ -76,7 +76,7 @@ public class Program
         ConfigureRunCommand(rootCommand);
         ConfigureBuildCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
-        ConfigureAddCommand(rootCommand);
+        AddCommand.ConfigureAddCommand(rootCommand);
         return rootCommand;
     }
 
@@ -384,7 +384,7 @@ public class Program
 
     private static void ConfigureNewCommand(Command parentCommand)
     {
-        var command = new Command("new", "Create a new .NET Aspire-related project.");
+        var command = new Command("new", "Create a new Aspire sample project.");
         var templateArgument = new Argument<string>("template");
         templateArgument.Validators.Add(ValidateProjectTemplate);
         templateArgument.Arity = ArgumentArity.ZeroOrOne;
@@ -476,146 +476,6 @@ public class Program
 
         parentCommand.Subcommands.Add(command);
     }
-
-    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
-    {
-        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title("Please select the integration you want to add:")
-            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
-            .PageSize(10)
-            .AddChoices(knownPackages);
-
-        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
-
-        var versionPrompt = new TextPrompt<string>("Specify version of integration to add:")
-            .DefaultValue(selectedIntegration.Package.Version)
-            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
-            .ShowDefaultValue(true);
-
-        var version = AnsiConsole.Prompt(versionPrompt);
-
-        selectedIntegration.Package.Version = version;
-
-        return selectedIntegration;
-
-        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
-        {
-            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
-            {
-                return $"{packageWithFriendlyName.Package.Id} ({friendlyName})";
-            }
-            else
-            {
-                return packageWithFriendlyName.Package.Id;
-            }
-        }
-    }
-
-    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
-    {
-        var shortNameBuilder = new StringBuilder();
-
-        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
-        {
-            shortNameBuilder.Append("az-");
-        }
-        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
-        {
-            shortNameBuilder.Append("aws-");
-        }
-        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
-        {
-            shortNameBuilder.Append("ct-");
-        }
-
-        var lastSegment = package.Id.Split('.').Last().ToLower();
-        shortNameBuilder.Append(lastSegment);
-        return (shortNameBuilder.ToString(), package);
-    }
-
-    private static void ConfigureAddCommand(Command parentCommand)
-    {
-        var command = new Command("add", "Add a resource to the .NET Aspire project.");
-
-        var resourceArgument = new Argument<string>("resource");
-        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
-        command.Arguments.Add(resourceArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
-        command.Options.Add(projectOption);
-
-        var versionOption = new Option<string>("--version", "-v");
-        command.Options.Add(versionOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        command.Options.Add(prereleaseOption);
-
-        command.SetAction(async (parseResult, ct) => {
-            try
-            {
-                var app = BuildApplication(parseResult);
-                
-                var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
-
-                var integrationName = parseResult.GetValue<string>("resource");
-
-                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-
-                var prerelease = parseResult.GetValue<bool>("--prerelease");
-
-                var packages = await AnsiConsole.Status().StartAsync(
-                    "Searching for Aspire packages...",
-                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, ct)
-                    ).ConfigureAwait(false);
-
-                var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
-
-                var selectedNuGetPackage = packagesWithShortName.FirstOrDefault(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
-
-                if (selectedNuGetPackage == default)
-                {
-                    selectedNuGetPackage = GetPackageByInteractiveFlow(packagesWithShortName);
-                }
-                else
-                {
-                    // If we find an exact match we will use it, but override the version
-                    // if the version option is specified.
-                    var version = parseResult.GetValue<string?>("--version");
-                    if (version is not null)
-                    {
-                        selectedNuGetPackage.Package.Version = version;
-                    }
-                }
-
-                var addPackageResult = await AnsiConsole.Status().StartAsync(
-                    "Adding Aspire package...",
-                    async context => {
-                        var runner = app.Services.GetRequiredService<DotNetCliRunner>();
-                        var addPackageResult = await runner.AddPackageAsync(
-                            effectiveAppHostProjectFile,
-                            selectedNuGetPackage.Package.Id,
-                            selectedNuGetPackage.Package.Version,
-                            ct
-                            ).ConfigureAwait(false);
-
-                        return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
-                    }                
-                ).ConfigureAwait(false);
-
-                return addPackageResult;
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while adding the package: {ex.Message}[/]");
-                return ExitCodeConstants.FailedToAddPackage;
-            }
-        });
-
-        parentCommand.Subcommands.Add(command);
-    }
-
     public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
