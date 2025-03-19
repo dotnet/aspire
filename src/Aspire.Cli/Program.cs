@@ -76,7 +76,7 @@ public class Program
         ConfigureRunCommand(rootCommand);
         ConfigureBuildCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
-        AddCommand.ConfigureAddCommand(rootCommand);
+        ConfigureAddCommand(rootCommand);
         return rootCommand;
     }
 
@@ -477,7 +477,66 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    public static void ConfigureAddCommand(Command parentCommand)
+    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
+    {
+        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
+            .Title("Select an integration to add:")
+            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
+            .PageSize(10)
+            .EnableSearch()
+            .HighlightStyle(Style.Parse("darkmagenta"))
+            .AddChoices(knownPackages);
+
+        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
+
+        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
+            .DefaultValue(selectedIntegration.Package.Version)
+            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
+            .ShowDefaultValue(true)
+            .DefaultValueStyle(Style.Parse("darkmagenta"));
+
+        var version = AnsiConsole.Prompt(versionPrompt);
+
+        selectedIntegration.Package.Version = version;
+
+        return selectedIntegration;
+
+        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
+        {
+            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
+            {
+                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+            }
+            else
+            {
+                return packageWithFriendlyName.Package.Id;
+            }
+        }
+    }
+
+    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
+    {
+        var shortNameBuilder = new StringBuilder();
+
+        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
+        {
+            shortNameBuilder.Append("az-");
+        }
+        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
+        {
+            shortNameBuilder.Append("aws-");
+        }
+        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
+        {
+            shortNameBuilder.Append("ct-");
+        }
+
+        var lastSegment = package.Id.Split('.').Last().ToLower();
+        shortNameBuilder.Append(lastSegment);
+        return (shortNameBuilder.ToString(), package);
+    }
+
+    private static void ConfigureAddCommand(Command parentCommand)
     {
 
         var command = new Command("add", "Add an integration or other resource to the Aspire project.");
@@ -487,7 +546,7 @@ public class Program
         command.Arguments.Add(resourceArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(BaseCommand.ValidateProjectOption);
+        projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -571,65 +630,6 @@ public class Program
         });
 
         parentCommand.Subcommands.Add(command);
-    }
-
-    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
-    {
-        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title("Select an integration to add:")
-            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
-            .PageSize(10)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(knownPackages);
-
-        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
-
-        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
-            .DefaultValue(selectedIntegration.Package.Version)
-            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
-            .ShowDefaultValue(true)
-            .DefaultValueStyle(Style.Parse("darkmagenta"));
-
-        var version = AnsiConsole.Prompt(versionPrompt);
-
-        selectedIntegration.Package.Version = version;
-
-        return selectedIntegration;
-
-        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
-        {
-            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
-            {
-                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
-            }
-            else
-            {
-                return packageWithFriendlyName.Package.Id;
-            }
-        }
-    }
-
-    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
-    {
-        var shortNameBuilder = new StringBuilder();
-
-        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
-        {
-            shortNameBuilder.Append("az-");
-        }
-        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
-        {
-            shortNameBuilder.Append("aws-");
-        }
-        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
-        {
-            shortNameBuilder.Append("ct-");
-        }
-
-        var lastSegment = package.Id.Split('.').Last().ToLower();
-        shortNameBuilder.Append(lastSegment);
-        return (shortNameBuilder.ToString(), package);
     }
 
     public static async Task<int> Main(string[] args)
