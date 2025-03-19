@@ -136,7 +136,15 @@ public class Program
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");
+
+            #if DEBUG
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+            #endif
+            
+            #if !DEBUG
+            var waitForDebugger = false;
+            #endif
+            
             var useRichConsole = !debug && !waitForDebugger;
 
             if (waitForDebugger)
@@ -303,10 +311,12 @@ public class Program
             
             var env = new Dictionary<string, string>();
 
+            #if DEBUG
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
+            #endif
 
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
