@@ -106,12 +106,13 @@ public class DistributedApplicationBuilderTests
         var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new("testhost"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
-        _ = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { DisableDashboard = false, AssemblyName = testAssembly.FullName });
+        var args = new[] { "--environment", "Development" };
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = false, AssemblyName = testAssembly.FullName });
         var userSecrets = GetUserSecrets(userSecretsId);
 
-        var otlpApiKey = userSecrets["AppHost:OtlpApiKey"];
-        Assert.NotNull(otlpApiKey);
-        Assert.True(otlpApiKey!.Length > 0);
+        var configValue = builder.Configuration["AppHost:OtlpApiKey"];
+        Assert.True(userSecrets.TryGetValue("AppHost:OtlpApiKey", out var savedValue));
+        Assert.Equal(configValue, savedValue);
 
         DeleteUserSecretsFile(userSecretsId);
     }
@@ -125,7 +126,9 @@ public class DistributedApplicationBuilderTests
         var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new("forthetest"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
-        _ = AssemblyLoadContext.Default.LoadFromAssemblyName(testAssembly.GetName());
+        Assembly? resolving(AssemblyLoadContext context, AssemblyName name) => name.FullName == testAssembly.FullName ? testAssembly : null;
+
+        AssemblyLoadContext.Default.Resolving += resolving;
 
         var otlpApiKey = TokenGenerator.GenerateToken();
         Assert.True(SecretsStore.TrySetUserSecret(testAssembly, "AppHost:OtlpApiKey", otlpApiKey));
@@ -136,6 +139,7 @@ public class DistributedApplicationBuilderTests
         Assert.Equal(otlpApiKey, builder.Configuration["AppHost:OtlpApiKey"]);
 
         DeleteUserSecretsFile(userSecretsId);
+        AssemblyLoadContext.Default.Resolving -= resolving;
     }
 
     [Fact]
