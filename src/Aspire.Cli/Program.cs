@@ -398,6 +398,9 @@ public class Program
 
         var prereleaseOption = new Option<bool>("--prerelease");
         command.Options.Add(prereleaseOption);
+        
+        var sourceOption = new Option<string?>("--source", "-s");
+        command.Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
         templateVersionOption.DefaultValueFactory = (result) => 
@@ -419,6 +422,7 @@ public class Program
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var templateVersion = parseResult.GetValue<string>("--version");
+            var source = parseResult.GetValue<string?>("--source");
 
             int templateInstallExitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
@@ -426,7 +430,7 @@ public class Program
                 .StartAsync(
                     ":ice:  Getting latest templates...",
                     async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
+                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct).ConfigureAwait(false);
                     }).ConfigureAwait(false);
 
             if (templateInstallExitCode != 0)
@@ -538,7 +542,6 @@ public class Program
 
     private static void ConfigureAddCommand(Command parentCommand)
     {
-
         var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
         var resourceArgument = new Argument<string>("resource");
@@ -555,8 +558,8 @@ public class Program
         var prereleaseOption = new Option<bool>("--prerelease");
         command.Options.Add(prereleaseOption);
 
-        var nugetConfigOption = new Option<bool>("--use-nuget-config");
-        command.Options.Add(nugetConfigOption);
+        var sourceOption = new Option<string?>("--source", "-s");
+        command.Options.Add(sourceOption);
 
         command.SetAction(async (parseResult, ct) => {
 
@@ -573,17 +576,11 @@ public class Program
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
-                var nugetConfigRequested = parseResult.GetValue<bool>("--use-nuget-config");
-                var nugetSource = nugetConfigRequested ? null : "https://api.nuget.org/v3/index.json";
-                if (nugetConfigRequested)
-                {
-                    
-                    AnsiConsole.MarkupLine("[yellow]Using nearest nuget.config[/]");
-                }
+                var source = parseResult.GetValue<string?>("--source");
 
                 var packages = await AnsiConsole.Status().StartAsync(
                     "Searching for Aspire packages...",
-                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, nugetSource, ct)
+                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, source, ct)
                     ).ConfigureAwait(false);
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));

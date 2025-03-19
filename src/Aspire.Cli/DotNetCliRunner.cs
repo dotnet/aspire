@@ -26,13 +26,19 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<int> InstallTemplateAsync(string packageName, string version, bool force, CancellationToken cancellationToken)
+    public async Task<int> InstallTemplateAsync(string packageName, string version, string? source, bool force, CancellationToken cancellationToken)
     {
         List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
 
         if (force)
         {
             cliArgs.Add("--force");
+        }
+
+        if (source is not null)
+        {
+            cliArgs.Add("--nuget-source");
+            cliArgs.Add(source);
         }
 
         return await ExecuteAsync(
