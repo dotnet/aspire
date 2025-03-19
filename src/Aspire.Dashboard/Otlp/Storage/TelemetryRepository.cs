@@ -989,6 +989,9 @@ public sealed class TelemetryRepository
                             _tracePropertyKeys.Add((applicationView.Application, kvp.Key));
                         }
 
+                        // Newly added or updated trace should always been in the collection.
+                        Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
+
                         lastTrace = trace;
                     }
                     catch (Exception ex)
