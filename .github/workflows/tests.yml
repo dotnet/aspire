@@ -21,9 +21,6 @@ jobs:
       tests_matrix: ${{ steps.generate_test_matrix.outputs.tests_matrix }}
     steps:
       - uses: actions/checkout@v4
-        env:
-          DISABLE_PLAYWRIGHT_TESTS: true
-
       - uses: ./.github/actions/enumerate-tests
         id: generate_test_matrix
 
@@ -37,6 +34,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.os.name }}
+      requiresNugets: ${{ matrix.shortname == 'EndToEnd' }}
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}

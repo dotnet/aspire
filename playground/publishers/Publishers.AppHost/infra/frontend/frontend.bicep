@@ -15,13 +15,13 @@ param param2_value string
 
 param param3_value string
 
-param outputs_azure_container_apps_environment_default_domain string
+param env_outputs_azure_container_apps_environment_default_domain string
 
-param outputs_azure_container_registry_managed_identity_id string
+param env_outputs_azure_container_registry_managed_identity_id string
 
-param outputs_azure_container_apps_environment_id string
+param env_outputs_azure_container_apps_environment_id string
 
-param outputs_azure_container_registry_endpoint string
+param env_outputs_azure_container_registry_endpoint string
 
 param frontend_containerimage string
 
@@ -33,7 +33,7 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--sqldb'
-          value: '${'Server=sqlserver,1433;User ID=sa;Password=${sqlserver_password_value};TrustServerCertificate=true'};Database=sqldb'
+          value: 'Server=sqlserver,1433;User ID=sa;Password=${sqlserver_password_value};TrustServerCertificate=true;Initial Catalog=sqldb'
         }
         {
           name: 'p1'
@@ -48,12 +48,12 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
       }
       registries: [
         {
-          server: outputs_azure_container_registry_endpoint
-          identity: outputs_azure_container_registry_managed_identity_id
+          server: env_outputs_azure_container_registry_endpoint
+          identity: env_outputs_azure_container_registry_managed_identity_id
         }
       ]
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: env_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -102,11 +102,11 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'services__api__http__0'
-              value: 'http://api.${outputs_azure_container_apps_environment_default_domain}'
+              value: 'http://api.${env_outputs_azure_container_apps_environment_default_domain}'
             }
             {
               name: 'services__api__https__0'
-              value: 'https://api.${outputs_azure_container_apps_environment_default_domain}'
+              value: 'https://api.${env_outputs_azure_container_apps_environment_default_domain}'
             }
           ]
         }
@@ -119,7 +119,7 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }

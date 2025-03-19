@@ -14,11 +14,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 {
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
-    public async Task<int> RunAsync(FileInfo projectFile, string[] args, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(FileInfo projectFile, string[] args, IDictionary<string, string>? env, CancellationToken cancellationToken)
     {
         string[] cliArgs = ["run", "--project", projectFile.FullName, "--", ..args];
         return await ExecuteAsync(
             args: cliArgs,
+            env: env,
             workingDirectory: projectFile.Directory!,
             startBackchannel: true,
             streamsCallback: null,
@@ -31,6 +32,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         string[] cliArgs = ["new", "install", $"{packageName}::{version}", ..forceArgs];
         return await ExecuteAsync(
             args: cliArgs,
+            env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             startBackchannel: false,
             streamsCallback: null,
@@ -42,6 +44,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath];
         return await ExecuteAsync(
             args: cliArgs,
+            env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             startBackchannel: false,
             streamsCallback: null,
@@ -114,19 +117,25 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         }
     }
 
-    public async Task<int> ExecuteAsync(string[] args, DirectoryInfo workingDirectory, bool startBackchannel, Action<StreamWriter, StreamReader, StreamReader>? streamsCallback, CancellationToken cancellationToken)
+    public async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, bool startBackchannel, Action<StreamWriter, StreamReader, StreamReader>? streamsCallback, CancellationToken cancellationToken)
     {
-        var redirectStreams = streamsCallback is { };
-
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = workingDirectory.FullName,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardInput = redirectStreams,
-            RedirectStandardOutput = redirectStreams,
-            RedirectStandardError = redirectStreams
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
         };
+
+        if (env is not null)
+        {
+            foreach (var envKvp in env)
+            {
+                startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
+            }
+        }
 
         foreach (var a in args)
         {
@@ -152,43 +161,78 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
         using var process = new Process { StartInfo = startInfo };
 
-        // Wiring up these event handlers so that we can interleave the stderror and stdout
-        // into the logs of the CLI. This means that the output of this will be driven by the
-        // logger settings in the CLI (probably with a --debug) switch.
-        process.OutputDataReceived += (sender, args) => {
-            if (args.Data is { } data)
-            {
-                logger.LogDebug("dotnet output: {Data}", data);
-            }
-        };
-        process.ErrorDataReceived += (sender, args) => {
-            if (args.Data is { } data)
-            {
-                logger.LogError("dotnet error: {Data}", data);
-            }
-        };
-
         logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
 
         var started = process.Start();
 
+        if (streamsCallback is null)
+        {
+            var pendingStdoutStreamForwarder = Task.Run(async () => {
+                await ForwardStreamToLoggerAsync(
+                    process.StandardOutput,
+                    "stdout",
+                    process,
+                    cancellationToken).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
+
+            var pendingStderrStreamForwarder = Task.Run(async () => {
+                await ForwardStreamToLoggerAsync(
+                    process.StandardError,
+                    "stderr",
+                    process,
+                    cancellationToken).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!started)
         {
+            logger.LogDebug("Failed to start dotnet process with args: {Args}", string.Join(" ", args));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        else
+        {
+            logger.LogDebug("Started dotnet with PID: {ProcessId}", process.Id);
         }
 
         // This is so that callers can get a handle to the raw stream output. This is important
         // because some commmands (like package search) return JSON data that we need to parse.
         streamsCallback?.Invoke(process.StandardInput, process.StandardOutput, process.StandardError);
 
+        logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
+
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
         if (!process.HasExited)
         {
+            logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, killing it.", process.Id);
             process.Kill(false);
+        }
+        else
+        {
+            logger.LogDebug("dotnet process with PID: {ProcessId} has exited with code: {ExitCode}", process.Id, process.ExitCode);
         }
 
         return process.ExitCode;
+
+        async Task ForwardStreamToLoggerAsync(StreamReader reader, string identifier, Process process, CancellationToken cancellationToken)
+        {
+            logger.LogDebug(
+                "Starting to forward stream with identifier '{Identifier}' on process '{ProcessId}' to logger",
+                identifier,
+                process.Id
+                );
+
+            while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                logger.LogDebug(
+                    "dotnet({ProcessId}) {Identifier}: {Line}",
+                    process.Id,
+                    identifier,
+                    line
+                    );
+            }
+        }
     }
 
     public async Task<int> AddPackageAsync(FileInfo projectFilepath, string packageName, string packageVersion, CancellationToken cancellationToken)
@@ -206,6 +250,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
         var result = await ExecuteAsync(
             args: cliArgs,
+            env: null,
             workingDirectory: projectFilepath.Directory!,
             startBackchannel: false,
             streamsCallback: (_, _, _) => { },
@@ -223,9 +268,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, int take, int skip, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, CancellationToken cancellationToken)
     {
-        string[] cliArgs = [
+        List<string> cliArgs = [
             "package",
             "search",
             query,
@@ -237,27 +282,46 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             "json"
         ];
 
-        StreamReader? standardOutput = null;
+        if (prerelease)
+        {
+            cliArgs.Add("--prerelease");
+        }
+
+        string? stdout = null;
+        string? stderr = null;
 
         var result = await ExecuteAsync(
-            args: cliArgs,
+            args: cliArgs.ToArray(),
+            env: null,
             workingDirectory: projectFilePath.Directory!,
             startBackchannel: false,
             streamsCallback: (_, output, _) => {
-                standardOutput = output;
+                // We need to read the output of the streams
+                // here otherwise th process will never exit.
+                stdout = output.ReadToEnd();
+                stderr = output.ReadToEnd();
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (result != 0)
         {
-            logger.LogError("Failed to search for packages. See debug logs for more details.");
+            logger.LogError(
+                "Failed to search for packages. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                stderr,
+                stdout
+                );
             return (result, null);
         }
         else
         {
-            var json = standardOutput?.ReadToEnd();
+            if (stdout is null)
+            {
+                logger.LogError("Failed to read stdout from the process. This should never happen.");
+                return (ExitCodeConstants.FailedToAddPackage, null);
+            }
+
             var foundPackages = new List<NuGetPackage>();
-            var document = JsonDocument.Parse(json!);
+            var document = JsonDocument.Parse(stdout);
 
             var searchResultsArray = document.RootElement.GetProperty("searchResult");
 

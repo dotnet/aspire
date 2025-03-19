@@ -4,9 +4,9 @@ param location string = resourceGroup().location
 @secure()
 param pg_password_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param env_outputs_azure_container_registry_managed_identity_id string
 
-param outputs_azure_container_apps_environment_id string
+param env_outputs_azure_container_apps_environment_id string
 
 resource pg 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'pg'
@@ -26,7 +26,7 @@ resource pg 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
       }
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: env_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -60,7 +60,7 @@ resource pg 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }

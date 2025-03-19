@@ -6,11 +6,11 @@ param dbsetup_containerport string
 @secure()
 param pg_password_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param env_outputs_azure_container_registry_managed_identity_id string
 
-param outputs_azure_container_apps_environment_id string
+param env_outputs_azure_container_apps_environment_id string
 
-param outputs_azure_container_registry_endpoint string
+param env_outputs_azure_container_registry_endpoint string
 
 param dbsetup_containerimage string
 
@@ -22,7 +22,7 @@ resource dbsetup 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--db'
-          value: '${'Host=pg;Port=5432;Username=${'postgres'};Password=${pg_password_value}'};Database=db'
+          value: 'Host=pg;Port=5432;Username=postgres;Password=${pg_password_value};Database=db'
         }
       ]
       activeRevisionsMode: 'Single'
@@ -33,12 +33,12 @@ resource dbsetup 'Microsoft.App/containerApps@2024-03-01' = {
       }
       registries: [
         {
-          server: outputs_azure_container_registry_endpoint
-          identity: outputs_azure_container_registry_managed_identity_id
+          server: env_outputs_azure_container_registry_endpoint
+          identity: env_outputs_azure_container_registry_managed_identity_id
         }
       ]
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: env_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -80,7 +80,7 @@ resource dbsetup 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }
