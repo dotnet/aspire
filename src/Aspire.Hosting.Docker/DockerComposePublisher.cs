@@ -47,6 +47,6 @@ internal sealed class DockerComposePublisher(
 
         var context = new DockerComposePublishingContext(executionContext, publisherOptions, logger, cancellationToken);
 
-        await context.WriteModel(model).ConfigureAwait(false);
+        await context.WriteModelAsync(model).ConfigureAwait(false);
     }
 }

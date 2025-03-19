@@ -13,7 +13,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
 [UseCulture("en-US")]
-public class ResourceDetailsTests : TestContext
+public class ResourceDetailsTests : DashboardTestContext
 {
     [Fact]
     public async Task ClickMaskAllSwitch_UpdatedResource_MaskChanged()

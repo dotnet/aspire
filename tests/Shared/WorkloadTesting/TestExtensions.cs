@@ -15,6 +15,8 @@ public static class TestExtensions
     {
         var page = await context.NewPageAsync();
         page.Console += (_, e) => testOutput.WriteLine($"[browser-console] {e.Text}");
+        page.Crash += (_, _) => testOutput.WriteLine("******************* browser-crash *******************");
+        page.PageError += (_, e) => testOutput.WriteLine($"[browser-page-error] *********** {e}");
         return page;
     }
 

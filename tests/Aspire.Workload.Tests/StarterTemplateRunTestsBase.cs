@@ -7,6 +7,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
 using System.Net.Http.Json;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Workload.Tests;
 
@@ -23,27 +24,29 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
     }
 
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task WebFrontendWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
         var resourceRows = await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
 
         string url = resourceRows.First(r => r.Name == "webfrontend")
                         .Endpoints.First(e => e.StartsWith(urlPrefix));
@@ -53,14 +56,15 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    [RequiresPlaywright]
     public async Task ApiServiceWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
         var resourceRows = await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
-            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs,
+            logPath: _testFixture.Project.LogPath);
 
         string url = resourceRows.First(r => r.Name == "apiservice")
                         .Endpoints.First(e => e.StartsWith(urlPrefix));

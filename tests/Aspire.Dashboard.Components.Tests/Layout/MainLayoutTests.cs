@@ -17,7 +17,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Layout;
 
 [UseCulture("en-US")]
-public partial class MainLayoutTests : TestContext
+public partial class MainLayoutTests : DashboardTestContext
 {
     [Fact]
     public async Task OnInitialize_UnsecuredOtlp_NotDismissed_DisplayMessageBar()
