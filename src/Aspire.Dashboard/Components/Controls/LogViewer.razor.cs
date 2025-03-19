@@ -36,6 +36,9 @@ public sealed partial class LogViewer
     [Parameter]
     public bool IsTimestampUtc { get; set; }
 
+    [Parameter]
+    public DateTime? FilterTimestamp { get; set; }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)
@@ -79,6 +82,20 @@ public sealed partial class LogViewer
         return IsTimestampUtc
             ? timestamp.UtcDateTime.ToString(KnownFormats.ConsoleLogsUITimestampUtcFormat, CultureInfo.InvariantCulture)
             : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
+    }
+
+    private ICollection<LogEntry>? GetEntries()
+    {
+        if (LogEntries is not { } logEntries)
+        {
+            return null;
+        }
+
+        return FilterTimestamp is null
+            ? logEntries.GetEntries()
+            : logEntries.GetEntries()
+                .Where(logEntry => logEntry.Timestamp is { } timestamp && timestamp <= FilterTimestamp)
+                .ToList();
     }
 
     public ValueTask DisposeAsync()

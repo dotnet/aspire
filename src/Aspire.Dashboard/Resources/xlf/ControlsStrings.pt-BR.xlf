@@ -302,6 +302,11 @@
         <target state="translated">Barra de ferramentas de página</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="new">Pause incoming data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Número</target>
@@ -385,6 +390,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Recurso</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="new">Resume incoming data</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

@@ -463,4 +463,10 @@
     <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
     <comment>OpenTelemetry is the name of the standard.</comment>
   </data>
+  <data name="PauseButtonTitle" xml:space="preserve">
+    <value>Pause incoming data</value>
+  </data>
+  <data name="ResumeButtonTitle" xml:space="preserve">
+    <value>Resume incoming data</value>
+  </data>
 </root>
