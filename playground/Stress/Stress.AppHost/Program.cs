@@ -78,7 +78,7 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 IResourceBuilder<IResource>? previousResourceBuilder = null;
 
-for (var i = 0; i < 10; i++)
+for (var i = 0; i < 3; i++)
 {
     var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}");
     if (previousResourceBuilder != null)
