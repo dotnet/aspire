@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -74,7 +75,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs()
+    public PagedResult<OtlpLogEntry> GetLogs(DateTime? _pausedAt)
     {
         var logs = _logs;
         if (logs == null)
@@ -88,6 +89,11 @@ public class StructuredLogsViewModel
             if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
             {
                 filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
+            }
+
+            if (_pausedAt is not null)
+            {
+                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.TimeStamp), Condition = FilterCondition.LessThanOrEqual, Value = _pausedAt.Value.ToString(CultureInfo.InvariantCulture) });
             }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext

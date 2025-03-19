@@ -40,6 +40,8 @@
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearStructureLogs" />
 
+            <PauseResumeButton PausedAt="@_pausedAt" PausedAtChanged="@OnPausedAtChangedAsync" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"
