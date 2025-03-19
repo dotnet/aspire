@@ -11,7 +11,7 @@ public static class AddCommand
     public static void ConfigureAddCommand(Command parentCommand)
     {
 
-        var command = new Command("add", "Add a resource to the Aspire project.");
+        var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
         var resourceArgument = new Argument<string>("resource");
         resourceArgument.Arity = ArgumentArity.ZeroOrOne;
@@ -67,7 +67,7 @@ public static class AddCommand
                 }
 
                 var addPackageResult = await AnsiConsole.Status().StartAsync(
-                    "Adding Aspire package...",
+                    "Adding Aspire integration...",
                     async context => {
                         var runner = app.Services.GetRequiredService<DotNetCliRunner>();
                         var addPackageResult = await runner.AddPackageAsync(

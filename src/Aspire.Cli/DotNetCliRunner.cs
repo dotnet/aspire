@@ -284,7 +284,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             "--skip",
             skip.ToString(CultureInfo.InvariantCulture),
             "--format",
-            "json"
+            "json",
+            "--source",
+            "https://api.nuget.org/v3/index.json"
         ];
 
         if (prerelease)

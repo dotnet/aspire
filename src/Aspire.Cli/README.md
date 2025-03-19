@@ -34,3 +34,8 @@ Creating the app is a passthrough to `dotnet new` and propogates the `--name` an
 
 ###  add / add <PACKAGE_NAME> (current implementation)
 
+```cli
+aspire add [<PACKAGE_NAME>] [--project <PATH_TO_CSPROJ>]
+                        [-v|--version <VERSION>]
+                        [--prerelease]
+```
