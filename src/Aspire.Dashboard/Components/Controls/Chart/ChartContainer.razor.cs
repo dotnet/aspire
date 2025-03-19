@@ -34,6 +34,18 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required TimeSpan Duration { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Pages.Metrics.MetricViewKind ActiveView { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Pages.Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required List<OtlpApplication> Applications { get; set; }
+
+    [Parameter, EditorRequired]
+    public required DateTime? PausedAt { get; set; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -79,7 +91,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
-            if (_instrument == null)
+            if (_instrument == null || PausedAt is not null)
             {
                 continue;
             }

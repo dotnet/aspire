@@ -51,6 +51,11 @@
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearMetrics" />
 
+            <PauseResumeButton
+                PausedAt="@_pausedAt"
+                PausedAtChanged="@OnPausedAtChangedAsync"
+                Disabled="@(PageViewModel.SelectedInstrument is null)" />
+
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
@@ -98,7 +103,7 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel is { SelectedMeter: not null, SelectedInstrument: not null })
                                     {
                                         <ChartContainer
                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
@@ -107,7 +112,8 @@
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="@_applications" />
+                                            Applications="@_applications"
+                                            PausedAt="@_pausedAt" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
