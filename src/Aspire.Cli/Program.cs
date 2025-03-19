@@ -59,7 +59,7 @@ public class Program
             if (waitForDebugger)
             {
                 AnsiConsole.Status().Start(
-                    $"Waiting for debugger to attach to process ID: {Environment.ProcessId}",
+                    $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
                     context => {
                         while (!Debugger.IsAttached)
                         {
@@ -156,7 +156,7 @@ public class Program
                 await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots3)
                     .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":linked_paperclips: Starting Aspire app host...", async context => {
+                    .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
                         await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
                         }).ConfigureAwait(true);
 
@@ -164,7 +164,7 @@ public class Program
                 await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots3)
                     .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":chart_increasing: Starting Aspire dashboard...", async context => {
+                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
 
                     // Possible we already have it, if so this will be quick.
                     if (model.DashboardLoginUrl is { })
@@ -273,11 +273,11 @@ public class Program
             Debug.WriteLine(ex.Message);
             if (projectFilePaths.Length > 1)
             {
-                AnsiConsole.MarkupLine("[red bold]The --project option was not specified and multiple *.csproj files were detected.[/]");
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --project option was not specified and multiple *.csproj files were detected.[/]");
             }
             else
             {
-                AnsiConsole.MarkupLine("[red bold]The --project option was not specified and no *.csproj files were detected.[/]");
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --project option was not specified and no *.csproj files were detected.[/]");
             }
             return new FileInfo(Environment.CurrentDirectory);
         };
@@ -320,7 +320,7 @@ public class Program
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench: Building artifacts for '{publisher}' publisher...", async context => {
+                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
@@ -332,12 +332,12 @@ public class Program
 
             if (exitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold] :thumbs_down: The build failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The build failed with exit code {exitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
             else
             {
-                AnsiConsole.MarkupLine($"[green bold] :thumbs_up: The build completed successfully to: {fullyQualifiedOutputPath}[/]");
+                AnsiConsole.MarkupLine($"[green bold]:thumbs_up:  The build completed successfully to: {fullyQualifiedOutputPath}[/]");
                 return ExitCodeConstants.Success;
             }
         });
@@ -396,21 +396,42 @@ public class Program
         var outputOption = new Option<string?>("--output", "-o");
         command.Options.Add(outputOption);
 
-        var templateVersionOption = new Option<string?>("--template-version", "-v");
-        templateVersionOption.DefaultValueFactory = (result) => "9.2.0"; // HACK: We should make it use the version that matches the CLI.
+        var prereleaseOption = new Option<bool>("--prerelease");
+        command.Options.Add(prereleaseOption);
+
+        var templateVersionOption = new Option<string?>("--version", "-v");
+        templateVersionOption.DefaultValueFactory = (result) => 
+        {
+            if (result.GetValue<bool>("--prerelease"))
+            {
+                return "*-*";
+            }
+            else
+            {
+                return "9.2.0"; // HACK: Need to get this from the CLI version.
+            }
+        };
         command.Options.Add(templateVersionOption);
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
+            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
-            var templateVersion = parseResult.GetValue<string>("--template-version");
+            var templateVersion = parseResult.GetValue<string>("--version");
 
-            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            var templateInstallExitCode = await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
+            int templateInstallExitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    ":ice:  Installing templates...",
+                    async context => {
+                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
 
             if (templateInstallExitCode != 0)
             {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The template installation failed with exit code {templateInstallExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
 
@@ -431,18 +452,26 @@ public class Program
                 name = outputPathDirectoryInfo.Name;
             }
 
-            var newProjectExitCode = await cliRunner.NewProjectAsync(
-                templateName,
-                name,
-                outputPath,
-                ct).ConfigureAwait(false);
+            int newProjectExitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    ":rocket:  Creating new Aspire project...",
+                    async context => {
+                        return await cliRunner.NewProjectAsync(
+                    templateName,
+                    name,
+                    outputPath,
+                    ct).ConfigureAwait(false);
+                }).ConfigureAwait(false);
 
             if (newProjectExitCode != 0)
             {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
-            return 0;
+            return ExitCodeConstants.Success;
         });
 
         parentCommand.Subcommands.Add(command);
@@ -579,7 +608,7 @@ public class Program
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red bold]An error occured while adding the package: {ex.Message}[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while adding the package: {ex.Message}[/]");
                 return ExitCodeConstants.FailedToAddPackage;
             }
         });
