@@ -15,7 +15,7 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    public static IHost BuildApplication(ParseResult parseResult)
+    private static IHost BuildApplication(ParseResult parseResult)
     {
         var builder = Host.CreateApplicationBuilder();
 
@@ -569,7 +569,7 @@ public class Program
                 var integrationName = parseResult.GetValue<string>("resource");
 
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                var effectiveAppHostProjectFile = BaseCommand.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
