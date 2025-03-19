@@ -31,7 +31,7 @@ resource sbemulator_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssign
   scope: sbemulator
 }
 
-resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
+resource queueOne 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   name: 'queue1'
   properties: {
     deadLetteringOnMessageExpiration: false
@@ -39,7 +39,7 @@ resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   parent: sbemulator
 }
 
-resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+resource topicOne 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   name: 'topic1'
   parent: sbemulator
 }
@@ -49,7 +49,7 @@ resource sub1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' 
   properties: {
     maxDeliveryCount: 10
   }
-  parent: topic1
+  parent: topicOne
 }
 
 resource app_prop_filter_1 'Microsoft.ServiceBus/namespaces/topics/subscriptions/rules@2024-01-01' = {
@@ -71,3 +71,5 @@ resource app_prop_filter_1 'Microsoft.ServiceBus/namespaces/topics/subscriptions
 }
 
 output serviceBusEndpoint string = sbemulator.properties.serviceBusEndpoint
+
+output name string = sbemulator.name

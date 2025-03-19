@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
@@ -16,20 +17,35 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
     public async Task<int> RunAsync(FileInfo projectFile, string[] args, CancellationToken cancellationToken)
     {
         string[] cliArgs = ["run", "--project", projectFile.FullName, "--", ..args];
-        return await ExecuteAsync(cliArgs, true, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(
+            args: cliArgs,
+            workingDirectory: projectFile.Directory!,
+            startBackchannel: true,
+            streamsCallback: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<int> InstallTemplateAsync(string packageName, string version, bool force, CancellationToken cancellationToken)
     {
         string[] forceArgs = force ? ["--force"] : [];
         string[] cliArgs = ["new", "install", $"{packageName}::{version}", ..forceArgs];
-        return await ExecuteAsync(cliArgs, false, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(
+            args: cliArgs,
+            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            startBackchannel: false,
+            streamsCallback: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken)
     {
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath];
-        return await ExecuteAsync(cliArgs, false, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(
+            args: cliArgs,
+            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            startBackchannel: false,
+            streamsCallback: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     internal static string GetBackchannelSocketPath()
@@ -98,12 +114,18 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         }
     }
 
-    public async Task<int> ExecuteAsync(string[] args, bool startBackchannel, CancellationToken cancellationToken)
+    public async Task<int> ExecuteAsync(string[] args, DirectoryInfo workingDirectory, bool startBackchannel, Action<StreamWriter, StreamReader, StreamReader>? streamsCallback, CancellationToken cancellationToken)
     {
+        var redirectStreams = streamsCallback is { };
+
         var startInfo = new ProcessStartInfo("dotnet")
         {
+            WorkingDirectory = workingDirectory.FullName,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            RedirectStandardInput = redirectStreams,
+            RedirectStandardOutput = redirectStreams,
+            RedirectStandardError = redirectStreams
         };
 
         foreach (var a in args)
@@ -129,12 +151,35 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         startInfo.EnvironmentVariables["ASPIRE_CLI_PID"] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
         using var process = new Process { StartInfo = startInfo };
+
+        // Wiring up these event handlers so that we can interleave the stderror and stdout
+        // into the logs of the CLI. This means that the output of this will be driven by the
+        // logger settings in the CLI (probably with a --debug) switch.
+        process.OutputDataReceived += (sender, args) => {
+            if (args.Data is { } data)
+            {
+                logger.LogDebug("dotnet output: {Data}", data);
+            }
+        };
+        process.ErrorDataReceived += (sender, args) => {
+            if (args.Data is { } data)
+            {
+                logger.LogError("dotnet error: {Data}", data);
+            }
+        };
+
+        logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+
         var started = process.Start();
 
         if (!started)
         {
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+
+        // This is so that callers can get a handle to the raw stream output. This is important
+        // because some commmands (like package search) return JSON data that we need to parse.
+        streamsCallback?.Invoke(process.StandardInput, process.StandardOutput, process.StandardError);
 
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -145,4 +190,104 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
 
         return process.ExitCode;
     }
+
+    public async Task<int> AddPackageAsync(FileInfo projectFilepath, string packageName, string packageVersion, CancellationToken cancellationToken)
+    {
+        string[] cliArgs = [
+            "add",
+            projectFilepath.FullName,
+            "package",
+            packageName,
+            "--version",
+            packageVersion
+        ];
+
+        logger.LogInformation("Adding package {PackageName} with version {PackageVersion} to project {ProjectFilePath}", packageName, packageVersion, projectFilepath.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            workingDirectory: projectFilepath.Directory!,
+            startBackchannel: false,
+            streamsCallback: (_, _, _) => { },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to add package {PackageName} with version {PackageVersion} to project {ProjectFilePath}. See debug logs for more details.", packageName, packageVersion, projectFilepath.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Package {PackageName} with version {PackageVersion} added to project {ProjectFilePath}", packageName, packageVersion, projectFilepath.FullName);
+        }
+
+        return result;
+    }
+
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, int take, int skip, CancellationToken cancellationToken)
+    {
+        string[] cliArgs = [
+            "package",
+            "search",
+            query,
+            "--take",
+            take.ToString(CultureInfo.InvariantCulture),
+            "--skip",
+            skip.ToString(CultureInfo.InvariantCulture),
+            "--format",
+            "json"
+        ];
+
+        StreamReader? standardOutput = null;
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            workingDirectory: projectFilePath.Directory!,
+            startBackchannel: false,
+            streamsCallback: (_, output, _) => {
+                standardOutput = output;
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to search for packages. See debug logs for more details.");
+            return (result, null);
+        }
+        else
+        {
+            var json = standardOutput?.ReadToEnd();
+            var foundPackages = new List<NuGetPackage>();
+            var document = JsonDocument.Parse(json!);
+
+            var searchResultsArray = document.RootElement.GetProperty("searchResult");
+
+            foreach (var sourceResult in searchResultsArray.EnumerateArray())
+            {
+                var source = sourceResult.GetProperty("sourceName").GetString();
+                var sourcePackagesArray = sourceResult.GetProperty("packages");
+
+                foreach (var packageResult in sourcePackagesArray.EnumerateArray())
+                {
+                    var id = packageResult.GetProperty("id").GetString();
+                    var version = packageResult.GetProperty("latestVersion").GetString();
+
+                    foundPackages.Add(new NuGetPackage
+                    {
+                        Id = id!,
+                        Version = version!,
+                        Source = source!
+                    });
+                }
+            }
+
+            return (result, foundPackages.ToArray());
+        }
+    }
+}
+
+internal class NuGetPackage
+{
+    public string Id { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
 }

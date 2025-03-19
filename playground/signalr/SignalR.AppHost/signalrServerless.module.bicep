@@ -52,3 +52,5 @@ resource signalrServerless_SignalRRestApiOwner 'Microsoft.Authorization/roleAssi
 }
 
 output hostName string = signalrServerless.properties.hostName
+
+output name string = signalrServerless.name

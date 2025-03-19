@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,12 +22,18 @@ public class Program
 
         if (!debugOption)
         {
-            builder.Logging.ClearProviders();
+            // Suppress all logging and rely on AnsiConsole output.
+            builder.Logging.AddFilter((_) => false);
+        }
+        else
+        {
+            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
         }
 
         builder.Services.AddTransient<AppHostRunner>();
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddSingleton<CliRpcTarget>();
+        builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
         var app = builder.Build();
         return app;
     }
@@ -34,12 +41,39 @@ public class Program
     private static RootCommand GetRootCommand()
     {
         var rootCommand = new RootCommand(".NET Aspire CLI");
+
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Recursive = true;
         rootCommand.Options.Add(debugOption);
-        ConfigureDevCommand(rootCommand);
-        ConfigurePublishCommand(rootCommand);
+        
+        #if DEBUG
+        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger", "-w");
+        waitForDebuggerOption.Recursive = true;
+        waitForDebuggerOption.DefaultValueFactory = (result) => false;
+        waitForDebuggerOption.Validators.Add((result) => {
+
+            var waitForDebugger = result.GetValueOrDefault<bool>();
+
+            if (waitForDebugger)
+            {
+                AnsiConsole.Status().Start(
+                    $"Waiting for debugger to attach to process ID: {Environment.ProcessId}",
+                    context => {
+                        while (!Debugger.IsAttached)
+                        {
+                            Thread.Sleep(1000);
+                        }
+                    }
+                );
+            }
+        });
+        rootCommand.Options.Add(waitForDebuggerOption);
+        #endif
+
+        ConfigureRunCommand(rootCommand);
+        ConfigureBuildCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
+        ConfigureAddCommand(rootCommand);
         return rootCommand;
     }
 
@@ -81,9 +115,9 @@ public class Program
         }
     }
 
-    private static void ConfigureDevCommand(Command parentCommand)
+    private static void ConfigureRunCommand(Command parentCommand)
     {
-        var command = new Command("dev", "Run a .NET Aspire AppHost project in development mode.");
+        var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -142,9 +176,9 @@ public class Program
         };
     }
 
-    private static void ConfigurePublishCommand(Command parentCommand)
+    private static void ConfigureBuildCommand(Command parentCommand)
     {
-        var command = new Command("publish", "Publish a .NET Aspire AppHost project.");
+        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project", "-p");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -266,6 +300,118 @@ public class Program
             }
 
             return 0;
+        });
+
+        parentCommand.Subcommands.Add(command);
+    }
+
+    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
+    {
+        var prompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
+            .Title("Please select the integration you want to add:")
+            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
+            .PageSize(10)
+            .AddChoices(knownPackages);
+
+        var selectedIntegration = AnsiConsole.Prompt(prompt);
+
+        return selectedIntegration;
+
+        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
+        {
+            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
+            {
+                return $"{packageWithFriendlyName.Package.Id} ({friendlyName})";
+            }
+            else
+            {
+                return packageWithFriendlyName.Package.Id;
+            }
+        }
+    }
+
+    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
+    {
+        var shortNameBuilder = new StringBuilder();
+
+        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
+        {
+            shortNameBuilder.Append("az-");
+        }
+        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
+        {
+            shortNameBuilder.Append("aws-");
+        }
+        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
+        {
+            shortNameBuilder.Append("ct-");
+        }
+
+        var lastSegment = package.Id.Split('.').Last().ToLower();
+        shortNameBuilder.Append(lastSegment);
+        return (shortNameBuilder.ToString(), package);
+    }
+
+    private static void ConfigureAddCommand(Command parentCommand)
+    {
+        var command = new Command("add", "Add a resource to the .NET Aspire project.");
+
+        var resourceArgument = new Argument<string>("resource");
+        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
+        command.Arguments.Add(resourceArgument);
+
+        var projectOption = new Option<FileInfo?>("--project", "-p");
+        projectOption.Validators.Add(ValidateProjectOption);
+        command.Options.Add(projectOption);
+
+        command.SetAction(async (parseResult, ct) => {
+            try
+            {
+                var app = BuildApplication(parseResult);
+                
+                var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
+
+                var integrationName = parseResult.GetValue<string>("resource");
+
+                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+
+                var packages = await AnsiConsole.Status().StartAsync(
+                    "Searching for Aspire packages...",
+                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, ct)
+                    ).ConfigureAwait(false);
+
+                var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
+
+                var selectedNuGetPackage = packagesWithShortName.FirstOrDefault(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+
+                if (selectedNuGetPackage == default)
+                {
+                    selectedNuGetPackage = GetPackageByInteractiveFlow(packagesWithShortName);
+                }
+
+                var addPackageResult = await AnsiConsole.Status().StartAsync(
+                    "Adding Aspire package...",
+                    async context => {
+                        var runner = app.Services.GetRequiredService<DotNetCliRunner>();
+                        var addPackageResult = await runner.AddPackageAsync(
+                            effectiveAppHostProjectFile,
+                            selectedNuGetPackage.Package.Id,
+                            selectedNuGetPackage.Package.Version,
+                            ct
+                            ).ConfigureAwait(false);
+
+                        return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
+                    }                
+                ).ConfigureAwait(false);
+
+                return addPackageResult;
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red bold]An error occured while adding the package: {ex.Message}[/]");
+                return ExitCodeConstants.FailedToAddPackage;
+            }
         });
 
         parentCommand.Subcommands.Add(command);

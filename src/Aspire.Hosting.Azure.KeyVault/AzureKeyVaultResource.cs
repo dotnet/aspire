@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,9 +20,20 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     public BicepOutputReference VaultUri => new("vaultUri", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{VaultUri}");
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = KeyVaultService.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
+    }
 }

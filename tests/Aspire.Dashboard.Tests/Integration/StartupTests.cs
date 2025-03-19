@@ -713,6 +713,23 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.UIDisableResourceGraphName.ConfigKey] = value?.ToString().ToLower();
+            });
+
+        // Assert
+        Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.UI.DisableResourceGraph);
+    }
+
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
     {
         // Check that the address is IPv4 or IPv6 any.
