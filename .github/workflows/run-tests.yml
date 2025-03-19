@@ -226,7 +226,6 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-          DISABLE_PLAYWRIGHT_TESTS: ${{ inputs.os == 'ubuntu-latest' }}
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
@@ -278,3 +277,5 @@ jobs:
           path: |
             **/*.binlog
             testresults/**
+            artifacts/bin/Aspire.Workload.Tests/Debug/net8.0/logs/**
+            artifacts/log/test-logs/**

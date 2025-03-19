@@ -66,7 +66,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             try
             {
                 var page = await project.OpenDashboardPageAsync(context);
-                await CheckDashboardHasResourcesAsync(page, []);
+                await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
             }
             finally
             {

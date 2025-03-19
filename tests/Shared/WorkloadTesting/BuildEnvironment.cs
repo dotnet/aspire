@@ -173,10 +173,7 @@ public class BuildEnvironment
         if (!string.IsNullOrEmpty(EnvironmentVariables.TestLogPath))
         {
             LogRootPath = Path.GetFullPath(EnvironmentVariables.TestLogPath);
-            if (!Directory.Exists(LogRootPath))
-            {
-                Directory.CreateDirectory(LogRootPath);
-            }
+            Directory.CreateDirectory(LogRootPath);
         }
         else
         {
