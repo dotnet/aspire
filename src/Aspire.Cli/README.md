@@ -45,4 +45,8 @@ Adds an Aspire integration if specified, or lists all possible integrations in a
 
 If no package name is given, it first runs a passthrough to `dotnet package search`. `--prerelease` is propagated. `--use-nuget-config` is a bool that defaults to the public nuget feed (ie, propagates `--source "https://api.nuget.org/v3/index.json"`), but if set it **will not** pass a source and thus will do what the dotnet CLI does - find the nearest `nuget.config` and use all those sources.
 
-Once a package is selected, or if one is specified, it runs `dotnet package add` with the fully qualified package ID, and 
+If a package is specified, it runs the search but with the specified package as the passed through arg. If there isn't a direct match, it shows the full selection prompt.
+
+Once a package is selected, or if the specified one is found, it runs `dotnet package add` with the fully qualified package ID, and passes through `--version` and `--prerelease` as appropriate.
+
+### build (TODO)
