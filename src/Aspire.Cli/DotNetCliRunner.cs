@@ -36,7 +36,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         }
 
         return await ExecuteAsync(
-            args: cliArgs.ToArray(),
+            args: [.. cliArgs],
             env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             startBackchannel: false,
