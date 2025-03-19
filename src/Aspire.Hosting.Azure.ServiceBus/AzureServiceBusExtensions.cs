@@ -449,7 +449,6 @@ public static class AzureServiceBusExtensions
 
                     foreach (var annotation in configJsonAnnotations)
                     {
-
                         annotation.Configure(jsonObject);
                     }
 
