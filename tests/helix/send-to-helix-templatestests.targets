@@ -1,11 +1,11 @@
 <Project>
 
   <PropertyGroup>
-    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForWorkloadTests</BuildHelixWorkItemsDependsOn>
-    <NeedsWorkload>true</NeedsWorkload>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForTemplateTests</BuildHelixWorkItemsDependsOn>
+    <NeedsSdksForTesting>true</NeedsSdksForTesting>
     <NeedsPlaywright>true</NeedsPlaywright>
 
-    <TestProjectName>Aspire.Workload.Tests</TestProjectName>
+    <TestProjectName>Aspire.Templates.Tests</TestProjectName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +19,7 @@
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(TestProjectName)-%TEST_NAME_SUFFIX%.trx&quot;" />
   </ItemGroup>
 
-  <Target Name="BuildHelixWorkItemsForWorkloadTests">
+  <Target Name="BuildHelixWorkItemsForTemplateTests">
     <ItemGroup>
       <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
       <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
@@ -31,11 +31,11 @@
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
     </PropertyGroup>
 
-    <ReadLinesFromFile File="$(TestArchiveTestsDirForWorkloadTests)$(TestProjectName).tests.list">
-      <Output TaskParameter="Lines" ItemName="_WorkloadTestsClassNames" />
+    <ReadLinesFromFile File="$(TestArchiveTestsDirForTemplateTests)$(TestProjectName).tests.list">
+      <Output TaskParameter="Lines" ItemName="_TemplateTestsClassNames" />
     </ReadLinesFromFile>
 
-    <Error Condition="@(_WorkloadTestsClassNames->Count()) == 0"
+    <Error Condition="@(_TemplateTestsClassNames->Count()) == 0"
            Text="No workload test class names found" />
 
     <ItemGroup>
@@ -44,10 +44,10 @@
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-9" Destination="dotnet-9" />
 
       <!-- PreCommands="" needed for batching below -->
-      <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
+      <_TemplateTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Template.Tests.', ''))" PreCommands="" />
 
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames)">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
+      <HelixWorkItem Include="@(_TemplateTestsClassNames)">
+        <PayloadArchive>$(TestArchiveTestsDirForTemplateTests)\$(TestProjectName).zip</PayloadArchive>
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
