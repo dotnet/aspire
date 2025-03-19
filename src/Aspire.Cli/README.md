@@ -23,6 +23,7 @@ This is a passthrough to `dotnet run` via the CLI runner service.
 aspire new [<TEMPLATE>] [-n|--name <PROJECT_NAME>]
                         [-o|--output <OUTPUT_PATH>]
                         [-v|--version <VERSION>]
+                        [-s|--source <NUGET_URL>]
                         [--prerelease]
 ```
 
@@ -38,12 +39,12 @@ Creating the app is a passthrough to `dotnet new` and propagates the `--name` an
 aspire add [<PACKAGE_NAME>] [--project <PATH_TO_CSPROJ>]
                         [-v|--version <VERSION>]
                         [--prerelease]
-                        [--use-nuget-config]
+                        [-s|--source <NUGET_URL>]
 ```
 
 Adds an Aspire integration if specified, or lists all possible integrations in a selection prompt. Integrations are given friendly names based on the last section of the package id (ie `Aspire.Hosting.Redis` can be referenced as `redis`), with specific subsets having prefixes (az- for `Aspire.Hosting.Azure.*`, aws- for aws, ct- for communitytoolkit).
 
-If no package name is given, it first runs a passthrough to `dotnet package search`. `--prerelease` is propagated. `--use-nuget-config` is a bool that defaults to the public nuget feed (ie, propagates `--source "https://api.nuget.org/v3/index.json"`), but if set it **will not** pass a source and thus will do what the dotnet CLI does - find the nearest `nuget.config` and use all those sources.
+If no package name is given, it first runs a passthrough to `dotnet package search`. `--prerelease` is propagated. `--source` if specified will limit the search of packages to the specified package feed. If not specified normal NuGet.config rules will be used to search.
 
 If a package is specified, it runs the search but with the specified package as the passed through arg. If there isn't a direct match, it shows the full selection prompt.
 
