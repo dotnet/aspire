@@ -53,7 +53,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
           }
         }
@@ -65,11 +64,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -88,12 +85,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               scale: {
                 minReplicas: 1
               }
-            }
-          }
-          identity: {
-            type: 'UserAssigned'
-            userAssignedIdentities: {
-              '${outputs_azure_container_registry_managed_identity_id}': { }
             }
           }
         }
@@ -140,9 +131,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "api_containerimage": "{api.containerImage}"
           }
         }
@@ -154,15 +145,15 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         param outputs_azure_container_registry_endpoint string
-
+        
+        param outputs_azure_container_registry_managed_identity_id string
+        
         param api_containerimage string
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -190,7 +181,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
-            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -236,9 +226,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "api_containerport": "{api.containerPort}",
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "api_containerimage": "{api.containerImage}"
           }
         }
@@ -250,17 +240,17 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
+        
         param api_containerport string
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         param outputs_azure_container_registry_endpoint string
-
+        
+        param outputs_azure_container_registry_managed_identity_id string
+        
         param api_containerimage string
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -315,7 +305,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
-            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -370,9 +359,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "api_containerimage": "{api.containerImage}",
             "env": "{env.value}"
           }
@@ -385,17 +374,17 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         param outputs_azure_container_registry_endpoint string
-
+        
+        param outputs_azure_container_registry_managed_identity_id string
+        
         param api_containerimage string
-
+        
         param env string
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -429,7 +418,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
-            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -673,11 +661,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -708,7 +694,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           identity: {
             type: 'UserAssigned'
             userAssignedIdentities: {
-              '${outputs_azure_container_registry_managed_identity_id}': { }
+              '': { }
             }
           }
         }
@@ -802,14 +788,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "api_containerport": "{api.containerPort}",
             "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-            "pg_secretoutputs": "{pg.secretOutputs}",
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "pg_kv_outputs_name": "{pg-kv.outputs.name}",
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
             "cs_connectionstring": "{cs.connectionString}",
             "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "api_containerimage": "{api.containerImage}"
           }
         }
@@ -837,40 +823,40 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param api_identity_outputs_clientid string
 
         param api_containerport string
-
+        
         param mydb_outputs_connectionstring string
-
+        
         param storage_outputs_blobendpoint string
-
-        param pg_secretoutputs string
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
+        param pg_kv_outputs_name string
+        
         @secure()
         param value0_value string
-
+        
         param value1_value string
-
+        
         @secure()
         param cs_connectionstring string
-
+        
         param outputs_azure_container_apps_environment_default_domain string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
         param outputs_azure_container_registry_endpoint string
-
+        
+        param outputs_azure_container_registry_managed_identity_id string
+        
         param api_containerimage string
-
-        resource pg_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: pg_secretoutputs
+        
+        resource pg_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: pg_kv_outputs_name
         }
-
-        resource pg_secretoutputs_kv_db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'db-connectionString'
-          parent: pg_secretoutputs_kv
+        
+        resource pg_kv_outputs_name_kv_pg__db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'pg--db-connectionString'
+          parent: pg_kv_outputs_name_kv
         }
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -879,8 +865,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               secrets: [
                 {
                   name: 'connectionstrings--db'
-                  identity: outputs_azure_container_registry_managed_identity_id
-                  keyVaultUrl: pg_secretoutputs_kv_db_connectionString.properties.secretUri
+                  identity: api_roles_outputs_id
+                  keyVaultUrl: pg_kv_outputs_name_kv_pg__db_connectionString.properties.secretUri
                 }
                 {
                   name: 'secretval'
@@ -1044,9 +1030,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         }
 
         output id string = api_identity.id
-
+        
         output clientId string = api_identity.properties.clientId
-
+        
         output principalId string = api_identity.properties.principalId
 
         output principalName string = api_identity.name
@@ -1800,8 +1786,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
+            "api_roles_outputs_id": "{api-roles.outputs.id}",
+            "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+            "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
             "mydb_secretoutputs": "{mydb.secretOutputs}",
-            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
             "mydb_secretoutputs_connectionstring1": "{mydb.secretOutputs.connectionString1}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
@@ -1815,28 +1803,41 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
+        
+        param api_roles_outputs_id string
+        
+        param api_roles_outputs_clientid string
+        
+        param mydb_kv_outputs_name string
+        
         param mydb_secretoutputs string
-
-        param outputs_azure_container_registry_managed_identity_id string
-
+        
         @secure()
         param mydb_secretoutputs_connectionstring string
-
+        
         @secure()
         param mydb_secretoutputs_connectionstring1 string
-
+        
         param outputs_azure_container_apps_environment_id string
-
+        
+        resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: mydb_kv_outputs_name
+        }
+        
         resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
           name: mydb_secretoutputs
         }
-
+        
+        resource mydb_kv_outputs_name_kv_mydb__connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'mydb--connectionString'
+          parent: mydb_kv_outputs_name_kv
+        }
+        
         resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
           name: 'connectionString'
           parent: mydb_secretoutputs_kv
         }
-
+        
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -1845,22 +1846,22 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               secrets: [
                 {
                   name: 'connectionstrings--mydb'
-                  identity: outputs_azure_container_registry_managed_identity_id
-                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
+                  identity: api_roles_outputs_id
+                  keyVaultUrl: mydb_kv_outputs_name_kv_mydb__connectionString.properties.secretUri
                 }
                 {
                   name: 'connectionstring'
-                  identity: outputs_azure_container_registry_managed_identity_id
+                  identity: api_roles_outputs_id
                   keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
                 }
                 {
                   name: 'secret0'
-                  identity: outputs_azure_container_registry_managed_identity_id
+                  identity: api_roles_outputs_id
                   keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
                 }
                 {
                   name: 'secret1'
-                  identity: outputs_azure_container_registry_managed_identity_id
+                  identity: api_roles_outputs_id
                   keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
                 }
                 {
@@ -1897,6 +1898,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                       name: 'complex'
                       secretRef: 'complex'
                     }
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: api_roles_outputs_clientid
+                    }
                   ]
                 }
               ]
@@ -1908,7 +1913,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           identity: {
             type: 'UserAssigned'
             userAssignedIdentities: {
-              '${outputs_azure_container_registry_managed_identity_id}': { }
+              '${api_roles_outputs_id}': { }
+              '': { }
             }
           }
         }
@@ -3347,33 +3353,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           parent: cae
         }
         
-        resource kv_secret_output_pg 'Microsoft.KeyVault/vaults@2023-07-01' = {
-          name: take('kvsecretoutputpg-${uniqueString(resourceGroup().id)}', 24)
-          location: location
-          properties: {
-            tenantId: tenant().tenantId
-            sku: {
-              family: 'A'
-              name: 'standard'
-            }
-            enableRbacAuthorization: true
-          }
-          tags: tags
-        }
-        
-        resource kv_secret_output_pg_mi_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(kv_secret_output_pg.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
-          properties: {
-            principalId: mi.properties.principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-            principalType: 'ServicePrincipal'
-          }
-          scope: kv_secret_output_pg
-        }
-        
         output volumes_cache_0 string = managedStorage_volumes_cache_0.name
-        
-        output secret_output_pg string = kv_secret_output_pg.name
         
         output MANAGED_IDENTITY_NAME string = mi.name
         

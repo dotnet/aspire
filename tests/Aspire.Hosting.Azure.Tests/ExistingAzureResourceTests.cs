@@ -850,39 +850,41 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{postgresSql.secretOutputs.connectionString}",
+              "connectionString": "{postgresSql-kv.secrets.postgresSql--connectionString}",
               "path": "postgresSql.module.bicep",
               "params": {
                 "administratorLogin": "{existingUserName.value}",
                 "administratorLoginPassword": "{existingPassword.value}",
-                "existingResourceName": "{existingResourceName.value}",
-                "keyVaultName": ""
+                "keyVaultName": "{postgresSql-kv.outputs.name}",
+                "existingResourceName": "{existingResourceName.value}"
               },
               "scope": {
                 "resourceGroup": "{existingResourceGroupName.value}"
               }
             }
             """;
+        var m = ManifestNode.ToString();
+        output.WriteLine(m);
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param existingResourceName string
-
+            
             param administratorLogin string
-
+            
             @secure()
             param administratorLoginPassword string
-
+            
             param keyVaultName string
-
+            
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
             }
-
+            
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
@@ -891,13 +893,13 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: postgresSql
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'postgresSql--connectionString'
               properties: {
                 value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }

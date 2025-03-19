@@ -105,7 +105,7 @@ internal sealed class AzurePublisher(
 
                         if (!p.Secret && p.Default is not null)
                         {
-                            pp.Value = p.Value;
+                        pp.Value = p.Value;
                         }
 
                         // Map the parameter to the Bicep parameter

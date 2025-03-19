@@ -65,8 +65,6 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerRegistryManagedIdentityId => ContainerRegistryManagedIdentityId;
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ManagedIdentityId => ManagedIdentityId;
-
     IManifestExpressionProvider IAzureContainerAppEnvironment.LogAnalyticsWorkspaceId => LogAnalyticsWorkspaceId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalName => PrincipalName;
