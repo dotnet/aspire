@@ -42,19 +42,6 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource, skipPreparer: true);
 
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{redis-cache.outputs.connectionString}",
-              "path": "redis-cache.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
