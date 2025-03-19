@@ -120,7 +120,7 @@ public class Program
     {
         var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
 
-        var projectOption = new Option<FileInfo?>("--project", "-p");
+        var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
@@ -283,14 +283,15 @@ public class Program
     {
         var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
 
-        var projectOption = new Option<FileInfo?>("--project", "-p");
+        var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
-        var targetOption = new Option<string>("--target", "-t");
-        command.Options.Add(targetOption);
+        var publisherOption = new Option<string>("--publisher", "-p");
+        command.Options.Add(publisherOption);
 
         var outputPath = new Option<string>("--output-path", "-o");
+        outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         command.Options.Add(outputPath);
 
         command.SetAction(async (parseResult, ct) => {
@@ -308,11 +309,33 @@ public class Program
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
 
-            var target = parseResult.GetValue<string>("--target");
+            var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
-            var exitCode = await runner.RunAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], env, ct).ConfigureAwait(false);
+            var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            return exitCode;
+            var exitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync($":hammer_and_wrench: Building artifacts for '{publisher}' publisher...", async context => {
+                    var pendingRun = runner.RunAsync(
+                        effectiveAppHostProjectFile,
+                        ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
+                        env,
+                        ct).ConfigureAwait(false);
+
+                    return await pendingRun;
+                }).ConfigureAwait(false);
+
+            if (exitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold] :thumbs_down: The build failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[green bold] :thumbs_up: The build completed successfully to: {fullyQualifiedOutputPath}[/]");
+                return ExitCodeConstants.Success;
+            }
         });
 
         parentCommand.Subcommands.Add(command);
@@ -485,7 +508,7 @@ public class Program
         resourceArgument.Arity = ArgumentArity.ZeroOrOne;
         command.Arguments.Add(resourceArgument);
 
-        var projectOption = new Option<FileInfo?>("--project", "-p");
+        var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
