@@ -175,5 +175,4 @@ public class DistributedApplicationBuilderTests
 
         public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
     }
-
 }
