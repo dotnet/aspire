@@ -312,11 +312,6 @@ public class Program
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            if (!Directory.Exists(fullyQualifiedOutputPath))
-            {
-                Directory.CreateDirectory(fullyQualifiedOutputPath);
-            }
-
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
