@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.ApplicationModel;
