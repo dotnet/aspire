@@ -15,6 +15,7 @@ public sealed class DistributedApplicationOptions
     private readonly Lazy<string?> _projectNameLazy;
     private readonly Lazy<string?> _configurationLazy;
     // This is for testing
+    private Assembly? _testAssembly;
     private string? _projectDirectory;
     private string? _projectName;
 
@@ -55,7 +56,12 @@ public sealed class DistributedApplicationOptions
     /// </summary>
     public bool DisableDashboard { get; set; }
 
-    internal Assembly? Assembly => _assembly.Value;
+    internal Assembly? Assembly
+    {
+        get => _assembly.Value;
+        // For testing only
+        set => _testAssembly = value;
+    }
 
     internal string? Configuration => _configurationLazy.Value;
 
@@ -92,6 +98,11 @@ public sealed class DistributedApplicationOptions
 
     private Assembly? ResolveAssembly()
     {
+        if (_testAssembly is not null)
+        {
+            return _testAssembly;
+        }
+
         // Calculate DCP locations from configuration options
         var appHostAssembly = Assembly.GetEntryAssembly();
         if (!string.IsNullOrEmpty(AssemblyName))

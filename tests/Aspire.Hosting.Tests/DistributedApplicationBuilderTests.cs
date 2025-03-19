@@ -1,14 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.Loader;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -90,6 +95,49 @@ public class DistributedApplicationBuilderTests
         Assert.Equal("/path/", publishOptions.Value.OutputPath);
     }
 
+    private static readonly ConstructorInfo s_userSecretsIdAttrCtor = typeof(UserSecretsIdAttribute).GetConstructor([typeof(string)])!;
+
+    [Fact]
+    public void BuilderSavesGeneratedOtlpApiKeyToUserSecrets()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("testhost"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        _ = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { DisableDashboard = false, AssemblyName = testAssembly.FullName });
+        var userSecrets = GetUserSecrets(userSecretsId);
+
+        var otlpApiKey = userSecrets["AppHost:OtlpApiKey"];
+        Assert.NotNull(otlpApiKey);
+        Assert.True(otlpApiKey!.Length > 0);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
+    [Fact]
+    public void BuilderReadsOtlpApiKeyFromUserSecrets()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("forthetest"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        _ = AssemblyLoadContext.Default.LoadFromAssemblyName(testAssembly.GetName());
+
+        var otlpApiKey = TokenGenerator.GenerateToken();
+        Assert.True(SecretsStore.TrySetUserSecret(testAssembly, "AppHost:OtlpApiKey", otlpApiKey));
+
+        var args = new[] { "--environment", "Development" };
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = false, AssemblyName = testAssembly.FullName });
+
+        Assert.Equal(otlpApiKey, builder.Configuration["AppHost:OtlpApiKey"]);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
     [Fact]
     public void AppHostDirectoryAvailableViaConfig()
     {
@@ -167,6 +215,28 @@ public class DistributedApplicationBuilderTests
 
         var ex = Assert.Throws<DistributedApplicationException>(appBuilder.Build);
         Assert.Equal("Multiple resources with the name 'Test'. Resource names are case-insensitive.", ex.Message);
+    }
+
+    private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
+    {
+        var secretsStore = new SecretsStore(userSecretsId);
+        return secretsStore.AsEnumerable().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    private static void ClearUsersSecrets(string userSecretsId)
+    {
+        var secretsStore = new SecretsStore(userSecretsId);
+        secretsStore.Clear();
+        secretsStore.Save();
+    }
+
+    private static void DeleteUserSecretsFile(string userSecretsId)
+    {
+        var userSecretsPath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        if (File.Exists(userSecretsPath))
+        {
+            File.Delete(userSecretsPath);
+        }
     }
 
     private sealed class TestResource : IResource

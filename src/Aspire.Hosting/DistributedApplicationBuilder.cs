@@ -383,7 +383,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             configuration.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["AppHost:OtlpApiKey"] = apiKey
+                    [key] = apiKey
                 }
             );
             if (!SecretsStore.TrySetUserSecret(appHostAssembly, key, apiKey))
