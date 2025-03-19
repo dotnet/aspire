@@ -116,7 +116,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             configuration,
             new AppHostRpcTarget(NullLogger<AppHostRpcTarget>.Instance),
             resourceNotificationService,
-            new CodespacesUrlRewriter(codespacesOptions)
+            null!, // We don't need the service provider for these tests.
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         );
 
         return new DashboardLifecycleHook(

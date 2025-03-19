@@ -6,18 +6,18 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, ResourceNotificationService resourceNotificationService, CodespacesUrlRewriter urlRewriter) : BackgroundService
+internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, DistributedApplicationExecutionContext executionContext) : BackgroundService
 {
     private const string UnixSocketPathEnvironmentVariable = "ASPIRE_LAUNCHER_BACKCHANNEL_PATH";
 
     private bool _dashboardUrlsReady;
-    private bool _dashboardUrlsSent;
 
     private string? _dashboardBaseUrl;
 
@@ -25,6 +25,8 @@ internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfigurat
 
     public void SetDashboardUrls(string baseUrl, string? browserToken)
     {
+        var urlRewriter = serviceProvider.GetRequiredService<CodespacesUrlRewriter>();
+
         // Always store the base URL without the token, we use
         // this for the resource table in the CLI to make sure
         // that port forwarding in Codespaces works correctly.
@@ -40,13 +42,20 @@ internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfigurat
         _dashboardUrlsReady = true;
     }
 
-    private async Task ForwardSundriesAsync(JsonRpc rpc, CancellationToken cancellationToken)
+    private async Task ForwardDashboardUrlsAsync(JsonRpc rpc, CancellationToken cancellationToken)
     {
+        if (!executionContext.IsRunMode)
+        {
+            // We don't send the dashboard URLs in any
+            // other mode than run mode.
+            return;
+        }
+
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
         do
         {
-            if (_dashboardUrlsReady && !_dashboardUrlsSent)
+            if (_dashboardUrlsReady)
             {
                 logger.LogDebug(
                     "Sending dashboard base URL of {BaseUrl} and dashboard login URL of {LoginUrl} via CLI backchannel.",
@@ -58,8 +67,9 @@ internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfigurat
                     "UpdateDashboardUrlsAsync",
                     _dashboardBaseUrl,
                     _dashboardLoginUrl).ConfigureAwait(false);
-
-                _dashboardUrlsSent = true;
+                
+                // Once we have sent the dashboard URLs we don't need to loop anymore.
+                return;
             }
         } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
     }
@@ -133,12 +143,12 @@ internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfigurat
 
             var pendingSendPings = SendPingsAsync(rpc, stoppingToken);
             var pendingForwardResourceStates = ForwardResourceStatesAsync(rpc, stoppingToken);
-            var pendingForwardSundries = ForwardSundriesAsync(rpc, stoppingToken);
+            var pendingForwardDashboardUrls = ForwardDashboardUrlsAsync(rpc, stoppingToken);
 
-            await Task.WhenAny(
+            await Task.WhenAll(
                 pendingSendPings, // Independent of anything else.
                 pendingForwardResourceStates, // Dedicated to resource events.
-                pendingForwardSundries // Everything else.
+                pendingForwardDashboardUrls // Everything else.
                 ).ConfigureAwait(false);
         }
         catch (StreamJsonRpc.ConnectionLostException ex) when (stoppingToken.IsCancellationRequested)
