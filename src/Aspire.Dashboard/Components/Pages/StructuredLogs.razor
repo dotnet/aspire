@@ -77,7 +77,7 @@
             {
                 <div slot="end">
                     <FluentCounterBadge HorizontalPosition="70" Count="@(ViewModel.Filters.Count)" Appearance="Appearance.Accent">
-                        <AspireMenuButton DisableIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
+                        <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
                     </FluentCounterBadge>
                 </div>
             }

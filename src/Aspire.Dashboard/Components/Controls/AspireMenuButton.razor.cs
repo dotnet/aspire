@@ -44,7 +44,7 @@ public partial class AspireMenuButton : FluentComponentBase
     public string MenuButtonId { get; set; } = Identifier.NewId();
 
     [Parameter]
-    public bool DisableIcon { get; set; }
+    public bool HideIcon { get; set; }
 
     protected override void OnParametersSet()
     {
