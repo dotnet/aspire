@@ -810,7 +810,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
     [RequiresDocker]
-    public async Task AzureServiceBusEmulator_WithCustomConfig_HasHealthChecks()
+    public async Task AzureServiceBusEmulator_WithCustomConfig()
     {
         const string queueName = "queue456";
 
