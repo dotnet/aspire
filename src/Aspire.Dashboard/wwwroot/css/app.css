@@ -746,3 +746,7 @@ fluent-switch.table-switch::part(label) {
     max-height: 400px;
     overflow-y: auto;
 }
+
+.filter-menu-item::part(content) {
+    max-width: 300px;
+}

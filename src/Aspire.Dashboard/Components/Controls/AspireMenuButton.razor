@@ -29,7 +29,7 @@
     }
 </FluentButton>
 
-<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
+<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200" tabindex="0">
     @foreach (var item in Items)
     {
         @if (item.IsDivider)
@@ -40,10 +40,10 @@
         {
             var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
             {
-                { "title", item.Tooltip ?? string.Empty }
+                { "title", item.Tooltip ?? item.Text ?? string.Empty }
             };
 
-            <FluentMenuItem Id="@item.Id" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+            <FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
                 @item.Text
                 @if (item.Icon != null)
                 {

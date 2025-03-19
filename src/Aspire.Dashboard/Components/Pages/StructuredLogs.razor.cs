@@ -358,7 +358,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             filterMenuItems.Add(new MenuButtonItem
             {
                 OnClick = () => OpenFilterAsync(filter),
-                Text = filter.GetDisplayText(FilterLoc)
+                Text = filter.GetDisplayText(FilterLoc),
+                Class = "filter-menu-item",
             });
         }
 
