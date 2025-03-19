@@ -90,6 +90,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             }
         }
 
+        if (environment is AzdAzureContainerAppEnvironment)
+        {
+            // We avoid setting known values if azd is used, it will be resolved by azd at publish time.
+            return;
+        }
+
         // Resolve the known parameters for the container app environment
         foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
         {

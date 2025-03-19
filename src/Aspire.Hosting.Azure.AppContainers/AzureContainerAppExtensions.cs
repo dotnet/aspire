@@ -141,6 +141,9 @@ public static class AzureContainerAppExtensions
                 RoleManagementPrincipalType.ServicePrincipal,
                 userPrincipalId);
 
+            // We need to set the principal type to null to let ARM infer the principal id
+            roleAssignment.PrincipalType.ClearValue();
+
             infra.Add(roleAssignment);
 
             var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
