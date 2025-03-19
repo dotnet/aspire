@@ -480,8 +480,8 @@ public class Program
     {
         System.Console.OutputEncoding = Encoding.UTF8;
         var rootCommand = GetRootCommand();
-        var result = rootCommand.Parse(args);
-        var exitCode = await result.InvokeAsync().ConfigureAwait(false);
-        return exitCode;
+        var config = new CommandLineConfiguration(rootCommand);
+        config.EnableDefaultExceptionHandler = true;
+        return await config.InvokeAsync(args).ConfigureAwait(false);
     }
 }
