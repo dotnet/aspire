@@ -438,7 +438,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
-        var defaultMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite;
+        var umask = UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
         var createFileEntries = new List<ContainerFileSystemItem>
         {
             new ContainerDirectory
@@ -457,7 +457,7 @@ public class DistributedApplicationTests
         };
 
         AddRedisContainer(testProgram.AppBuilder, "verify-container-create-file-redis")
-            .WithContainerFiles(destination, createFileEntries, defaultMode: defaultMode);
+            .WithContainerFiles(destination, createFileEntries, umask: umask);
 
         await using var app = testProgram.Build();
 
@@ -475,7 +475,7 @@ public class DistributedApplicationTests
                     new ContainerCreateFileSystem
                     {
                         Destination = destination,
-                        Mode = (int)defaultMode,
+                        Umask = (int?)umask,
                         Entries = createFileEntries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
                     }
                 },

@@ -1612,7 +1612,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     Destination = a.DestinationPath,
                     DefaultOwner = a.DefaultOwner,
                     DefaultGroup = a.DefaultGroup,
-                    Mode = (int)a.DefaultMode,
+                    Umask = (int?)a.Umask,
                     Entries = entries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
                 });
             }

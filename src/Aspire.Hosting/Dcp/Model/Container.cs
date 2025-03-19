@@ -301,9 +301,9 @@ internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFile
     [JsonPropertyName("defaultGroup")]
     public int DefaultGroup { get; set; }
 
-    // The default file system mode (permissions) to use for created (or updated) file system entries. If set to 0, the default will be 0600 (owner read/write).
-    [JsonPropertyName("mode")]
-    public int Mode { get; set; }
+    // The umask for created files and folders without explicit permissions set (defaults to 022 if null)
+    [JsonPropertyName("umask")]
+    public int? Umask { get; set; }
 
     // The list of file system entries to create (or update) in the container.
     [JsonPropertyName("entries")]
@@ -319,7 +319,7 @@ internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFile
         return Destination == other.Destination
             && DefaultOwner == other.DefaultOwner
             && DefaultGroup == other.DefaultGroup
-            && Mode == other.Mode
+            && Umask == other.Umask
             && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
     }
 }

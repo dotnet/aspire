@@ -19,11 +19,6 @@ public static class PostgresBuilderExtensions
 {
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
-    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-    private const UnixFileMode FileMode755 =
-        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-        UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
 
     /// <summary>
     /// Adds a PostgreSQL resource to the application model. A container is used for local development.
@@ -218,7 +213,6 @@ public static class PostgresBuilderExtensions
                         {
                             Name = "servers.json",
                             Contents = WritePgAdminServerJson(postgresInstances),
-                            Mode = FileMode644,
                         },
                     ]);
                 });
@@ -337,8 +331,7 @@ public static class PostgresBuilderExtensions
                             ],
                         },
                     ]);
-                },
-                defaultMode: FileMode755);
+                });
 
             return builder;
         }
@@ -454,7 +447,6 @@ public static class PostgresBuilderExtensions
             {
                 Name = $"{postgresDatabase.Name}.toml",
                 Contents = fileContent,
-                Mode = FileMode644,
             });
         }
 

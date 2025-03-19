@@ -708,7 +708,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="entries">The file system entries to create.</param>
     /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
     /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultMode">The default <see cref="UnixFileMode"/> ownership permissions for the created or updated file system. <see cref="UnixFileMode.None"/> will be treated as 0600 by DCP.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -738,11 +738,10 @@ public static class ContainerResourceBuilderExtensions
     ///             ],
     ///         },
     ///     ],
-    ///     defaultOwner: 1000,
-    ///     defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
+    ///     defaultOwner: 1000);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -754,7 +753,7 @@ public static class ContainerResourceBuilderExtensions
             Callback = (_, _) => Task.FromResult(entries),
             DefaultOwner = defaultOwner,
             DefaultGroup = defaultGroup,
-            DefaultMode = defaultMode,
+            Umask = umask,
         };
 
         builder.Resource.Annotations.Add(annotation);
@@ -772,7 +771,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="callback">The callback that will be invoked when the resource is being created.</param>
     /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
     /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultMode">The default <see cref="UnixFileMode"/> ownership permissions for the created or updated file system. <see cref="UnixFileMode.None"/> will be treated as 0600 by DCP.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -807,19 +806,15 @@ public static class ContainerResourceBuilderExtensions
     ///                             Contents = instance.ToPgWebBookmark(),
     ///                             Owner = defaultOwner,
     ///                             Group = defaultGroup,
-    ///                             Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead,
     ///                         }),
     ///                 },
     ///             ],
     ///         },
     ///     ];
-    /// },
-    /// defaultMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-    ///     UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-    ///     UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+    /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode defaultMode = UnixFileMode.None) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -831,7 +826,7 @@ public static class ContainerResourceBuilderExtensions
             Callback = callback,
             DefaultOwner = defaultOwner,
             DefaultGroup = defaultGroup,
-            DefaultMode = defaultMode,
+            Umask = umask,
         };
 
         builder.Resource.Annotations.Add(annotation);

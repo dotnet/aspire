@@ -92,9 +92,16 @@ public sealed class ContainerCreateFilesCallbackAnnotation : IResourceAnnotation
     public int DefaultGroup { get; init; }
 
     /// <summary>
-    /// The default permissions for files/directories to be created or updated in the container. 0 will be treated as 0600.
+    /// The umask to apply to files or folders without an explicit mode permission. If set to null, a default umask value of 0022 (octal) will be used.
+    /// The umask takes away permissions from the default permission set (rather than granting them).
     /// </summary>
-    public UnixFileMode DefaultMode { get; init; }
+    /// <remarks>
+    /// The umask is a bitmask that determines the default permissions for newly created files and directories. The umask value is subtracted (bitwise masked)
+    /// from the maximum possible default permissions to determine the final permissions. For directories, the umask is subtracted from 0777 (rwxrwxrwx) to get
+    /// the final permissions and for files it is subtracted from 0666 (rw-rw-rw-). For a umask of 0022, this gives a default folder permission of 0755 (rwxr-xr-x)
+    /// and a default file permission of 0644 (rw-r--r--).
+    /// </remarks>
+    public UnixFileMode? Umask { get; set; }
 
     /// <summary>
     /// The callback to be executed when the container is created. Should return a tree of <see cref="ContainerFileSystemItem"/> entries to create (or update) in the container.

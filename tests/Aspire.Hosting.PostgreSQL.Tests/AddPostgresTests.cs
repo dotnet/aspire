@@ -475,7 +475,7 @@ public class AddPostgresTests
         var createServers = pgadmin.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createServers.DestinationPath);
-        Assert.Equal(UnixFileMode.None, createServers.DefaultMode);
+        Assert.Null(createServers.Umask);
         Assert.Equal(0, createServers.DefaultOwner);
         Assert.Equal(0, createServers.DefaultGroup);
 
@@ -483,7 +483,7 @@ public class AddPostgresTests
 
         var serversFile = Assert.IsType<ContainerFile>(entries.First());
         Assert.NotNull(serversFile.Contents);
-        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead, serversFile.Mode);
+        Assert.Equal(UnixFileMode.None, serversFile.Mode);
 
         var document = JsonDocument.Parse(serversFile.Contents!);
 
@@ -546,7 +546,7 @@ public class AddPostgresTests
         var createBookmarks = pgweb.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
 
         Assert.Equal("/", createBookmarks.DestinationPath);
-        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute, createBookmarks.DefaultMode);
+        Assert.Null(createBookmarks.Umask);
         Assert.Equal(0, createBookmarks.DefaultOwner);
         Assert.Equal(0, createBookmarks.DefaultGroup);
 
@@ -564,14 +564,14 @@ public class AddPostgresTests
             {
                 var file = Assert.IsType<ContainerFile>(entry);
                 Assert.Equal(".toml", Path.GetExtension(file.Name));
-                Assert.Equal(UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.UserRead | UnixFileMode.UserWrite, file.Mode);
+                Assert.Equal(UnixFileMode.None, file.Mode);
                 Assert.Equal(CreatePgWebBookmarkfileContent(db1.Resource), file.Contents);
             },
             entry =>
             {
                 var file = Assert.IsType<ContainerFile>(entry);
                 Assert.Equal(".toml", Path.GetExtension(file.Name));
-                Assert.Equal(UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.UserRead | UnixFileMode.UserWrite, file.Mode);
+                Assert.Equal(UnixFileMode.None, file.Mode);
                 Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), file.Contents);
             });
 
