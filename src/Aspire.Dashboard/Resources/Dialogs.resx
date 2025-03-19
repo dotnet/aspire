@@ -269,12 +269,12 @@
     <value>Remove all</value>
   </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
-    <value>This is a sensitive value</value>
+    <value>Sensitive value hidden</value>
   </data>
   <data name="TextVisualizerSecretWarningDescription" xml:space="preserve">
-    <value>In the future, opening the text visualizer will automatically unmask any secrets.</value>
+    <value>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</value>
   </data>
   <data name="TextVisualizerSecretWarningAcknowledge" xml:space="preserve">
-    <value>I acknowledge</value>
+    <value>Show value</value>
   </data>
 </root>
