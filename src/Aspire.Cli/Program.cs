@@ -310,9 +310,36 @@ public class Program
 
             var target = parseResult.GetValue<string>("--target");
             var outputPath = parseResult.GetValue<string>("--output-path");
-            var exitCode = await runner.RunAsync(effectiveAppHostProjectFile, ["--publisher", target ?? "manifest", "--output-path", outputPath ?? "."], env, ct).ConfigureAwait(false);
+            var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            return exitCode;
+            if (!Directory.Exists(fullyQualifiedOutputPath))
+            {
+                Directory.CreateDirectory(fullyQualifiedOutputPath);
+            }
+
+            var exitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(":hammer_and_wrench: Building artifacts...", async context => {
+                    var pendingRun = runner.RunAsync(
+                        effectiveAppHostProjectFile,
+                        ["--publisher", target ?? "manifest", "--output-path", fullyQualifiedOutputPath],
+                        env,
+                        ct).ConfigureAwait(false);
+
+                    return await pendingRun;
+                }).ConfigureAwait(false);
+
+            if (exitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold] :thumbs_down: The build failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[green bold] :thumbs_up: The build completed successfully to: {fullyQualifiedOutputPath}[/]");
+                return ExitCodeConstants.Success;
+            }
         });
 
         parentCommand.Subcommands.Add(command);
