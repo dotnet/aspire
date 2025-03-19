@@ -271,17 +271,18 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles"));
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles-funcstorage634f8"));
 
-        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
         var expectedRolesManifest =
             """
             {
               "type": "azure.bicep.v0",
-              "path": "funcapp-roles.module.bicep",
+              "path": "funcapp-roles-funcstorage634f8.module.bicep",
               "params": {
-                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}"
+                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}",
+                "principalId": "{funcapp-identity.outputs.principalId}"
               }
             }
             """;
@@ -294,19 +295,16 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
             param funcstorage634f8_outputs_name string
 
-            resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-              name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
-              location: location
-            }
+            param principalId string
 
             resource funcstorage634f8 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
               name: funcstorage634f8_outputs_name
             }
 
             resource funcstorage634f8_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
               properties: {
-                principalId: funcapp_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
                 principalType: 'ServicePrincipal'
               }
@@ -314,9 +312,9 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             }
 
             resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
               properties: {
-                principalId: funcapp_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
                 principalType: 'ServicePrincipal'
               }
@@ -324,9 +322,9 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             }
 
             resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
               properties: {
-                principalId: funcapp_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
                 principalType: 'ServicePrincipal'
               }
@@ -334,22 +332,14 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             }
 
             resource funcstorage634f8_StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, funcapp_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
               properties: {
-                principalId: funcapp_identity.properties.principalId
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
                 principalType: 'ServicePrincipal'
               }
               scope: funcstorage634f8
             }
-
-            output id string = funcapp_identity.id
-
-            output clientId string = funcapp_identity.properties.clientId
-
-            output principalId string = funcapp_identity.properties.principalId
-
-            output principalName string = funcapp_identity.name
             """;
         output.WriteLine(rolesBicep);
         Assert.Equal(expectedRolesBicep, rolesBicep);

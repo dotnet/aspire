@@ -14,7 +14,6 @@ using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static Aspire.Hosting.Azure.AzureBicepResource;
 
 namespace Aspire.Hosting.Azure;
 
@@ -372,8 +371,8 @@ internal sealed class AzureContainerAppsInfrastructure(
                         infra,
                         roles,
                         new(() => RoleManagementPrincipalType.ServicePrincipal),
-                        new(() => new BicepOutputReference("principalId", containerAppIdentityResource).AsProvisioningParameter(infra, parameterName: KnownParameters.PrincipalId)),
-                        new(() => new BicepOutputReference("principalName", containerAppIdentityResource).AsProvisioningParameter(infra, parameterName: KnownParameters.PrincipalName)));
+                        new(() => new BicepOutputReference("principalId", containerAppIdentityResource).AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalId)),
+                        new(() => new BicepOutputReference("principalName", containerAppIdentityResource).AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalName)));
 
                     azureResource.AddRoleAssignments(context);
                 }
