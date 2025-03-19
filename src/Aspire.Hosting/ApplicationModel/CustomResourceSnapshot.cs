@@ -185,6 +185,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal)
     /// </summary>
     public UrlDisplayPropertiesSnapshot DisplayProperties { get; init; } = new();
 
+    /// <summary>
     /// Whether this URL is inactive or not.
     /// </summary>
     /// <remarks>
