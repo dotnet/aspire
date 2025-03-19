@@ -387,16 +387,11 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Add a new log while paused
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Log while paused", IsErrorMessage: false)]);
 
-        cut.WaitForAssertion(() => Assert.Contains("Log while paused", instance._logEntries.GetEntries().Select(e => e.RawContent)));
-
         var logViewer = cut.FindComponent<LogViewer>();
-        logViewer.SetParametersAndRender(p =>
-        {
-            p.Add(m => m.LogEntries, instance._logEntries);
-            p.Add(m => m.PausedAt, instance._pausedAt);
-        });
 
-        // Ensure the new log does not show up when paused
+        // Ensure the new log does not show up in visible entries when paused
+        // but is still in the log entries
+        cut.WaitForAssertion(() => Assert.Contains("Log while paused", logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent)));
         cut.WaitForAssertion(() => Assert.DoesNotContain("Log while paused", logViewer.Instance.GetEntries()!.Select(e => e.RawContent)));
 
         // Resume logs
