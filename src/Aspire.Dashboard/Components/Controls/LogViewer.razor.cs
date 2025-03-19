@@ -37,7 +37,7 @@ public sealed partial class LogViewer
     public bool IsTimestampUtc { get; set; }
 
     [Parameter]
-    public DateTime? FilterTimestamp { get; set; }
+    public DateTime? PausedAt { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -91,10 +91,10 @@ public sealed partial class LogViewer
             return null;
         }
 
-        return FilterTimestamp is null
+        return PausedAt is null
             ? logEntries.GetEntries()
             : logEntries.GetEntries()
-                .Where(logEntry => logEntry.Timestamp is { } timestamp && timestamp <= FilterTimestamp)
+                .Where(logEntry => logEntry.Timestamp is { } timestamp && timestamp <= PausedAt)
                 .ToList();
     }
 

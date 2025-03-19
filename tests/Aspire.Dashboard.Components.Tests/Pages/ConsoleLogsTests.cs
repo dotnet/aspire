@@ -344,6 +344,62 @@ public partial class ConsoleLogsTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert initial state
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForAssertion(() => Assert.Null(instance._pausedAt));
+
+        // Pause logs
+        var pauseResumeButton = cut.FindComponent<PauseResumeButton>();
+        pauseResumeButton.Find("fluent-button").Click();
+
+        // Assert paused state
+        cut.WaitForState(() => instance._pausedAt.HasValue);
+
+        // Add a new log while paused
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Log while paused", IsErrorMessage: false)]);
+
+        // Ensure the new log does not show up when paused
+        cut.WaitForAssertion(() => Assert.DoesNotContain("Log while paused", instance._logEntries.GetEntries().Select(e => e.RawContent)));
+
+        // Resume logs
+        pauseResumeButton.Find("fluent-button").Click();
+
+        // Assert resumed state
+        cut.WaitForState(() => !instance._pausedAt.HasValue);
+        cut.WaitForAssertion(() => Assert.Contains("Log while paused", instance._logEntries.GetEntries().Select(e => e.RawContent)));
+        Assert.Equal(loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)], instance.PageViewModel.Status);
+    }
+
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
