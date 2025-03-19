@@ -20,6 +20,7 @@
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
     <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
@@ -27,7 +28,6 @@
     <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
     <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
     <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
-    <Compile Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\PlatformDetection.cs" LinkBase="PlatformDetection.cs" />
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
