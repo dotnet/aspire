@@ -40,6 +40,7 @@ class ResourceGraph {
 
         // Enable zoom + pan
         // https://www.d3indepth.com/zoom-and-pan/
+        // scaleExtent limits zoom to reasonable values
         this.zoom = d3.zoom().scaleExtent([0.2, 4]).on('zoom', (event) => {
             this.baseGroup.attr('transform', event.transform);
         });
