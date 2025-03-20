@@ -38,8 +38,17 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Parent.ConnectionStringExpression};Database={DatabaseName}");
 
     // ensure Azure Functions projects can WithReference a CosmosDB database
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
-        ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (Parent.IsEmulator || Parent.UseAccessKeyAuthentication)
+        {
+            Parent.SetConnectionString(target, connectionName, ConnectionStringExpression);
+        }
+        else
+        {
+            Parent.SetAccountEndpoint(target, connectionName, ConnectionStringExpression);
+        }
+    }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
