@@ -98,6 +98,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public void Dispose()
     {
-        _process?.Kill();
+        try
+        {
+            _process?.Kill();
+        }
+        catch (Exception ex)
+        {
+            logger.LogTrace(ex, "Process kill failed. This may be expected if the process has already exited.");
+        }
     }
 }

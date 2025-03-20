@@ -343,9 +343,26 @@ public class Program
 
                 }).ConfigureAwait(false);
 
-            // TODO:
-            // Check if user specified a publisher that exsits.
-            // If not present a list.    
+            if (publishers is null || publishers.Length == 0)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            if (publishers?.Contains(publisher) != true)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+
+                var publisherPrompt = new SelectionPrompt<string>()
+                    .Title("Select a publisher:")
+                    .UseConverter(p => p)
+                    .PageSize(10)
+                    .EnableSearch()
+                    .HighlightStyle(Style.Parse("darkmagenta"))
+                    .AddChoices(publishers!);
+
+                publisher = AnsiConsole.Prompt(publisherPrompt);
+            }
 
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
