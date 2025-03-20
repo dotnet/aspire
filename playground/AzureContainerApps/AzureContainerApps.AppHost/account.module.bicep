@@ -47,3 +47,5 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
   parent: keyVault
 }
+
+output name string = account.name

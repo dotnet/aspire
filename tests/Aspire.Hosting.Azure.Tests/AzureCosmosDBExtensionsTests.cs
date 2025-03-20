@@ -2,14 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureCosmosDBExtensionsTests
+public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData(null)]
@@ -134,4 +137,88 @@ public class AzureCosmosDBExtensionsTests
             k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
             k => Assert.Equal("container1__accountEndpoint", k));
     }
+
+    /// <summary>
+    /// Test both with and without ACA infrastructure because the role assignments
+    /// are handled differently between the two. This ensures that the bicep is generated
+    /// consistently regardless of the infrastructure used in RunMode.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureCosmosDB(bool useAcaInfrastructure)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppsInfrastructure();
+        }
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        builder.AddContainer("api", "myimage")
+            .WithReference(cosmos);
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource, skipPreparer: true);
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
+              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
+              location: location
+              properties: {
+                locations: [
+                  {
+                    locationName: location
+                    failoverPriority: 0
+                  }
+                ]
+                consistencyPolicy: {
+                  defaultConsistencyLevel: 'Session'
+                }
+                databaseAccountOfferType: 'Standard'
+                disableLocalAuth: true
+              }
+              kind: 'GlobalDocumentDB'
+              tags: {
+                'aspire-resource-name': 'cosmos'
+              }
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+
+            output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

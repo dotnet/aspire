@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -10,27 +12,35 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureRedisExtensionsTests(ITestOutputHelper output)
 {
-    [Fact]
-    public async Task AddAzureRedis()
+    /// <summary>
+    /// Test both with and without ACA infrastructure because the role assignments
+    /// are handled differently between the two. This ensures that the bicep is generated
+    /// consistently regardless of the infrastructure used in RunMode.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureRedis(bool useAcaInfrastructure)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppsInfrastructure();
+        }
 
         var redis = builder.AddAzureRedis("redis-cache");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
+        builder.AddContainer("api", "myimage")
+            .WithReference(redis);
 
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{redis-cache.outputs.connectionString}",
-              "path": "redis-cache.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource, skipPreparer: true);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -62,7 +72,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             }
 
             resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscachecontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis_cache.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
@@ -72,6 +82,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             }
 
             output connectionString string = '${redis_cache.properties.hostName},ssl=true'
+
+            output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -133,6 +145,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -190,6 +204,9 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.True(cacheInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var cacheAnnotations2));
         Assert.Single(cacheAnnotations2);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {

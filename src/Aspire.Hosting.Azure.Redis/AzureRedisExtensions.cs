@@ -3,12 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
-using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
-using Azure.Provisioning.Redis;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Redis;
+using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
+using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
 namespace Aspire.Hosting;
 
@@ -121,7 +121,8 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -194,6 +195,13 @@ public static class AzureRedisExtensions
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
 
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
+
         return builder;
     }
 
@@ -256,23 +264,35 @@ public static class AzureRedisExtensions
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
-
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+            if (redisResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
             {
-                Parent = redis,
-                AccessPolicyName = "Data Contributor",
-                ObjectId = principalIdParameter,
-                ObjectIdAlias = principalNameParameter
-            });
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+                var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+                infrastructure.Add(principalNameParameter);
+
+                AddContributorPolicyAssignment(infrastructure, redis, principalIdParameter, principalNameParameter);
+            }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
         }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+    }
+
+    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    {
+        infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+        {
+            Name = BicepFunction.CreateGuid(redis.Id, principalId, "Data Contributor"),
+            Parent = redis,
+            AccessPolicyName = "Data Contributor",
+            ObjectId = principalId,
+            ObjectIdAlias = principalName
+        });
     }
 }
