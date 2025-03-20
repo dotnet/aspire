@@ -1,3 +1,4 @@
+# Executes all the tests on all the platforms
 name: Tests
 
 on:
