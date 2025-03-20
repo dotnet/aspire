@@ -111,8 +111,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         devcontainersOptions ??= Options.Create(new DevcontainersOptions());
         var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
-        var cliBackchannel = new CliBackchannel(
-            NullLogger<CliBackchannel>.Instance,
+        var backchannelService = new BackchannelService(
+            NullLogger<BackchannelService>.Instance,
             configuration,
             new AppHostRpcTarget(NullLogger<AppHostRpcTarget>.Instance),
             resourceNotificationService,
@@ -135,7 +135,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             codespacesOptions,
             devcontainersOptions,
             settingsWriter,
-            cliBackchannel
+            backchannelService
             );
     }
 

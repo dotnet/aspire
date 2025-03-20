@@ -13,9 +13,9 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class CliBackchannel(ILogger<CliBackchannel> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, DistributedApplicationExecutionContext executionContext) : BackgroundService
+internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, DistributedApplicationExecutionContext executionContext) : BackgroundService
 {
-    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_LAUNCHER_BACKCHANNEL_PATH";
+    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_BACKCHANNEL_PATH";
 
     private bool _dashboardUrlsReady;
 

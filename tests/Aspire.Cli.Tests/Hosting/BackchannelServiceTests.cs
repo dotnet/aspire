@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Cli;
 
-public class CliBackchannelTests(ITestOutputHelper outputHelper)
+public class BackchannelServiceTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public async Task AppHostRespondsToPingWithMatchingTimestamp()
@@ -23,7 +23,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
         serverSocket.Listen(1);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
 
         // Thru trial and error it seems that on the Windows CI machine it
@@ -61,7 +61,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
         serverSocket.Listen(1);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
 
@@ -94,7 +94,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
             .Create("--operation", "inspect")
             .WithTestAndResourceLogging(outputHelper);
 
-        builder.Configuration["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = socketPath;
         using var app = builder.Build();
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(20));
 

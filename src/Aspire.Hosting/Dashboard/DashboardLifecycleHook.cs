@@ -37,7 +37,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IOptions<CodespacesOptions> codespacesOptions,
                                              IOptions<DevcontainersOptions> devcontainersOptions,
                                              DevcontainerSettingsWriter settingsWriter,
-                                             CliBackchannel cliBackchannel
+                                             BackchannelService backchannelService
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
@@ -263,7 +263,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             }
 
             var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-            cliBackchannel.SetDashboardUrls(firstDashboardUrl.ToString(), browserToken);
+            backchannelService.SetDashboardUrls(firstDashboardUrl.ToString(), browserToken);
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 

@@ -156,12 +156,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         // The CLI and the AppHost can communicate to one another using a RPC protocol that makes
         // use of StreamJsonRpc. Not all commands need the backchannel so we selectively enable it.
         // When it is enabled we signal the path to the unix socket or named pipe on the
-        // ASPIRE_LAUNCHER_BACKCHANNEL_PATH environment variable.
+        // ASPIRE_BACKCHANNEL_PATH environment variable.
         if (startBackchannel)
         {
             var socketPath = GetBackchannelSocketPath();
             _ = StartBackchannelAsync(socketPath, cancellationToken);
-            startInfo.EnvironmentVariables["ASPIRE_LAUNCHER_BACKCHANNEL_PATH"] = socketPath;
+            startInfo.EnvironmentVariables["ASPIRE_BACKCHANNEL_PATH"] = socketPath;
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process
