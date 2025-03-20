@@ -92,7 +92,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AzureCosmosDBHasCorrectConnectionStrings()
+    public void AzureCosmosDBHasCorrectConnectionStrings_ForAccountEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -103,8 +103,23 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // database and container should have the same connection string as the cosmos account, for now.
         // In the future, we can add the database and container info to the connection string.
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString}", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString}", container1.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureCosmosDBHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        Assert.DoesNotContain(";Database=db1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.DoesNotContain(";Database=db1;Container=container1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
