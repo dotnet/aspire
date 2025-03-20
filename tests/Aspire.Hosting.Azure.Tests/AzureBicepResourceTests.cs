@@ -1397,6 +1397,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
+
+            output name string = sql.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1478,6 +1480,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
+
+            output name string = sql.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

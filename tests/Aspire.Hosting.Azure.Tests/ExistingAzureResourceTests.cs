@@ -1169,6 +1169,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1243,6 +1245,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
