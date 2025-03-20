@@ -19,7 +19,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
-using Aspire.Hosting.Cli;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -36,8 +35,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              CodespacesUrlRewriter codespaceUrlRewriter,
                                              IOptions<CodespacesOptions> codespacesOptions,
                                              IOptions<DevcontainersOptions> devcontainersOptions,
-                                             DevcontainerSettingsWriter settingsWriter,
-                                             CliBackchannel cliBackchannel
+                                             DevcontainerSettingsWriter settingsWriter
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
@@ -263,7 +261,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             }
 
             var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-            cliBackchannel.SetDashboardUrls(firstDashboardUrl.ToString(), browserToken);
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 

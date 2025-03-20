@@ -1,8 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalType string
-
 param principalId string
 
 resource cosmosdb 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
@@ -70,3 +68,5 @@ resource cosmosdb_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleA
 }
 
 output connectionString string = cosmosdb.properties.documentEndpoint
+
+output name string = cosmosdb.name

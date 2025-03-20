@@ -118,8 +118,8 @@
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
         "params": {
-          "api_roles_outputs_id": "{api-roles.outputs.id}",
-          "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+          "api_identity_outputs_id": "{api-identity.outputs.id}",
+          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "cache_password_value": "{cache-password.value}",
@@ -159,11 +159,16 @@
         }
       }
     },
-    "api-roles": {
+    "api-identity": {
       "type": "azure.bicep.v0",
-      "path": "api-roles.module.bicep",
+      "path": "api-identity.module.bicep"
+    },
+    "api-roles-storage": {
+      "type": "azure.bicep.v0",
+      "path": "api-roles-storage.module.bicep",
       "params": {
-        "storage_outputs_name": "{storage.outputs.name}"
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalId": "{api-identity.outputs.principalId}"
       }
     },
     "cache-password": {

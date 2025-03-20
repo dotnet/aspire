@@ -1,5 +1,6 @@
-# Workflow to run tests for a given test project
-
+# This is a reusable workflow to run tests for a given test project.
+# It is designed to be called from other workflows, such as the integration or template tests workflows.
+# The workflow includes steps for setting up the environment, building the test project, running the tests, and uploading the results.
 name: Run Tests
 
 on:

@@ -1595,7 +1595,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     {
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        if (modelResource.TryGetAnnotationsOfType<ContainerCreateFilesCallbackAnnotation>(out var createFileAnnotations))
+        if (modelResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
         {
             foreach (var a in createFileAnnotations)
             {
