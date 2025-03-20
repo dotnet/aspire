@@ -33,7 +33,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
                 skip,
                 source,
                 cancellationToken
-                ).ConfigureAwait(false);
+                );
 
             if (result.ExitCode != 0)
             {

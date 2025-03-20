@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
@@ -130,7 +130,7 @@ public class Program
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct).ConfigureAwait(false);
+            _ = app.RunAsync(ct);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
@@ -158,7 +158,7 @@ public class Program
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
-                ct).ConfigureAwait(false);
+                ct);
 
             if (useRichConsole)
             {
@@ -168,16 +168,16 @@ public class Program
                                                    .Spinner(Spinner.Known.Dots3)
                                                    .SpinnerStyle(Style.Parse("purple"))
                                                    .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                                                        return await backchannelCompletitionSource.Task.ConfigureAwait(false);
-                                                   }).ConfigureAwait(true);
+                                                        return await backchannelCompletitionSource.Task;
+                                                   });
 
                 // We wait for the first update of the console model via RPC from the AppHost.
                 var dashboardUrls = await AnsiConsole.Status()
                                                     .Spinner(Spinner.Known.Dots3)
                                                     .SpinnerStyle(Style.Parse("purple"))
                                                     .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-                                                        return await backchannel.GetDashboardUrlsAsync(ct).ConfigureAwait(false);
-                                                    }).ConfigureAwait(true);
+                                                        return await backchannel.GetDashboardUrlsAsync(ct);
+                                                    });
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
@@ -201,7 +201,7 @@ public class Program
 
                     var resourceStates = backchannel.GetResourceStatesAsync(ct);
 
-                    await foreach(var resourceState in resourceStates.ConfigureAwait(false))
+                    await foreach(var resourceState in resourceStates)
                     {
                         knownResources[resourceState.Resource] = resourceState;
 
@@ -240,7 +240,7 @@ public class Program
                         context.Refresh();
                     }
 
-                }).ConfigureAwait(true);
+                });
 
                 return await pendingRun;
             }
@@ -307,7 +307,7 @@ public class Program
 
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct).ConfigureAwait(false);
+            _ = app.RunAsync(ct);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
@@ -333,10 +333,10 @@ public class Program
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         null, // TODO: We will use a backchannel here soon but null for now.
-                        ct).ConfigureAwait(false);
+                        ct);
 
                     return await pendingRun;
-                }).ConfigureAwait(false);
+                });
 
             if (exitCode != 0)
             {
@@ -427,7 +427,7 @@ public class Program
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
             var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            _ = app.RunAsync(ct).ConfigureAwait(false);
+            _ = app.RunAsync(ct);
 
             var templateVersion = parseResult.GetValue<string>("--version");
             var source = parseResult.GetValue<string?>("--source");
@@ -438,8 +438,8 @@ public class Program
                 .StartAsync(
                     ":ice:  Getting latest templates...",
                     async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct).ConfigureAwait(false);
-                    }).ConfigureAwait(false);
+                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
+                    });
 
             if (templateInstallExitCode != 0)
             {
@@ -474,8 +474,8 @@ public class Program
                     templateName,
                     name,
                     outputPath,
-                    ct).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                    ct);
+                });
 
             if (newProjectExitCode != 0)
             {
@@ -589,7 +589,7 @@ public class Program
                 var packages = await AnsiConsole.Status().StartAsync(
                     "Searching for Aspire packages...",
                     context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, source, ct)
-                    ).ConfigureAwait(false);
+                    );
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
 
@@ -619,11 +619,11 @@ public class Program
                             selectedNuGetPackage.Package.Id,
                             selectedNuGetPackage.Package.Version,
                             ct
-                            ).ConfigureAwait(false);
+                            );
 
                         return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
-                    }                
-                ).ConfigureAwait(false);
+                    }
+                );
 
                 return addPackageResult;
             }
@@ -637,12 +637,12 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    public static async Task<int> Main(string[] args)
+    public static Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
         var rootCommand = GetRootCommand();
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        return await config.InvokeAsync(args).ConfigureAwait(false);
+        return config.InvokeAsync(args);
     }
 }
