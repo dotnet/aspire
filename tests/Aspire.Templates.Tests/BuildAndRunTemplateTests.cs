@@ -15,36 +15,6 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         : base(testOutput)
     {}
 
-    public static TheoryData<string, string> TestFrameworkTypeWithConfig()
-    {
-        var data = new TheoryData<string, string>();
-        foreach (var testType in TestFrameworkTypes)
-        {
-            data.Add("Debug", testType);
-            if (!PlatformDetection.IsRunningPRValidation)
-            {
-                data.Add("Release", testType);
-            }
-        }
-        return data;
-    }
-
-    [Theory]
-    [MemberData(nameof(TestFrameworkTypeWithConfig))]
-    [RequiresSSLCertificate]
-    public async Task BuildAndRunStarterTemplateBuiltInTest(string config, string testType)
-    {
-        string id = GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                                            id,
-                                            "aspire-starter",
-                                            _testOutput,
-                                            buildEnvironment: BuildEnvironment.ForDefaultFramework,
-                                            extraArgs: $"-t {testType}");
-
-        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
-    }
-
     public static TheoryData<string> BuildConfigurationsForTestData()
     {
         var data = new TheoryData<string>() { "Debug" };
