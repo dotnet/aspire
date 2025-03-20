@@ -105,6 +105,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7293")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7293")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -249,6 +250,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.

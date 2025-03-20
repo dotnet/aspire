@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Microsoft.AspNetCore.InternalTesting;
@@ -18,6 +19,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
@@ -65,6 +67,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7943")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange

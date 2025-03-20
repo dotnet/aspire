@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Threading.Channels;
 using Aspire.Cli;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using StreamJsonRpc;
 using Xunit;
@@ -50,6 +51,7 @@ public class CliBackchannelTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/8113")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8113")]
     public async Task AppHostConnectsBackToCliWithPingRequest()
     {
         var testStartedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

@@ -36,6 +36,8 @@
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Requires*.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\FileUtil.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\PlatformDetection.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\QuarantinedTestAttribute.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\QuarantinedTestTraitDiscoverer.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
 
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />

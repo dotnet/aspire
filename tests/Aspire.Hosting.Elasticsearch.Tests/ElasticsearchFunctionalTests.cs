@@ -27,6 +27,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/5821")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5821")]
     public async Task VerifyElasticsearchResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -70,6 +71,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7276")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7276")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -233,6 +235,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/5844")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5844")]
     public async Task VerifyWaitForOnElasticsearchBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));

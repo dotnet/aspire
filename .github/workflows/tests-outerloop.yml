@@ -1,0 +1,58 @@
+# Executes quarantined tests in the outerloop
+name: Outerloop Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # 6am PST (14:00 UTC)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  test:
+    name: ${{ matrix.os.title }}
+    runs-on: ${{ matrix.os.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: ubuntu-latest
+            title: Linux
+          - name: windows-latest
+            title: Windows
+    steps:
+      - name: Setup vars (Linux)
+        if: ${{ matrix.os.name == 'ubuntu-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+
+      - name: Setup vars (Windows)
+        if: ${{ matrix.os.name == 'windows-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Trust HTTPS development certificate (Linux)
+        if: matrix.os.name == 'ubuntu-latest'
+        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+
+      - name: Run quarantined tests
+        run: |
+         ${{ env.BUILD_SCRIPT }} -projects ${{ github.workspace }}/tests/Shared/SolutionTests.proj -restore -build -test -c Release /p:IsGitHubActions=true /p:RunQuarantinedTests=true /bl:${{ github.workspace }}/artifacts/log/Release/test-quarantined.binlog
+
+      - name: Upload logs, and test results
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: logs-${{ matrix.os.name }}
+          path: |
+            ${{ github.workspace }}/artifacts/log/**/*.binlog
+            ${{ github.workspace }}/artifacts/log/**/TestLogs/**
+            ${{ github.workspace }}/TestResults/**

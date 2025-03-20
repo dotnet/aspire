@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup Condition=" '$(SkipTests)' == '' and '$(IsTestProject)' == 'true' ">
+    <!-- Skip tests by default unless explicitly set to false -->
+    <SkipTests>true</SkipTests>
+
+    <!-- Only run tests if the build is running on GitHub Actions  -->
+    <SkipTests Condition=" '$(IsGitHubActions)' == 'true' and '$(RunTestsOnGithubActions)' == 'true' ">false</SkipTests>
+
+    <!-- Only run tests if the build is running on Helix infra  -->
+    <SkipTests Condition=" '$(IsHelix)' == 'true' and '$(RunTestsOnHelix)' == 'true' ">false</SkipTests>
+
+    <!-- Otherwise, run tests on AzDO CI agents -->
+    <SkipTests Condition=" '$(RunTestsOnGithubActions)' != 'true' and '$(RunTestsOnHelix)' != 'true' ">true</SkipTests>
+  </PropertyGroup>
+</Project>
