@@ -254,14 +254,14 @@ public class ResourceWithAzureFunctionsConfigTests
         // Assert
         Assert.True(target.ContainsKey("cosmosdb__accountEndpoint"));
         var targetReferenceExpression = Assert.IsType<ReferenceExpression>(target["cosmosdb__accountEndpoint"]);
-        Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(cosmosResource.Resource.ConnectionStringExpression.ValueExpression, targetReferenceExpression.ValueExpression);
         Assert.True(target.ContainsKey("Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"));
         targetReferenceExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"]);
-        Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(cosmosResource.Resource.ConnectionStringExpression.ValueExpression, targetReferenceExpression.ValueExpression);
         // Validate DatabaseName for non-EF settings
-        Assert.Equal(target["Aspire__Microsoft__Azure__Cosmos__cosmosdb__DatabaseName"], dbResource.DatabaseName);
+        Assert.Equal(dbResource.DatabaseName, target["Aspire__Microsoft__Azure__Cosmos__cosmosdb__DatabaseName"]);
         // Validate DatabaseName for EF settings
-        Assert.Equal(target["Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__DatabaseName"], dbResource.DatabaseName);
+        Assert.Equal(dbResource.DatabaseName, target["Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__DatabaseName"]);
     }
 
     [Fact]

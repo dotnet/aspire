@@ -49,7 +49,7 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
         }
         else
         {
-            Parent.SetAccountEndpoint(target, connectionName, ConnectionStringExpression);
+            Parent.SetAccountEndpoint(target, connectionName);
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
         }

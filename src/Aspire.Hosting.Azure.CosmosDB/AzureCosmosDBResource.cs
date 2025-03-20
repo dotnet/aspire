@@ -78,7 +78,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         }
         else
         {
-            SetAccountEndpoint(target, connectionName, ConnectionStringExpression);
+            SetAccountEndpoint(target, connectionName);
         }
     }
 
@@ -93,15 +93,15 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ConnectionString"] = connectionStringExpression;
     }
 
-    internal void SetAccountEndpoint(IDictionary<string, object> target, string connectionName, ReferenceExpression connectionStringExpression)
+    internal void SetAccountEndpoint(IDictionary<string, object> target, string connectionName)
     {
         // Always inject the connection string associated with the top-level resource
         // for the Azure Functions host.
         target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
         // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
         // Use the child resource connection string here to support child resource integrations.
-        target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = connectionStringExpression;
-        target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = connectionStringExpression;
+        target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
+        target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
     }
 
     /// <inheritdoc/>
