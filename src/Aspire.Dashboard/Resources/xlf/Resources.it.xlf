@@ -187,6 +187,11 @@
         <target state="translated">Con filtri</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="new">Hide resource types</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">Nessun filtro</target>
@@ -195,6 +200,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Stato</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="new">Show resource types</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
