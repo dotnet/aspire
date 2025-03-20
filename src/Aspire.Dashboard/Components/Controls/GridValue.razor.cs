@@ -83,6 +83,9 @@ public partial class GridValue
     [Parameter]
     public bool StopClickPropagation { get; set; }
 
+    [Parameter]
+    public bool ContainsSecret { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -146,6 +149,6 @@ public partial class GridValue
 
     private async Task OpenTextVisualizerAsync()
     {
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ValueDescription, ValueToVisualize ?? Value ?? string.Empty);
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ValueDescription, ValueToVisualize ?? Value ?? string.Empty, IsMasked || ContainsSecret);
     }
 }
