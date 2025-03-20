@@ -21,7 +21,10 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         foreach (var testType in TestFrameworkTypes)
         {
             data.Add("Debug", testType);
-            data.Add("Release", testType);
+            if (!PlatformDetection.IsRunningPRValidation)
+            {
+                data.Add("Release", testType);
+            }
         }
         return data;
     }
@@ -42,9 +45,19 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
     }
 
+    public static TheoryData<string> BuildConfigurationsForTestData()
+    {
+        var data = new TheoryData<string>() { "Debug" };
+        if (!PlatformDetection.IsRunningPRValidation)
+        {
+            data.Add("Release");
+        }
+
+        return data;
+    }
+
     [Theory]
-    [InlineData("Debug")]
-    [InlineData("Release")]
+    [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
     public async Task BuildAndRunAspireTemplate(string config)
     {
@@ -112,8 +125,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Theory]
-    [InlineData("Debug")]
-    [InlineData("Release")]
+    [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
