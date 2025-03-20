@@ -47,7 +47,8 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}"
+      # append '.' to the name so only the test class with exactly that name is run
+      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
 
   test_windows:
@@ -63,7 +64,8 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}"
+      # append '.' to the name so only the test class with exactly that name is run
+      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
