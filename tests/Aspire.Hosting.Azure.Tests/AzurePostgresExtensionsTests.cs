@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
@@ -11,15 +12,30 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzurePostgresFlexibleServer(bool publishMode)
+    // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.PostgresSupport. The output doesn't match the pattern here because the role assignment isn't generated
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task AddAzurePostgresFlexibleServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppsInfrastructure();
+
+            // on ACA infrastructure, if there are no references to the postgres resource,
+            // then there won't be any roles created. So add a reference here.
+            builder.AddContainer("api", "myimage")
+                .WithReference(postgres);
+        }
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
 
         var expectedManifest = """
             {
@@ -393,4 +409,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
