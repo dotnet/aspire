@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR.Management;
@@ -6,6 +5,10 @@ using Microsoft.Azure.SignalR.Management;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
 
 var serviceManager = new ServiceManagerBuilder()
         .WithOptions(option =>
@@ -41,10 +44,7 @@ app.MapPost($"{hubName}/negotiate", async (string? userId) =>
         UserId = userId ?? "user1"
     });
 
-    return Results.Json(negotiateResponse, new JsonSerializerOptions(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    });
+    return Results.Ok(negotiateResponse);
 });
 
 app.MapRazorPages();
