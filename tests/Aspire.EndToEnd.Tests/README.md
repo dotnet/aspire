@@ -44,7 +44,7 @@ See https://github.com/dotnet/aspire/pull/4179 for an example.
 and allow individual tests to interact with the services.
 This requires:
 
-    - Ability to build, and run an Aspire project - IOW, a SDK with the `aspire` workload installed.
+    - Ability to build, and run an Aspire project - in other words, an SDK with the `aspire` workload installed.
     - `docker`
 
 2. Also, allow using `TestProject.*` in `tests/testproject`, in two modes:
