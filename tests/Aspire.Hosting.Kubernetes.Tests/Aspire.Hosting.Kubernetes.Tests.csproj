@@ -13,4 +13,8 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Kubernetes\Aspire.Hosting.Kubernetes.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="ExpectedValues\**\*.yaml" />
+  </ItemGroup>
+
 </Project>

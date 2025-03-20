@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -11,12 +13,32 @@ namespace Aspire.Hosting.Kubernetes.Tests;
 
 public class KubernetesPublisherTests
 {
+    private readonly List<string> _expectedFiles =
+    [
+        "Chart.yaml",
+        "values.yaml",
+        "templates/project1/deployment.yaml",
+        "templates/project1/configmap.yaml",
+        "templates/myapp/deployment.yaml",
+        "templates/myapp/service.yaml",
+        "templates/myapp/configmap.yaml",
+        "templates/myapp/secret.yaml",
+    ];
+
+    private readonly Dictionary<string, string> _expectedValuesContentCache = [];
+
     [Fact]
     public async Task PublishAsync_GeneratesValidHelmChart()
     {
-        using var tempDir = new TempDirectory();
         // Arrange
-        var options = new OptionsMonitor(new KubernetesPublisherOptions() { OutputPath = tempDir.Path });
+        LoadSnapshots();
+        using var tempDirectory = new TempDirectory();
+        var options = new OptionsMonitor(
+            new()
+            {
+                OutputPath = tempDirectory.Path,
+            });
+
         var builder = DistributedApplication.CreateBuilder();
 
         var param0 = builder.AddParameter("param0");
@@ -26,13 +48,14 @@ public class KubernetesPublisherTests
 
         // Add a container to the application
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
-                         .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-                         .WithHttpEndpoint(env: "PORT")
-                         .WithEnvironment("param0", param0)
-                         .WithEnvironment("param1", param1)
-                         .WithEnvironment("param2", param2)
-                         .WithReference(cs)
-                         .WithArgs("--cs", cs.Resource);
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            .WithHttpEndpoint(env: "PORT")
+            .WithEnvironment("param0", param0)
+            .WithEnvironment("param1", param1)
+            .WithEnvironment("param2", param2)
+            .WithReference(cs)
+            .WithVolume("logs", "/logs")
+            .WithArgs("--cs", cs.Resource);
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
@@ -41,16 +64,39 @@ public class KubernetesPublisherTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var publisher = new KubernetesPublisher("test", options,
+        var publisher = new KubernetesPublisher(
+            "test", options,
             NullLogger<KubernetesPublisher>.Instance,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
+            new(DistributedApplicationOperation.Publish));
 
         // Act
-        var act = publisher.PublishAsync(model, CancellationToken.None);
+        await publisher.PublishAsync(model, CancellationToken.None);
 
         // Assert
-        // TODO: implement once the publisher is implemented.
-        await Assert.ThrowsAsync<NotImplementedException>(() => act);
+        foreach (var expectedFile in _expectedFiles)
+        {
+            await AssertOutputFileContentsEqualExpectedFileContents(tempDirectory, expectedFile);
+        }
+    }
+
+    private void LoadSnapshots()
+    {
+        var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());
+
+        foreach (var expectedFile in _expectedFiles)
+        {
+            using var stream = embeddedProvider.GetFileInfo($"ExpectedValues.{expectedFile.Replace('/', '.')}").CreateReadStream() ?? throw new FileNotFoundException($"Expected file not found: {expectedFile}");
+            using var reader = new StreamReader(stream);
+            _expectedValuesContentCache[expectedFile] = reader.ReadToEnd();
+        }
+    }
+
+    private async Task AssertOutputFileContentsEqualExpectedFileContents(TempDirectory tempDirectory, string outputPath)
+    {
+        var file = Path.Combine(tempDirectory.Path, outputPath);
+        Assert.True(File.Exists(file), $"File not found: {file}");
+        var outputContent = await File.ReadAllTextAsync(file);
+        Assert.Equal(_expectedValuesContentCache[outputPath], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     private sealed class OptionsMonitor(KubernetesPublisherOptions options) : IOptionsMonitor<KubernetesPublisherOptions>
@@ -64,12 +110,8 @@ public class KubernetesPublisherTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public TempDirectory()
-        {
-            Path = Directory.CreateTempSubdirectory(".aspire-kubernetes").FullName;
-        }
+        public string Path { get; } = Directory.CreateTempSubdirectory(".aspire-kubernetes").FullName;
 
-        public string Path { get; }
         public void Dispose()
         {
             if (File.Exists(Path))
