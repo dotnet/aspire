@@ -687,6 +687,39 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="callback"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="url"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? name = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, Name = name })));
+    }
+
+    /// <summary>
     /// Excludes a resource from being published to the manifest.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

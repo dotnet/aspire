@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation that provides a callback to modify URLs that should be displayed for the resource.
 /// </summary>
-public sealed class ResourceUrlsCallbackAnnotation
+public sealed class ResourceUrlsCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ResourceUrlsCallbackAnnotation"/> class with the specified callback.

@@ -97,6 +97,8 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
+
+        await ProcessUrls(context.CancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
@@ -148,6 +150,43 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
     {
         await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
+    }
+
+    private async Task ProcessUrls(CancellationToken cancellationToken)
+    {
+        // Project endpoints to URLS
+        foreach (var resource in _model.Resources.OfType<IResourceWithEndpoints>())
+        {
+            var urls = new List<ResourceUrlAnnotation>();
+
+            if (resource.TryGetEndpoints(out var endpoints))
+            {
+                foreach (var endpoint in endpoints)
+                {
+                    // Create a URL for each endpoint
+                    if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                    {
+                        var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resource, endpoint) };
+                        urls.Add(url);
+                    }
+                }
+            }
+
+            // Run the URL callbacks
+            if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
+            {
+                var urlsCallbackContext = new ResourceUrlsCallbackContext(new(DistributedApplicationOperation.Run), resource, urls, cancellationToken);
+                foreach (var callback in callbacks)
+                {
+                    await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
+                }
+            }
+
+            foreach (var url in urls)
+            {
+                resource.Annotations.Add(url);
+            }
+        }
     }
 
     private Task ProcessResourcesWithoutLifetime(AfterEndpointsAllocatedEvent @event, CancellationToken cancellationToken)

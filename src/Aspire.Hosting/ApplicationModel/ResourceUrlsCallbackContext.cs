@@ -9,12 +9,17 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// 
 /// </summary>
-public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext executionContext, List<ResourceUrl>? urls = null, CancellationToken cancellationToken = default)
+public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext executionContext, IResource resource, List<ResourceUrlAnnotation>? urls = null, CancellationToken cancellationToken = default)
 {
+    /// <summary>
+    /// Gets the resource this the URLs are associated with.
+    /// </summary>
+    public IResource Resource { get; } = resource;
+
     /// <summary>
     /// Gets the URLs associated with the callback context.
     /// </summary>
-    public List<ResourceUrl> Urls { get; } = urls ?? [];
+    public List<ResourceUrlAnnotation> Urls { get; } = urls ?? [];
 
     /// <summary>
     /// Gets the CancellationToken associated with the callback context.

@@ -195,6 +195,8 @@ internal class ResourceSnapshotBuilder
             var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
             var isInactive = activeEndpoint is null;
 
+            // TODO: Gather URLs from annotations here
+
             if (service.AppModelResourceName is string resourceName &&
                 _resourceState.ApplicationModel.TryGetValue(resourceName, out var appModelResource) &&
                 appModelResource is IResourceWithEndpoints resourceWithEndpoints &&
