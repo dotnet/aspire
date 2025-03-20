@@ -371,36 +371,34 @@ public partial class ConsoleLogsTests : DashboardTestContext
         });
 
         var instance = cut.Instance;
-        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
         // Assert initial state
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
-        cut.WaitForAssertion(() => Assert.Null(instance._pausedAt));
 
         // Pause logs
         var pauseResumeButton = cut.FindComponent<PauseResumeButton>();
         pauseResumeButton.Find("fluent-button").Click();
 
-        // Assert paused state
-        cut.WaitForState(() => instance._pausedAt.HasValue);
-
         // Add a new log while paused
-        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Log while paused", IsErrorMessage: false)]);
+        var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
+
+        pauseResumeButton.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
+
+        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, resumeContent, IsErrorMessage: false)]);
 
         var logViewer = cut.FindComponent<LogViewer>();
 
         // Ensure the new log does not show up in visible entries when paused
         // but is still in the log entries
-        cut.WaitForAssertion(() => Assert.Contains("Log while paused", logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent)));
-        cut.WaitForAssertion(() => Assert.DoesNotContain("Log while paused", logViewer.Instance.GetEntries()!.Select(e => e.RawContent)));
-
-        // Resume logs
-        pauseResumeButton.Find("fluent-button").Click();
-
-        // Assert resumed state
-        cut.WaitForState(() => !instance._pausedAt.HasValue);
-        cut.WaitForAssertion(() => Assert.Contains("Log while paused", logViewer.Instance.GetEntries()!.Select(e => e.RawContent)));
-        Assert.Equal(loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)], instance.PageViewModel.Status);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(resumeContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+            Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+        });
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
@@ -448,6 +446,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
+        Services.AddSingleton<PauseManager>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
