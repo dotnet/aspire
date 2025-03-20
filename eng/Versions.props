@@ -10,7 +10,7 @@
     <AllTargetFrameworks>$(DefaultTargetFramework);net9.0</AllTargetFrameworks>
     <!-- dotnet 8.0 versions for running tests -->
     <DotNetRuntimePreviousVersionForTesting>8.0.13</DotNetRuntimePreviousVersionForTesting>
-    <!-- dotnet 8.0 versions for running tests - used for workload tests -->
+    <!-- dotnet 8.0 versions for running tests - used for templates tests -->
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
@@ -21,19 +21,18 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.12.7</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.12.7</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.12.7</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.12.7</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanewindows386Version>0.12.7</MicrosoftDeveloperControlPlanewindows386Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.12.7</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.12.7</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.12.8</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.12.8</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.12.8</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.12.8</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanewindows386Version>0.12.8</MicrosoftDeveloperControlPlanewindows386Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.12.8</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.12.8</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25164.2</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25164.2</MicrosoftDotNetXUnitExtensionsVersion>
     <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25164.2</MicrosoftDotNetBuildTasksInstallersVersion>
     <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25164.2</MicrosoftDotNetBuildTasksWorkloadsVersion>
-    <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.3-servicing.25111.13</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.3.0-preview.1.25161.3</MicrosoftExtensionsAIVersion>
     <!-- when updating this, also update cgmanifest.json as it is consumed in templates -->
