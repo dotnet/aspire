@@ -52,8 +52,7 @@
                                 HandleClearSignal="ClearMetrics" />
 
             <PauseResumeButton
-                PausedAt="@_pausedAt"
-                PausedAtChanged="@OnPausedAtChangedAsync"
+                @bind-IsPaused="@PauseManager.MetricsPaused"
                 Disabled="@(PageViewModel.SelectedInstrument is null)" />
 
             @if (!ViewportInformation.IsDesktop)
@@ -112,8 +111,7 @@
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="@_applications"
-                                            PausedAt="@_pausedAt" />
+                                            Applications="@_applications" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {

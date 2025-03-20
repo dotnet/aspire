@@ -130,25 +130,9 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
 
     public bool Apply(OtlpSpan span)
     {
-        return Field switch
-        {
-            nameof(OtlpLogEntry.TimeStamp) => ApplyTimeStamp(),
-            _ => ApplyField()
-        };
-
-        bool ApplyTimeStamp()
-        {
-            var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
-            var func = ConditionToFuncDate(Condition);
-            return func(span.StartTime, date);
-        }
-
-        bool ApplyField()
-        {
-            var fieldValue = OtlpSpan.GetFieldValue(span, Field);
-            var func = ConditionToFuncString(Condition);
-            return func(fieldValue, Value);
-        }
+        var fieldValue = OtlpSpan.GetFieldValue(span, Field);
+        var func = ConditionToFuncString(Condition);
+        return func(fieldValue, Value);
     }
 
     public bool Equals(TelemetryFilter? other)

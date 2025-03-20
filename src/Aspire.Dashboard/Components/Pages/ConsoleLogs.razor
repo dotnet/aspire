@@ -29,7 +29,9 @@
 
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
-            <PauseResumeButton @bind-PausedAt="@_pausedAt" Disabled="@(PageViewModel.SelectedResource is null)" />
+            <PauseResumeButton IsPaused="@PauseManager.ConsoleLogsPaused"
+                               IsPausedChanged="@IsPausedChangedAsync"
+                               Disabled="@(PageViewModel.SelectedResource is null)" />
 
             @foreach (var command in _highlightedCommands)
             {
@@ -87,8 +89,7 @@
             <LogViewer
                 LogEntries="@_logEntries"
                 ShowTimestamp="@_showTimestamp"
-                IsTimestampUtc="@_isTimestampUtc"
-                PausedAt="@_pausedAt" />
+                IsTimestampUtc="@_isTimestampUtc" />
         </MainSection>
     </AspirePageContentLayout>
 </div>

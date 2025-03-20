@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
@@ -24,6 +25,7 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public sealed class TelemetryRepository
 {
+    private readonly PauseManager _pauseManager;
     private readonly object _lock = new();
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
 
@@ -57,7 +59,7 @@ public sealed class TelemetryRepository
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
     internal List<Subscription> TracesSubscriptions => _tracesSubscriptions;
 
-    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
+    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager)
     {
         var logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
         _otlpContext = new OtlpContext
@@ -65,6 +67,7 @@ public sealed class TelemetryRepository
             Logger = logger,
             Options = dashboardOptions.Value.TelemetryLimits
         };
+        _pauseManager = pauseManager;
 
         _logs = new(_otlpContext.Options.MaxLogCount);
         _traces = new(_otlpContext.Options.MaxTraceCount);
@@ -271,6 +274,11 @@ public sealed class TelemetryRepository
 
     public void AddLogs(AddContext context, RepeatedField<ResourceLogs> resourceLogs)
     {
+        if (_pauseManager.StructuredLogsPaused)
+        {
+            return;
+        }
+
         foreach (var rl in resourceLogs)
         {
             OtlpApplicationView applicationView;
@@ -804,6 +812,11 @@ public sealed class TelemetryRepository
 
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
+        if (_pauseManager.MetricsPaused)
+        {
+            return;
+        }
+
         foreach (var rm in resourceMetrics)
         {
             OtlpApplicationView applicationView;
@@ -826,6 +839,11 @@ public sealed class TelemetryRepository
 
     public void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
     {
+        if (_pauseManager.TracesPaused)
+        {
+            return;
+        }
+
         foreach (var rs in resourceSpans)
         {
             OtlpApplicationView applicationView;

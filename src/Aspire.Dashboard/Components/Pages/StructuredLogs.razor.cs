@@ -44,7 +44,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
-    private DateTime? _pausedAt;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -83,6 +82,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required IMessageService MessageService { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -112,7 +114,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
-        var logs = ViewModel.GetLogs(_pausedAt);
+        var logs = ViewModel.GetLogs();
 
         if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
@@ -348,12 +350,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
         }
-    }
-
-    private Task OnPausedAtChangedAsync(DateTime? newPausedAt)
-    {
-        _pausedAt = newPausedAt;
-        return InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

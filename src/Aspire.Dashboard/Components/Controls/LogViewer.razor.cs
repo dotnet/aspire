@@ -84,20 +84,6 @@ public sealed partial class LogViewer
             : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
     }
 
-    internal ICollection<LogEntry>? GetEntries()
-    {
-        if (LogEntries is not { } logEntries)
-        {
-            return null;
-        }
-
-        return PausedAt is null
-            ? logEntries.GetEntries()
-            : logEntries.GetEntries()
-                .Where(logEntry => logEntry.Timestamp is { } timestamp && timestamp <= PausedAt)
-                .ToList();
-    }
-
     public ValueTask DisposeAsync()
     {
         Logger.LogDebug("Disposing log viewer.");

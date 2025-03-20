@@ -43,9 +43,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required List<OtlpApplication> Applications { get; set; }
 
-    [Parameter, EditorRequired]
-    public required DateTime? PausedAt { get; set; }
-
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -54,6 +51,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
 
     public ImmutableList<DimensionFilterViewModel> DimensionFilters { get; set; } = [];
     public string? PreviousMeterName { get; set; }
@@ -91,7 +91,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
-            if (_instrument == null || PausedAt is not null)
+            if (_instrument == null || PauseManager.MetricsPaused)
             {
                 continue;
             }

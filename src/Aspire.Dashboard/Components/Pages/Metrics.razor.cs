@@ -21,7 +21,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
     private AspirePageContentLayout? _contentLayout;
     private TreeMetricSelector? _treeMetricSelector;
-    private DateTime? _pausedAt;
 
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
@@ -62,6 +61,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
+
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -296,12 +298,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 }
             });
         }
-    }
-
-    private Task OnPausedAtChangedAsync(DateTime? newPausedAt)
-    {
-        _pausedAt = newPausedAt;
-        return Task.CompletedTask;
     }
 
     public void Dispose()

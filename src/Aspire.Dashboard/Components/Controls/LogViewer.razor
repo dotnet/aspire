@@ -8,9 +8,9 @@
 
 <div class="log-overflow console-overflow continuous-scroll-overflow">
     <div class="log-container console-container" id="logContainer">
-        @if (GetEntries() is { } entries)
+        @if (LogEntries is { } logEntries)
         {
-            <Virtualize Items="@entries" ItemSize="20" OverscanCount="100" TItem="LogEntry">
+            <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
                 <div class="log-line-row-container">
                     <div class="log-line-row console-line-row">
                         <span class="log-line-area" role="log">

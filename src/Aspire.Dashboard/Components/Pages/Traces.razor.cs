@@ -40,7 +40,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
-    private DateTime? _pausedAt;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -82,6 +81,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -116,7 +118,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
-        var traces = TracesViewModel.GetTraces(_pausedAt);
+        var traces = TracesViewModel.GetTraces();
 
         if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
@@ -342,12 +344,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         TelemetryRepository.ClearTraces(key);
         return Task.CompletedTask;
-    }
-
-    private Task OnPausedAtChangedAsync(DateTime? newPausedAt)
-    {
-        _pausedAt = newPausedAt;
-        return InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public class TracesPageViewModel
