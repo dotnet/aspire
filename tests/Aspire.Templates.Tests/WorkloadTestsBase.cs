@@ -300,9 +300,6 @@ public partial class TemplateTestsBase
                 yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
             }
 
-            // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
-            // yield return "aspire  sta-rter.test"; // Issue: two spaces
-
             yield return "aspire_starter.1period then.34letters";
             yield return "aspire-starter & with.1";
 
