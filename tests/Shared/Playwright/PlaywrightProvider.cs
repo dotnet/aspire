@@ -4,7 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Microsoft.Playwright;
 
-namespace Aspire.Workload.Tests;
+namespace Aspire.Templates.Tests;
 
 public class PlaywrightProvider
 {

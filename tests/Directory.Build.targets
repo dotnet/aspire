@@ -43,7 +43,7 @@
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
-           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Workload.Tests" />
+           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Templates.Tests" />
 
     <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
@@ -74,5 +74,5 @@
     </ItemGroup>
   </Target>
 
-  <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />
 </Project>

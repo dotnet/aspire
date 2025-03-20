@@ -9,7 +9,7 @@
 /tests/Aspire.EndToEnd.Tests          @radical @eerhardt
 /tests/Aspire.Hosting.Testing.Tests   @reubenbond
 /tests/Aspire.Hosting.Tests           @mitchdenny
-/tests/Aspire.Workload.Tests          @radical @eerhardt
+/tests/Aspire.Templates.Tests          @radical @eerhardt
 /tests/Shared                         @radical @eerhardt
 /tests/helix                          @radical @eerhardt
-/tests/workloads.proj                 @radical @eerhardt
+/tests/templates.proj                 @radical @eerhardt

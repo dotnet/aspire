@@ -3,8 +3,10 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Data;
 using System.Diagnostics;
 using System.Text;
+using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -31,8 +33,8 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
         }
 
-        builder.Services.AddSingleton<ConsoleAppModel>();
         builder.Services.AddTransient<DotNetCliRunner>();
+        builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
         var app = builder.Build();
@@ -130,7 +132,6 @@ public class Program
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
-            var model = app.Services.GetRequiredService<ConsoleAppModel>();
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
@@ -140,99 +141,105 @@ public class Program
             var debug = parseResult.GetValue<bool>("--debug");
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+
+            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
             
-            var useRichConsole = !debug && !waitForDebugger;
+            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
 
             if (waitForDebugger)
             {
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
 
-            var pendingRun = runner.RunAsync(effectiveAppHostProjectFile, Array.Empty<string>(), env, ct).ConfigureAwait(false);
+            var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+            var pendingRun = runner.RunAsync(
+                effectiveAppHostProjectFile,
+                Array.Empty<string>(),
+                env,
+                backchannelCompletitionSource,
+                ct).ConfigureAwait(false);
 
             if (useRichConsole)
             {
-                // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots3)
-                    .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
-                        }).ConfigureAwait(true);
+                // We wait for the back channel to be created to signal that
+                // the AppHost is ready to accept requests.
+                var backchannel = await AnsiConsole.Status()
+                                                   .Spinner(Spinner.Known.Dots3)
+                                                   .SpinnerStyle(Style.Parse("purple"))
+                                                   .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
+                                                        return await backchannelCompletitionSource.Task.ConfigureAwait(false);
+                                                   }).ConfigureAwait(true);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots3)
-                    .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-
-                    // Possible we already have it, if so this will be quick.
-                    if (model.DashboardLoginUrl is { })
-                    {
-                        return;
-                    }
-
-                    // Otherwise we wait.
-                    while (true)
-                    {
-                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
-                        if (model.DashboardLoginUrl is { })
-                        {
-                            break;
-                        }
-                    }
-                    }).ConfigureAwait(true);
+                var dashboardUrls = await AnsiConsole.Status()
+                                                    .Spinner(Spinner.Known.Dots3)
+                                                    .SpinnerStyle(Style.Parse("purple"))
+                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
+                                                        return await backchannel.GetDashboardUrlsAsync(ct).ConfigureAwait(false);
+                                                    }).ConfigureAwait(true);
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                AnsiConsole.MarkupLine($"[link={model.DashboardLoginUrl}]{model.DashboardLoginUrl}[/]");
+                AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
+                {
+                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+                }
                 AnsiConsole.WriteLine();
 
                 var table = new Table().Border(TableBorder.Rounded);
 
                 await AnsiConsole.Live(table).StartAsync(async context => {
 
+                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
+
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
                     table.AddColumn("State");
                     table.AddColumn("Endpoint(s)");
 
-                    while (true)
+                    var resourceStates = backchannel.GetResourceStatesAsync(ct);
+
+                    await foreach(var resourceState in resourceStates.ConfigureAwait(false))
                     {
-                        var modelUpdate = await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                        knownResources[resourceState.Resource] = resourceState;
+
                         table.Rows.Clear();
 
-                        foreach (var resource in model.Resources.OrderBy(r => r.Name))
+                        foreach (var knownResource in knownResources)
                         {
-                            var resourceName = new Text(resource.Name, new Style().Foreground(Color.White));
+                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
 
-                            var type = new Text(resource.Type ?? "Unknown", new Style().Foreground(Color.White));
+                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
 
-                            var state = resource.State switch {
-                                "Running" => new Text(resource.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(resource.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(resource.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(resource.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(resource.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(resource.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                            var stateRenderable = knownResource.Value.State switch {
+                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
                             };
 
-                            IRenderable endpoints = new Text("None");
-                            if (resource.Endpoints?.Length > 0)
+                            IRenderable endpointsRenderable = new Text("None");
+                            if (knownResource.Value.Endpoints?.Length > 0)
                             {
-                                endpoints = new Rows(
-                                    resource.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                endpointsRenderable = new Rows(
+                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
                                 );
                             }
 
-                            table.AddRow(resourceName, type, state, endpoints);
+                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+
                         }
 
                         context.Refresh();
                     }
+
                 }).ConfigureAwait(true);
 
                 return await pendingRun;
@@ -325,6 +332,7 @@ public class Program
                         effectiveAppHostProjectFile,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
+                        null, // TODO: We will use a backchannel here soon but null for now.
                         ct).ConfigureAwait(false);
 
                     return await pendingRun;
