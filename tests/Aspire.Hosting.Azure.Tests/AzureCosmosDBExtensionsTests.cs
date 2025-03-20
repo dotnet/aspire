@@ -92,7 +92,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AzureCosmosDBHasCorrectConnectionStrings()
+    public void AzureCosmosDBHasCorrectConnectionStrings_ForAccountEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -100,11 +100,26 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var db1 = cosmos.AddCosmosDatabase("db1");
         var container1 = db1.AddContainer("container1", "id");
 
-        // database and container should have the same connection string as the cosmos account, for now.
-        // In the future, we can add the database and container info to the connection string.
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", container1.Resource.ConnectionStringExpression.ValueExpression);
+        // Endpoint-based connection info gets passed as a connection string to
+        // support setting the correct properties on child resources.
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureCosmosDBHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        Assert.DoesNotContain(";Database=db1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.DoesNotContain(";Database=db1;Container=container1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -127,14 +142,20 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__DatabaseName", k),
             k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__DatabaseName", k),
             k => Assert.Equal("db1__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__DatabaseName", k),
             k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__DatabaseName", k),
             k => Assert.Equal("container1__accountEndpoint", k));
     }
 
