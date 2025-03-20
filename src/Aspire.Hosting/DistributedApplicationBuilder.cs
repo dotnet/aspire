@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -252,8 +253,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
-        _innerBuilder.Services.AddSingleton<CliBackchannel>();
-        _innerBuilder.Services.AddHostedService<CliBackchannel>(sp => sp.GetRequiredService<CliBackchannel>());
+        _innerBuilder.Services.AddSingleton<BackchannelService>();
+        _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
