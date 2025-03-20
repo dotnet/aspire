@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureCosmosDatabase("db");
 builder.AddAzureCosmosContainer("entries");
-builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef", configureDbContextOptions =>
+builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 {
     configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);
 });
