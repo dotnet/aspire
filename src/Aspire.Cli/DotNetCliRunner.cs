@@ -26,13 +26,19 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<int> InstallTemplateAsync(string packageName, string version, bool force, CancellationToken cancellationToken)
+    public async Task<int> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken)
     {
         List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
 
         if (force)
         {
             cliArgs.Add("--force");
+        }
+
+        if (nugetSource is not null)
+        {
+            cliArgs.Add("--nuget-source");
+            cliArgs.Add(nugetSource);
         }
 
         return await ExecuteAsync(
@@ -273,7 +279,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
     {
         List<string> cliArgs = [
             "package",
@@ -286,6 +292,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, CliRpcTar
             "--format",
             "json"
         ];
+
+        if (nugetSource is not null)
+        {
+            cliArgs.Add("--source");
+            cliArgs.Add(nugetSource);
+        }
 
         if (prerelease)
         {
