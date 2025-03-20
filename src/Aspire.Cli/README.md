@@ -33,7 +33,7 @@ Getting the latest templates is a passthrough to `dotnet new install --force` so
 
 Creating the app is a passthrough to `dotnet new` and propagates the `--name` and `--output` options.
 
-###  add / add <PACKAGE_NAME> (current implementation)
+### add / add <PACKAGE_NAME> (current implementation)
 
 ```cli
 aspire add [<PACKAGE_NAME>] [--project <PATH_TO_CSPROJ>]
