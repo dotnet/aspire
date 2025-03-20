@@ -1,3 +1,4 @@
+# Executes the integration tests on all platforms
 name: Integration
 
 on:

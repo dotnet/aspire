@@ -6,7 +6,6 @@
       "connectionString": "{cosmos.outputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "principalType": "",
         "principalId": ""
       }
     },

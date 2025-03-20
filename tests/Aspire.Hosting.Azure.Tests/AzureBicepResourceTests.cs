@@ -333,6 +333,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -373,7 +375,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                                  "connectionString": "{cosmos.outputs.connectionString}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "principalType": "",
                                    "principalId": ""
                                  }
                                }
@@ -385,8 +386,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
 
             param principalId string
 
@@ -455,6 +454,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -567,6 +568,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -607,7 +610,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                                  "connectionString": "{cosmos.outputs.connectionString}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "principalType": "",
                                    "principalId": ""
                                  }
                                }
@@ -617,8 +619,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
 
             param principalId string
 
@@ -687,6 +687,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
