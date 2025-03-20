@@ -15,36 +15,19 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         : base(testOutput)
     {}
 
-    public static TheoryData<string, string> TestFrameworkTypeWithConfig()
+    public static TheoryData<string> BuildConfigurationsForTestData()
     {
-        var data = new TheoryData<string, string>();
-        foreach (var testType in TestFrameworkTypes)
+        var data = new TheoryData<string>() { "Debug" };
+        if (!PlatformDetection.IsRunningPRValidation)
         {
-            data.Add("Debug", testType);
-            data.Add("Release", testType);
+            data.Add("Release");
         }
+
         return data;
     }
 
     [Theory]
-    [MemberData(nameof(TestFrameworkTypeWithConfig))]
-    [RequiresSSLCertificate]
-    public async Task BuildAndRunStarterTemplateBuiltInTest(string config, string testType)
-    {
-        string id = GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                                            id,
-                                            "aspire-starter",
-                                            _testOutput,
-                                            buildEnvironment: BuildEnvironment.ForDefaultFramework,
-                                            extraArgs: $"-t {testType}");
-
-        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
-    }
-
-    [Theory]
-    [InlineData("Debug")]
-    [InlineData("Release")]
+    [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
     public async Task BuildAndRunAspireTemplate(string config)
     {
@@ -112,8 +95,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Theory]
-    [InlineData("Debug")]
-    [InlineData("Release")]
+    [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {

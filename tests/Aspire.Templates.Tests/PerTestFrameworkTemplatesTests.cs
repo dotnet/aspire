@@ -17,16 +17,10 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
         _testTemplateName = testType;
     }
 
-    public static IEnumerable<object[]> ProjectNamesWithTestTemplate_TestData()
-    {
-        foreach (var name in GetProjectNamesForTest())
-        {
-            yield return [name];
-        }
-    }
+    public static TheoryData<string> ProjectNames_TestData() => new(GetProjectNamesForTest());
 
     [Theory]
-    [MemberData(nameof(ProjectNamesWithTestTemplate_TestData))]
+    [MemberData(nameof(ProjectNames_TestData))]
     public async Task TemplatesForIndividualTestFrameworks(string prefix)
     {
         var id = $"{prefix}-{_testTemplateName}";

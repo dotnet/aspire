@@ -16,11 +16,11 @@ public abstract class StarterTemplateProjectNamesTests : TemplateTestsBase
         _testType = testType;
     }
 
-    public static TheoryData<string> ProjectNamesWithTestType_TestData()
+    public static TheoryData<string> ProjectNames_TestData()
         => new(GetProjectNamesForTest());
 
     [Theory]
-    [MemberData(nameof(ProjectNamesWithTestType_TestData))]
+    [MemberData(nameof(ProjectNames_TestData))]
     [RequiresSSLCertificate("Needs dashboard, web front end access")]
     public async Task StarterTemplateWithTest_ProjectNames(string prefix)
     {

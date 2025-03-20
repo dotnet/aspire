@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Aspire.Components.Common.Tests;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -289,20 +290,22 @@ public partial class TemplateTestsBase
 
     public static IEnumerable<string> GetProjectNamesForTest()
     {
-        if (!OperatingSystem.IsWindows())
+        if (!PlatformDetection.IsRunningPRValidation)
         {
-            // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
-            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
+            // Avoid running these cases on PR validation
+
+            if (!OperatingSystem.IsWindows())
+            {
+                // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
+                yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
+            }
+
+            yield return "aspire_starter.1period then.34letters";
+            yield return "aspire-starter & with.1";
+
+            // ActiveIssue: https://github.com/dotnet/aspnetcore/issues/56277
+            // yield return "aspire_😀";
         }
-
-        // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
-        // yield return "aspire  sta-rter.test"; // Issue: two spaces
-
-        yield return "aspire_starter.1period then.34letters";
-        yield return "aspire-starter & with.1";
-
-        // ActiveIssue: https://github.com/dotnet/aspnetcore/issues/56277
-        // yield return "aspire_😀";
 
         // basic case
         yield return "aspire";
