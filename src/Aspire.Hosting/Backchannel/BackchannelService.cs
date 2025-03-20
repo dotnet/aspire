@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget) : BackgroundService
+internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing) : BackgroundService
 {
     private const string UnixSocketPathEnvironmentVariable = "ASPIRE_BACKCHANNEL_PATH";
     private readonly List<JsonRpc> _rpcs = new();
@@ -31,12 +32,24 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
         serverSocket.Bind(endpoint);
         serverSocket.Listen();
 
+        var backchannelReadyEvent = new BackchannelReadyEvent(unixSocketPath);
+        await eventing.PublishAsync(
+            backchannelReadyEvent,
+            EventDispatchBehavior.NonBlockingConcurrent,
+            stoppingToken).ConfigureAwait(false);
+
         do
         {
             var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
             var stream = new NetworkStream(clientSocket, true);
             var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
             _rpcs.Add(rpc);
+
+            var backchannelConnectedEvent = new BackchannelConnectedEvent(unixSocketPath);
+            await eventing.PublishAsync(
+                backchannelConnectedEvent,
+                EventDispatchBehavior.NonBlockingConcurrent,
+                stoppingToken).ConfigureAwait(false);
 
             logger.LogDebug("Accepted backchannel connection from {RemoteEndPoint}", clientSocket.RemoteEndPoint);
         } while (!stoppingToken.IsCancellationRequested);

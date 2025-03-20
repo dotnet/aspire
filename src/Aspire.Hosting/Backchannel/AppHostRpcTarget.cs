@@ -29,7 +29,7 @@ internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotifi
             // TODO: Decide on whether we want to define a type and share it between codebases for this.
             yield return (
                 resourceEvent.Resource.Name,
-                resourceEvent.Resource.GetType().Name,
+                resourceEvent.Snapshot.ResourceType,
                 resourceEvent.Snapshot.State?.Text ?? "Unknown",
                 resourceEvent.Snapshot.Urls.Select(x => x.Url).ToArray()
                 );
