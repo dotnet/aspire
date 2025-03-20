@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider)
+internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, IDistributedApplicationEventing eventing)
 {   
     public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
@@ -65,5 +67,14 @@ internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotifi
         var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
 
         return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+    }
+
+    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
+    {
+        var e = new PublisherAdvertisementEvent();
+        await eventing.PublishAsync(e, cancellationToken).ConfigureAwait(false);
+
+        var publishers = e.Advertisements.Select(x => x.Name);
+        return [..publishers];
     }
 }

@@ -5,7 +5,8 @@ using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal sealed class BackchannelReadyEvent(string socketPath) : IDistributedApplicationEvent
+internal sealed class BackchannelReadyEvent(IServiceProvider serviceProvider, string socketPath) : IDistributedApplicationEvent
 {
+    public IServiceProvider ServiceProvider { get; } = serviceProvider;
     public string SocketPath { get; } = socketPath;
 }
