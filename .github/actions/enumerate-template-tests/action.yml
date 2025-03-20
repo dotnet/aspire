@@ -1,4 +1,4 @@
-name: 'Enumerate Workload tests'
+name: 'Enumerate Templates tests'
 description: 'Enumerate list of workload tests'
 outputs:
   tests_matrix:
@@ -22,12 +22,12 @@ runs:
         CI: false
       shell: pwsh
       run: >
-          dotnet build ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+          dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
           "/t:Build;ExtractTestClassNames"
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
           -p:ExtractTestClassNamesForHelix=true
           -p:ArchiveTests=true
-          -p:ExtractTestClassNamesPrefix=Aspire.Workload.Tests
+          -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
 
     - name: Generate tests matrix
       id: generate_test_matrix
@@ -35,10 +35,10 @@ runs:
       env:
         CI: false
       run: |
-        $inputFilePath = "${{ github.workspace }}/artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list"
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
         $lines = Get-Content $inputFilePath
 
-        $prefix = "Aspire.Workload.Tests."
+        $prefix = "Aspire.Templates.Tests."
         $lines = Get-Content $inputFilePath | ForEach-Object {
             $_ -replace "^$prefix", ""
         }

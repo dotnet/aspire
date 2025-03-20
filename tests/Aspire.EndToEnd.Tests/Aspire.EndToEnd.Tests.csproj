@@ -36,5 +36,5 @@
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+  <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />
 </Project>
