@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Test(s) failing on a Azdo CI run. This issue will track the failures on Azdo using the [Known Issues infrastructure](https://github.com/dotnet/arcade/blob/main/Documentation/Projects/Build%20Analysis/KnownIssues.md).
+        Test(s) failing on an Azdo CI run. This issue will track the failures on Azdo using the [Known Issues infrastructure](https://github.com/dotnet/arcade/blob/main/Documentation/Projects/Build%20Analysis/KnownIssues.md).
         Fill in the `Build information` block. And `Error message template` needs to be filled in by using either `ErrorMessage` or `ErrorPattern` to enable automatic tracking of failing builds.
   - type: checkboxes
     attributes:
