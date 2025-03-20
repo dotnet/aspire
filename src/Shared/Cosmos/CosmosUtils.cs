@@ -60,12 +60,12 @@ internal static class CosmosUtils
         }
 
         // if we are only left with the AccountEndpoint, then we set the AccountEndpoint and
-        // not the connection string.
+        // not the connection string and include the database and container names.
         if (connectionBuilder.Count == 1 &&
             connectionBuilder.TryGetValue("AccountEndpoint", out var accountEndpointValue) &&
             Uri.TryCreate(accountEndpointValue.ToString(), UriKind.Absolute, out accountEndpoint))
         {
-            return new CosmosConnectionInfo(accountEndpoint, null);
+            return new CosmosConnectionInfo(accountEndpoint, null, databaseValue?.ToString(), containerValue?.ToString());
         }
 
         return new CosmosConnectionInfo(null, connectionBuilder.ConnectionString, databaseValue?.ToString(), containerValue?.ToString());
