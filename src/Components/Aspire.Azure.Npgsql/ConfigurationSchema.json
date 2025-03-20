@@ -1,0 +1,67 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Npgsql": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Command": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Connection": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Copy": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Exception": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Replication": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Npgsql.Transaction": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "Npgsql": {
+              "type": "object",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "The connection string of the Azure Database for PostgreSQL to connect to."
+                },
+                "DisableHealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
+                  "default": false
+                },
+                "DisableMetrics": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.",
+                  "default": false
+                },
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to an Azure Database for PostgreSQL using Npgsql."
+            }
+          }
+        }
+      }
+    }
+  }
+}

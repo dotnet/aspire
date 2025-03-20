@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentAzurePackageTags) postgresql postgres npgsql sql</PackageTags>
+    <Description>A client for Azure Database for PostgreSQL that integrates with Aspire, including health checks, logging and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)AzurePostgreSQL_256x.png</PackageIconFullPath>
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+    <Compile Include="..\Common\ConnectionStringValidation.cs" Link="ConnectionStringValidation.cs" />
+    <Compile Include="..\Aspire.Npgsql\NpgsqlCommon.cs" Link="NpgsqlCommon.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Azure" />
+    <ProjectReference Include="..\Aspire.Npgsql\Aspire.Npgsql.csproj" />
+  </ItemGroup>
+
+</Project>
