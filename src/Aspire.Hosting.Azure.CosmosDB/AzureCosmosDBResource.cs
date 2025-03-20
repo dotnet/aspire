@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CosmosDB;
+using Azure.Provisioning.CosmosDB;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -39,6 +42,8 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+
+    private BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
@@ -83,5 +88,27 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
         }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = CosmosDBAccount.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        Debug.Assert(!UseAccessKeyAuthentication, "AddRoleAssignments should not be called when using AccessKeyAuthentication");
+
+        var infra = roleAssignmentContext.Infrastructure;
+        var cosmosAccount = (CosmosDBAccount)AddAsExistingResource(infra);
+
+        var principalId = roleAssignmentContext.PrincipalId;
+
+        AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
     }
 }

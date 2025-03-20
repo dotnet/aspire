@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <!-- This triggers the import of targets needed for workload testing -->
-    <IsWorkloadTestProject>true</IsWorkloadTestProject>
+    <!-- This triggers the import of targets needed for template testing -->
+    <IsTemplateTestProject>true</IsTemplateTestProject>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />

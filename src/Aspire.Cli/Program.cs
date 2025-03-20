@@ -3,8 +3,10 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Data;
 using System.Diagnostics;
 using System.Text;
+using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -31,8 +33,8 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
         }
 
-        builder.Services.AddSingleton<ConsoleAppModel>();
         builder.Services.AddTransient<DotNetCliRunner>();
+        builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
         var app = builder.Build();
@@ -41,7 +43,7 @@ public class Program
 
     private static RootCommand GetRootCommand()
     {
-        var rootCommand = new RootCommand(".NET Aspire CLI");
+        var rootCommand = new RootCommand("Aspire CLI");
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Recursive = true;
@@ -130,7 +132,6 @@ public class Program
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
-            var model = app.Services.GetRequiredService<ConsoleAppModel>();
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
@@ -140,99 +141,105 @@ public class Program
             var debug = parseResult.GetValue<bool>("--debug");
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+
+            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
             
-            var useRichConsole = !debug && !waitForDebugger;
+            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
 
             if (waitForDebugger)
             {
                 env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
             }
 
-            var pendingRun = runner.RunAsync(effectiveAppHostProjectFile, Array.Empty<string>(), env, ct).ConfigureAwait(false);
+            var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+            var pendingRun = runner.RunAsync(
+                effectiveAppHostProjectFile,
+                Array.Empty<string>(),
+                env,
+                backchannelCompletitionSource,
+                ct).ConfigureAwait(false);
 
             if (useRichConsole)
             {
-                // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots3)
-                    .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
-                        }).ConfigureAwait(true);
+                // We wait for the back channel to be created to signal that
+                // the AppHost is ready to accept requests.
+                var backchannel = await AnsiConsole.Status()
+                                                   .Spinner(Spinner.Known.Dots3)
+                                                   .SpinnerStyle(Style.Parse("purple"))
+                                                   .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
+                                                        return await backchannelCompletitionSource.Task.ConfigureAwait(false);
+                                                   }).ConfigureAwait(true);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots3)
-                    .SpinnerStyle(Style.Parse("purple"))
-                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-
-                    // Possible we already have it, if so this will be quick.
-                    if (model.DashboardLoginUrl is { })
-                    {
-                        return;
-                    }
-
-                    // Otherwise we wait.
-                    while (true)
-                    {
-                        await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
-                        if (model.DashboardLoginUrl is { })
-                        {
-                            break;
-                        }
-                    }
-                    }).ConfigureAwait(true);
+                var dashboardUrls = await AnsiConsole.Status()
+                                                    .Spinner(Spinner.Known.Dots3)
+                                                    .SpinnerStyle(Style.Parse("purple"))
+                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
+                                                        return await backchannel.GetDashboardUrlsAsync(ct).ConfigureAwait(false);
+                                                    }).ConfigureAwait(true);
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                AnsiConsole.MarkupLine($"[link={model.DashboardLoginUrl}]{model.DashboardLoginUrl}[/]");
+                AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
+                {
+                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+                }
                 AnsiConsole.WriteLine();
 
                 var table = new Table().Border(TableBorder.Rounded);
 
                 await AnsiConsole.Live(table).StartAsync(async context => {
 
+                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
+
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
                     table.AddColumn("State");
                     table.AddColumn("Endpoint(s)");
 
-                    while (true)
+                    var resourceStates = backchannel.GetResourceStatesAsync(ct);
+
+                    await foreach(var resourceState in resourceStates.ConfigureAwait(false))
                     {
-                        var modelUpdate = await model.ModelUpdatedChannel.Reader.ReadAsync(ct).ConfigureAwait(true);
+                        knownResources[resourceState.Resource] = resourceState;
+
                         table.Rows.Clear();
 
-                        foreach (var resource in model.Resources.OrderBy(r => r.Name))
+                        foreach (var knownResource in knownResources)
                         {
-                            var resourceName = new Text(resource.Name, new Style().Foreground(Color.White));
+                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
 
-                            var type = new Text(resource.Type ?? "Unknown", new Style().Foreground(Color.White));
+                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
 
-                            var state = resource.State switch {
-                                "Running" => new Text(resource.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(resource.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(resource.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(resource.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(resource.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(resource.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(resource.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                            var stateRenderable = knownResource.Value.State switch {
+                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
                             };
 
-                            IRenderable endpoints = new Text("None");
-                            if (resource.Endpoints?.Length > 0)
+                            IRenderable endpointsRenderable = new Text("None");
+                            if (knownResource.Value.Endpoints?.Length > 0)
                             {
-                                endpoints = new Rows(
-                                    resource.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                endpointsRenderable = new Rows(
+                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
                                 );
                             }
 
-                            table.AddRow(resourceName, type, state, endpoints);
+                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+
                         }
 
                         context.Refresh();
                     }
+
                 }).ConfigureAwait(true);
 
                 return await pendingRun;
@@ -325,6 +332,7 @@ public class Program
                         effectiveAppHostProjectFile,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
+                        null, // TODO: We will use a backchannel here soon but null for now.
                         ct).ConfigureAwait(false);
 
                     return await pendingRun;
@@ -384,7 +392,7 @@ public class Program
 
     private static void ConfigureNewCommand(Command parentCommand)
     {
-        var command = new Command("new", "Create a new .NET Aspire-related project.");
+        var command = new Command("new", "Create a new Aspire sample project.");
         var templateArgument = new Argument<string>("template");
         templateArgument.Validators.Add(ValidateProjectTemplate);
         templateArgument.Arity = ArgumentArity.ZeroOrOne;
@@ -398,6 +406,9 @@ public class Program
 
         var prereleaseOption = new Option<bool>("--prerelease");
         command.Options.Add(prereleaseOption);
+        
+        var sourceOption = new Option<string?>("--source", "-s");
+        command.Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
         templateVersionOption.DefaultValueFactory = (result) => 
@@ -419,14 +430,15 @@ public class Program
             _ = app.RunAsync(ct).ConfigureAwait(false);
 
             var templateVersion = parseResult.GetValue<string>("--version");
+            var source = parseResult.GetValue<string?>("--source");
 
             int templateInstallExitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync(
-                    ":ice:  Installing templates...",
+                    ":ice:  Getting latest templates...",
                     async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, true, ct).ConfigureAwait(false);
+                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct).ConfigureAwait(false);
                     }).ConfigureAwait(false);
 
             if (templateInstallExitCode != 0)
@@ -480,17 +492,20 @@ public class Program
     private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
     {
         var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title("Please select the integration you want to add:")
+            .Title("Select an integration to add:")
             .UseConverter(PackageNameWithFriendlyNameIfAvailable)
             .PageSize(10)
+            .EnableSearch()
+            .HighlightStyle(Style.Parse("darkmagenta"))
             .AddChoices(knownPackages);
 
         var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
 
-        var versionPrompt = new TextPrompt<string>("Specify version of integration to add:")
+        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
             .DefaultValue(selectedIntegration.Package.Version)
             .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
-            .ShowDefaultValue(true);
+            .ShowDefaultValue(true)
+            .DefaultValueStyle(Style.Parse("darkmagenta"));
 
         var version = AnsiConsole.Prompt(versionPrompt);
 
@@ -502,7 +517,7 @@ public class Program
         {
             if (packageWithFriendlyName.FriendlyName is { } friendlyName)
             {
-                return $"{packageWithFriendlyName.Package.Id} ({friendlyName})";
+                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
             }
             else
             {
@@ -535,7 +550,7 @@ public class Program
 
     private static void ConfigureAddCommand(Command parentCommand)
     {
-        var command = new Command("add", "Add a resource to the .NET Aspire project.");
+        var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
         var resourceArgument = new Argument<string>("resource");
         resourceArgument.Arity = ArgumentArity.ZeroOrOne;
@@ -551,7 +566,11 @@ public class Program
         var prereleaseOption = new Option<bool>("--prerelease");
         command.Options.Add(prereleaseOption);
 
+        var sourceOption = new Option<string?>("--source", "-s");
+        command.Options.Add(sourceOption);
+
         command.SetAction(async (parseResult, ct) => {
+
             try
             {
                 var app = BuildApplication(parseResult);
@@ -565,9 +584,11 @@ public class Program
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
+                var source = parseResult.GetValue<string?>("--source");
+
                 var packages = await AnsiConsole.Status().StartAsync(
                     "Searching for Aspire packages...",
-                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, ct)
+                    context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, source, ct)
                     ).ConfigureAwait(false);
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
@@ -590,7 +611,7 @@ public class Program
                 }
 
                 var addPackageResult = await AnsiConsole.Status().StartAsync(
-                    "Adding Aspire package...",
+                    "Adding Aspire integration...",
                     async context => {
                         var runner = app.Services.GetRequiredService<DotNetCliRunner>();
                         var addPackageResult = await runner.AddPackageAsync(
@@ -608,7 +629,7 @@ public class Program
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while adding the package: {ex.Message}[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: An error occurred while adding the package: {ex.Message}[/]");
                 return ExitCodeConstants.FailedToAddPackage;
             }
         });
@@ -620,8 +641,8 @@ public class Program
     {
         System.Console.OutputEncoding = Encoding.UTF8;
         var rootCommand = GetRootCommand();
-        var result = rootCommand.Parse(args);
-        var exitCode = await result.InvokeAsync().ConfigureAwait(false);
-        return exitCode;
+        var config = new CommandLineConfiguration(rootCommand);
+        config.EnableDefaultExceptionHandler = true;
+        return await config.InvokeAsync(args).ConfigureAwait(false);
     }
 }

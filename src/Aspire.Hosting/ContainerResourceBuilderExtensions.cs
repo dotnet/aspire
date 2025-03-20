@@ -747,7 +747,7 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(destinationPath);
         ArgumentNullException.ThrowIfNull(entries);
 
-        var annotation = new ContainerCreateFilesCallbackAnnotation
+        var annotation = new ContainerFileSystemCallbackAnnotation
         {
             DestinationPath = destinationPath,
             Callback = (_, _) => Task.FromResult(entries),
@@ -814,13 +814,13 @@ public static class ContainerResourceBuilderExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var annotation = new ContainerCreateFilesCallbackAnnotation
+        var annotation = new ContainerFileSystemCallbackAnnotation
         {
             DestinationPath = destinationPath,
             Callback = callback,

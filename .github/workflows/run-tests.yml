@@ -1,5 +1,6 @@
-# Workflow to run tests for a given test project
-
+# This is a reusable workflow to run tests for a given test project.
+# It is designed to be called from other workflows, such as the integration or template tests workflows.
+# The workflow includes steps for setting up the environment, building the test project, running the tests, and uploading the results.
 name: Run Tests
 
 on:
@@ -97,7 +98,7 @@ jobs:
           CI: false
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
-          /p:SkipPackageCheckForWorkloadTesting=true
+          /p:SkipPackageCheckForTemplatesTesting=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Install Azure Functions Core Tools
@@ -277,5 +278,5 @@ jobs:
           path: |
             **/*.binlog
             testresults/**
-            artifacts/bin/Aspire.Workload.Tests/Debug/net8.0/logs/**
+            artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**

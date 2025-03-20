@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForEnd2EndTests</BuildHelixWorkItemsDependsOn>
-    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsSdksForTesting>true</NeedsSdksForTesting>
   </PropertyGroup>
 
   <ItemGroup>
