@@ -234,7 +234,6 @@ public class Program
                             }
 
                             table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
-
                         }
 
                         context.Refresh();
@@ -323,6 +322,30 @@ public class Program
             var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+
+            var publishers = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(":package:  Getting available publishers...", async context => {
+
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                    var pendingInspectRun = runner.RunAsync(
+                        effectiveAppHostProjectFile,
+                        ["--operation", "inspect"],
+                        null,
+                        backchannelCompletionSource,
+                        ct).ConfigureAwait(false);
+
+                    using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                    var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+
+                    return publishers;
+
+                }).ConfigureAwait(false);
+
+            // TODO:
+            // Check if user specified a publisher that exsits.
+            // If not present a list.    
 
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)

@@ -47,7 +47,7 @@ internal sealed class AzureProvisioner(
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // AzureProvisioner only applies to RunMode
-        if (executionContext.IsPublishMode)
+        if (!executionContext.IsRunMode)
         {
             return;
         }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
@@ -8,9 +9,10 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target)
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IDisposable
 {
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
+    private Process? _process;
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -59,8 +61,10 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public async Task ConnectAsync(Process process, string socketPath, CancellationToken cancellationToken)
     {
+        _process = process;
+
         if (_rpcTaskCompletionSource.Task.IsCompleted)
         {
             throw new InvalidOperationException("Already connected to AppHost backchannel.");
@@ -76,5 +80,24 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         var rpc = JsonRpc.Attach(stream, target);
 
         _rpcTaskCompletionSource.SetResult(rpc);
+    }
+
+    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
+    {
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
+
+        logger.LogDebug("Requesting publishers");
+
+        var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
+            "GetPublishersAsync",
+            Array.Empty<object>(),
+            cancellationToken).ConfigureAwait(false);
+
+        return publishers;
+    }
+
+    public void Dispose()
+    {
+        _process?.Kill();
     }
 }

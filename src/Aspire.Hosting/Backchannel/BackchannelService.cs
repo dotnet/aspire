@@ -11,7 +11,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing) : BackgroundService
+internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
 {
     private const string UnixSocketPathEnvironmentVariable = "ASPIRE_BACKCHANNEL_PATH";
     private readonly List<JsonRpc> _rpcs = new();
@@ -32,7 +32,7 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
         serverSocket.Bind(endpoint);
         serverSocket.Listen();
 
-        var backchannelReadyEvent = new BackchannelReadyEvent(unixSocketPath);
+        var backchannelReadyEvent = new BackchannelReadyEvent(serviceProvider, unixSocketPath);
         await eventing.PublishAsync(
             backchannelReadyEvent,
             EventDispatchBehavior.NonBlockingConcurrent,
@@ -45,7 +45,7 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
             var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
             _rpcs.Add(rpc);
 
-            var backchannelConnectedEvent = new BackchannelConnectedEvent(unixSocketPath);
+            var backchannelConnectedEvent = new BackchannelConnectedEvent(serviceProvider, unixSocketPath);
             await eventing.PublishAsync(
                 backchannelConnectedEvent,
                 EventDispatchBehavior.NonBlockingConcurrent,
