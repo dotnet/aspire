@@ -3,7 +3,6 @@
 
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using SemanticKernelWithPostgres;
 
 var builder = WebApplication.CreateBuilder(args);
 

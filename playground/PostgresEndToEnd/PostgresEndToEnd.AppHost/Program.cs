@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddAzureContainerAppsInfrastructure();
 
-var db1 = builder.AddAzurePostgresFlexibleServer("pg1").AddDatabase("db1");
+var db1 = builder.AddAzurePostgresFlexibleServer("pg")
+                 .RunAsContainer()
+                 .AddDatabase("db1");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db1);
+       .WithReference(db1).WaitFor(db1);
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

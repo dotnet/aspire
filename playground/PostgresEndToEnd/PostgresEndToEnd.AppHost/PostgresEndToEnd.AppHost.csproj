@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
 

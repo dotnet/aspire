@@ -1,12 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
-
 using System.Text;
 using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using Npgsql;
-
-namespace SemanticKernelWithPostgres;
 
 /// <summary>
 /// Extension methods for NpgsqlDataSourceBuilder to enable Entra authentication with Azure DB for PostgreSQL.
@@ -17,9 +13,6 @@ namespace SemanticKernelWithPostgres;
 /// <example>
 /// Example usage:
 /// <code>
-/// using Npgsql;
-/// using SemanticKernelWithPostgres;
-/// 
 /// var dataSourceBuilder = new NpgsqlDataSourceBuilder("{connection string}");
 /// dataSourceBuilder.UseEntraAuthentication();
 /// var dataSource = dataSourceBuilder.Build();
@@ -45,29 +38,10 @@ public static class NpgsqlDataSourceBuilderExtensions
             SetUsernameFromToken(dataSourceBuilder, token.Token);
         }
 
-        SetPasswordProvider(dataSourceBuilder, credential, s_azureDBForPostgresTokenRequestContext);
-
-        return dataSourceBuilder;
-    }
-
-    /// <summary>
-    /// Asynchronously configures the NpgsqlDataSourceBuilder to use Entra authentication.
-    /// </summary>
-    /// <param name="dataSourceBuilder">The NpgsqlDataSourceBuilder instance.</param>
-    /// <param name="credential">The TokenCredential to use for authentication. If not provided, DefaultAzureCredential will be used.</param>
-    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
-    /// <returns>A task representing the asynchronous operation, with the configured NpgsqlDataSourceBuilder instance as the result.</returns>
-    public static async Task<NpgsqlDataSourceBuilder> UseEntraAuthenticationAsync(this NpgsqlDataSourceBuilder dataSourceBuilder, TokenCredential? credential = default, CancellationToken cancellationToken = default)
-    {
-        credential ??= new DefaultAzureCredential();
-
-        if (dataSourceBuilder.ConnectionStringBuilder.Username == null)
+        if (dataSourceBuilder.ConnectionStringBuilder.Password == null)
         {
-            var token = await credential.GetTokenAsync(s_azureDBForPostgresTokenRequestContext, cancellationToken).ConfigureAwait(false);
-            SetUsernameFromToken(dataSourceBuilder, token.Token);
+            SetPasswordProvider(dataSourceBuilder, credential, s_azureDBForPostgresTokenRequestContext);
         }
-
-        SetPasswordProvider(dataSourceBuilder, credential, s_azureDBForPostgresTokenRequestContext);
 
         return dataSourceBuilder;
     }
