@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +65,8 @@ public partial class LoginTests : DashboardTestContext
         Services.AddSingleton<IDashboardClient>(new TestDashboardClient());
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<DashboardTelemetryService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
