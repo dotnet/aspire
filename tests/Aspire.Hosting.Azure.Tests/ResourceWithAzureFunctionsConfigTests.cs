@@ -257,7 +257,7 @@ public class ResourceWithAzureFunctionsConfigTests
         Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
         Assert.True(target.ContainsKey("Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"));
         targetReferenceExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"]);
-        Assert.Equal(targetReferenceExpression.ValueExpression, dbResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -278,17 +278,16 @@ public class ResourceWithAzureFunctionsConfigTests
         Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
         Assert.True(target.ContainsKey("Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"));
         targetReferenceExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint"]);
-        Assert.Equal(targetReferenceExpression.ValueExpression, containerResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(targetReferenceExpression.ValueExpression, cosmosResource.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public void AzureCosmosDBDatabaseEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create();
         var cosmosResource = builder.AddAzureCosmosDB("cosmos")
-            // Mock as emulator
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-cosmos-db/linux/azure-cosmos-emulator:v2" });
+            .RunAsEmulator();
         var dbResource = cosmosResource.AddCosmosDatabase("database").Resource;
         var target = new Dictionary<string, object>();
 
@@ -308,10 +307,9 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBContainerEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create();
         var cosmosResource = builder.AddAzureCosmosDB("cosmos")
-            // Mock as emulator
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-cosmos-db/linux/azure-cosmos-emulator:v2" });;
+            .RunAsEmulator();
         var containerResource = cosmosResource.AddCosmosDatabase("database").AddContainer("container", "/partitionKey").Resource;
         var target = new Dictionary<string, object>();
 

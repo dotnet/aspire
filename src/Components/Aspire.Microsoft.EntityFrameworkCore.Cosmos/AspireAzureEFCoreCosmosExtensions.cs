@@ -43,26 +43,26 @@ public static class AspireAzureEFCoreCosmosExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
+        string? databaseName = null;
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
             var cosmosConnectionInfo = CosmosUtils.ParseConnectionString(connectionString);
-            if (cosmosConnectionInfo.DatabaseName is not null)
-            {
-                var targetDatabaseName = cosmosConnectionInfo.DatabaseName;
-                AddCosmosDbContext<TContext>(
-                    builder,
-                    connectionName,
-                    cosmosConnectionInfo.DatabaseName,
-                    configureSettings,
-                    configureDbContextOptions);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                  "A DbContext could not be configured with this AddCosmosDbContext overload. "
-                  + $"Ensure the connection string '{connectionName}' contains a database name or use the overload that takes a database name as a parameter.");
-            }
+            databaseName = cosmosConnectionInfo.DatabaseName;
         }
+
+        if (databaseName is null)
+        {
+            throw new InvalidOperationException(
+                "A DbContext could not be configured with this AddCosmosDbContext overload. "
+                + $"Ensure the connection string '{connectionName}' contains a database name or use the overload that takes a database name as a parameter.");
+        }
+
+        AddCosmosDbContext<TContext>(
+            builder,
+            connectionName,
+            databaseName,
+            configureSettings,
+            configureDbContextOptions);
     }
 
     /// <summary>

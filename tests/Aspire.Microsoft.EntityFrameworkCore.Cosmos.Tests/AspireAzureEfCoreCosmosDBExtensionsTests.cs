@@ -305,6 +305,29 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
     }
 
     [Fact]
+    public void AddCosmosDbContext_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos"));
+
+        Assert.Contains("A DbContext could not be configured with this AddCosmosDbContext overload.", exception.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", "testdb");
+
+        using var host = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+
+        Assert.Contains("A DbContext could not be configured.", exception.Message);
+    }
+
+    [Fact]
     public void AddCosmosDbContext_ThrowWhenDatabaseNotInConnectionString()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
