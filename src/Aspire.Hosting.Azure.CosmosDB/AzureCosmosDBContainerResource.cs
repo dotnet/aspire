@@ -50,6 +50,10 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
         else
         {
             Parent.Parent.SetAccountEndpoint(target, connectionName, ConnectionStringExpression);
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__DatabaseName"] = Parent.DatabaseName;
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__DatabaseName"] = Parent.DatabaseName;
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ContainerName"] = ContainerName;
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ContainerName"] = ContainerName;
         }
     }
 
