@@ -100,7 +100,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     }
 
     /// <inheritdoc/>
-    public override void AddRoleAssignments(AddRoleAssignmentsContext roleAssignmentContext)
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
         Debug.Assert(!UseAccessKeyAuthentication, "AddRoleAssignments should not be called when using AccessKeyAuthentication");
 

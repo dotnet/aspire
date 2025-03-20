@@ -41,7 +41,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// Adds role assignments to this Azure resource.
     /// </summary>
     /// <param name="roleAssignmentContext">The context containing information about the role assignments and what principal to use.</param>
-    public virtual void AddRoleAssignments(AddRoleAssignmentsContext roleAssignmentContext)
+    public virtual void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
         var infra = roleAssignmentContext.Infrastructure;
         var prefix = this.GetBicepIdentifier();
