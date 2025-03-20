@@ -73,7 +73,7 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
 /// Represents a callback annotation that specifies files and folders that should be created or updated in a container.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nw}, DestinationPath = {DestinationPath}")]
-public sealed class ContainerCreateFilesCallbackAnnotation : IResourceAnnotation
+public sealed class ContainerFileSystemCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// The (absolute) base path to create the new file (and any parent directories) in the container.
@@ -106,13 +106,13 @@ public sealed class ContainerCreateFilesCallbackAnnotation : IResourceAnnotation
     /// <summary>
     /// The callback to be executed when the container is created. Should return a tree of <see cref="ContainerFileSystemItem"/> entries to create (or update) in the container.
     /// </summary>
-    public required Func<ContainerCreateFilesCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> Callback { get; init; }
+    public required Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> Callback { get; init; }
 }
 
 /// <summary>
-/// Represents the context for a <see cref="ContainerCreateFilesCallbackAnnotation"/> callback.
+/// Represents the context for a <see cref="ContainerFileSystemCallbackAnnotation"/> callback.
 /// </summary>
-public sealed class ContainerCreateFilesCallbackContext
+public sealed class ContainerFileSystemCallbackContext
 {
     /// <summary>
     /// A <see cref="IServiceProvider"/> that can be used to resolve services in the callback.
