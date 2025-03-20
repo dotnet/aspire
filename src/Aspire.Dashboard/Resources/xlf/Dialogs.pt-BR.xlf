@@ -242,6 +242,21 @@
         <target state="translated">Formatar XML</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="new">Show value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="new">Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="new">Sensitive value hidden</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
         <target state="translated">Selecione o formato</target>

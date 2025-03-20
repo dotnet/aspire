@@ -59,6 +59,17 @@ public static class AzureFunctionsProjectResourceExtensions
                 {
                     removeStorage = false;
                 }
+                else
+                {
+                    // Remove the role assignments associated with the implicit host storage resource
+                    // if an explicit one has been provided. Assume that users must configure their
+                    // own role assignments for the explicit storage resource.
+                    if (item.TryGetAnnotationsOfType<RoleAssignmentAnnotation>(out var roleAssignments) &&
+                        roleAssignments.SingleOrDefault(assignment => assignment.Target == storage) is { } roleAssignmentAnnotation)
+                    {
+                        item.Annotations.Remove(roleAssignmentAnnotation);
+                    }
+                }
             }
 
             if (removeStorage)
@@ -95,7 +106,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "AzureWebJobsStorage");
             })
             // Azure Functions blob triggers require StorageAccountContributor access to the host storage
-            // account when deployed. We assign this role to the host storage resource when running in publish mode.
+            // account when deployed. We assign this role to the implicit host storage resource when running in publish mode.
             .WithRoleAssignments(builder.CreateResourceBuilder(storage),
                 StorageBuiltInRole.StorageBlobDataContributor,
                 StorageBuiltInRole.StorageQueueDataContributor,
