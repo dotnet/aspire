@@ -292,7 +292,7 @@ public class Program
 
     private static void ConfigureBuildCommand(Command parentCommand)
     {
-        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
+        var command = new Command("build", "Builds deployment artifacts for an Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -323,11 +323,14 @@ public class Program
             var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Building artifacts for '{publisher ?? "manifest"}' publisher...");
+            
+            var exitCode = await GetProgressStyle(AnsiConsole.Progress(), 1)
+                .StartAsync(async context => {
 
-            var exitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
+                    // if you want to simulate work for the progress bar, uncomment this line
+                    await SimulateWorkAsync(context, ct).ConfigureAwait(false);
+
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
@@ -637,6 +640,65 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
+    // Helper method so we can easily change the "aspire build" progress style
+    // This is a hack that we can clean up when we decide
+    private static Progress GetProgressStyle(Progress progress, int style = 0)
+    {
+        switch(style)
+        {
+            case 0:
+                return progress
+                    .AutoClear(false)
+                    .AutoRefresh(true)
+                    .Columns(
+                        new TaskDescriptionColumn(),
+                        new PercentageColumn(),
+                        new SpinnerColumn()
+                    );
+            case 1:
+               return progress
+                    .AutoClear(false)
+                    .AutoRefresh(true)
+                    .Columns(
+                        new TaskDescriptionColumn(),
+                        new PercentageColumn(),
+                        new SpinnerColumn(),
+                        new RemainingTimeColumn()
+                    );
+            
+            default:
+                goto case 0;
+        }
+    }
+
+private static async Task<int> SimulateWorkAsync(ProgressContext context,  CancellationToken cancellationToken = default)
+{
+    int totalSteps = 5;
+    int delayPerStep = 1000; // 5 second delay per step
+    
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        var firstTask = context.AddTask("🪓 Chopping trees...", maxValue: totalSteps, autoStart: true);
+        for (var i = 0; i < totalSteps; i++)
+        {
+            // Simulate work being done
+            await Task.Delay(delayPerStep/2, cancellationToken).ConfigureAwait(false);
+            firstTask.Increment(1);
+        }
+
+        var secondTask = context.AddTaskAfter($"🔨 Mining ores...", firstTask, maxValue: totalSteps, autoStart: true);
+        for (var i = 0; i < totalSteps; i++)
+        {
+            // Simulate work being done
+            await Task.Delay(delayPerStep, cancellationToken).ConfigureAwait(false);
+            secondTask.Increment(4);
+        };
+    
+    return ExitCodeConstants.Success;
+}
+
     public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
@@ -645,4 +707,5 @@ public class Program
         config.EnableDefaultExceptionHandler = true;
         return await config.InvokeAsync(args).ConfigureAwait(false);
     }
+
 }
