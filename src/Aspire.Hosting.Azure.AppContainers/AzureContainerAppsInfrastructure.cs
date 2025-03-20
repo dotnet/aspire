@@ -347,17 +347,17 @@ internal sealed class AzureContainerAppsInfrastructure(
             private List<AzureBicepResource> CreateRoleAssignmentsResources(AzureProvisioningOptions provisioningOptions, AzureProvisioningResource containerAppIdentityResource)
             {
                 var roleAssignments = new List<AzureBicepResource>();
-                foreach (var a in RoleAssignments.Keys)
+                foreach (var targetResource in RoleAssignments.Keys)
                 {
                     var roleAssignmentsResource = new AzureProvisioningResource(
-                        $"{resource.Name}-roles-{a.Name}",
-                        infra => AddRoleAssignmentsInfrastructure(infra, a, containerAppIdentityResource))
+                        $"{resource.Name}-roles-{targetResource.Name}",
+                        infra => AddRoleAssignmentsInfrastructure(infra, targetResource, containerAppIdentityResource))
                     {
                         ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
                     };
 
                     // existing resource role assignments need to be scoped to the resource's resource group
-                    if (a.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
+                    if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
                         existingAnnotation.ResourceGroup is not null)
                     {
                         roleAssignmentsResource.Scope = new(existingAnnotation.ResourceGroup);
