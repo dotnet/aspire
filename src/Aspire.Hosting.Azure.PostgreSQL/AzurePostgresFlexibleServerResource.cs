@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.PostgreSql;
 using Azure.Provisioning.Primitives;
 
@@ -115,16 +117,21 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     }
 
     /// <inheritdoc/>
-    public override void AddRoleAssignments(AddRoleAssignmentsContext roleAssignmentContext)
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
         Debug.Assert(!UsePasswordAuthentication, "AddRoleAssignments should not be called when using UsePasswordAuthentication");
 
         var infra = roleAssignmentContext.Infrastructure;
         var postgres = (PostgreSqlFlexibleServer)AddAsExistingResource(infra);
 
+        var principalType = ConvertPrincipalTypeDangerously(roleAssignmentContext.PrincipalType);
         var principalId = roleAssignmentContext.PrincipalId;
         var principalName = roleAssignmentContext.PrincipalName;
 
-        AzurePostgresExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, PostgreSqlFlexibleServerPrincipalType.ServicePrincipal, principalName);
+        AzurePostgresExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, principalType, principalName);
     }
+
+    // Assumes original has a value in PostgreSqlFlexibleServerPrincipalType, will fail at runtime if not
+    static BicepValue<PostgreSqlFlexibleServerPrincipalType> ConvertPrincipalTypeDangerously(BicepValue<RoleManagementPrincipalType> original) =>
+        original.Compile();
 }
