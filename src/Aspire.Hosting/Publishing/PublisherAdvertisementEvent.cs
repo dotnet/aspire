@@ -13,7 +13,7 @@ internal sealed class PublisherAdvertisementEvent : IDistributedApplicationEvent
         _advertisements.Add(advertisement);
     }
 
-    private readonly List<PublisherAdvertisement> _advertisements = new ();
+    private readonly List<PublisherAdvertisement> _advertisements = [];
 
     public IEnumerable<PublisherAdvertisement> Advertisements => _advertisements;
 }
