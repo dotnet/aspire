@@ -311,7 +311,7 @@ public static class AzureCosmosExtensions
                 var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == endpointName);
                 if (url is not null)
                 {
-                    url.DisplayText = "Data Explorer";
+                    url.DisplayText = Resources.DataExplorerUrlText;
                 }
             });
     }

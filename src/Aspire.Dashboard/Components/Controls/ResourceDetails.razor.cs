@@ -31,7 +31,7 @@ public partial class ResourceDetails
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
-    // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
+    // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
     private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
@@ -78,7 +78,7 @@ public partial class ResourceDetails
 
     private bool _isVolumesExpanded;
     private bool _isEnvironmentVariablesExpanded;
-    private bool _isEndpointsExpanded;
+    private bool _isUrlsExpanded;
     private bool _isHealthChecksExpanded;
     private bool _isRelationshipsExpanded;
     private bool _isBackRelationshipsExpanded;
@@ -110,7 +110,7 @@ public partial class ResourceDetails
             _resource = Resource;
 
             // Collapse details sections when they have no data.
-            _isEndpointsExpanded = GetUrls().Count > 0;
+            _isUrlsExpanded = GetUrls().Count > 0;
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();
             _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports

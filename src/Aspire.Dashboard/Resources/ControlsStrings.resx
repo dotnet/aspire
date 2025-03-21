@@ -296,8 +296,8 @@
     <value>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
-  <data name="ResourceDetailsEndpointsHeader" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="ResourceDetailsUrlsHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
@@ -465,5 +465,8 @@
   </data>
   <data name="EndpointNameColumnHeader" xml:space="preserve">
     <value>Endpoint name</value>
+  </data>
+  <data name="LinkColumnHeader" xml:space="preserve">
+    <value>Link</value>
   </data>
 </root>

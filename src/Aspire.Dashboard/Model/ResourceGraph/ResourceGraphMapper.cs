@@ -36,7 +36,7 @@ public static class ResourceGraphMapper
             }
         }
 
-        var endpoint = ResourceUrlHelpers.GetUrls(r, includeInternalUrls: false).FirstOrDefault();
+        var endpoint = ResourceUrlHelpers.GetUrls(r, includeInternalUrls: false, includeNonEndpointUrls: false).FirstOrDefault();
         var resolvedEndpointText = ResolvedEndpointText(endpoint);
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
         var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);

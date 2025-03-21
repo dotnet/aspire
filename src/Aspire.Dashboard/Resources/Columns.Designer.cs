@@ -61,15 +61,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Endpoints.
-        /// </summary>
-        public static string EndpointsColumnDisplayOverflowTitle {
-            get {
-                return ResourceManager.GetString("EndpointsColumnDisplayOverflowTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Starting....
         /// </summary>
         public static string EndpointsColumnDisplayPlaceholder {
@@ -256,6 +247,15 @@ namespace Aspire.Dashboard.Resources {
         public static string UnreadLogErrorsBadgeOneErrorLog {
             get {
                 return ResourceManager.GetString("UnreadLogErrorsBadgeOneErrorLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URLs.
+        /// </summary>
+        public static string UrlsColumnDisplayOverflowTitle {
+            get {
+                return ResourceManager.GetString("UrlsColumnDisplayOverflowTitle", resourceCulture);
             }
         }
     }

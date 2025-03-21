@@ -247,6 +247,11 @@
         <target state="translated">(Cofnij ustawienie)</target>
         <note />
       </trans-unit>
+      <trans-unit id="LinkColumnHeader">
+        <source>Link</source>
+        <target state="new">Link</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Trwa ładowanie...</target>
@@ -347,11 +352,6 @@
         <target state="translated">Odwołania wsteczne</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">Punkty końcowe</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
         <target state="translated">Zmienne środowiskowe</target>
@@ -370,6 +370,11 @@
       <trans-unit id="ResourceDetailsTypeHeader">
         <source>Type</source>
         <target state="translated">Typ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="new">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">

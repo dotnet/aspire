@@ -33,7 +33,7 @@ internal static class ResourceUrlHelpers
                 urls.Add(new DisplayedUrl
                 {
                     Index = index,
-                    Name = url.EndpointName ?? "",
+                    Name = url.EndpointName ?? "-",
                     Address = url.Url.Host,
                     Port = url.Url.Port,
                     Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
@@ -66,7 +66,7 @@ internal static class ResourceUrlHelpers
 public sealed class DisplayedUrl : IPropertyGridItem
 {
     public required int Index { get; set; }
-    public string Name { get; set; } = "-";
+    public required string Name { get; set; }
     public required string Text { get; set; }
     public string? Address { get; set; }
     public int? Port { get; set; }
@@ -77,7 +77,7 @@ public sealed class DisplayedUrl : IPropertyGridItem
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink
-    /// in <see cref="ResourceDetails.GetUrlContentValue(DisplayedUrl)"/> instead.
+    /// in <see cref="ResourceDetails.RenderUrlValue(DisplayedUrl, string)"/> instead.
     /// </summary>
     string? IPropertyGridItem.Value => null;
 

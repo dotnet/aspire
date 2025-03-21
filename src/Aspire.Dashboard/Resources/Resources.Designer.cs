@@ -104,22 +104,13 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourceActionTracesText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collapse child resources.
         /// </summary>
         public static string ResourceCollapseAllChildren {
             get {
                 return ResourceManager.GetString("ResourceCollapseAllChildren", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to View options.
-        /// </summary>
-        public static string ResourcesChangeViewOptions {
-            get {
-                return ResourceManager.GetString("ResourcesChangeViewOptions", resourceCulture);
             }
         }
         
@@ -210,6 +201,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesActionsColumnHeader {
             get {
                 return ResourceManager.GetString("ResourcesActionsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View options.
+        /// </summary>
+        public static string ResourcesChangeViewOptions {
+            get {
+                return ResourceManager.GetString("ResourcesChangeViewOptions", resourceCulture);
             }
         }
         
@@ -367,15 +367,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Endpoints.
-        /// </summary>
-        public static string ResourcesEndpointsColumnHeader {
-            get {
-                return ResourceManager.GetString("ResourcesEndpointsColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Environment.
         /// </summary>
         public static string ResourcesEnvironmentColumnHeader {
@@ -498,6 +489,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesTypeColumnHeader {
             get {
                 return ResourceManager.GetString("ResourcesTypeColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URLs.
+        /// </summary>
+        public static string ResourcesUrlsColumnHeader {
+            get {
+                return ResourceManager.GetString("ResourcesUrlsColumnHeader", resourceCulture);
             }
         }
         

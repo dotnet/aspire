@@ -502,6 +502,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Link.
+        /// </summary>
+        public static string LinkColumnHeader {
+            get {
+                return ResourceManager.GetString("LinkColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loading....
         /// </summary>
         public static string Loading {
@@ -682,15 +691,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Endpoints.
-        /// </summary>
-        public static string ResourceDetailsEndpointsHeader {
-            get {
-                return ResourceManager.GetString("ResourceDetailsEndpointsHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Environment variables.
         /// </summary>
         public static string ResourceDetailsEnvironmentVariablesHeader {
@@ -723,6 +723,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceDetailsTypeHeader {
             get {
                 return ResourceManager.GetString("ResourceDetailsTypeHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URLs.
+        /// </summary>
+        public static string ResourceDetailsUrlsHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsUrlsHeader", resourceCulture);
             }
         }
         
