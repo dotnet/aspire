@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureNpgsqlDataSource("postgres");
+builder.AddAzureNpgsqlDataSource("db");
 
 var app = builder.Build();
 

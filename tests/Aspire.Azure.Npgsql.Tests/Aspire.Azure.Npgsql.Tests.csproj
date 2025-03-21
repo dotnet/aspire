@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Azure.Npgsql\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+
+    <ProjectReference Include="..\..\src\Components\Aspire.Azure.Npgsql\Aspire.Azure.Npgsql.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+    <PackageReference Include="Testcontainers.PostgreSQL" />
+  </ItemGroup>
+
+</Project>

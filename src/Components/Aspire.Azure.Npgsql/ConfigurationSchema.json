@@ -38,23 +38,16 @@
               "type": "object",
               "properties": {
                 "ConnectionString": {
-                  "type": "string",
-                  "description": "The connection string of the Azure Database for PostgreSQL to connect to."
+                  "type": "string"
                 },
                 "DisableHealthChecks": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
-                  "default": false
+                  "type": "boolean"
                 },
                 "DisableMetrics": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.",
-                  "default": false
+                  "type": "boolean"
                 },
                 "DisableTracing": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
-                  "default": false
+                  "type": "boolean"
                 }
               },
               "description": "Provides the client configuration settings for connecting to an Azure Database for PostgreSQL using Npgsql."

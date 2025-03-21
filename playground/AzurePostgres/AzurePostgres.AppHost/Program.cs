@@ -3,19 +3,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-//var nameParameter = builder.AddParameter("name", "sebros");
-//var resourceGroupParameter = builder.AddParameter("resourceGroup", "test-postrgres");
-
-//var server = builder.AddAzurePostgresFlexibleServer("postgres")
-//    .AsExisting(nameParameter, resourceGroupParameter);
-
-//var db = server.AddDatabase("db", "postgres");
-
-var server = builder.AddConnectionString("postgres");
+var db = builder.AddAzurePostgresFlexibleServer("postgres").AddDatabase("db");
 
 builder.AddProject<Projects.AzurePostgres_Api>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(server);
+       .WithReference(db).WaitFor(db);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

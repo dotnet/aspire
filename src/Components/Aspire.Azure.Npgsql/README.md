@@ -11,7 +11,7 @@ Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSou
 
 ### Install the package
 
-Install the .NET Aspire Azure PostgreSQL Npgsql library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure Npgsql library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Npgsql
@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.Npgsql
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddNpgsqlDataSource("postgresdb");
+builder.AddAzureNpgsqlDataSource("postgresdb");
 ```
 
 You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the data source from a Web API controller:
@@ -38,14 +38,14 @@ public ProductsController(NpgsqlDataSource dataSource)
 
 ## Configuration
 
-The .NET Aspire PostgreSQL Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The .NET Aspire Azure Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDataSource()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureNpgsqlDataSource()`:
 
 ```csharp
-builder.AddNpgsqlDataSource("myConnection");
+builder.AddAzureNpgsqlDataSource("myConnection");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -60,16 +60,20 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 
 See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-string-parameters.html) for more information on how to format this connection string.
 
+Note that the username and password will be automatically inferred from the credential provided in the settings.
+
 ### Use configuration providers
 
-The .NET Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlSettings` from configuration by using the `Aspire:Azure:Npgsql` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
-    "Npgsql": {
-      "DisableHealthChecks": true,
-      "DisableTracing": true
+    "Azure": {
+      "Npgsql": {
+        "DisableHealthChecks": true,
+        "DisableTracing": true
+      }
     }
   }
 }
@@ -77,24 +81,24 @@ The .NET Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Confi
 
 ### Use inline delegates
 
-Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
+Also you can pass the `Action<AzureNpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddNpgsqlDataSource("postgresdb", settings => settings.DisableHealthChecks = true);
+    builder.AddAzureNpgsqlDataSource("postgresdb", settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions
 
-In your AppHost project, install the `Aspire.Hosting.PostgreSQL` library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the `Aspire.Hosting.Azure.PostgreSQL` library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.PostgreSQL
+dotnet add package Aspire.Hosting.Azure.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, register a Azure Database for PostgreSQL®* instance and consume the connection using the following methods:
 
 ```csharp
-var postgresdb = builder.AddPostgres("pg").AddDatabase("postgresdb");
+var postgresdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("postgresdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
@@ -103,8 +107,10 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
 
 ```csharp
-builder.AddNpgsqlDataSource("postgresdb");
+builder.AddAzureNpgsqlDataSource("postgresdb");
 ```
+
+This will also require your Azure environment to be configure by following [these instructions](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning#configuration).
 
 ## Additional documentation
 

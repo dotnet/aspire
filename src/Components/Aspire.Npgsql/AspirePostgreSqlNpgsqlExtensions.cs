@@ -3,10 +3,8 @@
 
 using Aspire;
 using Aspire.Npgsql;
-using HealthChecks.NpgSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 
 namespace Microsoft.Extensions.Hosting;
@@ -30,7 +28,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNpgsqlDataSource(this IHostApplicationBuilder builder, string connectionName, Action<NpgsqlSettings>? configureSettings = null, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder = null)
-        => AddNpgsqlDataSource(builder, configureSettings, connectionName, serviceKey: null, configureDataSourceBuilder: configureDataSourceBuilder);
+        => NpgsqlDataSourceHelper.AddNpgsqlDataSource(builder, configureSettings, connectionName, serviceKey: null, healthCheckPrefix: "PostgreSql", CreateNpgsqlSettings, configureDataSourceBuilder: configureDataSourceBuilder, RegisterNpgsqlServices);
 
     /// <summary>
     /// Registers <see cref="NpgsqlDataSource"/> as a keyed service for given <paramref name="name"/> for connecting PostgreSQL database with Npgsql client.
@@ -48,62 +46,21 @@ public static class AspirePostgreSqlNpgsqlExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNpgsqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
+        NpgsqlDataSourceHelper.AddNpgsqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name, healthCheckPrefix: "PostgreSql", CreateNpgsqlSettings, configureDataSourceBuilder: configureDataSourceBuilder, RegisterNpgsqlServices);
     }
 
-    private static void AddNpgsqlDataSource(IHostApplicationBuilder builder,
-        Action<NpgsqlSettings>? configureSettings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
+    private static NpgsqlSettings CreateNpgsqlSettings(IHostApplicationBuilder builder, string connectionName)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         NpgsqlSettings settings = new();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);
         configSection.Bind(settings);
         namedConfigSection.Bind(settings);
 
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            settings.ConnectionString = connectionString;
-        }
-
-        configureSettings?.Invoke(settings);
-
-        builder.RegisterNpgsqlServices(settings, connectionName, serviceKey, configureDataSourceBuilder);
-
-        // Same as SqlClient connection pooling is on by default and can be handled with connection string
-        // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
-        if (!settings.DisableHealthChecks)
-        {
-            builder.TryAddHealthCheck(new HealthCheckRegistration(
-                serviceKey is null ? "PostgreSql" : $"PostgreSql_{connectionName}",
-                sp => new NpgSqlHealthCheck(
-                    new NpgSqlHealthCheckOptions(serviceKey is null
-                        ? sp.GetRequiredService<NpgsqlDataSource>()
-                        : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey))),
-                failureStatus: default,
-                tags: default,
-                timeout: default));
-        }
-
-        if (!settings.DisableTracing)
-        {
-            builder.Services.AddOpenTelemetry()
-                .WithTracing(tracerProviderBuilder =>
-                {
-                    tracerProviderBuilder.AddNpgsql();
-                });
-        }
-
-        if (!settings.DisableMetrics)
-        {
-            builder.Services.AddOpenTelemetry()
-                .WithMetrics(NpgsqlCommon.AddNpgsqlMetrics);
-        }
+        return settings;
     }
 
-    private static void RegisterNpgsqlServices(this IHostApplicationBuilder builder, NpgsqlSettings settings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
+    private static void RegisterNpgsqlServices(IHostApplicationBuilder builder, NpgsqlSettings settings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
         builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
         {
