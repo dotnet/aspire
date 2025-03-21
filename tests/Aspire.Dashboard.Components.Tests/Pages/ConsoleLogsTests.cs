@@ -376,7 +376,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
 
         // Pause logs
-        var pauseResumeButton = cut.FindComponent<PauseResumeButton>();
+        var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>();
         pauseResumeButton.Find("fluent-button").Click();
 
         // Add a new log while paused

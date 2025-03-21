@@ -51,9 +51,7 @@
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearMetrics" />
 
-            <PauseResumeButton
-                @bind-IsPaused="@PauseManager.MetricsPaused"
-                Disabled="@(PageViewModel.SelectedInstrument is null)" />
+            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.MetricsPaused" />
 
             @if (!ViewportInformation.IsDesktop)
             {

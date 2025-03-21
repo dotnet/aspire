@@ -3,8 +3,7 @@
 
 <FluentButton Appearance="Appearance.Lightweight"
               Title="@(IsPaused ? Loc[nameof(ControlsStrings.ResumeButtonTitle)] : Loc[nameof(ControlsStrings.PauseButtonTitle)])"
-              OnClick="@OnTogglePauseCoreAsync"
-              Disabled="@Disabled">
+              OnClick="@OnTogglePauseCoreAsync">
     @if (IsPaused)
     {
         <FluentIcon Value="@(new Icons.Regular.Size16.PauseOff())" />

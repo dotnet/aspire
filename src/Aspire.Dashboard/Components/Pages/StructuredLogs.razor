@@ -40,7 +40,7 @@
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearStructureLogs" />
 
-            <PauseResumeButton @bind-IsPaused="@PauseManager.StructuredLogsPaused" />
+            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.StructuredLogsPaused" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"

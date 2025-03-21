@@ -107,6 +107,11 @@
         <target state="translated">拿掉 {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="new">Remove data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">詳細資料</target>

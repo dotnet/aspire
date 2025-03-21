@@ -29,7 +29,7 @@
 
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
-            <PauseResumeButton IsPaused="@PauseManager.ConsoleLogsPaused"
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused"
                                IsPausedChanged="@IsPausedChangedAsync"
                                Disabled="@(PageViewModel.SelectedResource is null)" />
 
