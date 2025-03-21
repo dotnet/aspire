@@ -1509,57 +1509,51 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
 
-            var resourceNotFound = false;
-            string? uid = null;
-            try
+            var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (resourceName, attemptCancellationToken) =>
             {
-                var r = await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
-                uid = r.Uid();
+                string? uid = null;
 
-                _logger.LogDebug("Delete request for '{ResourceName}' successfully completed. Resource to delete has UID '{Uid}'.", resourceName, uid);
-            }
-            catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                _logger.LogDebug("Delete request for '{ResourceName}' returned NotFound.", resourceName);
-
-                // No-op if the resource wasn't found.
-                // This could happen in a race condition, e.g. double clicking start button.
-                resourceNotFound = true;
-            }
-
-            // Ensure resource is deleted. DeleteAsync returns before the resource is completely deleted so we must poll
-            // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
-            // Deleting a resource might take a while (more than 10 seconds), because DCP tries to gracefully shut it down first
-            // before resorting to more extreme measures.
-            if (!resourceNotFound)
-            {
-                _logger.LogDebug("Polling DCP to check if '{ResourceName}' is deleted.", resourceName);
-
-                var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
+                try
                 {
-                    try
-                    {
-                        var r = await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        _logger.LogDebug("Get request for '{ResourceName}' returned resource with UID '{Uid}'.", resourceName, uid);
+                    var r = await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    uid = r.Uid();
 
-                        return false;
-                    }
-                    catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        _logger.LogDebug("Get request for '{ResourceName}' returned NotFound.", resourceName);
-
-                        // Success.
-                        return true;
-                    }
-                }, resourceName, cancellationToken).ConfigureAwait(false);
-
-                if (!result)
-                {
-                    throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+                    _logger.LogDebug("Delete request for '{ResourceName}' successfully completed. Resource to delete has UID '{Uid}'.", resourceName, uid);
                 }
-            }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogDebug("Delete request for '{ResourceName}' returned NotFound.", resourceName);
 
-            _logger.LogDebug("Successfully ensured '{ResourceName}' is deleted.", resourceName);
+                    // Not found means the resource is truly gone from the API server, which is our goal. Report success.
+                    return true;
+                }
+
+                // Ensure resource is deleted. DeleteAsync returns before the resource is completely deleted so we must poll
+                // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
+                // Deleting a resource might take a while (more than 10 seconds), because DCP tries to gracefully shut it down first
+                // before resorting to more extreme measures.
+
+                try
+                {
+                    _logger.LogDebug("Polling DCP to check if '{ResourceName}' is deleted...", resourceName);
+                    var r = await _kubernetesService.GetAsync<T>(resourceName, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    _logger.LogDebug("Get request for '{ResourceName}' returned resource with UID '{Uid}'.", resourceName, uid);
+
+                    return false;
+                }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogDebug("Get request for '{ResourceName}' returned NotFound.", resourceName);
+
+                    // Success.
+                    return true;
+                }
+            }, resourceName, cancellationToken).ConfigureAwait(false);
+
+            if (!result)
+            {
+                throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+            }
         }
     }
 
