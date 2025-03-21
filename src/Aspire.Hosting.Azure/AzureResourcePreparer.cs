@@ -19,11 +19,6 @@ internal sealed class AzureResourcePreparer(
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
-        if (executionContext.IsInspectMode)
-        {
-            return;
-        }
-
         var azureResources = GetAzureResourcesFromAppModel(appModel);
         if (azureResources.Count == 0)
         {

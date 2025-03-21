@@ -29,7 +29,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (!executionContext.IsPublishMode)
+        if (executionContext.IsRunMode)
         {
             return;
         }
