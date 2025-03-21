@@ -1,13 +1,13 @@
 # Aspire.Azure.Npgsql library
 
-Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL®* database or Azure Database for PostgreSQL®*. Enables corresponding health check, metrics, logging and telemetry.
+Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting Azure Database for PostgreSQL. Enables corresponding health check, metrics, logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
 - PostgreSQL database and connection string for accessing the database.
-- or an Azure Database for PostgreSQL®* instance, learn more about how to [Create an Azure Database for PostgreSQL resource](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server?tabs=portal-create-flexible%2Cportal-get-connection%2Cportal-delete-resources).
+- or an Azure Database for PostgreSQL instance, learn more about how to [Create an Azure Database for PostgreSQL resource](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server?tabs=portal-create-flexible%2Cportal-get-connection%2Cportal-delete-resources).
 
 ### Install the package
 
@@ -95,7 +95,7 @@ In your AppHost project, install the `Aspire.Hosting.Azure.PostgreSQL` library w
 dotnet add package Aspire.Hosting.Azure.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Azure Database for PostgreSQL®* instance and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, register a Azure Database for PostgreSQL instance and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("postgresdb");
