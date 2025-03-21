@@ -28,10 +28,6 @@ on:
         required: false
         type: boolean
         default: false
-      requiresTestSdk:
-        required: false
-        type: boolean
-        default: false
       os:
         required: false
         type: string
@@ -94,7 +90,7 @@ jobs:
         run: ${{ env.BUILD_SCRIPT }} -restore -build -ci -pack -testnobuild /bl
 
       - name: Install sdk for nuget based testing
-        if: ${{ inputs.requiresTestSdk }}
+        if: ${{ inputs.requiresNugets }}
         env:
           CI: false
         run: >
