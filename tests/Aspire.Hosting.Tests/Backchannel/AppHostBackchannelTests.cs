@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Threading;
@@ -19,7 +20,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanConnectToBackchannel()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = GetBackchannelSocketPath();
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -55,7 +56,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRespondToPingAsync()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = GetBackchannelSocketPath();
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -90,7 +91,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanStreamResourceStates()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = GetBackchannelSocketPath();
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddResource(new TestResource("test"))
                .WithInitialState(new () {
@@ -139,7 +140,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRequestPublishersAsync()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = GetBackchannelSocketPath();
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
@@ -181,14 +182,14 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRequestPublishersAsyncInInspectMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create("--operation", "inspect").WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = GetBackchannelSocketPath();
+        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            var executionContext = e.ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
+            var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             Assert.Equal(DistributedApplicationOperation.Inspect, executionContext.Operation);
             backchannelReadyTaskCompletionSource.SetResult(e);
             return Task.CompletedTask;
@@ -219,22 +220,6 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             );
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
-    }
-
-    // Copied from Aspire.Cli
-    internal static string GetBackchannelSocketPath()
-    {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var dotnetCliPath = Path.Combine(homeDirectory, ".dotnet", "aspire", "cli", "backchannels");
-
-        if (!Directory.Exists(dotnetCliPath))
-        {
-            Directory.CreateDirectory(dotnetCliPath);
-        }
-
-        var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
-        var socketPath = Path.Combine(dotnetCliPath, $"cli.sock.{uniqueSocketPathSegment}");
-        return socketPath;
     }
 }
 

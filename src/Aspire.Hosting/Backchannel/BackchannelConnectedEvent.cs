@@ -7,6 +7,6 @@ namespace Aspire.Hosting.Backchannel;
 
 internal sealed class BackchannelConnectedEvent(IServiceProvider serviceProvider, string socketPath) : IDistributedApplicationEvent
 {
-    public IServiceProvider ServiceProvider { get; } = serviceProvider;
+    public IServiceProvider Services { get; } = serviceProvider;
     public string SocketPath { get; } = socketPath;
 }
