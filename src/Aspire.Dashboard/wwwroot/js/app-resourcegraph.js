@@ -128,7 +128,7 @@ class ResourceGraph {
     }
 
     resetZoomAndPan() {
-        this.svg.call(this.zoom.transform, d3.zoomIdentity);
+        this.svg.transition().call(this.zoom.transform, d3.zoomIdentity);
     }
 
     zoomIn() {
