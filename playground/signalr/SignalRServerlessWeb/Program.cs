@@ -6,10 +6,6 @@ using Microsoft.Azure.SignalR.Management;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-});
 
 var serviceManager = new ServiceManagerBuilder()
         .WithOptions(option =>
