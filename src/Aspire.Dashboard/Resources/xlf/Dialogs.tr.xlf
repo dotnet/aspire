@@ -242,6 +242,21 @@
         <target state="translated">XML dosyasını biçimlendir</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="translated">Değeri göster</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="translated">Değeri göstermek istediğinizi onaylayın. Gelecekte, metin görselleştiricisinin açılması tüm değerleri otomatik olarak gösterilmesini sağlayacaktır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="translated">Hassas değer gizlendi</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
         <target state="translated">Biçimi seç</target>

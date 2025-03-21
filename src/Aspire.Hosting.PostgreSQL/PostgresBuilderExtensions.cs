@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Hashing;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -20,11 +19,6 @@ public static class PostgresBuilderExtensions
 {
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
-    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-    private const UnixFileMode FileMode755 =
-        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-        UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
 
     /// <summary>
     /// Adds a PostgreSQL resource to the application model. A container is used for local development.
@@ -207,44 +201,21 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-            {
-                // Add the servers.json file bind mount to the pgAdmin container
-
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
-
-                // Create servers.json file content in a temporary file
-
-                var tempConfigFile = WritePgAdminServerJson(postgresInstances);
-
-                try
+            pgAdminContainerBuilder.WithContainerFiles(
+                destinationPath: "/pgadmin4",
+                callback: (context, _) =>
                 {
-                    var aspireStore = e.Services.GetRequiredService<IAspireStore>();
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
 
-                    // Deterministic file path for the configuration file based on its content
-                    var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-servers.json", tempConfigFile);
-
-                    // Need to grant read access to the config file on unix like systems.
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(configJsonPath, FileMode644);
-                    }
-
-                    pgAdminContainerBuilder.WithBindMount(configJsonPath, "/pgadmin4/servers.json");
-                }
-                finally
-                {
-                    try
-                    {
-                        File.Delete(tempConfigFile);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                return Task.CompletedTask;
-            });
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerFile
+                        {
+                            Name = "servers.json",
+                            Contents = WritePgAdminServerJson(postgresInstances),
+                        },
+                    ]);
+                });
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
@@ -339,61 +310,28 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithHttpHealthCheck();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-            {
-                // Add the bookmarks to the pgweb container
-
-                // Create a folder using IAspireStore. Its name is deterministic, based on all the database resources
-                // such that the same folder is reused across persistent usages, and changes in configuration require
-                // new folders.
-
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
-
-                var aspireStore = e.Services.GetRequiredService<IAspireStore>();
-
-                var tempDir = WritePgWebBookmarks(postgresInstances, out var contentHash);
-
-                // Create a deterministic folder name based on the content hash such that the same folder is reused across
-                // persistent usages.
-                var pgwebBookmarks = Path.Combine(aspireStore.BasePath, $"{pgwebContainer.Name}.{Convert.ToHexString(contentHash)[..12].ToLowerInvariant()}");
-
-                try
+            pgwebContainerBuilder.WithContainerFiles(
+                destinationPath: "/",
+                callback: (context, _) =>
                 {
-                    Directory.CreateDirectory(pgwebBookmarks);
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
-                    // Grant listing access to the bookmarks folder on unix like systems.
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(pgwebBookmarks, FileMode755);
-                    }
-
-                    foreach (var file in Directory.GetFiles(tempDir))
-                    {
-                        // Target is overwritten just in case the previous attempts has failed
-                        var destinationPath = Path.Combine(pgwebBookmarks, Path.GetFileName(file));
-                        File.Copy(file, destinationPath, overwrite: true);
-
-                        if (!OperatingSystem.IsWindows())
+                    // Add the bookmarks to the pgweb container
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerDirectory
                         {
-                            File.SetUnixFileMode(destinationPath, FileMode644);
-                        }
-                    }
-
-                    pgwebContainerBuilder.WithBindMount(pgwebBookmarks, "/.pgweb/bookmarks");
-                }
-                finally
-                {
-                    try
-                    {
-                        Directory.Delete(tempDir, true);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                return Task.CompletedTask;
-            });
+                            Name = ".pgweb",
+                            Entries = [
+                                new ContainerDirectory
+                                {
+                                    Name = "bookmarks",
+                                    Entries = WritePgWebBookmarks(postgresInstances),
+                                },
+                            ],
+                        },
+                    ]);
+                });
 
             return builder;
         }
@@ -486,12 +424,9 @@ public static class PostgresBuilderExtensions
         return builder;
     }
 
-    private static string WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances, out byte[] contentHash)
+    private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
     {
-        var dir = Directory.CreateTempSubdirectory().FullName;
-
-        // Fast, non-cryptographic hash.
-        var hash = new XxHash3();
+        var bookmarkFiles = new List<ContainerFileSystemItem>();
 
         foreach (var postgresDatabase in postgresInstances)
         {
@@ -508,22 +443,19 @@ public static class PostgresBuilderExtensions
                     sslmode = "disable"
                     """;
 
-            hash.Append(Encoding.UTF8.GetBytes(fileContent));
-
-            File.WriteAllText(Path.Combine(dir, $"{postgresDatabase.Name}.toml"), fileContent);
+            bookmarkFiles.Add(new ContainerFile
+            {
+                Name = $"{postgresDatabase.Name}.toml",
+                Contents = fileContent,
+            });
         }
 
-        contentHash = hash.GetCurrentHash();
-
-        return dir;
+        return bookmarkFiles;
     }
 
     private static string WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances)
     {
-        // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
-
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         writer.WriteStartObject();
@@ -554,7 +486,9 @@ public static class PostgresBuilderExtensions
         writer.WriteEndObject();
         writer.WriteEndObject();
 
-        return filePath;
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)

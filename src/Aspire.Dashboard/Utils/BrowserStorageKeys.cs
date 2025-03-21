@@ -16,6 +16,7 @@ internal static class BrowserStorageKeys
     public const string ConsoleLogConsoleSettings = "Aspire_ConsoleLog_ConsoleSettings";
     public const string ConsoleLogFilters = "Aspire_ConsoleLog_Filters";
     public const string ResourcesCollapsedResourceNames = "Aspire_Resources_CollapsedResourceNames";
+    public const string TextVisualizerDialogSettings = "Aspire_TextVisualizerDialog_TextVisualizerDialogSettings";
 
     public static string SplitterOrientationKey(string viewKey)
     {

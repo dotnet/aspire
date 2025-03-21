@@ -278,4 +278,13 @@
     <value>View options</value>
     <comment>An icon allowing the user to expand or collapse all child resources.</comment>
   </data>
+  <data name="ResourcesGraphZoomOutButton" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="ResourcesGraphZoomInButton" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="ResourcesGraphResetButton" xml:space="preserve">
+    <value>Reset</value>
+  </data>
 </root>

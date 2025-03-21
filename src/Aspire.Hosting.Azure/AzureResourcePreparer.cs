@@ -144,7 +144,8 @@ internal sealed class AzureResourcePreparer(
                     {
                         if (executionContext.IsRunMode)
                         {
-                            // in RunMode, we copy the default role assignments to the Azure reference
+                            // in RunMode, we copy the default role assignments to the Azure reference,
+                            // even if the roles are empty, since empty roles are used by some resources - like databases
                             AppendAppliedRoleAssignmentsAnnotation(azureReference, defaults.Roles);
                         }
                         else
@@ -256,7 +257,7 @@ internal sealed class AzureResourcePreparer(
         }
         else
         {
-            resource.Annotations.Add(new AppliedRoleAssignmentsAnnotation([..newRoles]));
+            resource.Annotations.Add(new AppliedRoleAssignmentsAnnotation([.. newRoles]));
         }
     }
 }

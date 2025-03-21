@@ -48,7 +48,6 @@
       "connectionString": "{cosmosdb.outputs.connectionString}",
       "path": "cosmosdb.module.bicep",
       "params": {
-        "principalType": "",
         "principalId": ""
       }
     },
@@ -100,6 +99,7 @@
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
         "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",

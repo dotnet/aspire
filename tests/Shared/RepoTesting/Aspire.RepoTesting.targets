@@ -39,7 +39,7 @@
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
     <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
 
-    <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
+    <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestUtilityProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath Condition="'$(GeneratedPackagesVersionsPropsPath)' == ''">$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
   </PropertyGroup>
 

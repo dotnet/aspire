@@ -197,6 +197,26 @@
                                 <div class="resource-graph-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Graph)">
                                     <svg class="resource-graph">
                                     </svg>
+                                    <div class="resource-graph-controls">
+                                        <FluentButton Appearance="Appearance.Stealth"
+                                                      Class="graph-zoom-in"
+                                                      Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomInButton)]"
+                                                      aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomInButton)]">
+                                            <FluentIcon Value="new Icons.Regular.Size24.ZoomIn()" Color="Color.Accent" />
+                                        </FluentButton>
+                                        <FluentButton Appearance="Appearance.Stealth"
+                                                      Class="graph-zoom-out"
+                                                      Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomOutButton)]"
+                                                      aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomOutButton)]">
+                                            <FluentIcon Value="new Icons.Regular.Size24.ZoomOut()" Color="Color.Accent" />
+                                        </FluentButton>
+                                        <FluentButton Appearance="Appearance.Stealth"
+                                                      Class="graph-reset"
+                                                      Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphResetButton)]"
+                                                      aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphResetButton)]">
+                                            <FluentIcon Value="new Icons.Regular.Size24.ArrowReset()" Color="Color.Accent" />
+                                        </FluentButton>
+                                    </div>
                                 </div>
                             }
                         </div>

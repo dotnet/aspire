@@ -1,9 +1,9 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param api_roles_outputs_id string
+param api_identity_outputs_id string
 
-param api_roles_outputs_clientid string
+param api_identity_outputs_clientid string
 
 param api_containerport string
 
@@ -123,7 +123,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: api_roles_outputs_clientid
+              value: api_identity_outputs_clientid
             }
           ]
         }
@@ -136,7 +136,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${api_roles_outputs_id}': { }
+      '${api_identity_outputs_id}': { }
       '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
