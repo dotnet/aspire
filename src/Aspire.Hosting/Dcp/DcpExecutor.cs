@@ -1513,6 +1513,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             {
                 string? uid = null;
 
+                // Make deletion part of the retry loop--we have seen cases during test execution when
+                // the deletion request completed with success code, but it was never "acted upon" by DCP.
+
                 try
                 {
                     var r = await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
