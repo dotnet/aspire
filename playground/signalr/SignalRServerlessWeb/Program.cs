@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR.Management;
@@ -37,6 +38,10 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+var jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+{
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+};
 app.MapPost($"{hubName}/negotiate", async (string? userId) =>
 {
     var negotiateResponse = await hubContext.NegotiateAsync(new NegotiationOptions
@@ -44,7 +49,7 @@ app.MapPost($"{hubName}/negotiate", async (string? userId) =>
         UserId = userId ?? "user1"
     });
 
-    return Results.Ok(negotiateResponse);
+    return Results.Json(negotiateResponse, jsonSerializerOptions);
 });
 
 app.MapRazorPages();
