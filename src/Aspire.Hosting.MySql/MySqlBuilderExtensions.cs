@@ -100,7 +100,7 @@ public static class MySqlBuilderExtensions
             return builder;
         }
 
-        containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+        containerName ??= "phpmyadmin";
 
         var configurationTempFileName = Path.GetTempFileName();
 
