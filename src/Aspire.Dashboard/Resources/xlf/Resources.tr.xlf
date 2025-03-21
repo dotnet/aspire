@@ -189,17 +189,17 @@
       </trans-unit>
       <trans-unit id="ResourcesGraphResetButton">
         <source>Reset</source>
-        <target state="new">Reset</target>
+        <target state="translated">Sıfırla</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphZoomInButton">
         <source>Zoom in</source>
-        <target state="new">Zoom in</target>
+        <target state="translated">Yakınlaştır</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphZoomOutButton">
         <source>Zoom out</source>
-        <target state="new">Zoom out</target>
+        <target state="translated">Uzaklaştır</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
