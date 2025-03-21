@@ -552,7 +552,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private static string GetEndpointsTooltip(ResourceViewModel resource)
     {
-        var displayedEndpoints = GetDisplayedEndpoints(resource);
+        var displayedEndpoints = GetDisplayedUrls(resource);
 
         if (displayedEndpoints.Count == 0)
         {
@@ -622,9 +622,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         UpdateMenuButtons();
     }
 
-    private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
+    private static List<DisplayedUrl> GetDisplayedUrls(ResourceViewModel resource)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false, includeNonEndpointUrls: true);
+        return ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true);
     }
 
     private bool HasAnyChildResources()

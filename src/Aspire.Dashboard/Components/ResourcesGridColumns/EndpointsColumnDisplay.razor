@@ -43,7 +43,7 @@ else if (DisplayedEndpoints.Count > 1)
                         <div class="endpoint-popup">
                             @foreach (var item in items)
                             {
-                                var d = (DisplayedEndpoint)item.Data!;
+                                var d = (DisplayedUrl)item.Data!;
                                 <div class="endpoint-link">
                                     @WriteEndpoint(d)
                                 </div>
@@ -62,7 +62,7 @@ else if (DisplayedEndpoints.Count > 1)
 }
 
 @code {
-    RenderFragment WriteEndpoint(DisplayedEndpoint displayedEndpoint)
+    RenderFragment WriteEndpoint(DisplayedUrl displayedEndpoint)
     {
         if (displayedEndpoint.Url != null)
         {

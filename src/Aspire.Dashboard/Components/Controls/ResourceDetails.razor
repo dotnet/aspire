@@ -60,17 +60,13 @@
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="@_isEndpointsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
-                        @FilteredEndpoints.Count()
+                        @FilteredUrls.Count()
                     </FluentBadge>
                 </div>
 
-                @{
-                    var hasAnyEndpointDisplayNames = FilteredEndpoints.Any(e => !string.IsNullOrEmpty(e.DisplayName));
-                }
-
-                <FluentDataGrid TGridItem="DisplayedEndpoint"
+                <FluentDataGrid TGridItem="DisplayedUrl"
                                 ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
-                                Items="@FilteredEndpoints"
+                                Items="@FilteredUrls"
                                 ColumnResizeLabels="@_resizeLabels"
                                 ColumnSortLabels="@_sortLabels"
                                 HeaderCellAsButtonWithMenu="true"
@@ -78,27 +74,18 @@
                                 ResizeType="DataGridResizeType.Discrete"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
-                                GridTemplateColumns="@(hasAnyEndpointDisplayNames ? "1fr 1.5fr 1.5fr" : "1.5fr 1.5fr")"
+                                GridTemplateColumns="1.5fr 1.5fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
-                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
                                    Value="@context.Name"
-                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && context.Name != "-")"
                                    HighlightText="@_filter" />
                     </AspireTemplateColumn>
-                    @if (hasAnyEndpointDisplayNames)
-                    {
-                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]">
-                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]"
-                                       Value="@context.DisplayName"
-                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
-                                       HighlightText="@_filter" />
-                        </AspireTemplateColumn>
-                    }
-                    <AspireTemplateColumn Sortable="true" SortBy="@_endpointValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]">
+                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]"
-                                   Value="@context.OriginalUrlString"
-                                   ContentAfterValue="vm => GetContentAfterValue(context)"
+                                   Value="@context.Text"
+                                   ContentAfterValue="vm => GetUrlContentValue(context)"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
                                    HighlightText="@_filter" />
@@ -292,16 +279,19 @@
 </div>
 
 @code {
-    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
+    private static RenderFragment GetUrlContentValue(DisplayedUrl vm)
     {
+        // If there's no URL, e.g. this is a tcp:// URI, just show the text
         if (vm.Url is null)
         {
             return @<span>@vm.Text</span>;
         }
+        // If the URL and text are the same, render a link for the URL
         else if (string.Equals(vm.Url, vm.Text, StringComparison.Ordinal))
         {
             return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
         }
+        // Otherwise, render a link with the text as the anchor text & title as the URL
         else
         {
             return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;

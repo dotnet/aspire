@@ -36,7 +36,7 @@ public static class ResourceGraphMapper
             }
         }
 
-        var endpoint = ResourceEndpointHelpers.GetEndpoints(r, includeInternalUrls: false).FirstOrDefault();
+        var endpoint = ResourceUrlHelpers.GetUrls(r, includeInternalUrls: false).FirstOrDefault();
         var resolvedEndpointText = ResolvedEndpointText(endpoint);
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
         var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
@@ -77,7 +77,7 @@ public static class ResourceGraphMapper
         return dto;
     }
 
-    private static string ResolvedEndpointText(DisplayedEndpoint? endpoint)
+    private static string ResolvedEndpointText(DisplayedUrl? endpoint)
     {
         var text = endpoint?.Url;
         if (string.IsNullOrEmpty(text))

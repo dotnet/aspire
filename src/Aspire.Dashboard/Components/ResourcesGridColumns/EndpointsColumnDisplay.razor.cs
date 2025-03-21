@@ -17,7 +17,7 @@ public partial class EndpointsColumnDisplay
     public required bool HasMultipleReplicas { get; set; }
 
     [Parameter, EditorRequired]
-    public required IList<DisplayedEndpoint> DisplayedEndpoints { get; set; }
+    public required IList<DisplayedUrl> DisplayedEndpoints { get; set; }
 
     [Parameter]
     public string? AdditionalMessage { get; set; }

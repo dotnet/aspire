@@ -122,6 +122,11 @@
         <target state="translated">Doba trvání</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="new">Endpoint name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">Událost</target>

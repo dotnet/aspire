@@ -7,25 +7,25 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public sealed class ResourceEndpointHelpersTests
+public sealed class ResourceUrlHelpersTests
 {
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
+    public static List<DisplayedUrl> GetUrls(ResourceViewModel resource, bool includeInternalUrls = false)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls);
+        return ResourceUrlHelpers.GetUrls(resource, includeInternalUrls);
     }
 
     [Fact]
-    public void GetEndpoints_Empty_NoResults()
+    public void GetUrls_Empty_NoResults()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: []));
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: []));
 
         Assert.Empty(endpoints);
     }
 
     [Fact]
-    public void GetEndpoints_HasServices_Results()
+    public void GetUrls_HasServices_Results()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]));
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]));
 
         Assert.Collection(endpoints,
             e =>
@@ -39,9 +39,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_HasEndpointAndService_Results()
+    public void GetUrls_HasEndpointAndService_Results()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test2", new("http://localhost:8081"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)])
         );
@@ -66,9 +66,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_OnlyHttpAndHttpsEndpointsSetTheUrl()
+    public void GetUrls_OnlyHttpAndHttpsEndpointsSetTheUrl()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test2", new("tcp://localhost:8081"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)])
         );
@@ -93,9 +93,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_IncludeEndpointUrl_HasEndpointAndService_Results()
+    public void GetUrls_IncludeEndpointUrl_HasEndpointAndService_Results()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test", new("https://localhost:8081/test2"), isInternal:false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)
         ]));
@@ -120,9 +120,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_ExcludesInternalUrls()
+    public void GetUrls_ExcludesInternalUrls()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:true, isInactive : false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test", new("https://localhost:8081/test2"), isInternal:false, isInactive : false, displayProperties: UrlDisplayPropertiesViewModel.Empty)
         ]));
@@ -139,9 +139,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_ExcludesInactiveUrls()
+    public void GetUrls_ExcludesInactiveUrls()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal: false, isInactive : true, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test", new("https://localhost:8081/test2"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)
         ]));
@@ -158,9 +158,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_IncludesIncludeInternalUrls()
+    public void GetUrls_IncludesIncludeInternalUrls()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:true, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("Test", new("https://localhost:8081/test2"), isInternal:false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)
         ]),
@@ -186,9 +186,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_OrderByName()
+    public void GetUrls_OrderByName()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("a", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("C", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
             new("D", new("tcp://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
@@ -205,9 +205,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_SortOrder_Combinations()
+    public void GetUrls_SortOrder_Combinations()
     {
-        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("Zero-Https", new("https://localhost:8079"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
             new("Zero-Http", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
             new("Positive", new("http://localhost:8082"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 1)),

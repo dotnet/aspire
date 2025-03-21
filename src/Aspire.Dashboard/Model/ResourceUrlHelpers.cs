@@ -6,15 +6,16 @@ using Aspire.Dashboard.Components.Controls;
 
 namespace Aspire.Dashboard.Model;
 
-internal static class ResourceEndpointHelpers
+internal static class ResourceUrlHelpers
 {
     /// <summary>
-    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
+    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list of URLs without duplicates.
     /// </summary>
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false, bool includeNonEndpointUrls = false)
+    public static List<DisplayedUrl> GetUrls(ResourceViewModel resource, bool includeInternalUrls = false, bool includeNonEndpointUrls = false)
     {
-        var endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
+        var urls = new List<DisplayedUrl>(resource.Urls.Length);
 
+        var index = 0;
         foreach (var url in resource.Urls)
         {
             if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
@@ -29,8 +30,9 @@ internal static class ResourceEndpointHelpers
                     continue;
                 }
 
-                endpoints.Add(new DisplayedEndpoint
+                urls.Add(new DisplayedUrl
                 {
+                    Index = index,
                     Name = url.EndpointName ?? "",
                     Address = url.Url.Host,
                     Port = url.Url.Port,
@@ -40,29 +42,31 @@ internal static class ResourceEndpointHelpers
                     OriginalUrlString = url.Url.OriginalString,
                     Text = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? url.Url.OriginalString : url.DisplayProperties.DisplayName
                 });
+                index++;
             }
         }
 
-        // Make sure that endpoints have a consistent ordering.
+        // Make sure that URLs have a consistent ordering.
         // Order:
         // - https
         // - other urls
         // - endpoint name
-        var orderedEndpoints = endpoints
+        var orderedUrls = urls
             .OrderByDescending(e => e.SortOrder)
             .ThenByDescending(e => e.Url?.StartsWith("https") == true)
-            .ThenByDescending(e => e.Url != null)
+            .ThenByDescending(e => e.Url is not null)
             .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)
             .ToList();
 
-        return orderedEndpoints;
+        return orderedUrls;
     }
 }
 
 [DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}, DisplayName = {DisplayName}, OriginalUrlString = {OriginalUrlString}, SortOrder = {SortOrder}")]
-public sealed class DisplayedEndpoint : IPropertyGridItem
+public sealed class DisplayedUrl : IPropertyGridItem
 {
-    public required string Name { get; set; }
+    public required int Index { get; set; }
+    public string Name { get; set; } = "-";
     public required string Text { get; set; }
     public string? Address { get; set; }
     public int? Port { get; set; }
@@ -73,9 +77,11 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink
-    /// in <see cref="ResourceDetails.GetContentAfterValue"/> instead.
+    /// in <see cref="ResourceDetails.GetUrlContentValue(DisplayedUrl)"/> instead.
     /// </summary>
     string? IPropertyGridItem.Value => null;
+
+    object IPropertyGridItem.Key => Index;
 
     public string? ValueToVisualize => Url ?? Text;
 
