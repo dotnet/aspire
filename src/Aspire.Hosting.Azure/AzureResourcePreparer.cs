@@ -105,12 +105,12 @@ internal sealed class AzureResourcePreparer(
         {
             // when the app infrastructure supports targeted role assignments, walk the resource graph and
             // - if in RunMode
-            //   - If a compute resource has RoleAssignmentAnnotations, add them to AppliedRoleAssignmentsAnnotation on the referenced Azure resource
+            //   - if a compute resource has RoleAssignmentAnnotations, add them to AppliedRoleAssignmentsAnnotation on the referenced Azure resource
             //   - if the resource doesn't, copy the DefaultRoleAssignments to AppliedRoleAssignmentsAnnotation
             //
             // - if in PublishMode
-            //   - If a compute resource has RoleAssignmentAnnotations, skip - the publish infrastructure will handle them
-            //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations so the publish infrastucture will apply the defaults
+            //   - if a compute resource has RoleAssignmentAnnotations, use them
+            //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations to apply the defaults
             var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
@@ -141,7 +141,7 @@ internal sealed class AzureResourcePreparer(
                             // in RunMode, we need to add the role assignments to the resource
                             AppendAppliedRoleAssignmentsAnnotation(azureReference, roleAssignments.SelectMany(a => a.Roles));
                         }
-                        // in PublishMode, this is a no-op since the publish infrastructure will handle the role assignments
+                        // in PublishMode, this is a no-op since GetAllRoleAssignments will handle the role assignments
                     }
                     else if (azureReference.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults))
                     {
@@ -160,6 +160,7 @@ internal sealed class AzureResourcePreparer(
                 }
 
                 // in PublishMode with SupportsTargetedRoleAssignments, we need to create the identity and role assignment resources
+                // if the resource references any Azure resources, or has role assignments to Azure resources
                 if (executionContext.IsPublishMode)
                 {
                     var roleAssignments = GetAllRoleAssignments(resource);

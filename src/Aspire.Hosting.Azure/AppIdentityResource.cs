@@ -6,6 +6,9 @@ using Azure.Provisioning.Roles;
 
 namespace Aspire.Hosting.Azure;
 
+/// <summary>
+/// An Azure Provisioning resource that represents an Azure user assigned managed identity.
+/// </summary>
 internal sealed class AppIdentityResource(string name)
     : AzureProvisioningResource(name, ConfigureAppIdentityInfrastructure), IAppIdentityResource
 {

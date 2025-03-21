@@ -121,14 +121,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
             };
 
-            if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
-            {
-                context.UserAssignedIdentity = (
-                    appIdentityAnnotation.IdentityResource.Id,
-                    appIdentityAnnotation.IdentityResource.ClientId
-                );
-            }
-
             return provisioningResource;
         }
 
@@ -176,10 +168,6 @@ internal sealed class AzureContainerAppsInfrastructure(
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
 
-            public (BicepOutputReference Id, BicepOutputReference ClientId)? UserAssignedIdentity { get; set; }
-
-            public Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> RoleAssignments { get; } = [];
-
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
                 AllocateManagedIdentityIdParameter();
@@ -205,15 +193,14 @@ internal sealed class AzureContainerAppsInfrastructure(
                     }
                 };
 
-                if (UserAssignedIdentity is not null)
+                if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
                 {
-                    var (userAssignedIdentityId, clientId) = UserAssignedIdentity.Value;
-
-                    var id = BicepFunction.Interpolate($"{userAssignedIdentityId.AsProvisioningParameter(c)}").Compile().ToString();
+                    var appIdentityResource = appIdentityAnnotation.IdentityResource;
+                    var id = BicepFunction.Interpolate($"{appIdentityResource.Id.AsProvisioningParameter(c)}").Compile().ToString();
 
                     containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
-                    EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = clientId.AsProvisioningParameter(c) });
+                    EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = appIdentityResource.ClientId.AsProvisioningParameter(c) });
                 }
 
                 AddContainerRegistryManagedIdentity(containerAppResource);
@@ -292,7 +279,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-           private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
+            private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
             {
                 // If the resource has a Dockerfile build annotation, we don't have the image name
                 // it will come as a parameter
