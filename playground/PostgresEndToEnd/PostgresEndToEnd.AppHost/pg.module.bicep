@@ -7,8 +7,8 @@ param principalType string
 
 param principalName string
 
-resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('pgsql2-${uniqueString(resourceGroup().id)}', 63)
+resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: take('pg-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     authConfig: {
@@ -33,7 +33,7 @@ resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     tier: 'Burstable'
   }
   tags: {
-    'aspire-resource-name': 'pgsql2'
+    'aspire-resource-name': 'pg'
   }
 }
 
@@ -43,27 +43,27 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
     endIpAddress: '0.0.0.0'
     startIpAddress: '0.0.0.0'
   }
-  parent: pgsql2
+  parent: pg
 }
 
-resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-  name: 'pgsql2db'
-  parent: pgsql2
+resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'db1'
+  parent: pg
 }
 
-resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
+resource pg_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
   name: principalId
   properties: {
     principalName: principalName
     principalType: principalType
   }
-  parent: pgsql2
+  parent: pg
   dependsOn: [
-    pgsql2
+    pg
     postgreSqlFirewallRule_AllowAllAzureIps
   ]
 }
 
-output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'
+output connectionString string = 'Host=${pg.properties.fullyQualifiedDomainName};Username=${principalName}'
 
-output name string = pgsql2.name
+output name string = pg.name
