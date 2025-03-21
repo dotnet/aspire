@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Aspire.Hosting.Azure.CosmosDB {
+namespace Aspire.Dashboard.Resources {
     using System;
     
     
@@ -22,14 +22,14 @@ namespace Aspire.Hosting.Azure.CosmosDB {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources {
+    internal class KnownUrlsDisplay {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Resources() {
+        internal KnownUrlsDisplay() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace Aspire.Hosting.Azure.CosmosDB {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Hosting.Azure.CosmosDB.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.KnownUrlsDisplay", typeof(KnownUrlsDisplay).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -63,9 +63,9 @@ namespace Aspire.Hosting.Azure.CosmosDB {
         /// <summary>
         ///   Looks up a localized string similar to Data Explorer.
         /// </summary>
-        internal static string DataExplorerUrlText {
+        internal static string DataExplorer {
             get {
-                return ResourceManager.GetString("DataExplorerUrlText", resourceCulture);
+                return ResourceManager.GetString("DataExplorer", resourceCulture);
             }
         }
     }

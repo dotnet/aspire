@@ -299,9 +299,8 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        var endpointName = "data-explorer";
         return
-            builder.WithEndpoint(endpointName: endpointName, endpoint =>
+            builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
             {
                 endpoint.UriScheme = "http";
                 endpoint.TargetPort = 1234;
@@ -309,10 +308,10 @@ public static class AzureCosmosExtensions
             })
             .WithUrls(context =>
             {
-                var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == endpointName);
+                var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
                 if (url is not null)
                 {
-                    url.DisplayText = Resources.DataExplorerUrlText;
+                    url.DisplayText = KnownUrls.DataExplorer.DisplayText;
                 }
             });
     }
