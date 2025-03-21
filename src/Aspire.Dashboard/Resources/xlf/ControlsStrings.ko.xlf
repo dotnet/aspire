@@ -387,6 +387,11 @@
         <target state="translated">{0}({1}의 복제본)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="new">No endpoints</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
         <target state="translated">상태 검사</target>

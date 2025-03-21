@@ -387,6 +387,11 @@
         <target state="translated">{0} (réplica de {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="new">No endpoints</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
         <target state="translated">Verificações de integridade</target>
