@@ -17,13 +17,17 @@ internal sealed class FakeTokenCredential : TokenCredential
     //   "Role": "Admin"
     // }
 
+    public bool IsGetTokenInvoked { get; private set; }
+
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
+        IsGetTokenInvoked = true;
         return new AccessToken(Token, DateTimeOffset.Now);
     }
 
     public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
+        IsGetTokenInvoked = true;
         return new ValueTask<AccessToken>(new AccessToken(Token, DateTimeOffset.Now));
     }
 }

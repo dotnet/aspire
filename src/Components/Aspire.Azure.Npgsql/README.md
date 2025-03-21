@@ -1,6 +1,6 @@
 # Aspire.Azure.Npgsql library
 
-Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting Azure Database for PostgreSQL. Enables corresponding health check, metrics, logging and telemetry.
+Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting to PostgreSQL and Azure Database for PostgreSQL. Enables corresponding health check, metrics, logging and telemetry.
 
 ## Getting started
 
@@ -8,6 +8,11 @@ Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSou
 
 - PostgreSQL database and connection string for accessing the database.
 - or an Azure Database for PostgreSQL instance, learn more about how to [Create an Azure Database for PostgreSQL resource](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server?tabs=portal-create-flexible%2Cportal-get-connection%2Cportal-delete-resources).
+
+### Differences with Aspire.Npgsql
+
+The Aspire.Azure.Npgsql library is a wrapper around the Aspire.Npgsql library that provides additional features for connecting to Azure Database for PostgreSQL. If you don't need these features, you can use the Aspire.Npgsql library instead.
+At runtime the client integration will detect whether the connection string has a Username and Password, and if not, it will use Entra Id to authenticate with Azure Database for PostgreSQL.
 
 ### Install the package
 
@@ -86,6 +91,10 @@ Also you can pass the `Action<AzureNpgsqlSettings> configureSettings` delegate t
 ```csharp
     builder.AddAzureNpgsqlDataSource("postgresdb", settings => settings.DisableHealthChecks = true);
 ```
+
+Use the `AzureNpgsqlSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+
+If the connection string contains a username and a password then the credential will be ignored.
 
 ## AppHost extensions
 

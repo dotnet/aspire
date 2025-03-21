@@ -13,6 +13,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
 {
     private const string ConnectionString = "Host=localhost;Database=test_aspire_npgsql";
     private const string ConnectionStringWithUsername = "Host=localhost;Database=test_aspire_npgsql;Username=admin";
+    private const string ConnectionStringWithUsernameAndPassword = "Host=localhost;Database=test_aspire_npgsql;Username=admin;Password=p@ssw0rd1";
 
     [Theory]
     [InlineData(true)]
@@ -40,6 +41,45 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
 
         Assert.Contains(ConnectionString, dataSource.ConnectionString);
         Assert.Contains("Username=mikey@mouse.com", dataSource.ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TokenCredentialIsIgnoreWhenUsernameAndPasswordAreSet(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionStringWithUsernameAndPassword)
+        ]);
+
+        FakeTokenCredential? tokenCredential = null;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            });
+        }
+        else
+        {
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            });
+        }
+
+        using var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
+            host.Services.GetRequiredService<NpgsqlDataSource>();
+
+        Assert.NotNull(tokenCredential);
+        Assert.Equal(ConnectionStringWithUsernameAndPassword, dataSource.ConnectionString);
+        Assert.False(tokenCredential.IsGetTokenInvoked);
     }
 
     [Theory]
