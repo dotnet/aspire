@@ -206,14 +206,14 @@ internal class ResourceSnapshotBuilder
                     var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
                     var isInactive = activeEndpoint is null;
 
-                    urls.Add(new(EndpointName: endpointUrl.Endpoint.EndpointName, Url: endpointUrl.Url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
+                    urls.Add(new(Name: endpointUrl.Endpoint.EndpointName, Url: endpointUrl.Url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
                 }
             }
 
             // Add the non-endpoint URLs
             foreach (var url in nonEndpointUrls)
             {
-                urls.Add(new(EndpointName: null, Url: url.Url, IsInternal: false) { IsInactive = false, DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0) });
+                urls.Add(new(Name: null, Url: url.Url, IsInternal: false) { IsInactive = false, DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0) });
             }
         }
 

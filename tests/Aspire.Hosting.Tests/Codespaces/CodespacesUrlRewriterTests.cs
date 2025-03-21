@@ -91,7 +91,7 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
             resourceEvent.Snapshot.Urls,
             u =>
             {
-                Assert.Equal("Test", u.EndpointName);
+                Assert.Equal("Test", u.Name);
                 Assert.Equal("http://test-codespace-1234.app.github.dev/", u.Url);
                 Assert.False(u.IsInternal);
             }
