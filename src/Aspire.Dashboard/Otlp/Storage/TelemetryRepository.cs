@@ -26,6 +26,8 @@ namespace Aspire.Dashboard.Otlp.Storage;
 public sealed class TelemetryRepository
 {
     private readonly PauseManager _pauseManager;
+    private readonly ILogger _logger;
+
     private readonly object _lock = new();
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
 
@@ -61,10 +63,10 @@ public sealed class TelemetryRepository
 
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager)
     {
-        var logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
+        _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
         _otlpContext = new OtlpContext
         {
-            Logger = logger,
+            Logger = _logger,
             Options = dashboardOptions.Value.TelemetryLimits
         };
         _pauseManager = pauseManager;
@@ -276,6 +278,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.StructuredLogsPaused)
         {
+            _logger.LogTrace("{LogCount} incoming structured log(s) was ignored because of an active pause.", resourceLogs.Count);
             return;
         }
 
@@ -814,6 +817,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.MetricsPaused)
         {
+            _logger.LogTrace("{LogCount} incoming metric(s) was ignored because of an active pause.", resourceMetrics.Count);
             return;
         }
 
@@ -841,6 +845,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.TracesPaused)
         {
+            _logger.LogTrace("{LogCount} incoming trace(s) was ignored because of an active pause.", resourceSpans.Count);
             return;
         }
 

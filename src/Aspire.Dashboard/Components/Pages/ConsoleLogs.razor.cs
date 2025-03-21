@@ -485,7 +485,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
                         if (logEntry.Timestamp is not null &&
                             ((timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
-                            || PauseManager.ConsoleLogsPausedRanges.Any(range => range.IsOverlapping(logEntry.Timestamp.Value))))
+                            || PauseManager.IsConsoleLogFiltered(logEntry.Timestamp.Value)))
                         {
                             continue;
                         }
@@ -609,16 +609,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private Task IsPausedChangedAsync(bool isPaused)
     {
-        PauseManager.ConsoleLogsPaused = isPaused;
-        if (isPaused)
-        {
-            PauseManager.ConsoleLogsPausedRanges.Add(new DateTimeRange(start: DateTime.UtcNow, end: null));
-        }
-        else
-        {
-            PauseManager.ConsoleLogsPausedRanges.Last().End = DateTime.UtcNow;
-        }
-
+        PauseManager.SetConsoleLogsPaused(isPaused);
         return Task.CompletedTask;
     }
 
