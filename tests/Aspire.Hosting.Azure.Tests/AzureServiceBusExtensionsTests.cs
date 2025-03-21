@@ -765,12 +765,11 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var topic = serviceBus.AddServiceBusTopic("topic");
         var subscription = topic.AddServiceBusSubscription("sub");
 
-        // queue, topic, and subscription should have the same connection string as the service bus account, for now.
-        // In the future, we can add the queue/topic/sub info to the connection string.
+        // Assert that child resources capture entitypath information
         Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", queue.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", topic.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", subscription.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=queue", queue.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic", topic.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic/Subscriptions/sub", subscription.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -793,18 +792,22 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         ((IResourceWithAzureFunctionsConfig)queue.Resource).ApplyAzureFunctionsConfiguration(target, "queue");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__QueueName", k),
             k => Assert.Equal("queue__fullyQualifiedNamespace", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)topic.Resource).ApplyAzureFunctionsConfiguration(target, "topic");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__TopicName", k),
             k => Assert.Equal("topic__fullyQualifiedNamespace", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)subscription.Resource).ApplyAzureFunctionsConfiguration(target, "sub");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__SubscriptionName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__TopicName", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
     }
 

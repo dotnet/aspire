@@ -39,7 +39,8 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Subscription.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression
+        => ReferenceExpression.Create($"{Parent.ConnectionStringExpression}/Subscriptions/{SubscriptionName}");
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
@@ -91,7 +92,24 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
 
     // ensure Azure Functions projects can WithReference a ServiceBus queue
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    {
+        if (Parent.Parent.IsEmulator)
+        {
+            // Similar to other child resources, we need to inject the connection string
+            // without the EntityPath for the Azure Functions host and inject the one with the
+            // entity path for Aspire client integration.
+            target[$"{connectionName}"] = Parent.Parent.ConnectionStringExpression;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+        }
+        else
+        {
+            target[$"{connectionName}__fullyQualifiedNamespace"] = Parent.Parent.ServiceBusEndpoint;
+            // Pass the topic name and subscription name to the Aspire integrations via named settings.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = Parent.Parent.ServiceBusEndpoint;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__TopicName"] = Parent.TopicName;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__SubscriptionName"] = SubscriptionName;
+        }
+    }
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

@@ -39,7 +39,10 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Queue.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.IsEmulator
+        ? ReferenceExpression.Create($"{Parent.ConnectionStringExpression}EntityPath={QueueName}")
+        : ReferenceExpression.Create($"Endpoint={Parent.ConnectionStringExpression};EntityPath={QueueName}");
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
@@ -97,7 +100,24 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
 
     // ensure Azure Functions projects can WithReference a ServiceBus queue
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    {
+        if (Parent.IsEmulator)
+        {
+            // Inject the connection string that does not contain the `EntityPath` property
+            // since the Azure Functions host is particular about the format of the connection string.
+            target[$"{connectionName}"] = Parent.ConnectionStringExpression;
+            // Aspire integrations get the connection string with the `EntityPath` property.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+        }
+        else
+        {
+            // Functions gets the endpoint name that doesn't contain the `EntityPath` property.
+            target[$"{connectionName}__fullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
+            // Use the `QueueName` setting to pass the `QueueName` to Aspire client integrations.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__QueueName"] = QueueName;
+        }
+    }
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

@@ -39,7 +39,10 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Topic.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.IsEmulator
+        ? ReferenceExpression.Create($"{Parent.ConnectionStringExpression}EntityPath={TopicName}")
+        : ReferenceExpression.Create($"Endpoint={Parent.ConnectionStringExpression};EntityPath={TopicName}");
 
     /// <summary>
     /// ISO 8601 default message timespan to live value. This is the duration
@@ -67,7 +70,21 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
 
     // ensure Azure Functions projects can WithReference a ServiceBus topic
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    {
+        // Pass the connection string without the EntityPath for the Functions host.
+        // Provide the Aspire integrations for FQN-based connections via named settings.
+        if (Parent.IsEmulator)
+        {
+            target[$"{connectionName}"] = Parent.ConnectionStringExpression;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+        }
+        else
+        {
+            target[$"{connectionName}__fullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__TopicName"] = TopicName;
+        }
+    }
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

@@ -40,7 +40,70 @@ public static class AspireServiceBusExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        new ServiceBusClientComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="ServiceBusReceiver"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddAzureServiceBusReceiver(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusReceiver, ServiceBusReceiverOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new ServiceBusReceiverComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="ServiceBusSender"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddAzureServiceBusSender(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusSender, ServiceBusSenderOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new ServiceBusSenderComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="ServiceBusProcessor"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddAzureServiceBusProcessor(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusProcessor, ServiceBusProcessorOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new ServiceBusProcessorComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -61,10 +124,124 @@ public static class AspireServiceBusExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new ServiceBusClientComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
-    private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
+    /// <summary>
+    /// Registers <see cref="ServiceBusReceiver"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddKeyedAzureServiceBusReceiver(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusReceiver, ServiceBusReceiverOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new ServiceBusReceiverComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <summary>
+    /// Registers <see cref="ServiceBusSender"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddKeyedAzureServiceBusSender(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusSender, ServiceBusSenderOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new ServiceBusSenderComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <summary>
+    /// Registers <see cref="ServiceBusProcessor"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddKeyedAzureServiceBusProcessor(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<ServiceBusProcessor, ServiceBusProcessorOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new ServiceBusProcessorComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    private abstract class ServiceBusComponent<TClient, TOptions> : AzureComponent<AzureMessagingServiceBusSettings, TClient, TOptions>
+        where TClient : class
+        where TOptions : class
+    {
+        protected override IAzureClientBuilder<TClient, TOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
+            string connectionName, string configurationSectionName)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override IHealthCheck CreateHealthCheck(TClient client, AzureMessagingServiceBusSettings settings)
+        {
+            return !string.IsNullOrEmpty(settings.HealthCheckQueueName)
+                ? new AzureServiceBusQueueHealthCheck(new AzureServiceBusQueueHealthCheckOptions(settings.HealthCheckQueueName)
+                {
+                    FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
+                    ConnectionString = settings.ConnectionString,
+                    Credential = settings.Credential
+                })
+                : new AzureServiceBusTopicHealthCheck(new AzureServiceBusTopicHealthCheckOptions(settings.HealthCheckTopicName!)
+                {
+                    FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
+                    ConnectionString = settings.ConnectionString,
+                    Credential = settings.Credential
+                });
+        }
+
+        protected override void BindSettingsToConfiguration(AzureMessagingServiceBusSettings settings, IConfiguration config)
+        {
+            config.Bind(settings);
+        }
+
+        protected override bool GetHealthCheckEnabled(AzureMessagingServiceBusSettings settings)
+            => !string.IsNullOrEmpty(settings.HealthCheckQueueName) || !string.IsNullOrEmpty(settings.HealthCheckTopicName);
+
+        protected override TokenCredential? GetTokenCredential(AzureMessagingServiceBusSettings settings)
+            => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureMessagingServiceBusSettings settings)
+            => false;
+
+        protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
+            => !settings.DisableTracing;
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TClient, TOptions> clientBuilder, IConfiguration configuration)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private sealed class ServiceBusClientComponent : ServiceBusComponent<ServiceBusClient, ServiceBusClientOptions>
     {
         protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
@@ -84,43 +261,117 @@ public static class AspireServiceBusExtensions
             }, requiresCredential: false);
         }
 
-        protected override IHealthCheck CreateHealthCheck(ServiceBusClient client, AzureMessagingServiceBusSettings settings)
-            => !string.IsNullOrEmpty(settings.HealthCheckQueueName)
-                    ? new AzureServiceBusQueueHealthCheck(new AzureServiceBusQueueHealthCheckOptions(settings.HealthCheckQueueName)
-                    {
-                        FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
-                        ConnectionString = settings.ConnectionString,
-                        Credential = settings.Credential
-                    })
-                    : new AzureServiceBusTopicHealthCheck(new AzureServiceBusTopicHealthCheckOptions(settings.HealthCheckTopicName!)
-                    {
-                        FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
-                        ConnectionString = settings.ConnectionString,
-                        Credential = settings.Credential
-                    });
-
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> clientBuilder, IConfiguration configuration)
         {
 #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
             clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
         }
+    }
 
-        protected override void BindSettingsToConfiguration(AzureMessagingServiceBusSettings settings, IConfiguration config)
+    private sealed class ServiceBusSenderComponent : ServiceBusComponent<ServiceBusSender, ServiceBusSenderOptions>
+    {
+        protected override IAzureClientBuilder<ServiceBusSender, ServiceBusSenderOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
+            string connectionName, string configurationSectionName)
         {
-            config.Bind(settings);
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusSender, ServiceBusSenderOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
+                {
+                    throw new InvalidOperationException($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                }
+
+                if (string.IsNullOrEmpty(settings.QueueName) && string.IsNullOrEmpty(settings.TopicName))
+                {
+                    throw new InvalidOperationException($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' in the '{configurationSectionName}' configuration section.");
+                }
+
+                var client = !string.IsNullOrEmpty(connectionString) ?
+                    new ServiceBusClient(connectionString) :
+                    new ServiceBusClient(settings.FullyQualifiedNamespace);
+                return client.CreateSender(settings.QueueName ?? settings.TopicName!, options);
+            }, requiresCredential: false);
         }
 
-        protected override bool GetHealthCheckEnabled(AzureMessagingServiceBusSettings settings)
-            => !string.IsNullOrEmpty(settings.HealthCheckQueueName) || !string.IsNullOrEmpty(settings.HealthCheckTopicName);
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusSender, ServiceBusSenderOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+    }
 
-        protected override TokenCredential? GetTokenCredential(AzureMessagingServiceBusSettings settings)
-            => settings.Credential;
+    private sealed class ServiceBusReceiverComponent : ServiceBusComponent<ServiceBusReceiver, ServiceBusReceiverOptions>
+    {
+        protected override IAzureClientBuilder<ServiceBusReceiver, ServiceBusReceiverOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
+            string connectionName, string configurationSectionName)
+        {
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusReceiver, ServiceBusReceiverOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
+                {
+                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                }
 
-        protected override bool GetMetricsEnabled(AzureMessagingServiceBusSettings settings)
-            => false;
+                if (string.IsNullOrEmpty(settings.QueueName) && (string.IsNullOrEmpty(settings.TopicName) || string.IsNullOrEmpty(settings.SubscriptionName)))
+                {
+                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                }
 
-        protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
-            => !settings.DisableTracing;
+                var client = !string.IsNullOrEmpty(connectionString) ?
+                    new ServiceBusClient(connectionString) :
+                    new ServiceBusClient(settings.FullyQualifiedNamespace);
+                return settings.SubscriptionName != null ?
+                    client.CreateReceiver(settings.TopicName, settings.SubscriptionName, options) :
+                    client.CreateReceiver(settings.QueueName!, options);
+            }, requiresCredential: false);
+        }
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusReceiver, ServiceBusReceiverOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+    }
+
+    private sealed class ServiceBusProcessorComponent : ServiceBusComponent<ServiceBusProcessor, ServiceBusProcessorOptions>
+    {
+        protected override IAzureClientBuilder<ServiceBusProcessor, ServiceBusProcessorOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
+            string connectionName, string configurationSectionName)
+        {
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusProcessor, ServiceBusProcessorOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
+                {
+                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                }
+
+                if (string.IsNullOrEmpty(settings.QueueName) && (string.IsNullOrEmpty(settings.TopicName) || string.IsNullOrEmpty(settings.SubscriptionName)))
+                {
+                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                }
+
+                var client = !string.IsNullOrEmpty(connectionString) ?
+                    new ServiceBusClient(connectionString) :
+                    new ServiceBusClient(settings.FullyQualifiedNamespace);
+                return settings.SubscriptionName != null ?
+                    client.CreateProcessor(settings.TopicName, settings.SubscriptionName, options) :
+                    client.CreateProcessor(settings.QueueName!, options);
+            }, requiresCredential: false);
+        }
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusProcessor, ServiceBusProcessorOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
     }
 }

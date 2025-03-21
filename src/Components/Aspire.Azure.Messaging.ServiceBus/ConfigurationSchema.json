@@ -114,6 +114,18 @@
                     "HealthCheckTopicName": {
                       "type": "string",
                       "description": "Name of the topic used by the health check. Mandatory to get health checks enabled."
+                    },
+                    "QueueName": {
+                      "type": "string",
+                      "description": "Name of the queue associated with the connection string."
+                    },
+                    "SubscriptionName": {
+                      "type": "string",
+                      "description": "Name of the subscription associated with the connection string."
+                    },
+                    "TopicName": {
+                      "type": "string",
+                      "description": "Name of the topic associated with the connection string."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure Service Bus."
