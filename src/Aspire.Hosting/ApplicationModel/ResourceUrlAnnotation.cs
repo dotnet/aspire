@@ -24,7 +24,7 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// <summary>
     /// The endpoint associated with this URL. Can be <c>null</c> if this URL is not associated with an endpoint.
     /// </summary>
-    public EndpointReference? Endpoint { get; set; }
+    public EndpointReference? Endpoint { get; init; }
 
     /// <summary>
     /// The display order the URL. Higher values mean sort higher in the list.
