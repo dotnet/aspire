@@ -29,9 +29,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
 var jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
