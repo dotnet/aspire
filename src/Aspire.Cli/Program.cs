@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
@@ -135,6 +135,11 @@ public class Program
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            
+            if (effectiveAppHostProjectFile is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
 
             var env = new Dictionary<string, string>();
 
@@ -253,7 +258,7 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    private static FileInfo UseOrFindAppHostProjectFile(FileInfo? projectFile)
+    private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
     {
         if (projectFile is not null)
         {
@@ -280,13 +285,14 @@ public class Program
             Debug.WriteLine(ex.Message);
             if (projectFilePaths.Length > 1)
             {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --project option was not specified and multiple *.csproj files were detected.[/]");
+                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and multiple *.csproj files were detected.[/]");
+                
             }
             else
             {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --project option was not specified and no *.csproj files were detected.[/]");
+                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and no *.csproj files were detected.[/]");
             }
-            return new FileInfo(Environment.CurrentDirectory);
+            return null;
         };
     }
 
@@ -313,6 +319,11 @@ public class Program
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
+            if (effectiveAppHostProjectFile is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
             var env = new Dictionary<string, string>();
 
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
@@ -479,7 +490,7 @@ public class Program
 
             if (newProjectExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
@@ -581,6 +592,11 @@ public class Program
 
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
                 var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+                
+                if (effectiveAppHostProjectFile is null)
+                {
+                    return ExitCodeConstants.FailedToFindProject;
+                }
 
                 var prerelease = parseResult.GetValue<bool>("--prerelease");
 
