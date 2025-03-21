@@ -154,12 +154,12 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
         <source>Grow column width</source>
-        <target state="new">Grow column width</target>
+        <target state="translated">Aumenta larghezza colonna</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResetAriaLabelText">
         <source>Reset column widths</source>
-        <target state="new">Reset column widths</target>
+        <target state="translated">Reimposta larghezze colonne</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeDiscreteLabel">
         <source>Column width</source>
-        <target state="new">Column width</target>
+        <target state="translated">Larghezza colonna</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
@@ -179,7 +179,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellShrinkAriaLabelText">
         <source>Shrink column width</source>
-        <target state="new">Shrink column width</target>
+        <target state="translated">Riduci larghezza colonna</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
@@ -199,7 +199,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSubmitAriaLabelText">
         <source>Set column widths</source>
-        <target state="new">Set column widths</target>
+        <target state="translated">Imposta larghezze colonne</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
