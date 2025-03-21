@@ -208,10 +208,10 @@ public sealed class ResourceEndpointHelpersTests
     public void GetEndpoints_SortOrder_Combinations()
     {
         var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
-            new("Zero-Https", new("https://localhost:8079"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
-            new("Zero-Http", new("http://localhost:8080"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
-            new("Positive", new("http://localhost:8082"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 1)),
-            new("Negative", new("http://localhost:8083"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, -1))
+            new("Zero-Https", new("https://localhost:8079"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
+            new("Zero-Http", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
+            new("Positive", new("http://localhost:8082"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 1)),
+            new("Negative", new("http://localhost:8083"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, -1))
         ]));
 
         Assert.Collection(endpoints,
