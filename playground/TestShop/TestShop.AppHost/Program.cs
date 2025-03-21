@@ -61,38 +61,8 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
-       // Add a path & name to all URLs
-       //.WithUrlPath("/shop", name: "Shopping Page")
-       // Add a URL to be displayed in the dashboard
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
-       // Sugar method for adding a URL
        .WithUrl("https://someotherplace.com/some-path", "Some other place")
-       // Update all URLs with a generated name
-       //.WithUrls(c =>
-       //{
-       //    var i = 1;
-       //    foreach (var url in c.Urls)
-       //    {
-       //        var suffix = url.Url.StartsWith("https://") ? " (secure)" : "";
-       //        url.DisplayText = $"Url {i}{suffix}";
-       //        i++;
-       //    }
-       //})
-       //// Hide all non-HTTPS endpoint URLs
-       //.WithUrls(c =>
-       //{
-       //    c.Urls.RemoveAll(u => u.Endpoint is not null && !u.Url.StartsWith("https://"));
-       //})
-       //// Set host-name for all URLs to the resource name (custom DNS/HOSTS scenario)
-       //.WithUrls(c =>
-       //{
-       //    foreach (var url in c.Urls)
-       //    {
-       //        url.Url = (new UriBuilder(url.Url) { Host = c.Resource.Name.ToLowerInvariant() }).ToString();
-       //    }
-       //})
-       //.WithEndpoint("http", c => c.DisplayProperties.DisplayName = $"TestShop UI ({c.UriScheme})")
-       //.WithEndpoint("https", c => c.DisplayProperties.DisplayName = $"TestShop UI ({c.UriScheme})")
        .WithReference(basketService)
        .WithReference(catalogService);
 

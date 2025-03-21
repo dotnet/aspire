@@ -687,11 +687,11 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Registers a callback to customize the URLs displayed for the resource.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="callback"></param>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The callback that will customize URLs for the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
@@ -703,11 +703,11 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Registers an async callback to customize the URLs displayed for the resource.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="callback"></param>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The async callback that will customize URLs for the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
         where T : IResource
@@ -719,12 +719,12 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds a URL to be displayed for the resource.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="url"></param>
-    /// <param name="displayText"></param>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
@@ -738,6 +738,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Registers a callback to customize the URL displayed for the endpoint with the specified name.
     /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="endpointName">The name of the endpoint to customize the URL for.</param>
     /// <param name="callback">The callback that will customize the URL.</param>
