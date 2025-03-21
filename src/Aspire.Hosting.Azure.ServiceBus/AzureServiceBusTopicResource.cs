@@ -39,10 +39,7 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Topic.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        Parent.IsEmulator
-        ? ReferenceExpression.Create($"{Parent.ConnectionStringExpression}EntityPath={TopicName}")
-        : ReferenceExpression.Create($"Endpoint={Parent.ConnectionStringExpression};EntityPath={TopicName}");
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(TopicName, null);
 
     /// <summary>
     /// ISO 8601 default message timespan to live value. This is the duration

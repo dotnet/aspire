@@ -39,8 +39,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Subscription.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression
-        => ReferenceExpression.Create($"{Parent.ConnectionStringExpression}/Subscriptions/{SubscriptionName}");
+    public ReferenceExpression ConnectionStringExpression => Parent.Parent.GetConnectionString(Parent.TopicName, SubscriptionName);
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when

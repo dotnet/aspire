@@ -46,14 +46,9 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? HealthCheckTopicName { get; set; }
 
     /// <summary>
-    /// Name of the queue associated with the connection string.
+    /// Name of the queue or topic associated with the connection string.
     /// </summary>
-    public string? QueueName { get; set; }
-
-    /// <summary>
-    /// Name of the topic associated with the connection string.
-    /// </summary>
-    public string? TopicName { get; set; }
+    public string? QueueOrTopicName { get; set; }
 
     /// <summary>
     /// Name of the subscription associated with the connection string.
@@ -150,16 +145,15 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 
         if (subscriptionsIndex > 0 && subscriptionsIndex + subscriptionsSegment.Length < entityPath.Length)
         {
-            TopicName = entityPath.Substring(0, subscriptionsIndex);
+            QueueOrTopicName = entityPath.Substring(0, subscriptionsIndex);
             SubscriptionName = entityPath.Substring(subscriptionsIndex + subscriptionsSegment.Length);
         }
         else
         {
             // Single valued entity paths can be either a queue or topic name. The
             // ServiceBus APIs are responsible for determining the type of entity
-            // so we set both properties here.
-            QueueName = entityPath;
-            TopicName = entityPath;
+            // when ServiceBusSender is constructed so we set that here.
+            QueueOrTopicName = entityPath;
         }
     }
 }

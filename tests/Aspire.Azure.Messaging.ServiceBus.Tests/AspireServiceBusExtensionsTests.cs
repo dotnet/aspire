@@ -210,7 +210,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedQueueName == null)
             {
-                settings.QueueName = "myqueue";
+                settings.QueueOrTopicName = "myqueue";
             }
         });
 
@@ -234,7 +234,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedQueueName == null)
             {
-                settings.QueueName = "myqueue";
+                settings.QueueOrTopicName = "myqueue";
             }
         });
 
@@ -258,12 +258,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedTopicName == null)
             {
-                // ServiceBus doesn't disambiguate between queue and topic names
-                // and our default is to use queue names so we have to clear out
-                // the queue name passed in from the connection string to override
-                // it with the topic name.
-                settings.QueueName = null;
-                settings.TopicName = "mytopic";
+                settings.QueueOrTopicName = "mytopic";
             }
         });
 
@@ -287,7 +282,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedTopicName == null)
             {
-                settings.TopicName = "mytopic";
+                settings.QueueOrTopicName = "mytopic";
                 settings.SubscriptionName = "mysub";
             }
         });
@@ -314,7 +309,7 @@ public class AspireServiceBusExtensionsTests
             {
                 if (expectedQueueName == null)
                 {
-                    settings.QueueName = "myqueue";
+                    settings.QueueOrTopicName = "myqueue";
                 }
             },
             builder =>
@@ -355,7 +350,7 @@ public class AspireServiceBusExtensionsTests
             {
                 if (expectedTopicName == null)
                 {
-                    settings.TopicName = "mytopic";
+                    settings.QueueOrTopicName = "mytopic";
                     settings.SubscriptionName = "mysub";
                 }
             },
@@ -468,7 +463,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedQueueName == null)
             {
-                settings.QueueName = "myqueue";
+                settings.QueueOrTopicName = "myqueue";
             }
         });
 
@@ -492,7 +487,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedQueueName == null)
             {
-                settings.QueueName = "myqueue";
+                settings.QueueOrTopicName = "myqueue";
             }
         });
 
@@ -516,7 +511,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedTopicName == null)
             {
-                settings.TopicName = "mytopic";
+                settings.QueueOrTopicName = "mytopic";
             }
         });
 
@@ -540,7 +535,7 @@ public class AspireServiceBusExtensionsTests
         {
             if (expectedTopicName == null)
             {
-                settings.TopicName = "mytopic";
+                settings.QueueOrTopicName = "mytopic";
                 settings.SubscriptionName = "mysub";
             }
         });
@@ -567,7 +562,7 @@ public class AspireServiceBusExtensionsTests
             {
                 if (expectedQueueName == null)
                 {
-                    settings.QueueName = "myqueue";
+                    settings.QueueOrTopicName = "myqueue";
                 }
             },
             builder =>
@@ -602,7 +597,7 @@ public class AspireServiceBusExtensionsTests
             {
                 if (expectedTopicName == null)
                 {
-                    settings.TopicName = "mytopic";
+                    settings.QueueOrTopicName = "mytopic";
                     settings.SubscriptionName = "mysub";
                 }
             },
@@ -672,7 +667,7 @@ public class AspireServiceBusExtensionsTests
 
         builder.AddAzureServiceBusReceiver("sb", settings =>
         {
-            settings.QueueName = "settingsqueue";
+            settings.QueueOrTopicName = "settingsqueue";
         });
 
         using var host = builder.Build();
@@ -701,10 +696,8 @@ public class AspireServiceBusExtensionsTests
         Assert.Equal("mytopic/Subscriptions/mysubscription", processor.EntityPath);
     }
 
-    [Theory]
-    [InlineData(null, null, null)]
-    [InlineData(null, "mytopic", null)]
-    public void ReceiverThrowsIfRequiredEntityPathMissing(string? queueName, string? topicName, string? subscriptionName)
+    [Fact]
+    public void ReceiverThrowsIfRequiredEntityPathMissing()
     {
         // Arrange
         var connectionString = "Endpoint=sb://aspireservicebustests.servicebus.windows.net;SharedAccessKeyName=fake;SharedAccessKey=fake";
@@ -715,20 +708,18 @@ public class AspireServiceBusExtensionsTests
 
         builder.AddAzureServiceBusReceiver(connectionName, settings =>
         {
-            settings.QueueName = queueName;
-            settings.TopicName = topicName;
-            settings.SubscriptionName = subscriptionName;
+            settings.QueueOrTopicName = null;
+            settings.SubscriptionName = null;
         });
 
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<ServiceBusReceiver>);
-        Assert.Equal($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
+        Assert.Equal($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    public void SenderThrowsIfRequiredEntityPathMissing(string? queueName, string? topicName)
+    [Fact]
+    public void SenderThrowsIfRequiredEntityPathMissing()
     {
         // Arrange
         var connectionString = "Endpoint=sb://aspireservicebustests.servicebus.windows.net;SharedAccessKeyName=fake;SharedAccessKey=fake";
@@ -739,20 +730,17 @@ public class AspireServiceBusExtensionsTests
 
         builder.AddAzureServiceBusSender("sb", settings =>
         {
-            settings.QueueName = queueName;
-            settings.TopicName = topicName;
+            settings.QueueOrTopicName = null;
         });
 
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<ServiceBusSender>);
-        Assert.Equal($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' in the '{configurationSectionName}' configuration section.", exception.Message);
+        Assert.Equal($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' in the '{configurationSectionName}' configuration section.", exception.Message);
     }
 
-    [Theory]
-    [InlineData(null, null, null)]
-    [InlineData(null, "mytopic", null)]
-    public void ProcessorThrowsIfRequiredEntityPathMissing(string? queueName, string? topicName, string? subscriptionName)
+    [Fact]
+    public void ProcessorThrowsIfRequiredEntityPathMissing()
     {
         // Arrange
         var connectionString = "Endpoint=sb://aspireservicebustests.servicebus.windows.net;SharedAccessKeyName=fake;SharedAccessKey=fake";
@@ -764,15 +752,14 @@ public class AspireServiceBusExtensionsTests
         // Act - Configure with the test parameters
         builder.AddAzureServiceBusProcessor("sb", settings =>
         {
-            settings.QueueName = queueName;
-            settings.TopicName = topicName;
-            settings.SubscriptionName = subscriptionName;
+            settings.QueueOrTopicName = null;
+            settings.SubscriptionName = null;
         });
 
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<ServiceBusProcessor>);
-        Assert.Equal($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
+        Assert.Equal($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
     }
 
     private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>

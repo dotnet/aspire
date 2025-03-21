@@ -194,13 +194,6 @@ public static class AspireServiceBusExtensions
         where TClient : class
         where TOptions : class
     {
-        protected override IAzureClientBuilder<TClient, TOptions> AddClient(
-            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
-            string connectionName, string configurationSectionName)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override IHealthCheck CreateHealthCheck(TClient client, AzureMessagingServiceBusSettings settings)
         {
             return !string.IsNullOrEmpty(settings.HealthCheckQueueName)
@@ -234,11 +227,6 @@ public static class AspireServiceBusExtensions
 
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
             => !settings.DisableTracing;
-
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TClient, TOptions> clientBuilder, IConfiguration configuration)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class ServiceBusClientComponent : ServiceBusComponent<ServiceBusClient, ServiceBusClientOptions>
@@ -283,15 +271,15 @@ public static class AspireServiceBusExtensions
                     throw new InvalidOperationException($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
                 }
 
-                if (string.IsNullOrEmpty(settings.QueueName) && string.IsNullOrEmpty(settings.TopicName))
+                if (string.IsNullOrEmpty(settings.QueueOrTopicName))
                 {
-                    throw new InvalidOperationException($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A ServiceBusSender could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' in the '{configurationSectionName}' configuration section.");
                 }
 
                 var client = !string.IsNullOrEmpty(connectionString) ?
                     new ServiceBusClient(connectionString) :
                     new ServiceBusClient(settings.FullyQualifiedNamespace);
-                return client.CreateSender(settings.QueueName ?? settings.TopicName!, options);
+                return client.CreateSender(settings.QueueOrTopicName!, options);
             }, requiresCredential: false);
         }
 
@@ -317,17 +305,17 @@ public static class AspireServiceBusExtensions
                     throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
                 }
 
-                if (string.IsNullOrEmpty(settings.QueueName) && (string.IsNullOrEmpty(settings.TopicName) || string.IsNullOrEmpty(settings.SubscriptionName)))
+                if (string.IsNullOrEmpty(settings.QueueOrTopicName) && string.IsNullOrEmpty(settings.SubscriptionName))
                 {
-                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
                 }
 
                 var client = !string.IsNullOrEmpty(connectionString) ?
                     new ServiceBusClient(connectionString) :
                     new ServiceBusClient(settings.FullyQualifiedNamespace);
                 return settings.SubscriptionName != null ?
-                    client.CreateReceiver(settings.TopicName, settings.SubscriptionName, options) :
-                    client.CreateReceiver(settings.QueueName!, options);
+                    client.CreateReceiver(settings.QueueOrTopicName, settings.SubscriptionName, options) :
+                    client.CreateReceiver(settings.QueueOrTopicName, options);
             }, requiresCredential: false);
         }
 
@@ -353,17 +341,17 @@ public static class AspireServiceBusExtensions
                     throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
                 }
 
-                if (string.IsNullOrEmpty(settings.QueueName) && (string.IsNullOrEmpty(settings.TopicName) || string.IsNullOrEmpty(settings.SubscriptionName)))
+                if (string.IsNullOrEmpty(settings.QueueOrTopicName) && string.IsNullOrEmpty(settings.SubscriptionName))
                 {
-                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueName' or 'TopicName' and 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
                 }
 
                 var client = !string.IsNullOrEmpty(connectionString) ?
                     new ServiceBusClient(connectionString) :
                     new ServiceBusClient(settings.FullyQualifiedNamespace);
                 return settings.SubscriptionName != null ?
-                    client.CreateProcessor(settings.TopicName, settings.SubscriptionName, options) :
-                    client.CreateProcessor(settings.QueueName!, options);
+                    client.CreateProcessor(settings.QueueOrTopicName, settings.SubscriptionName, options) :
+                    client.CreateProcessor(settings.QueueOrTopicName, options);
             }, requiresCredential: false);
         }
 

@@ -39,10 +39,7 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Queue.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        Parent.IsEmulator
-        ? ReferenceExpression.Create($"{Parent.ConnectionStringExpression}EntityPath={QueueName}")
-        : ReferenceExpression.Create($"Endpoint={Parent.ConnectionStringExpression};EntityPath={QueueName}");
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(QueueName, null);
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
