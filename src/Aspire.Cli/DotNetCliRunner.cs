@@ -24,7 +24,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
             streamsCallback: null,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken);
     }
 
     public async Task<int> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken)
@@ -48,7 +48,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             streamsCallback: null,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken);
     }
 
     public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             streamsCallback: null,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken);
     }
 
     internal static string GetBackchannelSocketPath()
@@ -133,16 +133,16 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                     process.StandardOutput,
                     "stdout",
                     process,
-                    cancellationToken).ConfigureAwait(false);
-                }, cancellationToken).ConfigureAwait(false);
+                    cancellationToken);
+                }, cancellationToken);
 
             var pendingStderrStreamForwarder = Task.Run(async () => {
                 await ForwardStreamToLoggerAsync(
                     process.StandardError,
                     "stderr",
                     process,
-                    cancellationToken).ConfigureAwait(false);
-                }, cancellationToken).ConfigureAwait(false);
+                    cancellationToken);
+                }, cancellationToken);
         }
 
         if (!started)
@@ -161,7 +161,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
         logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellationToken);
 
         if (!process.HasExited)
         {
@@ -185,7 +185,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
             while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
             {
-                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                var line = await reader.ReadLineAsync(cancellationToken);
                 logger.LogDebug(
                     "dotnet({ProcessId}) {Identifier}: {Line}",
                     process.Id,
@@ -221,7 +221,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 logger.LogTrace(ex, "Failed to connect to AppHost backchannel (attempt {Attempt})", connectionAttempts);
             }
 
-        } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
+        } while (await timer.WaitForNextTickAsync(cancellationToken));
     }
 
     public async Task<int> AddPackageAsync(FileInfo projectFilepath, string packageName, string packageVersion, CancellationToken cancellationToken)
@@ -243,7 +243,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             workingDirectory: projectFilepath.Directory!,
             backchannelCompletionSource: null,
             streamsCallback: (_, _, _) => { },
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken);
 
         if (result != 0)
         {
@@ -296,7 +296,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 stdout = output.ReadToEnd();
                 stderr = output.ReadToEnd();
             },
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken);
 
         if (result != 0)
         {

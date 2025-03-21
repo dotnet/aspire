@@ -255,7 +255,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                     Assert.NotNull(requestContext.Endpoint);
                     Assert.NotNull(requestContext.HttpClient);
                     Assert.NotNull(requestContext.Request);
-                    
+
                     callbackCalled = true;
                     return Task.CompletedTask;
                 });
@@ -280,6 +280,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
@@ -322,6 +323,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
@@ -384,7 +386,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        
+
         builder.Configuration["CODESPACES"] = "false";
 
         var enableCommand = false;

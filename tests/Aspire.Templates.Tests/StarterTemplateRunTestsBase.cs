@@ -57,7 +57,6 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
     [InlineData("http://")]
     [InlineData("https://")]
     [RequiresPlaywright]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8191")]
     public async Task ApiServiceWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();

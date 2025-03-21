@@ -104,22 +104,13 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourceActionTracesText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collapse child resources.
         /// </summary>
         public static string ResourceCollapseAllChildren {
             get {
                 return ResourceManager.GetString("ResourceCollapseAllChildren", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to View options.
-        /// </summary>
-        public static string ResourcesChangeViewOptions {
-            get {
-                return ResourceManager.GetString("ResourcesChangeViewOptions", resourceCulture);
             }
         }
         
@@ -210,6 +201,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesActionsColumnHeader {
             get {
                 return ResourceManager.GetString("ResourcesActionsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View options.
+        /// </summary>
+        public static string ResourcesChangeViewOptions {
+            get {
+                return ResourceManager.GetString("ResourcesChangeViewOptions", resourceCulture);
             }
         }
         
@@ -399,6 +399,33 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesFiltered {
             get {
                 return ResourceManager.GetString("ResourcesFiltered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reset.
+        /// </summary>
+        public static string ResourcesGraphResetButton {
+            get {
+                return ResourceManager.GetString("ResourcesGraphResetButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Zoom in.
+        /// </summary>
+        public static string ResourcesGraphZoomInButton {
+            get {
+                return ResourceManager.GetString("ResourcesGraphZoomInButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Zoom out.
+        /// </summary>
+        public static string ResourcesGraphZoomOutButton {
+            get {
+                return ResourceManager.GetString("ResourcesGraphZoomOutButton", resourceCulture);
             }
         }
         

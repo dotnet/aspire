@@ -141,7 +141,8 @@ public static class AzurePostgresExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -305,6 +306,13 @@ public static class AzurePostgresExtensions
             containerResource.PasswordParameter = azureResource.PasswordParameter;
         }
 
+        // remove role assignment annotations when using password authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
+
         return builder;
     }
 
@@ -445,34 +453,56 @@ public static class AzurePostgresExtensions
                 };
             }
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
-
-            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.BicepIdentifier}_admin")
+            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
             {
-                Parent = postgres,
-                Name = principalIdParameter,
-                PrincipalType = principalTypeParameter,
-                PrincipalName = principalNameParameter,
-            };
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+                infrastructure.Add(principalNameParameter);
 
-            // This is a workaround for a bug in the API that requires the parent to be fully resolved
-            admin.DependsOn.Add(postgres);
-            foreach (var firewall in infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
-            {
-                admin.DependsOn.Add(firewall);
+                var admin = AddActiveDirectoryAdministrator(infrastructure, postgres, principalIdParameter, principalTypeParameter, principalNameParameter);
+
+                // This is a workaround for a bug in the API that requires the parent to be fully resolved
+                admin.DependsOn.Add(postgres);
+                foreach (var firewall in infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
+                {
+                    admin.DependsOn.Add(firewall);
+                }
+
+                infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
+                });
             }
-            infrastructure.Add(admin);
-
-            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            else
             {
-                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
-            });
+                // When the AppliedRoleAssignmentsAnnotation is not present, it means the role assignment will be created externally.
+                // In this case, we don't know the principalName, so we can't add it to the connection string.
+                // The user name will need to come from the application code.
+                infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName}")
+                });
+            }
         }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name });
+    }
+
+    internal static PostgreSqlFlexibleServerActiveDirectoryAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, PostgreSqlFlexibleServer postgres, BicepValue<Guid> principalId, BicepValue<PostgreSqlFlexibleServerPrincipalType> principalType, BicepValue<string> principalName)
+    {
+        var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.BicepIdentifier}_admin")
+        {
+            Parent = postgres,
+            Name = principalId,
+            PrincipalType = principalType,
+            PrincipalName = principalName,
+        };
+        infra.Add(admin);
+        return admin;
     }
 
     private static ParameterResource CreateDefaultUserNameParameter<T>(IResourceBuilder<T> builder) where T : AzureBicepResource

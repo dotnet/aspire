@@ -244,17 +244,17 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningAcknowledge">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">값 표시</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="new">Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</target>
+        <target state="translated">값을 표시할지 확인하세요. 나중에 텍스트 시각화 도구를 열면 모든 값이 자동으로 표시됩니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">
         <source>Sensitive value hidden</source>
-        <target state="new">Sensitive value hidden</target>
+        <target state="translated">중요한 값 숨김</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

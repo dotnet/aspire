@@ -85,7 +85,8 @@ public static class AzureSqlExtensions
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
-        var azureSqlServer = builder.AddResource(resource);
+        var azureSqlServer = builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
     }
@@ -203,6 +204,10 @@ public static class AzureSqlExtensions
         var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
         infrastructure.Add(principalNameParameter);
 
+        var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
+        var addAdminRole = azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _) ||
+            azureResource.InnerResource is not null; // the obsolete AsAzureSqlDatabase use this as well, ensure we generate the role assignment.
+
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
         {
@@ -212,35 +217,35 @@ public static class AzureSqlExtensions
         },
         (infrastructure) =>
         {
-            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+            var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                Administrators = new ServerExternalAdministrator()
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+
+            if (addAdminRole)
+            {
+                sqlServer.Administrators = new ServerExternalAdministrator()
                 {
                     AdministratorType = SqlAdministratorType.ActiveDirectory,
                     IsAzureADOnlyAuthenticationEnabled = true,
                     Sid = principalIdParameter,
                     Login = principalNameParameter,
                     TenantId = BicepFunction.GetSubscription().TenantId
-                },
-                Version = "12.0",
-                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
+                };
+            }
+
+            return sqlServer;
         });
 
         // If the resource is an existing resource, we model the administrator access
         // for the managed identity as an "edge" between the parent SqlServer resource
         // and a custom SqlServerAzureADAdministrator resource.
-        if (sqlServer.IsExistingResource)
+        if (addAdminRole && sqlServer.IsExistingResource)
         {
-            var admin = new SqlServerAzureADAdministratorWorkaround($"{sqlServer.BicepIdentifier}_admin")
-            {
-                ParentOverride = sqlServer,
-                LoginOverride = principalNameParameter,
-                SidOverride = principalIdParameter
-            };
-            infrastructure.Add(admin);
+            AddActiveDirectoryAdministrator(infrastructure, sqlServer, principalIdParameter, principalNameParameter);
         }
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
@@ -285,6 +290,21 @@ public static class AzureSqlExtensions
         }
 
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+    }
+
+    internal static SqlServerAzureADAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, SqlServer sqlServer, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    {
+        var admin = new SqlServerAzureADAdministratorWorkaround($"{sqlServer.BicepIdentifier}_admin")
+        {
+            ParentOverride = sqlServer,
+            LoginOverride = principalName,
+            SidOverride = principalId
+        };
+        infra.Add(admin);
+        return admin;
     }
 
     /// <remarks>

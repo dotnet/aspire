@@ -237,6 +237,109 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
     }
 
     [Fact]
+    public void AddCosmosDbContext_SetsDatabaseWhenPresentInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};");
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => capturedSettings = settings);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(databaseName, capturedSettings.DatabaseName);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", databaseName);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseNameInSettings_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => settings.DatabaseName = databaseName);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos"));
+
+        Assert.Contains("A DbContext could not be configured with this AddCosmosDbContext overload.", exception.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", "testdb");
+
+        using var host = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+
+        Assert.Contains("A DbContext could not be configured.", exception.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_ThrowWhenDatabaseNotInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos"));
+        Assert.Contains("A DbContext could not be configured with this AddCosmosDbContext overload.", exception.Message);
+    }
+
+    [Fact]
     public void AddAzureCosmosClient_FailsWithError()
     {
         var e = Assert.Throws<ArgumentException>(() =>

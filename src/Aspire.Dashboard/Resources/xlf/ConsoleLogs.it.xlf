@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
-        <target state="new">Show timestamps</target>
+        <target state="translated">Mostra timestamp</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShowUtc">
         <source>UTC timestamps</source>
-        <target state="new">UTC timestamps</target>
+        <target state="translated">Timestamp UTC</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

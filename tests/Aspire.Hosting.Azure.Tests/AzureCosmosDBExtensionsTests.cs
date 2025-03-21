@@ -2,14 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureCosmosDBExtensionsTests
+public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData(null)]
@@ -89,7 +92,7 @@ public class AzureCosmosDBExtensionsTests
     }
 
     [Fact]
-    public void AzureCosmosDBHasCorrectConnectionStrings()
+    public void AzureCosmosDBHasCorrectConnectionStrings_ForAccountEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -97,11 +100,26 @@ public class AzureCosmosDBExtensionsTests
         var db1 = cosmos.AddCosmosDatabase("db1");
         var container1 = db1.AddContainer("container1", "id");
 
-        // database and container should have the same connection string as the cosmos account, for now.
-        // In the future, we can add the database and container info to the connection string.
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.outputs.connectionString}", container1.Resource.ConnectionStringExpression.ValueExpression);
+        // Endpoint-based connection info gets passed as a connection string to
+        // support setting the correct properties on child resources.
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureCosmosDBHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        Assert.DoesNotContain(";Database=db1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.DoesNotContain(";Database=db1;Container=container1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -124,14 +142,104 @@ public class AzureCosmosDBExtensionsTests
         ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__DatabaseName", k),
             k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__DatabaseName", k),
             k => Assert.Equal("db1__accountEndpoint", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__DatabaseName", k),
             k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__DatabaseName", k),
             k => Assert.Equal("container1__accountEndpoint", k));
     }
+
+    /// <summary>
+    /// Test both with and without ACA infrastructure because the role assignments
+    /// are handled differently between the two. This ensures that the bicep is generated
+    /// consistently regardless of the infrastructure used in RunMode.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureCosmosDB(bool useAcaInfrastructure)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppsInfrastructure();
+        }
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        builder.AddContainer("api", "myimage")
+            .WithReference(cosmos);
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource, skipPreparer: true);
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
+              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
+              location: location
+              properties: {
+                locations: [
+                  {
+                    locationName: location
+                    failoverPriority: 0
+                  }
+                ]
+                consistencyPolicy: {
+                  defaultConsistencyLevel: 'Session'
+                }
+                databaseAccountOfferType: 'Standard'
+                disableLocalAuth: true
+              }
+              kind: 'GlobalDocumentDB'
+              tags: {
+                'aspire-resource-name': 'cosmos'
+              }
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+
+            output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

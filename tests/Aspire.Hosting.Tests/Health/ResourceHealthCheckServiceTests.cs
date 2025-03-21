@@ -563,6 +563,100 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync().DefaultTimeout();
     }
 
+    [Fact]
+    public async Task ResourceNotHealthyIfResourceReadyEventIsRunning()
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // Create a healthcheck that waits before returning healthy
+        builder.Services.AddHealthChecks().AddAsyncCheck("healthcheck_a", async () =>
+        {
+            await tcs.Task;
+            return HealthCheckResult.Healthy();
+        });
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        await using var app = await builder.BuildAsync().DefaultTimeout();
+
+        await app.StartAsync().DefaultTimeout();
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        }).DefaultTimeout();
+
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        // Resource is unhealthy because ResourceReadyEvent is running.
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+
+        // Allow health check to complete successfully
+        tcs.SetResult();
+
+        // Resource is now healthy
+        var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task ResourceRemainsUnhealthyIfResourceReadyEventFails()
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddHealthChecks().AddAsyncCheck("healthcheck_a", async () =>
+        {
+            await tcs.Task;
+            return HealthCheckResult.Healthy();
+        });
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        await using var app = await builder.BuildAsync().DefaultTimeout();
+
+        await app.StartAsync().DefaultTimeout();
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        }).DefaultTimeout();
+
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
+        // Resource is unhealthy because ResourceReadyEvent is running.
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+
+        // Fail the ResourceReadyEvent
+        tcs.SetException(new InvalidOperationException("ResourceReadyEvent failed"));
+
+        // Resource is still unhealthy
+        var unhealthyEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Unhealthy).DefaultTimeout();
+        Assert.Equal(HealthStatus.Unhealthy, unhealthyEvent.Snapshot.HealthStatus);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
     private sealed class ParentResource(string name) : Resource(name)
     {
     }

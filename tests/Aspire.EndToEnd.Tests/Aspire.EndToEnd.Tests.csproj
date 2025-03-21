@@ -5,6 +5,8 @@
 
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
+    <!-- no docker support on GHA/windows yet -->
+    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <!-- no docker support on helix/windows yet -->
