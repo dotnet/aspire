@@ -75,13 +75,19 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureNpgsqlSettings>? configure = null, string? key = null)
     {
+        void Configure(AzureNpgsqlSettings settings)
+        {
+            configure?.Invoke(settings);
+            settings.Credential = new FakeTokenCredential();
+        };
+
         if (key is null)
         {
-            builder.AddAzureNpgsqlDataSource("npgsql", configure);
+            builder.AddAzureNpgsqlDataSource("npgsql", Configure);
         }
         else
         {
-            builder.AddKeyedAzureNpgsqlDataSource(key, configure);
+            builder.AddKeyedAzureNpgsqlDataSource(key, Configure);
         }
     }
 

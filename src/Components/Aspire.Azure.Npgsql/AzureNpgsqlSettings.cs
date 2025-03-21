@@ -9,7 +9,7 @@ namespace Aspire.Azure.Npgsql;
 /// <summary>
 /// Provides the client configuration settings for connecting to an Azure Database for PostgreSQL using Npgsql.
 /// </summary>
-public sealed class AzureNpgsqlSettings : NpgsqlSettings
+public sealed class AzureNpgsqlSettings : BaseNpgsqlSettings
 {
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Azure Database for PostgreSQL namespace.

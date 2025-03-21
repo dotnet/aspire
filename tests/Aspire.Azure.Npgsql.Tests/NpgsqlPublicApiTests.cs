@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Npgsql;
+using Aspire.Azure.Npgsql.Tests;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -14,7 +16,7 @@ public class NpgsqlPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "npgsql";
 
-        var action = () => builder.AddNpgsqlDataSource(connectionName);
+        var action = () => builder.AddAzureNpgsqlDataSource(connectionName, configureSettings: ConfigureTokenCredentials);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -28,7 +30,7 @@ public class NpgsqlPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddNpgsqlDataSource(connectionName);
+        var action = () => builder.AddAzureNpgsqlDataSource(connectionName, configureSettings: ConfigureTokenCredentials);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -42,7 +44,7 @@ public class NpgsqlPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "npgsql";
 
-        var action = () => builder.AddKeyedNpgsqlDataSource(name);
+        var action = () => builder.AddKeyedAzureNpgsqlDataSource(name, configureSettings: ConfigureTokenCredentials);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -56,11 +58,16 @@ public class NpgsqlPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedNpgsqlDataSource(name);
+        var action = () => builder.AddKeyedAzureNpgsqlDataSource(name, configureSettings: ConfigureTokenCredentials);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    private void ConfigureTokenCredentials(AzureNpgsqlSettings settings)
+    {
+        settings.Credential = new FakeTokenCredential();
     }
 }

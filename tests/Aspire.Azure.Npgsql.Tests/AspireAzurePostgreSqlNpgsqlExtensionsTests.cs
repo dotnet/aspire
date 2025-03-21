@@ -24,15 +24,13 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
         ]);
 
-        var credential = new FakeTokenCredential();
-
         if (useKeyed)
         {
-            builder.AddKeyedAzureNpgsqlDataSource("npgsql", settings => settings.Credential = credential);
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials);
         }
         else
         {
-            builder.AddAzureNpgsqlDataSource("npgsql", settings => settings.Credential = credential);
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials);
         }
 
         using var host = builder.Build();
@@ -54,7 +52,12 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", "unused")
         ]);
 
-        static void SetConnectionString(AzureNpgsqlSettings settings) => settings.ConnectionString = ConnectionStringWithUsername;
+        void SetConnectionString(AzureNpgsqlSettings settings)
+        {
+            settings.ConnectionString = ConnectionStringWithUsername;
+            ConfigureTokenCredentials(settings);
+        }
+
         if (useKeyed)
         {
             builder.AddKeyedAzureNpgsqlDataSource("npgsql", SetConnectionString);
@@ -89,11 +92,11 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureNpgsqlDataSource("npgsql");
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials);
         }
         else
         {
-            builder.AddAzureNpgsqlDataSource("npgsql");
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials);
         }
 
         using var host = builder.Build();
@@ -121,11 +124,11 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureDataSourceBuilder: configureDataSourceBuilder);
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials, configureDataSourceBuilder: configureDataSourceBuilder);
         }
         else
         {
-            builder.AddAzureNpgsqlDataSource("npgsql", configureDataSourceBuilder: configureDataSourceBuilder);
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: ConfigureTokenCredentials, configureDataSourceBuilder: configureDataSourceBuilder);
         }
 
         using var host = builder.Build();
@@ -146,9 +149,9 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql3", "Host=localhost3;Database=test_aspire_npgsql"),
         ]);
 
-        builder.AddAzureNpgsqlDataSource("npgsql1");
-        builder.AddKeyedAzureNpgsqlDataSource("npgsql2");
-        builder.AddKeyedAzureNpgsqlDataSource("npgsql3");
+        builder.AddAzureNpgsqlDataSource("npgsql1", configureSettings: ConfigureTokenCredentials);
+        builder.AddKeyedAzureNpgsqlDataSource("npgsql2", configureSettings: ConfigureTokenCredentials);
+        builder.AddKeyedAzureNpgsqlDataSource("npgsql3", configureSettings: ConfigureTokenCredentials);
 
         using var host = builder.Build();
 
@@ -163,5 +166,10 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
         Assert.Contains("localhost1", connection1.ConnectionString);
         Assert.Contains("localhost2", connection2.ConnectionString);
         Assert.Contains("localhost3", connection3.ConnectionString);
+    }
+
+    private void ConfigureTokenCredentials(AzureNpgsqlSettings settings)
+    {
+        settings.Credential = new FakeTokenCredential();
     }
 }

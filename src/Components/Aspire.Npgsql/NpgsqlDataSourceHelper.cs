@@ -19,7 +19,7 @@ internal static class NpgsqlDataSourceHelper
         string healthCheckPrefix,
         Func<IHostApplicationBuilder, string, TSettings> createSettings,
         Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder,
-        Action<IHostApplicationBuilder, TSettings, string, object?, Action<NpgsqlDataSourceBuilder>?> registerNpgsqlServices) where TSettings : NpgsqlSettings, new()
+        Action<IHostApplicationBuilder, TSettings, string, object?, Action<NpgsqlDataSourceBuilder>?> registerNpgsqlServices) where TSettings : BaseNpgsqlSettings, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
