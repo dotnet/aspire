@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -66,6 +68,33 @@ public class WithUrlsTests
         await app.StartAsync();
 
         await tcs.Task;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlsProvidesLoggerInstanceOnCallbackContextAllocated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        ILogger logger = NullLogger.Instance;
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithUrls(c => logger = c.Logger);
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+
+        await tcs.Task;
+
+        Assert.NotNull(logger);
+        Assert.True(logger is not NullLogger);
 
         await app.StopAsync();
     }
@@ -224,6 +253,35 @@ public class WithUrlsTests
             && u.DisplayText == "Link Text"
             && u.Endpoint?.EndpointName == "test"
             && u.DisplayOrder == 1000);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlForEndpointDoesNotThrowOrCallCallbackIfEndpointNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var called = false;
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrlForEndpoint("non-existant", u =>
+            {
+                called = true;
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        Assert.False(called);
 
         await app.StopAsync();
     }

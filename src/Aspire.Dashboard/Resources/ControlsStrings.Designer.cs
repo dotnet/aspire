@@ -754,6 +754,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No endpoints.
+        /// </summary>
+        public static string ResourceGraphNoEndpoints {
+            get {
+                return ResourceManager.GetString("ResourceGraphNoEndpoints", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Health checks.
         /// </summary>
         public static string ResourceHealthChecksHeader {

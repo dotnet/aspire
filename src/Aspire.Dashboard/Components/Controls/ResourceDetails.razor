@@ -64,7 +64,6 @@
                         @FilteredUrls.Count()
                     </FluentBadge>
                 </div>
-
                 <FluentDataGrid TGridItem="DisplayedUrl"
                                 ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
                                 Items="@FilteredUrls"
@@ -75,20 +74,20 @@
                                 ResizeType="DataGridResizeType.Discrete"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
-                                GridTemplateColumns="1.5fr 1.5fr"
+                                GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
-                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
-                                   Value="@context.Name"
-                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && context.Name != "-")"
-                                   HighlightText="@_filter" />
-                    </AspireTemplateColumn>
                     <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkColumnHeader)]">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkColumnHeader)]"
                                    Value="@context.OriginalUrlString"
                                    ValueTemplate="@(_ => RenderUrlValue(context, _filter))"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                                <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
+                                   Value="@context.Name"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && context.Name != "-")"
                                    HighlightText="@_filter" />
                     </AspireTemplateColumn>
                 </FluentDataGrid>
@@ -289,7 +288,7 @@
         {
             if (highlighting)
             {
-                return@<FluentHighlighter HighlightedText="@filter" Text="@vm.Text" />;
+                return @<FluentHighlighter HighlightedText="@filter" Text="@vm.Text" />;
             }
             return @<span>@vm.Text</span>;
         }
@@ -298,7 +297,7 @@
         {
             if (highlighting)
             {
-                return@<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
+                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
             }
             return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
         }
@@ -307,7 +306,7 @@
         {
             if (highlighting)
             {
-                return@<a href="@vm.Url" title="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Text" /></a>;
+                return @<a href="@vm.Url" title="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Text" /></a>;
             }
             return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;
         }

@@ -469,4 +469,7 @@
   <data name="LinkColumnHeader" xml:space="preserve">
     <value>Link</value>
   </data>
+  <data name="ResourceGraphNoEndpoints" xml:space="preserve">
+    <value>No endpoints</value>
+  </data>
 </root>

@@ -7,8 +7,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// 
+/// Represents a callback context for resource URLs.
 /// </summary>
+/// <param name="executionContext">The execution context.</param>
+/// <param name="resource">The resource.</param>
+/// <param name="urls">The URLs for the resource.</param>
+/// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
 public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext executionContext, IResource resource, List<ResourceUrlAnnotation>? urls = null, CancellationToken cancellationToken = default)
 {
     /// <summary>
@@ -22,12 +26,12 @@ public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext 
     public List<ResourceUrlAnnotation> Urls { get; } = urls ?? [];
 
     /// <summary>
-    /// Gets the CancellationToken associated with the callback context.
+    /// Gets the <see cref="CancellationToken"/> associated with the callback context.
     /// </summary>
     public CancellationToken CancellationToken { get; } = cancellationToken;
 
     /// <summary>
-    /// An optional logger to use for logging.
+    /// A logger instance to use for logging.
     /// </summary>
     public ILogger Logger { get; set; } = NullLogger.Instance;
 

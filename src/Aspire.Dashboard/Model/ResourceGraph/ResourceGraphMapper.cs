@@ -82,7 +82,7 @@ public static class ResourceGraphMapper
         var text = endpoint?.Url;
         if (string.IsNullOrEmpty(text))
         {
-            return "No endpoints";
+            return ControlsStrings.ResourceGraphNoEndpoints;
         }
 
         if (Uri.TryCreate(text, UriKind.Absolute, out var uri))

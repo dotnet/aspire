@@ -8,9 +8,6 @@ namespace Aspire.Dashboard.Model;
 
 internal static class ResourceUrlHelpers
 {
-    /// <summary>
-    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list of URLs without duplicates.
-    /// </summary>
     public static List<DisplayedUrl> GetUrls(ResourceViewModel resource, bool includeInternalUrls = false, bool includeNonEndpointUrls = false)
     {
         var urls = new List<DisplayedUrl>(resource.Urls.Length);
