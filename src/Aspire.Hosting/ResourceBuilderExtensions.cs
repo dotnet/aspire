@@ -692,7 +692,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="builder"></param>
     /// <param name="callback"></param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
     {
@@ -707,16 +707,58 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="builder"></param>
+    /// <param name="callback"></param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
     /// <param name="url"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? name = null)
+    /// <param name="displayText"></param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
 
-        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, Name = name })));
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, DisplayText = displayText })));
+    }
+
+    /// <summary>
+    /// Registers a callback to customize the URL displayed for the endpoint with the specified name.
+    /// </summary>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to customize the URL for.</param>
+    /// <param name="callback">The callback that will customize the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
+        where T : IResource
+    {
+        builder.WithUrls(context =>
+        {
+            var urlForEndpoint = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == endpointName);
+            if (urlForEndpoint is not null)
+            {
+                callback(urlForEndpoint);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to customize endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
     }
 
     /// <summary>

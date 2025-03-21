@@ -51,7 +51,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _targetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
-        DisplayProperties = new EndpointDisplayProperties();
     }
 
     /// <summary>
@@ -131,11 +130,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     /// <remarks>Defaults to <c>true</c>.</remarks>
     public bool IsProxied { get; set; } = true;
-
-    /// <summary>
-    /// Display properties of the endpoint to be displayed in UI.
-    /// </summary>
-    public EndpointDisplayProperties DisplayProperties { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.

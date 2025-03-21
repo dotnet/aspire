@@ -124,8 +124,8 @@ message EnvironmentVariable {
 }
 
 message Url {
-    // The name of the url
-    string name = 1;
+    // The name of endpoint associated with the url
+    optional string endpoint_name = 1;
     // The uri of the url. Format is scheme://host:port/{*path}
     string full_url = 2;
     // Determines if this url shows up in the details view only by default.

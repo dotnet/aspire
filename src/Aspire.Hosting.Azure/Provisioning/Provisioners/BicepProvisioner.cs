@@ -80,7 +80,7 @@ internal sealed class BicepProvisioner(
             ResourceIdentifier.TryParse(deploymentId, out var id) &&
             id is not null)
         {
-            portalUrls.Add(new(Name: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
+            portalUrls.Add(new(EndpointName: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -262,7 +262,7 @@ internal sealed class BicepProvisioner(
             return state with
             {
                 State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
-                Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
+                Urls = [.. state.Urls, new(EndpointName: "deployment", Url: url, IsInternal: false)],
             };
         })
         .ConfigureAwait(false);

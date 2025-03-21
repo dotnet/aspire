@@ -624,7 +624,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false, includeNonEndpointUrls: true);
     }
 
     private bool HasAnyChildResources()

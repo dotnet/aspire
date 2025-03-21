@@ -11,7 +11,7 @@ internal static class ResourceEndpointHelpers
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false, bool includeNonEndpointUrls = false)
     {
         var endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
 
@@ -24,9 +24,14 @@ internal static class ResourceEndpointHelpers
                     continue;
                 }
 
+                if (!includeNonEndpointUrls && string.IsNullOrEmpty(url.EndpointName))
+                {
+                    continue;
+                }
+
                 endpoints.Add(new DisplayedEndpoint
                 {
-                    Name = url.Name,
+                    Name = url.EndpointName ?? "",
                     Address = url.Url.Host,
                     Port = url.Url.Port,
                     Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,

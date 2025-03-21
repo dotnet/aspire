@@ -174,11 +174,11 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <summary>
 /// A snapshot of the url.
 /// </summary>
-/// <param name="Name">Name of the url.</param>
+/// <param name="EndpointName">Name of the endpoint associated with the url.</param>
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
-public sealed record UrlSnapshot(string Name, string Url, bool IsInternal)
+public sealed record UrlSnapshot(string? EndpointName, string Url, bool IsInternal)
 {
     /// <summary>
     /// The UI display properties for the url.
@@ -193,9 +193,9 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal)
     /// </remarks>
     public bool IsInactive { get; init; }
 
-    internal void Deconstruct(out string name, out string url, out bool isInternal, out bool isInactive)
+    internal void Deconstruct(out string? name, out string url, out bool isInternal, out bool isInactive)
     {
-        name = Name;
+        name = EndpointName;
         url = Url;
         isInternal = IsInternal;
         isInactive = IsInactive;

@@ -482,7 +482,7 @@ public static class ProjectResourceBuilderExtensions
                                         {
                                             // Launch URL is relative so update the URL to use the launchUrl as path/query
                                             var baseUri = new Uri(url.Url);
-                                            url.Url = (new Uri(baseUri, launchUri.PathAndQuery)).ToString();
+                                            url.Url = (new Uri(baseUri, launchUri)).ToString();
                                         }
                                     }
                                 }

@@ -102,11 +102,6 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
 
-    /// <summary>
-    /// Gets the display properties for this endpoint.
-    /// </summary>
-    public EndpointDisplayProperties DisplayProperties => EndpointAnnotation.DisplayProperties;
-
     internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
