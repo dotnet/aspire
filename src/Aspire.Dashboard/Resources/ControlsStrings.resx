@@ -469,4 +469,7 @@
   <data name="ResumeButtonTitle" xml:space="preserve">
     <value>Resume incoming data</value>
   </data>
+  <data name="ClearSignalsButtonTitle" xml:space="preserve">
+    <value>Remove data</value>
+  </data>
 </root>

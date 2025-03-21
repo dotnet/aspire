@@ -722,5 +722,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResumeButtonTitle", resourceCulture);
             }
         }
+        
+        public static string ClearSignalsButtonTitle {
+            get {
+                return ResourceManager.GetString("ClearSignalsButtonTitle", resourceCulture);
+            }
+        }
     }
 }
