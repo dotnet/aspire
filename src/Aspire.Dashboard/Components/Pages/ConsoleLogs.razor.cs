@@ -588,6 +588,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             foreach (var entry in _logEntries.GetEntries())
             {
+                if (entry.Type is LogEntryType.Pause)
+                {
+                    continue;
+                }
+
                 // It's ok to use sync stream methods here because we're writing to a MemoryStream.
                 if (entry.RawContent is not null)
                 {
