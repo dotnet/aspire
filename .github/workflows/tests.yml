@@ -121,12 +121,24 @@ jobs:
       # append '.' to the name so only the test class with exactly that name is run
       extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
+      requiresTestSdk: true
+
+  endtoend_tests:
+    name: EndToEnd ${{ matrix.os }}
+    uses: ./.github/workflows/run-tests.yml
+    needs: build_packages
+    with:
+      testShortName: EndToEnd
+      # EndToEnd is not run on Windows due to missing Docker support
+      os: ubuntu-latest
+      testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+      requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win ]
+    needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]
     steps:
       # get all the test-job-result* artifacts into a single directory
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
