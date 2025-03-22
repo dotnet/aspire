@@ -29,7 +29,7 @@ runs:
         dotnet-version: |
           9.x
 
-    - name: Get list of integeration tests
+    - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
       env:
         CI: false
