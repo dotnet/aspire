@@ -35,6 +35,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzureEventHubsEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<Azure.AzureEventHubsEmulatorResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureEventHubResource> WithProperties(this ApplicationModel.IResourceBuilder<Azure.AzureEventHubResource> builder, System.Action<Azure.AzureEventHubResource> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureEventHubsResource> target, params global::Azure.Provisioning.EventHubs.EventHubsBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -86,6 +89,8 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference EventHubsEndpoint { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

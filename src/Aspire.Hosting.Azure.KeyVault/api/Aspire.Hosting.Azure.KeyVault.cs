@@ -11,6 +11,9 @@ namespace Aspire.Hosting
     public static partial class AzureKeyVaultResourceExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> target, params global::Azure.Provisioning.KeyVault.KeyVaultBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -23,5 +26,7 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference VaultUri { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }

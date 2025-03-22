@@ -14,7 +14,11 @@ namespace Aspire.Microsoft.Azure.Cosmos
 
         public string? ConnectionString { get { throw null; } set { } }
 
+        public string? ContainerName { get { throw null; } set { } }
+
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
+
+        public string? DatabaseName { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }
     }
@@ -26,6 +30,14 @@ namespace Microsoft.Extensions.Hosting
     {
         public static void AddAzureCosmosClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
 
+        public static void AddAzureCosmosContainer(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static void AddAzureCosmosDatabase(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
         public static void AddKeyedAzureCosmosClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static void AddKeyedAzureCosmosContainer(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static void AddKeyedAzureCosmosDatabase(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
     }
 }

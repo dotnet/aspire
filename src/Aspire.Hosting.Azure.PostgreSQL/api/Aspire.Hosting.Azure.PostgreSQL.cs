@@ -53,6 +53,10 @@ namespace Aspire.Hosting.Azure
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzurePostgresFlexibleServer instead to add an Azure Postgres Flexible Server resource.")]
