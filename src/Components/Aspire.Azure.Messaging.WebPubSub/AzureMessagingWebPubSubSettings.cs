@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
 
@@ -61,11 +62,28 @@ public sealed class AzureMessagingWebPubSubSettings : IConnectionStringSettings
             if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
                 Endpoint = uri;
+                return;
             }
-            else
+
+            var connectionBuilder = new DbConnectionStringBuilder()
             {
-                ConnectionString = connectionString;
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.TryGetValue("Hub", out var entityPath))
+            {
+                HubName = entityPath?.ToString();
+                connectionBuilder.Remove("Hub");
             }
+
+            if (connectionBuilder.Count == 1 &&
+                connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+            {
+                Endpoint = new Uri(endpoint.ToString()!);
+                return;
+            }
+
+            ConnectionString = connectionBuilder.ConnectionString;
         }
     }
 }

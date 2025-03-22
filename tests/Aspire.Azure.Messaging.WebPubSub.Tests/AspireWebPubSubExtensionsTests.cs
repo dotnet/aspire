@@ -199,4 +199,64 @@ public class AspireWebPubSubExtensionsTests
         Assert.Equal("hub2", client2.Hub);
         Assert.Equal(ConformanceTests.Endpoint, client2.Endpoint.AbsoluteUri);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionStringWithHubNameIsUsed(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var connectionStringWithHub = $"{ConnectionString};Hub=embedded-hub;";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:wps", connectionStringWithHub)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureWebPubSubServiceClient("wps");
+        }
+        else
+        {
+            builder.AddAzureWebPubSubServiceClient("wps");
+        }
+
+        var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<WebPubSubServiceClient>("wps") :
+            host.Services.GetRequiredService<WebPubSubServiceClient>();
+
+        Assert.Equal(ConformanceTests.Endpoint, client.Endpoint.AbsoluteUri);
+        Assert.Equal("embedded-hub", client.Hub);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ExplicitHubNameOverridesConnectionStringHub(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var connectionStringWithHub = $"{ConnectionString};Hub=embedded-hub;";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:wps", connectionStringWithHub)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureWebPubSubServiceClient("wps", o => o.HubName = "explicit-hub");
+        }
+        else
+        {
+            builder.AddAzureWebPubSubServiceClient("wps", o => o.HubName = "explicit-hub");
+        }
+
+        var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<WebPubSubServiceClient>("wps") :
+            host.Services.GetRequiredService<WebPubSubServiceClient>();
+
+        Assert.Equal(ConformanceTests.Endpoint, client.Endpoint.AbsoluteUri);
+        Assert.Equal("explicit-hub", client.Hub);
+    }
 }
