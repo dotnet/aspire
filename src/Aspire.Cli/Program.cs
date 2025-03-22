@@ -337,22 +337,24 @@ public class Program
             var publishers = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(":package:  Getting available publishers...", async context => {
+                .StartAsync(
+                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                    async context => {
 
-                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
-                    var pendingInspectRun = runner.RunAsync(
-                        effectiveAppHostProjectFile,
-                        ["--operation", "inspect"],
-                        null,
-                        backchannelCompletionSource,
-                        ct).ConfigureAwait(false);
+                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                        var pendingInspectRun = runner.RunAsync(
+                            effectiveAppHostProjectFile,
+                            ["--operation", "inspect"],
+                            null,
+                            backchannelCompletionSource,
+                            ct).ConfigureAwait(false);
 
-                    using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-                    var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
 
-                    return publishers;
+                        return publishers;
 
-                }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
 
             if (publishers is null || publishers.Length == 0)
             {
@@ -362,7 +364,10 @@ public class Program
 
             if (publishers?.Contains(publisher) != true)
             {
-                AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                if (publisher is not null)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                }
 
                 var publisherPrompt = new SelectionPrompt<string>()
                     .Title("Select a publisher:")
