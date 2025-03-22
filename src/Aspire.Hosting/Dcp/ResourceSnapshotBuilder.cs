@@ -186,69 +186,34 @@ internal class ResourceSnapshotBuilder
     private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
     {
         var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
+        var appModelResourceName = resource.AppModelResourceName;
 
-        var allServices = _resourceState.AppResources.OfType<ServiceAppResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
-        var name = resource.Metadata.Name;
-
-        foreach (var service in allServices)
+        if (appModelResourceName is string resourceName &&
+            _resourceState.ApplicationModel.TryGetValue(resourceName, out var appModelResource) &&
+            appModelResource.TryGetUrls(out var resourceUrls))
         {
-            var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
-            var isInactive = activeEndpoint is null;
+            var endpointUrls = resourceUrls.Where(u => u.Endpoint is not null).ToList();
+            var nonEndpointUrls = resourceUrls.Where(u => u.Endpoint is null).ToList();
 
-            if (service.AppModelResourceName is string resourceName &&
-                _resourceState.ApplicationModel.TryGetValue(resourceName, out var appModelResource) &&
-                appModelResource is IResourceWithEndpoints resourceWithEndpoints &&
-                service.EndpointName is string endpointName)
+            var resourceServices = _resourceState.AppResources.OfType<ServiceAppResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
+            var name = resource.Metadata.Name;
+
+            // Add the endpoint URLs
+            foreach (var service in resourceServices)
             {
-                var ep = resourceWithEndpoints.GetEndpoint(endpointName);
-
-                if (ep.EndpointAnnotation.FromLaunchProfile &&
-                    appModelResource is ProjectResource p &&
-                    p.GetEffectiveLaunchProfile()?.LaunchProfile is LaunchProfile profile &&
-                    profile.LaunchUrl is string launchUrl)
+                if (endpointUrls.FirstOrDefault(u => string.Equals(service.EndpointName, u.Endpoint?.EndpointName, StringComparisons.EndpointAnnotationName)) is { Endpoint: { } } endpointUrl)
                 {
-                    // Concat the launch url from the launch profile to the urls with IsFromLaunchProfile set to true
+                    var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
+                    var isInactive = activeEndpoint is null;
 
-                    string CombineUrls(string url, string launchUrl)
-                    {
-                        if (!launchUrl.Contains("://"))
-                        {
-                            // This is relative URL
-                            url += $"/{launchUrl}";
-                        }
-                        else
-                        {
-                            // For absolute URL we need to update the port value if possible
-                            if (profile.ApplicationUrl is string applicationUrl
-                                && launchUrl.StartsWith(applicationUrl))
-                            {
-                                url = launchUrl.Replace(applicationUrl, url);
-                            }
-                        }
-
-                        return url;
-                    }
-
-                    if (ep.IsAllocated)
-                    {
-                        var url = CombineUrls(ep.Url, launchUrl);
-
-                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false) { IsInactive = isInactive });
-                    }
+                    urls.Add(new(Name: endpointUrl.Endpoint.EndpointName, Url: endpointUrl.Url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
                 }
-                else
-                {
-                    if (ep.IsAllocated)
-                    {
-                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false) { IsInactive = isInactive });
-                    }
-                }
+            }
 
-                if (ep.EndpointAnnotation.IsProxied && activeEndpoint != null)
-                {
-                    var endpointString = $"{ep.Scheme}://{activeEndpoint.Spec.Address}:{activeEndpoint.Spec.Port}";
-                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true) { IsInactive = isInactive });
-                }
+            // Add the non-endpoint URLs
+            foreach (var url in nonEndpointUrls)
+            {
+                urls.Add(new(Name: null, Url: url.Url, IsInternal: false) { IsInactive = false, DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0) });
             }
         }
 

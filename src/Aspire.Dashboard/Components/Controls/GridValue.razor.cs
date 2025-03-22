@@ -17,6 +17,12 @@ public partial class GridValue
     [Parameter, EditorRequired]
     public string? Value { get; set; }
 
+    /// <summary>
+    /// Template to use for rendering the value. If not set, the value is displayed as plain text.
+    /// </summary>
+    [Parameter]
+    public RenderFragment<string?>? ValueTemplate { get; set; }
+
     [Parameter, EditorRequired]
     public required string ValueDescription { get; set; }
 

@@ -299,15 +299,24 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        return builder.WithEndpoint(endpointName: "data-explorer", endpoint =>
-        {
-            endpoint.UriScheme = "http";
-            endpoint.TargetPort = 1234;
-            endpoint.Port = port;
-        });
+        return
+            builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
+            {
+                endpoint.UriScheme = "http";
+                endpoint.TargetPort = 1234;
+                endpoint.Port = port;
+            })
+            .WithUrls(context =>
+            {
+                var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
+                if (url is not null)
+                {
+                    url.DisplayText = KnownUrls.DataExplorer.DisplayText;
+                }
+            });
     }
 
-    /// <summary>    
+    /// <summary>
     /// Configures the resource to use access key authentication with Azure Cosmos DB.
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>

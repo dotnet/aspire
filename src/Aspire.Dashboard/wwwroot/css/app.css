@@ -517,21 +517,21 @@ fluent-switch.table-switch::part(label) {
     text-overflow: unset;
 }
 
-.endpoint-overflow {
+.url-overflow {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more fluent-button {
+.url-overflow .fluent-overflow-more fluent-button {
     vertical-align: middle;
 }
 
-.endpoint-button {
+.url-button {
     height: unset;
     font-size: var(--type-ramp-minus-1-font-size);
     line-height: var(--type-ramp-minus-1-line-height);
 }
 
-.endpoint-button::part(control) {
+.url-button::part(control) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 

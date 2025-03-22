@@ -117,6 +117,11 @@
         <target state="translated">継続時間</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="new">Endpoint name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">イベント</target>
@@ -242,6 +247,11 @@
         <target state="translated">(設定解除)</target>
         <note />
       </trans-unit>
+      <trans-unit id="LinkColumnHeader">
+        <source>Link</source>
+        <target state="new">Link</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">読み込み中...</target>
@@ -342,11 +352,6 @@
         <target state="translated">バック リファレンス</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">エンドポイント</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
         <target state="translated">環境変数</target>
@@ -367,6 +372,11 @@
         <target state="translated">種類</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="new">URLs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
         <target state="translated">ボリューム</target>
@@ -376,6 +386,11 @@
         <source>{0} (replica of {1})</source>
         <target state="translated">{0} ({1} のレプリカ)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
+      </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="new">No endpoints</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
