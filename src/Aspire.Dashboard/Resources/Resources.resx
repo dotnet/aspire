@@ -158,8 +158,8 @@
   <data name="ResourcesSourceColumnHeader" xml:space="preserve">
     <value>Source</value>
   </data>
-  <data name="ResourcesEndpointsColumnHeader" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
     <value>Environment</value>

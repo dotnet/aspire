@@ -99,7 +99,6 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         // for the Azure Functions host.
         target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
         // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
-        // Use the child resource connection string here to support child resource integrations.
         target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
         target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
     }
@@ -124,5 +123,36 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         var principalId = roleAssignmentContext.PrincipalId;
 
         AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
+    }
+
+    internal ReferenceExpression GetConnectionString(string? databaseName = null, string? containerName = null)
+    {
+        if (string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator || UseAccessKeyAuthentication)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"AccountEndpoint={ConnectionStringExpression}");
+        }
+
+        if (!string.IsNullOrEmpty(databaseName))
+        {
+            builder.Append($";Database={databaseName}");
+
+            if (!string.IsNullOrEmpty(containerName))
+            {
+                builder.Append($";Container={containerName}");
+            }
+        }
+
+        return builder.Build();
     }
 }

@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -128,6 +129,9 @@ public class Program
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
+        var watchOption = new Option<bool>("--watch", "-w");
+        command.Options.Add(watchOption);
+
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct);
@@ -158,8 +162,11 @@ public class Program
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
 
+            var watch = parseResult.GetValue<bool>("--watch");
+
             var pendingRun = runner.RunAsync(
                 effectiveAppHostProjectFile,
+                watch,
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
@@ -239,7 +246,6 @@ public class Program
                             }
 
                             table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
-
                         }
 
                         context.Refresh();
@@ -335,12 +341,60 @@ public class Program
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
+            var publishers = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                    async context => {
+
+                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                        var pendingInspectRun = runner.RunAsync(
+                            effectiveAppHostProjectFile,
+                            false,
+                            ["--operation", "inspect"],
+                            null,
+                            backchannelCompletionSource,
+                            ct).ConfigureAwait(false);
+
+                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+
+                        return publishers;
+
+                    }).ConfigureAwait(false);
+
+            if (publishers is null || publishers.Length == 0)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            if (publishers?.Contains(publisher) != true)
+            {
+                if (publisher is not null)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                }
+
+                var publisherPrompt = new SelectionPrompt<string>()
+                    .Title("Select a publisher:")
+                    .UseConverter(p => p)
+                    .PageSize(10)
+                    .EnableSearch()
+                    .HighlightStyle(Style.Parse("darkmagenta"))
+                    .AddChoices(publishers!);
+
+                publisher = AnsiConsole.Prompt(publisherPrompt);
+            }
+
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
+                        false,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         null, // TODO: We will use a backchannel here soon but null for now.
@@ -430,7 +484,7 @@ public class Program
             }
             else
             {
-                return "9.2.0"; // HACK: Need to get this from the CLI version.
+                return VersionHelper.GetDefaultTemplateVersion();
             }
         };
         command.Options.Add(templateVersionOption);

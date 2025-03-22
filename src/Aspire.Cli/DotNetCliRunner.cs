@@ -15,9 +15,10 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 {
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
-    public async Task<int> RunAsync(FileInfo projectFile, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(FileInfo projectFile, bool watch, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        string[] cliArgs = ["run", "--project", projectFile.FullName, "--", ..args];
+        var watchOrRunCommand = watch ? "watch" : "run";
+        string[] cliArgs = [watchOrRunCommand, "--project", projectFile.FullName, "--", ..args];
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
@@ -123,7 +124,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
         if (backchannelCompletionSource is not null)
         {
-            _ = StartBackchannelAsync(socketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
         }
 
         if (streamsCallback is null)
@@ -196,7 +197,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         }
     }
 
-    private async Task StartBackchannelAsync(string socketPath, TaskCompletionSource<AppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
+    private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<AppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
@@ -210,7 +211,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             try
             {
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
-                await backchannel.ConnectAsync(socketPath, cancellationToken);
+                await backchannel.ConnectAsync(process, socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;

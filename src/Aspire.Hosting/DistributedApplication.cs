@@ -356,7 +356,16 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        // We only run the start lifecycle hook if we are in run mode or
+        // publish mode. In inspect mode we try to avoid lifecycle hooks
+        // kickings. Eventing will still work generally since they are more
+        // targetted.
+        var executionContext = _host.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+        if (executionContext.IsPublishMode || executionContext.IsRunMode)
+        {
+            await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -393,7 +402,16 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        // We only run the start lifecycle hook if we are in run mode or
+        // publish mode. In inspect mode we try to avoid lifecycle hooks
+        // kickings. Eventing will still work generally since they are more
+        // targetted.
+        var executionContext = _host.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+        if (executionContext.IsPublishMode || executionContext.IsRunMode)
+        {
+            await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        }
+        
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 

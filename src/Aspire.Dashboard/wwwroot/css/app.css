@@ -517,21 +517,21 @@ fluent-switch.table-switch::part(label) {
     text-overflow: unset;
 }
 
-.endpoint-overflow {
+.url-overflow {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more fluent-button {
+.url-overflow .fluent-overflow-more fluent-button {
     vertical-align: middle;
 }
 
-.endpoint-button {
+.url-button {
     height: unset;
     font-size: var(--type-ramp-minus-1-font-size);
     line-height: var(--type-ramp-minus-1-line-height);
 }
 
-.endpoint-button::part(control) {
+.url-button::part(control) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
@@ -749,4 +749,12 @@ fluent-switch.table-switch::part(label) {
 
 .filter-menu-item::part(content) {
     max-width: 300px;
+}
+
+/*
+    Korean text can have bad wrapping behavior. See https://github.com/w3c/csswg-drafts/issues/4285
+    This rule prevents Korean "Close" text in tooltip from wrapping. See https://github.com/dotnet/aspire/issues/8170
+*/
+fluent-tooltip[anchor="dialog_close"] > div {
+    word-break: keep-all;
 }

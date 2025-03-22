@@ -41,9 +41,7 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
     /// Gets the connection string expression for the Azure Cosmos DB database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        Parent.IsEmulator || Parent.UseAccessKeyAuthentication
-            ? ReferenceExpression.Create($"{Parent.ConnectionStringExpression};Database={DatabaseName}")
-            : ReferenceExpression.Create($"AccountEndpoint={Parent.ConnectionStringExpression};Database={DatabaseName}");
+        Parent.GetConnectionString(DatabaseName, null);
 
     // ensure Azure Functions projects can WithReference a CosmosDB database
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

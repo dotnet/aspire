@@ -61,7 +61,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
             {
                 throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the database name.");
             }
-            var client = GetCosmosClient(connectionName, settings, clientOptions);
+            CosmosClient? client = null;
+            if (configureClientOptions is null)
+            {
+                client = sp.GetService<CosmosClient>();
+            }
+            client ??= GetCosmosClient(connectionName, settings, clientOptions);
             return client.GetDatabase(settings.DatabaseName);
         });
     }
@@ -89,7 +94,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
             {
                 throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the container name or database name.");
             }
-            var client = GetCosmosClient(connectionName, settings, clientOptions);
+            CosmosClient? client = null;
+            if (configureClientOptions is null)
+            {
+                client = sp.GetService<CosmosClient>();
+            }
+            client ??= GetCosmosClient(connectionName, settings, clientOptions);
             return client.GetContainer(settings.DatabaseName, settings.ContainerName);
         });
     }
@@ -144,7 +154,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
             {
                 throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the database name.");
             }
-            var client = GetCosmosClient(name, settings, clientOptions);
+            CosmosClient? client = null;
+            if (configureClientOptions is null)
+            {
+                client = sp.GetKeyedService<CosmosClient>(key);
+            }
+            client ??= GetCosmosClient(name, settings, clientOptions);
             return client.GetDatabase(settings.DatabaseName);
         });
     }
@@ -172,7 +187,12 @@ public static class AspireMicrosoftAzureCosmosExtensions
             {
                 throw new InvalidOperationException($"The connection string '{name}' does not exist or is missing the container name or database name.");
             }
-            var client = GetCosmosClient(name, settings, clientOptions);
+            CosmosClient? client = null;
+            if (configureClientOptions is null)
+            {
+                client = sp.GetKeyedService<CosmosClient>(key);
+            }
+            client ??= GetCosmosClient(name, settings, clientOptions);
             return client.GetContainer(settings.DatabaseName, settings.ContainerName);
         });
     }
@@ -236,13 +256,13 @@ public static class AspireMicrosoftAzureCosmosExtensions
             });
         }
 
-        configureClientOptions?.Invoke(clientOptions);
-
         if (CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
         {
             clientOptions.ConnectionMode = ConnectionMode.Gateway;
             clientOptions.LimitToEndpoint = true;
         }
+
+        configureClientOptions?.Invoke(clientOptions);
 
         var cosmosApplicationName = CosmosConstants.CosmosApplicationName;
         if (!string.IsNullOrEmpty(clientOptions.ApplicationName))
