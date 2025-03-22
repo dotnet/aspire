@@ -190,7 +190,16 @@ internal sealed class AzureContainerAppsInfrastructure(
                 if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
                 {
                     var appIdentityResource = appIdentityAnnotation.IdentityResource;
-                    var id = BicepFunction.Interpolate($"{appIdentityResource.Id.AsProvisioningParameter(c)}").Compile().ToString();
+
+                    containerAppIdentityId = appIdentityResource.Id.AsProvisioningParameter(c);
+
+                    var id = BicepFunction.Interpolate($"{containerAppIdentityId}").Compile().ToString();
+
+                    containerAppResource.Identity = new ManagedServiceIdentity()
+                    {
+                        ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                        UserAssignedIdentities = []
+                    };
 
                     containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
