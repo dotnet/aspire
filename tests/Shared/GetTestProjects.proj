@@ -20,6 +20,8 @@
       <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
 
       <!-- This runs in a separate job -->
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />
+      <!-- This runs in a separate job -->
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />
 
       <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
