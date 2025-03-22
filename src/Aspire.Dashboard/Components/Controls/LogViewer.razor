@@ -1,8 +1,12 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
+@using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
+
 @inject IJSRuntime JS
+@inject IStringLocalizer<ControlsStrings> Loc
+
 @implements IAsyncDisposable
 
 <div class="log-overflow console-overflow continuous-scroll-overflow">
@@ -18,18 +22,22 @@
                         return;
                     }
 
-                    <span class="log-line-number"></span>
                     var text = pause.End is null
-                        ? string.Format(
-                            "<Currently paused log capture. {0} log entries filtered out>",
-                            count)
+                        ? string.Format(Loc[nameof(ControlsStrings.ConsoleLogsPauseActive)], count)
                         : string.Format(
-                            "<Log capture paused between {0} and {1}. {2} log entries filtered out>",
-                            FormatHelpers.FormatDateTime(TimeProvider, startTimestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture),
-                            FormatHelpers.FormatDateTime(TimeProvider, pause.End.Value, MillisecondsDisplay.Full, CultureInfo.CurrentCulture),
+                            Loc[nameof(ControlsStrings.ConsoleLogsPauseDetails)],
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
                             count);
 
-                    <span class="log-content">@text</span>
+                    <div class="log-line-row-container">
+                        <div class="log-line-row console-line-row">
+                            <div class="log-line-area" role="log">
+                                <span class="log-line-number"></span>
+                                <span class="log-content">@text</span>
+                            </div>
+                        </div>
+                    </div>
                 }
                 else
                 {

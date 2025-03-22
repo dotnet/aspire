@@ -728,5 +728,17 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ClearSignalsButtonTitle", resourceCulture);
             }
         }
+        
+        public static string ConsoleLogsPauseActive {
+            get {
+                return ResourceManager.GetString("ConsoleLogsPauseActive", resourceCulture);
+            }
+        }
+        
+        public static string ConsoleLogsPauseDetails {
+            get {
+                return ResourceManager.GetString("ConsoleLogsPauseDetails", resourceCulture);
+            }
+        }
     }
 }
