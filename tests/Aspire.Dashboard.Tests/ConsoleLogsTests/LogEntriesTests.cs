@@ -242,8 +242,8 @@ public class LogEntriesTests
         var timestamp = DateTime.UtcNow;
 
         // Act
-        logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
-        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(1)));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp, previousLineNumber: 0));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(1), previousLineNumber: 0));
         logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(2), "1", isErrorMessage: false));
 
         // Assert
@@ -251,7 +251,11 @@ public class LogEntriesTests
         Assert.Collection(entries,
             l => Assert.Equal(LogEntryType.Pause, l.Type),
             l => Assert.Equal(LogEntryType.Pause, l.Type),
-            l => Assert.Equal("1", l.Content));
+            l =>
+            {
+                Assert.Equal("1", l.Content);
+                Assert.Equal(1, l.LineNumber);
+            });
     }
 
     [Fact]
@@ -263,16 +267,28 @@ public class LogEntriesTests
 
         // Act
         logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(1), "1", isErrorMessage: false));
-        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(2)));
-        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false));
-        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(4)));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(2), previousLineNumber: 1));
+
+        // simulate 10 incoming lines being discarded due to a pause
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false), skipLineCount: 10);
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(4), previousLineNumber: 12));
 
         // Assert
         var entries = logEntries.GetEntries();
         Assert.Collection(entries,
-            l => Assert.Equal("1", l.Content),
+            l =>
+            {
+                Assert.Equal("1", l.Content);
+                Assert.Equal(LogEntryType.Default, l.Type);
+                Assert.Equal(1, l.LineNumber);
+            },
             l => Assert.Equal(LogEntryType.Pause, l.Type),
-            l => Assert.Equal("3", l.Content),
+            l =>
+            {
+                Assert.Equal("3", l.Content);
+                Assert.Equal(LogEntryType.Default, l.Type);
+                Assert.Equal(12, l.LineNumber);
+            },
             l => Assert.Equal(LogEntryType.Pause, l.Type));
     }
 

@@ -44,12 +44,12 @@ public sealed class PauseManager
             }
         }
 
-        if (foundRange is not null)
+        if (foundRange is not null && foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Contains(timestamp) is not true)
         {
             ImmutableInterlocked.Update(
                 ref _consoleLogsPausedRanges,
                 ranges => ranges.SetItem(foundRange.Start,
-                    foundRange with { FilteredLogsByApplication = foundRange.FilteredLogsByApplication.SetItem(application, foundRange.FilteredLogsByApplication.GetValueOrDefault(application) + 1) }));
+                    foundRange with { FilteredLogsByApplication = foundRange.FilteredLogsByApplication.SetItem(application, foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Add(timestamp) ?? [timestamp]) }));
         }
 
         return foundRange is not null;
@@ -63,7 +63,7 @@ public sealed class PauseManager
         {
             if (isPaused)
             {
-                return ranges.Add(timestamp, new ConsoleLogPause(Start: timestamp, End: null, FilteredLogsByApplication: ImmutableDictionary<string, int>.Empty));
+                return ranges.Add(timestamp, new ConsoleLogPause(Start: timestamp, End: null, FilteredLogsByApplication: ImmutableDictionary<string, ImmutableHashSet<DateTime>>.Empty));
             }
             else
             {
@@ -74,18 +74,19 @@ public sealed class PauseManager
                     throw new InvalidOperationException("Last range end should be null when resuming.");
                 }
 
-                return ranges.SetItem(lastRange.Start, lastRange with { End = DateTime.UtcNow });
+                return ranges.SetItem(lastRange.Start, lastRange with { End = timestamp });
             }
         });
     }
 }
 
-public record ConsoleLogPause(DateTime Start, DateTime? End, ImmutableDictionary<string, int> FilteredLogsByApplication)
+public record ConsoleLogPause(DateTime Start, DateTime? End, ImmutableDictionary<string, ImmutableHashSet<DateTime>> FilteredLogsByApplication)
 {
-    public bool HasFilteredLogsForApplication(string? application, out int count)
+    public int GetFilteredLogCount(string? application)
     {
-        count = 0;
-        return application is not null && FilteredLogsByApplication.TryGetValue(application, out count) && count > 0;
+        return application is null || !FilteredLogsByApplication.TryGetValue(application, out var filteredLogs)
+            ? 0
+            : filteredLogs.Count;
     }
 
     public bool IsOverlapping(DateTime date)

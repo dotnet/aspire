@@ -33,7 +33,13 @@ internal sealed class LogEntries(int maximumEntryCount)
         BaseLineNumber = null;
     }
 
-    public void InsertSorted(LogEntry logLine, int skipLineCount = 1)
+    /// <summary>
+    /// Insert a log entry at the correct position in the list of log entries according to its timestamp.
+    /// </summary>
+    /// <param name="logLine"></param>
+    /// <param name="skipLineCount">How much to increment the line count by. This may be more than 0 if logs were
+    /// discarded during a pause</param>
+    public void InsertSorted(LogEntry logLine, int skipLineCount = 0)
     {
         Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
 
@@ -142,7 +148,7 @@ internal sealed class LogEntries(int maximumEntryCount)
             }
             else
             {
-                logEntry.LineNumber = _logEntries[index - 1].LineNumber + skipLineCount;
+                logEntry.LineNumber = _logEntries[index - 1].LineNumber + skipLineCount + 1;
             }
 
             if (_earliestTimestampIndex == null && logEntry.Timestamp != null)

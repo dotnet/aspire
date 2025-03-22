@@ -17,18 +17,19 @@
                 @if (context is { Type: LogEntryType.Pause, Timestamp: { } startTimestamp} && PauseManager.TryGetConsoleLogPause(startTimestamp, out var pause))
                 {
                     // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
-                    if (!pause.HasFilteredLogsForApplication(ApplicationName, out var count) && pause.End is not null)
+                    var filteredLogCount = pause.GetFilteredLogCount(ApplicationName);
+                    if (filteredLogCount == 0 && pause.End is not null)
                     {
                         return;
                     }
 
                     var text = pause.End is null
-                        ? string.Format(Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)], count)
+                        ? string.Format(Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)], filteredLogCount)
                         : string.Format(
                             Loc[nameof(ConsoleLogs.ConsoleLogsPauseDetails)],
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
-                            count);
+                            filteredLogCount);
 
                     <div class="log-line-row-container">
                         <div class="log-line-row console-line-row">

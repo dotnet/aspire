@@ -22,12 +22,13 @@ internal sealed class LogEntry
     public LogEntryType Type { get; private set; } = LogEntryType.Default;
     public int LineNumber { get; set; }
 
-    public static LogEntry CreatePause(DateTime? timestamp)
+    public static LogEntry CreatePause(DateTime? timestamp, int previousLineNumber)
     {
         return new LogEntry
         {
             Timestamp = timestamp,
-            Type = LogEntryType.Pause
+            Type = LogEntryType.Pause,
+            LineNumber = previousLineNumber
         };
     }
 

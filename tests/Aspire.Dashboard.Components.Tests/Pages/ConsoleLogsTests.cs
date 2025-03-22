@@ -412,7 +412,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
                     FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.Start, MillisecondsDisplay.Truncated),
                     FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
                     1));
-            Assert.Contains(resumeContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries().Where(e => e.RawContent == resumeContent));
+            // We discarded one log while paused, so the new log should be line 3, skipping one
+            Assert.Equal(2, newLog.LineNumber);
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
         });
     }

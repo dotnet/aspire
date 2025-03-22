@@ -469,7 +469,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 // Add entries for all previous pauses.
                 foreach (var pauseStart in PauseManager.ConsoleLogsPausedRanges.Keys)
                 {
-                    _logEntries.InsertSorted(LogEntry.CreatePause(pauseStart));
+                    _logEntries.InsertSorted(LogEntry.CreatePause(pauseStart, previousLineNumber: 0));
                 }
 
                 var logParser = new LogParser();
@@ -499,8 +499,20 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             continue;
                         }
 
+                        var previousEntry = _logEntries.GetEntries().LastOrDefault();
+
                         // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
-                        _logEntries.InsertSorted(logEntry);
+                        // As we may have skipped some logs during a pause, we need to check how far to skip to keep the line count
+                        // accurate.
+                        if (previousEntry is { Type: LogEntryType.Pause, Timestamp: { } timestamp} && timestamp < logEntry.Timestamp)
+                        {
+                            Debug.Assert(PauseManager.TryGetConsoleLogPause(timestamp, out var pause));
+                            _logEntries.InsertSorted(logEntry, skipLineCount: pause.GetFilteredLogCount(newConsoleLogsSubscription.Name));
+                        }
+                        else
+                        {
+                            _logEntries.InsertSorted(logEntry);
+                        }
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -624,7 +636,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             // Each pause has its own entry in the log entries and will be displayed
             // unless it ended with 0 logs filtered out during
-            _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+            var previousEntry = _logEntries.GetEntries().LastOrDefault();
+            _logEntries.InsertSorted(LogEntry.CreatePause(timestamp, previousLineNumber: previousEntry?.LineNumber ?? 0));
         }
 
         PauseManager.SetConsoleLogsPaused(isPaused, timestamp);
