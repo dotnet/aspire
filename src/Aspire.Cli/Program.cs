@@ -128,6 +128,9 @@ public class Program
         projectOption.Validators.Add(ValidateProjectOption);
         command.Options.Add(projectOption);
 
+        var watchOption = new Option<bool>("--watch", "-w");
+        command.Options.Add(watchOption);
+
         command.SetAction(async (parseResult, ct) => {
             using var app = BuildApplication(parseResult);
             _ = app.RunAsync(ct);
@@ -158,8 +161,11 @@ public class Program
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
 
+            var watch = parseResult.GetValue<bool>("--watch");
+
             var pendingRun = runner.RunAsync(
                 effectiveAppHostProjectFile,
+                watch,
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
@@ -344,6 +350,7 @@ public class Program
                         var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
                         var pendingInspectRun = runner.RunAsync(
                             effectiveAppHostProjectFile,
+                            false,
                             ["--operation", "inspect"],
                             null,
                             backchannelCompletionSource,
@@ -386,6 +393,7 @@ public class Program
                 .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
+                        false,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         null, // TODO: We will use a backchannel here soon but null for now.

@@ -19,6 +19,7 @@ app.MapGet("/", async (MyDbContext dbContext) =>
     // since we've proven connectivity to the others for now.
     var entry = new Entry();
     await dbContext.Entries.AddAsync(entry);
+    await dbContext.Entries.AddAsync(entry);
     await dbContext.SaveChangesAsync();
 
     var entries = await dbContext.Entries.ToListAsync();
