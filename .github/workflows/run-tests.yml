@@ -74,7 +74,7 @@ jobs:
         # Used for running tests outside the repo
         if: ${{ inputs.requiresNugets }}
         with:
-          global-json: ./global.json
+          global-json-file: ./global.json
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
