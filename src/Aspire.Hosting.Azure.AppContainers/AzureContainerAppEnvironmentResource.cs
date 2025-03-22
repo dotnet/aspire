@@ -55,8 +55,6 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
 
-    internal Dictionary<string, BicepOutputReference> SecretKeyVaultNames { get; } = [];
-
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentId => ContainerAppEnvironmentId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppDomain => ContainerAppDomain;
@@ -73,17 +71,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {
-        // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"secret_output_{resource.Name}";
-
-        if (!SecretKeyVaultNames.TryGetValue(outputName, out var outputReference))
-        {
-            outputReference = new BicepOutputReference(outputName, this);
-
-            SecretKeyVaultNames[outputName] = outputReference;
-        }
-
-        return outputReference;
+        throw new NotSupportedException("Key vault secrets are not supported in this environment. Please create a key vault resource directly.");
     }
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)
