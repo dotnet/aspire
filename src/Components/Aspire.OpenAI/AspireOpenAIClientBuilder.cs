@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using OpenAI;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.OpenAI;
 
@@ -87,10 +86,4 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
 
     private static string? ConnectionStringValue(DbConnectionStringBuilder connectionString, string key)
         => connectionString.TryGetValue(key, out var value) ? value as string : null;
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }

@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
 using Aspire.Hosting.Utils;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting;
 
@@ -172,22 +173,5 @@ public static class PythonAppResourceBuilderExtensions
 
         context.Args.Add("--metrics_exporter");
         context.Args.Add("otlp");
-    }
-
-    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
-    {
-        ArgumentNullException.ThrowIfNull(scriptArgs);
-        foreach (var scriptArg in scriptArgs)
-        {
-            if (string.IsNullOrEmpty(scriptArg))
-            {
-                var values = string.Join(", ", scriptArgs);
-                if (scriptArg is null)
-                {
-                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{values}]");
-                }
-                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
-            }
-        }
     }
 }

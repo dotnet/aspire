@@ -9,27 +9,45 @@ namespace Aspire.Hosting.Garnet.Tests;
 
 public class GarnetPublicApiTests
 {
-    [Fact]
-    public void AddGarnetShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void AddGarnetShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "garnet";
+        int? port = null;
+        IResourceBuilder<ParameterResource>? password = null;
 
-        var action = () => builder.AddGarnet(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddGarnet(name, port),
+            1 => () => builder.AddGarnet(name, port, password),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddGarnetShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    public void AddGarnetShouldThrowWhenNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var name = isNull ? null! : string.Empty;
+        int? port = null;
+        IResourceBuilder<ParameterResource>? password = null;
 
-        var action = () => builder.AddGarnet(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddGarnet(name, port),
+            1 => () => builder.AddGarnet(name, port, password),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -65,8 +83,8 @@ public class GarnetPublicApiTests
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create()
-            .AddGarnet("garnet");
+        using var testBuilder = TestDistributedApplicationBuilder.Create();
+        var builder = testBuilder.AddGarnet("garnet");
         var source = isNull ? null! : string.Empty;
 
         var action = () => builder.WithDataBindMount(source);

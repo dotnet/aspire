@@ -38,6 +38,7 @@
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
+    <Compile Include="$(ComponentsDir)\Common\ArgumentExceptionExtensions.cs" Link="ArgumentExceptionExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

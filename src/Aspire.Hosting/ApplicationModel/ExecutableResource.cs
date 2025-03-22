@@ -1,8 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -24,10 +23,4 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// Gets the working directory for the executable resource.
     /// </summary>
     public string WorkingDirectory { get; } = ThrowIfNullOrEmpty(workingDirectory);
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }

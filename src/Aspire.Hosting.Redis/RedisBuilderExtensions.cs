@@ -39,7 +39,7 @@ public static class RedisBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
     {
-        return builder.AddRedis(name, port, null);
+        return AddRedis(builder, name, port, null);
     }
 
     /// <summary>

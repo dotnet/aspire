@@ -16,6 +16,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <param name="password">A parameter that contains the Redis server password.</param>
     public RedisResource(string name, ParameterResource password) : this(name)
     {
+        ArgumentNullException.ThrowIfNull(password);
+
         PasswordParameter = password;
     }
 

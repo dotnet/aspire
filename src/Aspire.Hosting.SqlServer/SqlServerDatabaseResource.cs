@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.Data.SqlClient;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -41,10 +40,4 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
 }
