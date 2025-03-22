@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.ConsoleLogs;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -59,11 +60,12 @@ public class PauseManagerTests
             pauseManager.SetConsoleLogsPaused(false, endTimestamp);
         }
         var logTimestamp = startTimestamp.AddMinutes(minutesToAdd);
+        var entry = LogEntry.Create(logTimestamp, "msg", false);
 
         // Act
-        var isFiltered1 = pauseManager.IsConsoleLogFiltered(logTimestamp, "app1");
-        var isFiltered2 = pauseManager.IsConsoleLogFiltered(logTimestamp, "app1");
-        var isFiltered3 = pauseManager.IsConsoleLogFiltered(logTimestamp, "app1");
+        var isFiltered1 = pauseManager.IsConsoleLogFiltered(entry, "app1");
+        var isFiltered2 = pauseManager.IsConsoleLogFiltered(entry, "app1");
+        var isFiltered3 = pauseManager.IsConsoleLogFiltered(entry, "app1");
 
         // Assert
         Assert.Equal(expectedResult, isFiltered1);

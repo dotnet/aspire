@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ConsoleLogs;
 
 namespace Aspire.Dashboard.Model;
 
@@ -41,25 +42,27 @@ public sealed class PauseManager
         return false;
     }
 
-    public bool IsConsoleLogFiltered(DateTime timestamp, string application)
+    public bool IsConsoleLogFiltered(LogEntry entry, string application)
     {
+        Debug.Assert(entry.Timestamp is not null, "Log entry timestamp should not be null.");
+
         ConsoleLogPause? foundRange = null;
 
         foreach (var range in _consoleLogsPausedRanges.Values)
         {
-            if (range.IsOverlapping(timestamp))
+            if (range.IsOverlapping(entry.Timestamp.Value))
             {
                 foundRange = range;
                 break;
             }
         }
 
-        if (foundRange is not null && foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Contains(timestamp) is not true)
+        if (foundRange is not null && foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Contains(entry) is not true)
         {
             ImmutableInterlocked.Update(
                 ref _consoleLogsPausedRanges,
                 ranges => ranges.SetItem(foundRange.Start,
-                    foundRange with { FilteredLogsByApplication = foundRange.FilteredLogsByApplication.SetItem(application, foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Add(timestamp) ?? [timestamp]) }));
+                    foundRange with { FilteredLogsByApplication = foundRange.FilteredLogsByApplication.SetItem(application, foundRange.FilteredLogsByApplication.GetValueOrDefault(application)?.Add(entry) ?? [entry]) }));
         }
 
         return foundRange is not null;
@@ -73,7 +76,7 @@ public sealed class PauseManager
         {
             if (isPaused)
             {
-                return ranges.Add(timestamp, new ConsoleLogPause(Start: timestamp, End: null, FilteredLogsByApplication: ImmutableDictionary<string, ImmutableHashSet<DateTime>>.Empty));
+                return ranges.Add(timestamp, new ConsoleLogPause(Start: timestamp, End: null, FilteredLogsByApplication: ImmutableDictionary<string, ImmutableHashSet<LogEntry>>.Empty));
             }
             else
             {
@@ -90,7 +93,7 @@ public sealed class PauseManager
     }
 }
 
-public record ConsoleLogPause(DateTime Start, DateTime? End, ImmutableDictionary<string, ImmutableHashSet<DateTime>> FilteredLogsByApplication)
+public record ConsoleLogPause(DateTime Start, DateTime? End, ImmutableDictionary<string, ImmutableHashSet<LogEntry>> FilteredLogsByApplication)
 {
     public int GetFilteredLogCount(string? application)
     {

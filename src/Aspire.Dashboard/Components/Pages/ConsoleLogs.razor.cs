@@ -494,7 +494,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             continue;
                         }
 
-                        if (logEntry.Timestamp is not null && PauseManager.IsConsoleLogFiltered(logEntry.Timestamp.Value, newConsoleLogsSubscription.Name))
+                        if (logEntry.Timestamp is not null && PauseManager.IsConsoleLogFiltered(logEntry, newConsoleLogsSubscription.Name))
                         {
                             continue;
                         }

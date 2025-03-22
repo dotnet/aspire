@@ -47,6 +47,25 @@ internal sealed class LogEntry
             Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default
         };
     }
+
+    private bool Equals(LogEntry other)
+    {
+        return string.Equals(Content, other.Content, StringComparisons.ConsoleLogContent)
+               && string.Equals(RawContent, other.RawContent, StringComparisons.ConsoleLogContent)
+               && Nullable.Equals(Timestamp, other.Timestamp)
+               && Type == other.Type
+               && LineNumber == other.LineNumber;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return ReferenceEquals(this, obj) || obj is LogEntry other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Content, RawContent, Timestamp, (int)Type, LineNumber);
+    }
 }
 
 #if ASPIRE_DASHBOARD
