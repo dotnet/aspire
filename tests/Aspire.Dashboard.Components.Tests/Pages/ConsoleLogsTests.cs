@@ -359,6 +359,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         SetupConsoleLogsServices(dashboardClient);
 
+        var pauseManager = Services.GetRequiredService<PauseManager>();
+        var timeProvider = Services.GetRequiredService<BrowserTimeProvider>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
@@ -379,23 +382,36 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>();
         pauseResumeButton.Find("fluent-button").Click();
 
-        // Add a new log while paused
+        // A pause line should be visible
+        var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
+
+        // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
+        cut.WaitForAssertion(() => Assert.Equal(pauseConsoleLogLine.TextContent, string.Format(loc[Resources.ConsoleLogs.ConsoleLogsPauseActive], 1)));
 
+        // Resume and write a new log, check that
+        // - the pause line has been replaced with pause details
+        // - the log viewer shows the new log
+        // - the log viewer does not show the discarded log
         pauseResumeButton.Find("fluent-button").Click();
-
         cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
 
         var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, resumeContent, IsErrorMessage: false)]);
 
         var logViewer = cut.FindComponent<LogViewer>();
-
-        // Ensure the new log does not show up in visible entries when paused
-        // but is still in the log entries
         cut.WaitForAssertion(() =>
         {
+            var pause = Assert.Single(pauseManager.ConsoleLogsPausedRanges.Values);
+            Assert.NotNull(pause.End);
+            Assert.Equal(
+                pauseConsoleLogLine.TextContent,
+                string.Format(
+                    loc[Resources.ConsoleLogs.ConsoleLogsPauseDetails],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.Start, MillisecondsDisplay.Truncated),
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
+                    1));
             Assert.Contains(resumeContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
         });

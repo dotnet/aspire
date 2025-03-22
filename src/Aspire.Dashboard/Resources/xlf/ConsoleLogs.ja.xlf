@@ -42,6 +42,16 @@
         <target state="translated">{0} のコンソール ログ</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Currently paused log capture, {0} entries filtered out&gt;</source>
+        <target state="new">&lt;Currently paused log capture, {0} entries filtered out&gt;</target>
+        <note>{0} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1} {2} log entries filtered out&gt;</source>
+        <target state="new">&lt;Log capture paused between {0} and {1} {2} log entries filtered out&gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number</note>
+      </trans-unit>
       <trans-unit id="ConsoleLogsResourceCommands">
         <source>Resource commands</source>
         <target state="translated">リソース コマンド</target>

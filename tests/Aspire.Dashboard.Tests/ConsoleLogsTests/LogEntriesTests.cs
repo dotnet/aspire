@@ -235,6 +235,48 @@ public class LogEntriesTests
     }
 
     [Fact]
+    public void InsertSorted_PauseAtBeginning_InsertsCorrectly()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(1)));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(2), "1", isErrorMessage: false));
+
+        // Assert
+        var entries = logEntries.GetEntries();
+        Assert.Collection(entries,
+            l => Assert.Equal(LogEntryType.Pause, l.Type),
+            l => Assert.Equal(LogEntryType.Pause, l.Type),
+            l => Assert.Equal("1", l.Content));
+    }
+
+    [Fact]
+    public void InsertSorted_AddPauseInMiddle_InsertsCorrectly()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(1), "1", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(2)));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.CreatePause(timestamp.AddSeconds(4)));
+
+        // Assert
+        var entries = logEntries.GetEntries();
+        Assert.Collection(entries,
+            l => Assert.Equal("1", l.Content),
+            l => Assert.Equal(LogEntryType.Pause, l.Type),
+            l => Assert.Equal("3", l.Content),
+            l => Assert.Equal(LogEntryType.Pause, l.Type));
+    }
+
+    [Fact]
     public void CreateLogEntry_AnsiAndUrl_HasUrlAnchor()
     {
         // Arrange

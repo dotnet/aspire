@@ -112,16 +112,6 @@
         <target state="new">Remove data</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsPauseActive">
-        <source>&lt;Currently paused log capture, {0} entries filtered out&gt;</source>
-        <target state="new">&lt;Currently paused log capture, {0} entries filtered out&gt;</target>
-        <note>{0} is a number</note>
-      </trans-unit>
-      <trans-unit id="ConsoleLogsPauseDetails">
-        <source>&lt;Log capture paused between {0} and {1} {2} log entries filtered out&gt;</source>
-        <target state="new">&lt;Log capture paused between {0} and {1} {2} log entries filtered out&gt;</target>
-        <note>{0} is a date, {1} is a date, {2} is a number</note>
-      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Détails</target>

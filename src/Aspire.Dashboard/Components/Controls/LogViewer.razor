@@ -5,7 +5,7 @@
 @using Aspire.Hosting.ConsoleLogs
 
 @inject IJSRuntime JS
-@inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<ConsoleLogs> Loc
 
 @implements IAsyncDisposable
 
@@ -23,9 +23,9 @@
                     }
 
                     var text = pause.End is null
-                        ? string.Format(Loc[nameof(ControlsStrings.ConsoleLogsPauseActive)], count)
+                        ? string.Format(Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)], count)
                         : string.Format(
-                            Loc[nameof(ControlsStrings.ConsoleLogsPauseDetails)],
+                            Loc[nameof(ConsoleLogs.ConsoleLogsPauseDetails)],
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
                             count);
@@ -34,7 +34,7 @@
                         <div class="log-line-row console-line-row">
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
-                                <span class="log-content">@text</span>
+                                <span class="log-content log-pause">@text</span>
                             </div>
                         </div>
                     </div>

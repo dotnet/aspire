@@ -472,12 +472,4 @@
   <data name="ClearSignalsButtonTitle" xml:space="preserve">
     <value>Remove data</value>
   </data>
-  <data name="ConsoleLogsPauseActive" xml:space="preserve">
-    <value>&lt;Currently paused log capture, {0} entries filtered out&gt;</value>
-    <comment>{0} is a number</comment>
-  </data>
-  <data name="ConsoleLogsPauseDetails" xml:space="preserve">
-    <value>&lt;Log capture paused between {0} and {1} {2} log entries filtered out&gt;</value>
-    <comment>{0} is a date, {1} is a date, {2} is a number</comment>
-  </data>
 </root>
