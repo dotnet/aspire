@@ -87,11 +87,18 @@ jobs:
         if: inputs.os == 'ubuntu-latest'
         run: docker info
 
-      - name: Build with packages
+      - name: Download built nugets
         if: ${{ inputs.requiresNugets }}
-        env:
-          CI: false
-        run: ${{ env.BUILD_SCRIPT }} -restore -build -ci -pack -testnobuild /bl
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: built-nugets
+          path: ${{ github.workspace }}/artifacts/packages
+
+      - name: Copy nugets to the correct location
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run:
+          Move-Item -Path "${{ github.workspace }}/artifacts/packages/built-nugets/Debug" -Destination "${{ github.workspace }}/artifacts/packages"
 
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
