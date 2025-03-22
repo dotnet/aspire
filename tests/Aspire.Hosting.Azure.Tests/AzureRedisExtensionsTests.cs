@@ -102,21 +102,23 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{redis-cache.secretOutputs.connectionString}",
+              "connectionString": "{redis-cache-kv.secrets.redis-cache--connectionString}",
               "path": "redis-cache.module.bicep",
               "params": {
-                "keyVaultName": ""
+                "keyVaultName": "{redis-cache-kv.outputs.name}"
               }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        var m = manifest.ManifestNode.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param keyVaultName string
-
+            
             resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
               name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -133,19 +135,19 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 'aspire-resource-name': 'redis-cache'
               }
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'redis-cache--connectionString'
               properties: {
                 value: '${redis_cache.properties.hostName},ssl=true,password=${redis_cache.listKeys().primaryKey}'
               }
               parent: keyVault
             }
-
+            
             output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);

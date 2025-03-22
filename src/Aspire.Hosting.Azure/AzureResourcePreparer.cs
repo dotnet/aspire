@@ -353,6 +353,12 @@ internal sealed class AzureResourcePreparer(
             return;
         }
 
+        if (value is IKeyVaultSecretReference keyVaultSecretReference)
+        {
+            azureReferences.Add(keyVaultSecretReference.KeyVaultResource);
+            return;
+        }
+
         if (value is ReferenceExpression expr)
         {
             foreach (var vp in expr.ValueProviders)

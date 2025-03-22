@@ -166,28 +166,31 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data.secretOutputs.connectionString}",
+              "connectionString": "{postgres-data-kv.secrets.postgres-data--connectionString}",
               "path": "postgres-data.module.bicep",
               "params": {
                 "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
                 "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
-                "keyVaultName": ""
+                "keyVaultName": "{postgres-data-kv.outputs.name}"
               }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var m = manifest.ManifestNode.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param administratorLogin string
-
+            
             @secure()
             param administratorLoginPassword string
-
+            
             param keyVaultName string
-
+            
             resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -219,7 +222,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 'aspire-resource-name': 'postgres-data'
               }
             }
-
+            
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
@@ -228,7 +231,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
               parent: postgres_data
             }
-
+            
             resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllIps'
               properties: {
@@ -237,32 +240,32 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
               parent: postgres_data
             }
-
+            
             resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
               name: 'db1Name'
               parent: postgres_data
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'postgres-data--connectionString'
               properties: {
                 value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
               parent: keyVault
             }
-
+            
             resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'db1-connectionString'
+              name: 'postgres-data--db1-connectionString'
               properties: {
                 value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
               }
               parent: keyVault
             }
-
+            
             output name string = postgres_data.name
             """;
         output.WriteLine(manifest.BicepText);

@@ -10,7 +10,6 @@ using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Storage;
@@ -204,48 +203,8 @@ public static class AzureContainerAppExtensions
                 }
             }
 
-            // REVIEW: These don't need to be coupled to the container app environment
-            var kvs = new Dictionary<string, KeyVaultService>();
-
-            foreach (var (key, _) in resource.SecretKeyVaultNames)
-            {
-                var kvIdentifier = Infrastructure.NormalizeBicepIdentifier($"kv-{key}");
-                var kv = new KeyVaultService(kvIdentifier)
-                {
-                    Properties = new()
-                    {
-                        TenantId = BicepFunction.GetTenant().TenantId,
-                        Sku = new KeyVaultSku()
-                        {
-                            Family = KeyVaultSkuFamily.A,
-                            Name = KeyVaultSkuName.Standard
-                        },
-                        EnableRbacAuthorization = true
-                    },
-                    Tags = tags,
-                };
-
-                infra.Add(kv);
-
-                // Role assignments
-                var kvra = kv.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, identity);
-                kvra.Name = BicepFunction.CreateGuid(kv.Id, identity.Id, kvra.RoleDefinitionId);
-                infra.Add(kvra);
-
-                kvs[key] = kv;
-            }
-
             // Add the volume outputs to the container app environment storage
             foreach (var (key, value) in managedStorages)
-            {
-                infra.Add(new ProvisioningOutput(key, typeof(string))
-                {
-                    Value = value.Name
-                });
-            }
-
-            // Add the secret outputs to the key vaults
-            foreach (var (key, value) in kvs)
             {
                 infra.Add(new ProvisioningOutput(key, typeof(string))
                 {

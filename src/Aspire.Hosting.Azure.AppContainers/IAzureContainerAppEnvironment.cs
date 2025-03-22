@@ -11,7 +11,6 @@ internal interface IAzureContainerAppEnvironment
     IManifestExpressionProvider ContainerAppDomain { get; }
     IManifestExpressionProvider ContainerRegistryUrl { get; }
     IManifestExpressionProvider ContainerRegistryManagedIdentityId { get; }
-    IManifestExpressionProvider ManagedIdentityId { get; }
     IManifestExpressionProvider LogAnalyticsWorkspaceId { get; }
     IManifestExpressionProvider PrincipalName { get; }
     IManifestExpressionProvider ContainerAppEnvironmentName { get; }
