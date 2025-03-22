@@ -56,7 +56,6 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      requiresNugets: ${{ matrix.shortname == 'EndToEnd' }}
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -69,7 +68,6 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      requiresNugets: ${{ matrix.shortname == 'EndToEnd' }}
 
   templates_test_lin:
     name: Templates Linux
