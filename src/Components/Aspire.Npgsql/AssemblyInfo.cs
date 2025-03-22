@@ -5,12 +5,3 @@ using Aspire.Npgsql;
 using Aspire;
 
 [assembly: ConfigurationSchema("Aspire:Npgsql", typeof(NpgsqlSettings))]
-
-[assembly: LoggingCategories(
-    "Npgsql",
-    "Npgsql.Command",
-    "Npgsql.Connection",
-    "Npgsql.Copy",
-    "Npgsql.Exception",
-    "Npgsql.Replication",
-    "Npgsql.Transaction")]

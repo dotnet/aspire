@@ -2,12 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire;
+using Aspire.Npgsql;
+using Azure.Core;
 
-[assembly: LoggingCategories(
-    "Npgsql",
-    "Npgsql.Command",
-    "Npgsql.Connection",
-    "Npgsql.Copy",
-    "Npgsql.Exception",
-    "Npgsql.Replication",
-    "Npgsql.Transaction")]
+[assembly: ConfigurationSchema("Aspire:Npgsql", typeof(NpgsqlSettings))]
+[assembly: ConfigurationSchema("Aspire:Npgsql:Credential", typeof(TokenCredential))]
