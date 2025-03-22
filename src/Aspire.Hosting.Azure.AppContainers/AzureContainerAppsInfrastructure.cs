@@ -87,8 +87,8 @@ internal sealed class AzureContainerAppsInfrastructure(
             // HACK: This forces parameters to be resolved for any AzureProvisioningResource
             r.GetBicepTemplateFile();
 
-            // REVIEW: the secret key vault resources aren't coupled to the container app environment. This
-            // is a side effect from how azd worked. We can move them to another service in the future.
+            // This will throw an exception if there's no value specified, in this new mode, we don't no longer support
+            // automagic secret key vault references.
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
 
             // Set the known parameters for the container app environment

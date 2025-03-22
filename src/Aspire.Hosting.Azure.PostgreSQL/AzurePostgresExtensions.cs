@@ -118,7 +118,7 @@ public static class AzurePostgresExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
     ///
-    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{AzureKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
+    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{IKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
@@ -303,7 +303,7 @@ public static class AzurePostgresExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
-        IResourceBuilder<AzureKeyVaultResource> keyVaultBuilder,
+        IResourceBuilder<IKeyVaultResource> keyVaultBuilder,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
@@ -319,7 +319,7 @@ public static class AzurePostgresExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
-        azureResource.ConnectionStringSecretOutput = new AzureKeyVaultSecretReference($"{builder.Resource.Name}--connectionString", keyVaultBuilder.Resource);
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"{builder.Resource.Name}--connectionString");
 
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 

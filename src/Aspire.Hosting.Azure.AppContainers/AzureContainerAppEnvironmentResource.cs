@@ -71,7 +71,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {
-        throw new NotSupportedException("Key vault secrets are not supported in this environment. Please create a key vault resource directly.");
+        throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
     }
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)

@@ -10,6 +10,7 @@ using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -1859,6 +1860,48 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """;
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task SecretOutputsThrowNotSupportedExceptionWithContainerAppEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("cae");
+
+        var resource = builder.AddAzureInfrastructure("resourceWithSecret", infra =>
+        {
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
+            infra.Add(kvNameParam);
+
+            var kv = KeyVaultService.FromExisting("kv");
+            kv.Name = kvNameParam;
+            infra.Add(kv);
+
+            var secret = new KeyVaultSecret("kvs")
+            {
+                Name = "myconnection",
+                Properties = new()
+                {
+                    Value = "top secret"
+                },
+                Parent = kv,
+            };
+
+            infra.Add(secret);
+        });
+
+        builder.AddContainer("api", "image")
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["secret0"] = resource.GetSecretOutput("myconnection");
+            });
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.", ex.Message);
     }
 
     [Fact]
