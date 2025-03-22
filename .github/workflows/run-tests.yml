@@ -74,9 +74,7 @@ jobs:
         # Used for running tests outside the repo
         if: ${{ inputs.requiresNugets }}
         with:
-          dotnet-version: |
-            8.x
-            9.x
+          global-json: ./global.json
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
@@ -108,6 +106,12 @@ jobs:
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForTemplatesTesting=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      - name: Update PATH
+        if: ${{ inputs.requiresTestSdk }}
+        shell: pwsh
+        run:
+          echo "${{ github.workspace }}/artifacts/bin/dotnet-tests" >> $env:GITHUB_PATH
 
       - name: Install Azure Functions Core Tools
         if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
