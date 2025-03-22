@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -475,7 +476,7 @@ public class Program
             }
             else
             {
-                return "9.2.0"; // HACK: Need to get this from the CLI version.
+                return VersionHelper.GetDefaultTemplateVersion();
             }
         };
         command.Options.Add(templateVersionOption);
