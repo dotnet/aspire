@@ -19,31 +19,31 @@ jobs:
     name: Setup for tests (Linux)
     runs-on: ubuntu-latest
     outputs:
-      integrations_tests_matrix: ${{ steps.generate_integrations_test_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_templates_test_matrix.outputs.templates_tests_matrix }}
+      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
+      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/enumerate-template-tests
-        id: generate_templates_test_matrix
-
       - uses: ./.github/actions/enumerate-tests
-        id: generate_integrations_test_matrix
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
     runs-on: windows-latest
     outputs:
-      integrations_tests_matrix: ${{ steps.generate_integrations_test_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_templates_test_matrix.outputs.templates_tests_matrix }}
+      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
+      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/enumerate-template-tests
-        id: generate_templates_test_matrix
-
       - uses: ./.github/actions/enumerate-tests
-        id: generate_integrations_test_matrix
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
@@ -74,7 +74,7 @@ jobs:
   templates_test_lin:
     name: Templates Linux
     uses: ./.github/workflows/run-tests.yml
-    needs: setup_for_tests_lin
+    needs: [setup_for_tests_lin, build_packages]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
@@ -87,11 +87,12 @@ jobs:
       # append '.' to the name so only the test class with exactly that name is run
       extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
+      requiresTestSdk: true
 
   templates_test_win:
     name: Templates Windows
     uses: ./.github/workflows/run-tests.yml
-    needs: setup_for_tests_win
+    needs: [setup_for_tests_win, build_packages]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.templates_tests_matrix) }}
