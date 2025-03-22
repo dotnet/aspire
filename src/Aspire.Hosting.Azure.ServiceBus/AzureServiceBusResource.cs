@@ -66,4 +66,35 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         infra.Add(sbNamespace);
         return sbNamespace;
     }
+
+    internal ReferenceExpression GetConnectionString(string? queueOrTopicName, string? subscriptionName)
+    {
+        if (string.IsNullOrEmpty(queueOrTopicName) && string.IsNullOrEmpty(subscriptionName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        if (!string.IsNullOrEmpty(queueOrTopicName))
+        {
+            builder.Append($";EntityPath={queueOrTopicName}");
+
+            if (!string.IsNullOrEmpty(subscriptionName))
+            {
+                builder.Append($"/Subscriptions/{subscriptionName}");
+            }
+        }
+
+        return builder.Build();
+    }
 }
