@@ -64,7 +64,7 @@ public static class ConnectionStringBuilderExtensions
     ///
     /// var apiKey = builder.AddParameter("apiKey", secret: true);
     ///
-    /// var cs = builder.AddConnectionString("cs", b => b.AppendFormatted($"Endpoint=http://something;Key={apiKey}");
+    /// var cs = builder.AddConnectionString("cs", b => b.AppendFormatted($"Endpoint=http://something;Key={apiKey}"));
     ///
     /// var backend = builder
     ///     .AddProject&lt;Projects.Backend&gt;("backend")
