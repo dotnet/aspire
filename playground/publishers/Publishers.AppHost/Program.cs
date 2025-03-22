@@ -9,9 +9,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("env");
 
-builder.AddDockerComposePublisher("docker-compose");
+builder.AddDockerComposePublisher();
 
-builder.AddKubernetesPublisher("k8s");
+builder.AddKubernetesPublisher();
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
