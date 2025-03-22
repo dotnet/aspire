@@ -15,7 +15,6 @@ namespace Aspire.Hosting.Backchannel;
 
 public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 {
-
     [Fact]
     public async Task CanConnectToBackchannel()
     {
