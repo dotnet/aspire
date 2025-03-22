@@ -17,7 +17,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
 
     <ProjectReference Include="..\CosmosEndToEnd.ApiService\CosmosEndToEnd.ApiService.csproj" />
   </ItemGroup>
