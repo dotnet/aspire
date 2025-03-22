@@ -48,7 +48,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.MetricsPaused" />
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreMetricsPaused(out _)" IsPausedChanged="@(isPaused => PauseManager.SetMetricsPaused(isPaused))" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearMetrics" />
 

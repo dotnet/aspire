@@ -26,7 +26,7 @@ public class TelemetryRepositoryTests
 
         // Act and assert
         pauseManager.StructuredLogsPaused = true;
-        pauseManager.MetricsPaused = true;
+        pauseManager.SetMetricsPaused(true);
         pauseManager.TracesPaused = true;
         AddLog();
         AddMetric();
@@ -38,7 +38,7 @@ public class TelemetryRepositoryTests
         Assert.Empty(repository.GetTraces(new GetTracesRequest { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
 
         pauseManager.StructuredLogsPaused = false;
-        pauseManager.MetricsPaused = false;
+        pauseManager.SetMetricsPaused(false);
         pauseManager.TracesPaused = false;
 
         AddLog();

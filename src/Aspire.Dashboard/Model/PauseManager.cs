@@ -11,13 +11,23 @@ public sealed class PauseManager
 {
     public bool StructuredLogsPaused { get; set; }
     public bool TracesPaused { get; set; }
-    public bool MetricsPaused { get; set; }
+
+    private DateTimeOffset? _metricsPausedAt;
 
     public bool ConsoleLogsPaused { get; private set; }
-
-    private static readonly IComparer<DateTime> s_startTimeComparer = Comparer<DateTime>.Create((x, y) => x.CompareTo(y));
-    private ImmutableSortedDictionary<DateTime, ConsoleLogPause> _consoleLogsPausedRanges = ImmutableSortedDictionary.Create<DateTime, ConsoleLogPause>(s_startTimeComparer);
+    private ImmutableSortedDictionary<DateTime, ConsoleLogPause> _consoleLogsPausedRanges = ImmutableSortedDictionary.Create<DateTime, ConsoleLogPause>(Comparer<DateTime>.Create((x, y) => x.CompareTo(y)));
     public ImmutableSortedDictionary<DateTime, ConsoleLogPause> ConsoleLogsPausedRanges => _consoleLogsPausedRanges;
+
+    public bool AreMetricsPaused([NotNullWhen(true)] out DateTimeOffset? pausedAt)
+    {
+        pausedAt = _metricsPausedAt;
+        return _metricsPausedAt is not null;
+    }
+
+    public void SetMetricsPaused(bool isPaused)
+    {
+        _metricsPausedAt = isPaused ? DateTimeOffset.UtcNow : null;
+    }
 
     public bool TryGetConsoleLogPause(DateTime startTime, [NotNullWhen(true)] out ConsoleLogPause? pause)
     {

@@ -815,7 +815,7 @@ public sealed class TelemetryRepository
 
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
-        if (_pauseManager.MetricsPaused)
+        if (_pauseManager.AreMetricsPaused(out _))
         {
             _logger.LogTrace("{LogCount} incoming metric(s) was ignored because of an active pause.", resourceMetrics.Count);
             return;

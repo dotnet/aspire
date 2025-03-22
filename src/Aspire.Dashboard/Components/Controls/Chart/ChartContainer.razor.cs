@@ -91,7 +91,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
-            if (_instrument == null || PauseManager.MetricsPaused)
+            if (_instrument == null || PauseManager.AreMetricsPaused(out _))
             {
                 continue;
             }
