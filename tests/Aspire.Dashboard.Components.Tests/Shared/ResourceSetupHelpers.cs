@@ -93,6 +93,7 @@ internal static class ResourceSetupHelpers
 
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IMessageService, MessageService>();
         context.Services.AddSingleton(Options.Create(new DashboardOptions()));

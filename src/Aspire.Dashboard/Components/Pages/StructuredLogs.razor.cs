@@ -82,6 +82,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required IMessageService MessageService { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 

@@ -36,6 +36,9 @@ public sealed partial class LogViewer
     [Parameter]
     public bool IsTimestampUtc { get; set; }
 
+    [Parameter]
+    public DateTime? PausedAt { get; set; }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)

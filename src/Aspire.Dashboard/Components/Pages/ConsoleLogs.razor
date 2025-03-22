@@ -29,6 +29,10 @@
 
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
+            <PauseResumeButton IsPaused="@PauseManager.ConsoleLogsPaused"
+                               IsPausedChanged="@IsPausedChangedAsync"
+                               Disabled="@(PageViewModel.SelectedResource is null)" />
+
             @foreach (var command in _highlightedCommands)
             {
                 <FluentButton Appearance="Appearance.Lightweight"
@@ -82,7 +86,10 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" ShowTimestamp="@_showTimestamp" IsTimestampUtc="@_isTimestampUtc" />
+            <LogViewer
+                LogEntries="@_logEntries"
+                ShowTimestamp="@_showTimestamp"
+                IsTimestampUtc="@_isTimestampUtc" />
         </MainSection>
     </AspirePageContentLayout>
 </div>

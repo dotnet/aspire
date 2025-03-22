@@ -77,6 +77,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -480,11 +483,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        if (timestampFilterDate is null || logEntry.Timestamp is null || logEntry.Timestamp > timestampFilterDate)
+                        if (logEntry.Timestamp is not null &&
+                            ((timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
+                            || PauseManager.ConsoleLogsPausedRanges.Any(range => range.IsOverlapping(logEntry.Timestamp.Value))))
                         {
-                            // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
-                            _logEntries.InsertSorted(logEntry);
+                            continue;
                         }
+
+                        // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
+                        _logEntries.InsertSorted(logEntry);
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -598,6 +605,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
         // This makes remove behavior persistant which matches removing telemetry.
         await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
+    }
+
+    private Task IsPausedChangedAsync(bool isPaused)
+    {
+        PauseManager.ConsoleLogsPaused = isPaused;
+        if (isPaused)
+        {
+            PauseManager.ConsoleLogsPausedRanges.Add(new DateTimeRange(start: DateTime.UtcNow, end: null));
+        }
+        else
+        {
+            PauseManager.ConsoleLogsPausedRanges.Last().End = DateTime.UtcNow;
+        }
+
+        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()

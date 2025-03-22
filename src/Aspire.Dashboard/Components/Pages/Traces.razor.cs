@@ -81,6 +81,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 

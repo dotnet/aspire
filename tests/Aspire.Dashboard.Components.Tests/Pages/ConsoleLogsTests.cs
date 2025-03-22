@@ -344,6 +344,63 @@ public partial class ConsoleLogsTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+
+        // Assert initial state
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+
+        // Pause logs
+        var pauseResumeButton = cut.FindComponent<PauseResumeButton>();
+        pauseResumeButton.Find("fluent-button").Click();
+
+        // Add a new log while paused
+        var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
+
+        pauseResumeButton.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
+
+        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, resumeContent, IsErrorMessage: false)]);
+
+        var logViewer = cut.FindComponent<LogViewer>();
+
+        // Ensure the new log does not show up in visible entries when paused
+        // but is still in the log entries
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(resumeContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+            Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+        });
+    }
+
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
@@ -389,6 +446,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
+        Services.AddSingleton<PauseManager>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

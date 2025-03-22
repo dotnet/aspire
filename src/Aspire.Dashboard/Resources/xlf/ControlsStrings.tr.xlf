@@ -302,6 +302,11 @@
         <target state="translated">Sayfa araç çubuğu</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="new">Pause incoming data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Sayı</target>
@@ -385,6 +390,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Kaynak</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="new">Resume incoming data</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

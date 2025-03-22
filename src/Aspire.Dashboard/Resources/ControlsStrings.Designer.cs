@@ -710,5 +710,17 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ChartContainerOverflowLink", resourceCulture);
             }
         }
+        
+        public static string PauseButtonTitle {
+            get {
+                return ResourceManager.GetString("PauseButtonTitle", resourceCulture);
+            }
+        }
+        
+        public static string ResumeButtonTitle {
+            get {
+                return ResourceManager.GetString("ResumeButtonTitle", resourceCulture);
+            }
+        }
     }
 }

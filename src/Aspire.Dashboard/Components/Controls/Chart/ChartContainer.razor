@@ -53,14 +53,3 @@ else
         </FluentTabs>
     </div>
 }
-
-@code {
-    [Parameter, EditorRequired]
-    public required Metrics.MetricViewKind ActiveView { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
-
-    [Parameter]
-    public required List<OtlpApplication> Applications { get; set; }
-}
