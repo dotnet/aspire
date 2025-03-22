@@ -15,9 +15,10 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 {
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
-    public async Task<int> RunAsync(FileInfo projectFile, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(FileInfo projectFile, bool watch, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        string[] cliArgs = ["run", "--project", projectFile.FullName, "--", ..args];
+        var watchOrRunCommand = watch ? "watch" : "run";
+        string[] cliArgs = [watchOrRunCommand, "--project", projectFile.FullName, "--", ..args];
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
