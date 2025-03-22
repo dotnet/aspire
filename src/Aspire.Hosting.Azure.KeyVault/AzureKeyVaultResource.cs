@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Primitives;
+using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure;
 
@@ -26,6 +27,11 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the resource identifier of the Azure Key Vault resource.
+    /// </summary>
+    public BicepOutputReference Id => new("id", this);
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
@@ -37,6 +43,8 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public Dictionary<string, string> Secrets { get; } = [];
 
     IDictionary<string, string> IKeyVaultResource.Secrets => Secrets;
+
+    SecretClient? IKeyVaultResource.SecretClient { get; set; }
 
     /// <summary>
     /// Gets a secret reference for the specified secret name.
@@ -58,35 +66,5 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;
-    }
-}
-
-/// <summary>
-/// Represents a reference to a secret in an Azure Key Vault resource.
-/// </summary>
-/// <param name="secretName">The name of the secret.</param>
-/// <param name="azureKeyVaultResource">The Azure Key Vault resource.</param>
-public sealed class AzureKeyVaultSecretReference(string secretName, IKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
-{
-    /// <summary>
-    /// Gets the name of the secret.
-    /// </summary>
-    public string SecretName => secretName;
-
-    /// <summary>
-    /// Gets the Azure Key Vault resource.
-    /// </summary>
-    public IKeyVaultResource KeyVaultResource => azureKeyVaultResource;
-
-    string IManifestExpressionProvider.ValueExpression => $"{{{azureKeyVaultResource.Name}.secrets.{SecretName}}}";
-
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
-    {
-        if (azureKeyVaultResource.Secrets.TryGetValue(secretName, out var secretValue))
-        {
-            return new(secretValue);
-        }
-
-        throw new InvalidOperationException($"Secret '{secretName}' not found in Key Vault '{azureKeyVaultResource.Name}'.");
     }
 }
