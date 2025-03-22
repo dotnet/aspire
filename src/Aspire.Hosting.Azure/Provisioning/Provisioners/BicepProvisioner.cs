@@ -276,11 +276,11 @@ internal sealed class BicepProvisioner(
         if (resource is IKeyVaultResource kvr)
         {
             // Outputs should be resolved above
-            var id = await kvr.Id.GetValueAsync(cancellationToken).ConfigureAwait(false);
-            var vaultUri = await kvr.VaultUri.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var id = resource.Outputs[kvr.Id.Name] as string ?? throw new InvalidOperationException($"Key vault {kvr.Id.Name} not found in outputs.");
+            var vaultUri = resource.Outputs[kvr.VaultUri.Name] as string ?? throw new InvalidOperationException($"Key vault {kvr.VaultUri.Name} not found in outputs.");
 
             // Set the client for resolving secrets at runtime
-            kvr.SecretClient = new SecretClient(new(vaultUri!), context.Credential);
+            kvr.SecretClient = new SecretClient(new(vaultUri), context.Credential);
 
             // We don't need to do this every deployment
             // Make sure we can access the key vault so we can get the secrets at runtime
@@ -288,7 +288,7 @@ internal sealed class BicepProvisioner(
             // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-reader
             var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "21090545-7ca7-4776-b22c-e363652d74d2");
 
-            await DoRoleAssignmentAsync(context.ArmClient, ResourceIdentifier.Parse(id!), context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+            await DoRoleAssignmentAsync(context.ArmClient, ResourceIdentifier.Parse(id), context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
