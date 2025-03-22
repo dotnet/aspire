@@ -36,28 +36,22 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
-    protected override string? ConfigurationSectionName => "Aspire:Azure:Npgsql";
+    protected override string? ConfigurationSectionName => "Aspire:Npgsql";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
-            "Azure": {
-              "Npgsql": {
-                "ConnectionString": "YOUR_CONNECTION_STRING",
-                "DisableHealthChecks": true,
-                "DisableTracing": false,
-                "DisableMetrics": false
-              }
+            "Npgsql": {
+              "ConnectionString": "YOUR_CONNECTION_STRING",
+              "DisableHealthChecks": true,
+              "DisableTracing": false,
+              "DisableMetrics": false
             }
           }
         }
         """;
 
-    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
-        {
-            ("""{"Aspire": { "Azure" : { "Npgsql":{ "DisableMetrics": 0}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Azure" : { "Npgsql":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\"")
-        };
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => Array.Empty<(string json, string error)>();
 
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
     {
@@ -70,7 +64,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Azure:Npgsql", key, "ConnectionString"), ConnectionString)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureNpgsqlSettings>? configure = null, string? key = null)

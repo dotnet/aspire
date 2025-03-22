@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -78,7 +79,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
         Assert.NotNull(tokenCredential);
-        Assert.Equal(ConnectionStringWithUsernameAndPassword, dataSource.ConnectionString);
+        Assert.Equal(ConnectionStringWithUsername, dataSource.ConnectionString);
         Assert.False(tokenCredential.IsGetTokenInvoked);
     }
 
@@ -92,11 +93,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", "unused")
         ]);
 
-        void SetConnectionString(AzureNpgsqlSettings settings)
-        {
-            settings.ConnectionString = ConnectionStringWithUsername;
-            ConfigureTokenCredentials(settings);
-        }
+        static void SetConnectionString(NpgsqlSettings settings) => settings.ConnectionString = ConnectionStringWithUsernameAndPassword;
 
         if (useKeyed)
         {
@@ -126,7 +123,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
 
         var key = useKeyed ? "npgsql" : null;
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Npgsql", key, "ConnectionString"), "unused"),
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), "unused"),
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionStringWithUsername)
         ]);
 

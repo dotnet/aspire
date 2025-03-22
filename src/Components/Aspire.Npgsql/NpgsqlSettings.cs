@@ -4,9 +4,9 @@
 namespace Aspire.Npgsql;
 
 /// <summary>
-/// Base class for PostgreSQL settings.
+/// Provides the client configuration settings for connecting to a PostgreSQL database using Npgsql.
 /// </summary>
-public abstract class BaseNpgsqlSettings
+public class NpgsqlSettings
 {
     /// <summary>
     /// The connection string of the PostgreSQL database to connect to.
@@ -36,12 +36,4 @@ public abstract class BaseNpgsqlSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableMetrics { get; set; }
-}
-
-/// <summary>
-/// Provides the client configuration settings for connecting to a PostgreSQL database using Npgsql.
-/// </summary>
-public sealed class NpgsqlSettings : BaseNpgsqlSettings
-{
-   
 }

@@ -25,36 +25,5 @@
         }
       }
     }
-  },
-  "type": "object",
-  "properties": {
-    "Aspire": {
-      "type": "object",
-      "properties": {
-        "Azure": {
-          "type": "object",
-          "properties": {
-            "Npgsql": {
-              "type": "object",
-              "properties": {
-                "ConnectionString": {
-                  "type": "string"
-                },
-                "DisableHealthChecks": {
-                  "type": "boolean"
-                },
-                "DisableMetrics": {
-                  "type": "boolean"
-                },
-                "DisableTracing": {
-                  "type": "boolean"
-                }
-              },
-              "description": "Provides the client configuration settings for connecting to an Azure Database for PostgreSQL using Npgsql."
-            }
-          }
-        }
-      }
-    }
   }
 }

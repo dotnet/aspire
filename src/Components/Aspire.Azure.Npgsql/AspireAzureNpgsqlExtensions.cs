@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable IDE0130 // Namespace "Microsoft.Extensions.Hosting" does not match folder structure
+
+using System.Diagnostics;
 using System.Text.Json;
-using Aspire;
 using Aspire.Azure.Npgsql;
 using Aspire.Npgsql;
 using Azure.Core;
 using Azure.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -18,7 +19,6 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureNpgsqlExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:Azure:Npgsql";
     private const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
 
     private static readonly TokenRequestContext s_databaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
@@ -33,9 +33,23 @@ public static class AspireAzureNpgsqlExtensions
     /// <param name="configureDataSourceBuilder">An optional delegate that can be used for customizing the <see cref="NpgsqlDataSourceBuilder"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Npgsql" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="BaseNpgsqlSettings.ConnectionString"/> is not provided or the <see cref="AzureNpgsqlSettings.Credential"/> is invalid.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided or the <see cref="AzureNpgsqlSettings.Credential"/> is invalid.</exception>
     public static void AddAzureNpgsqlDataSource(this IHostApplicationBuilder builder, string connectionName, Action<AzureNpgsqlSettings>? configureSettings = null, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder = null)
-        => NpgsqlDataSourceHelper.AddNpgsqlDataSource(builder, configureSettings, connectionName, serviceKey: null, healthCheckPrefix: "AzurePostgreSql", CreateNpgsqlSettings, configureDataSourceBuilder: configureDataSourceBuilder, RegisterNpgsqlServices);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AzureNpgsqlSettings? azureSettings = null;
+
+        builder.AddNpgsqlDataSource(connectionName, settings => azureSettings = ConfigureSettings(configureSettings, settings), dataSourceBuilder =>
+        {
+            Debug.Assert(azureSettings != null);
+
+            ConfigureDataSourceBuilder(azureSettings, dataSourceBuilder);
+
+            configureDataSourceBuilder?.Invoke(dataSourceBuilder);
+        });
+    }
 
     /// <summary>
     /// Registers <see cref="NpgsqlDataSource"/> as a keyed service for given <paramref name="name"/> for connecting PostgreSQL database with Npgsql client.
@@ -48,63 +62,71 @@ public static class AspireAzureNpgsqlExtensions
     /// <remarks>Reads the configuration from "Aspire:Npgsql:{name}" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="name"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="name"/> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="BaseNpgsqlSettings.ConnectionString"/> is not provided or the <see cref="AzureNpgsqlSettings.Credential"/> is invalid.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided or the <see cref="AzureNpgsqlSettings.Credential"/> is invalid.</exception>
     public static void AddKeyedAzureNpgsqlDataSource(this IHostApplicationBuilder builder, string name, Action<AzureNpgsqlSettings>? configureSettings = null, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        NpgsqlDataSourceHelper.AddNpgsqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name, healthCheckPrefix: "AzurePostgreSql", CreateNpgsqlSettings, configureDataSourceBuilder: configureDataSourceBuilder, RegisterNpgsqlServices);
-    }
+        AzureNpgsqlSettings? azureSettings = null;
 
-    private static AzureNpgsqlSettings CreateNpgsqlSettings(IHostApplicationBuilder builder, string connectionName)
-    {
-        AzureNpgsqlSettings settings = new();
-        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
-        var namedConfigSection = configSection.GetSection(connectionName);
-        configSection.Bind(settings);
-        namedConfigSection.Bind(settings);
-
-        return settings;
-    }
-
-    private static void RegisterNpgsqlServices(IHostApplicationBuilder builder, AzureNpgsqlSettings settings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
-    {
-        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
+        builder.AddKeyedNpgsqlDataSource(name, settings => azureSettings = ConfigureSettings(configureSettings, settings), dataSourceBuilder =>
         {
-            // The connection string required the username to be provided. Since it will depend on the Managed Identity that is used
-            // we attempt to get the username from the access token.
+            Debug.Assert(azureSettings != null);
 
-            var credential = settings.Credential ?? new DefaultAzureCredential();
-
-            if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
-            {
-                var token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
-
-                if (TryGetUsernameFromToken(token.Token, out var username))
-                {
-                    dataSourceBuilder.ConnectionStringBuilder.Username = username;
-                }
-                else
-                {
-                    throw new InvalidOperationException("Could not determine username from token claims");
-                }
-            }
-
-            if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
-            {
-                // The token is not cached since it it refreshed for each new physical connection, or when it has expired.
-
-                dataSourceBuilder.UsePasswordProvider(
-                    passwordProvider: _ => credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default).Token,
-                    passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(s_databaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
-                );
-            }
-
-            // Delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
-            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName);
+            ConfigureDataSourceBuilder(azureSettings, dataSourceBuilder);
 
             configureDataSourceBuilder?.Invoke(dataSourceBuilder);
-        }, serviceKey: serviceKey);
+        });
+    }
+
+    private static AzureNpgsqlSettings ConfigureSettings(Action<AzureNpgsqlSettings>? userConfigureSettings, NpgsqlSettings settings)
+    {
+        var azureSettings = new AzureNpgsqlSettings();
+        CopySettings(settings, azureSettings);
+        userConfigureSettings?.Invoke(azureSettings);
+        CopySettings(azureSettings, settings);
+
+        return azureSettings;
+    }
+    private static void CopySettings(NpgsqlSettings source, NpgsqlSettings destination)
+    {
+        destination.ConnectionString = source.ConnectionString;
+        destination.DisableHealthChecks = source.DisableHealthChecks;
+        destination.DisableMetrics = source.DisableMetrics;
+        destination.DisableTracing = source.DisableTracing;
+    }
+
+    private static void ConfigureDataSourceBuilder(AzureNpgsqlSettings settings, NpgsqlDataSourceBuilder dataSourceBuilder)
+    {
+        // The connection string required the username to be provided. Since it will depend on the Managed Identity that is used
+        // we attempt to get the username from the access token.
+
+        var credential = settings.Credential ?? new DefaultAzureCredential();
+
+        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
+        {
+            var token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
+
+            if (TryGetUsernameFromToken(token.Token, out var username))
+            {
+                dataSourceBuilder.ConnectionStringBuilder.Username = username;
+            }
+            else
+            {
+                throw new InvalidOperationException("Could not determine username from token claims");
+            }
+        }
+
+        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
+        {
+            // The token is not cached since it it refreshed for each new physical connection, or when it has expired.
+
+            dataSourceBuilder.UsePasswordProvider(
+                passwordProvider: _ => credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default).Token,
+                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(s_databaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
+            );
+        }
     }
 
     private static bool TryGetUsernameFromToken(string jwtToken, out string? username)

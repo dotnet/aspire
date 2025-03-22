@@ -15,7 +15,6 @@
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
     <Compile Include="..\Common\ConnectionStringValidation.cs" Link="ConnectionStringValidation.cs" />
     <Compile Include="..\Aspire.Npgsql\NpgsqlCommon.cs" Link="NpgsqlCommon.cs" />
-    <Compile Include="..\Aspire.Npgsql\NpgsqlDataSourceHelper.cs" Link="NpgsqlDataSourceHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>
