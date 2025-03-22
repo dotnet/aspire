@@ -281,7 +281,7 @@ public class WithReferenceTests
         // Get the service provider.
         var resource = builder.AddConnectionString("cs", b =>
         {
-            b.AppendFormatted($"Endpoint={endpoint};Key={key}");
+            b.Append($"Endpoint={endpoint};Key={key}");
         });
 
         var projectB = builder.AddProject<ProjectB>("projectb")
