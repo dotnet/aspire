@@ -504,9 +504,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
                         // As we may have skipped some logs during a pause, we need to check how far to skip to keep the line count
                         // accurate.
-                        if (previousEntry is { Type: LogEntryType.Pause, Timestamp: { } timestamp} && timestamp < logEntry.Timestamp)
+                        if (previousEntry is { Type: LogEntryType.Pause, Timestamp: { } timestamp} && timestamp < logEntry.Timestamp && PauseManager.TryGetConsoleLogPause(timestamp, out var pause))
                         {
-                            Debug.Assert(PauseManager.TryGetConsoleLogPause(timestamp, out var pause));
                             _logEntries.InsertSorted(logEntry, skipLineCount: pause.GetFilteredLogCount(newConsoleLogsSubscription.Name));
                         }
                         else
