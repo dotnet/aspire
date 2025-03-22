@@ -72,7 +72,7 @@ internal sealed class LogEntries(int maximumEntryCount)
 
     private void InsertSortedCore(LogEntry logEntry, int skipLineCount)
     {
-        // If there is no timestamp then add to the end.
+        // If there is no timestamp or the entry is a pause then add to the end.
         if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
         {
             InsertAt(_logEntries.Count);
