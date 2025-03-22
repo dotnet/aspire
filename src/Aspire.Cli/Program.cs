@@ -239,7 +239,6 @@ public class Program
                             }
 
                             table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
-
                         }
 
                         context.Refresh();
@@ -334,6 +333,52 @@ public class Program
             var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+
+            var publishers = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                    async context => {
+
+                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                        var pendingInspectRun = runner.RunAsync(
+                            effectiveAppHostProjectFile,
+                            ["--operation", "inspect"],
+                            null,
+                            backchannelCompletionSource,
+                            ct).ConfigureAwait(false);
+
+                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+
+                        return publishers;
+
+                    }).ConfigureAwait(false);
+
+            if (publishers is null || publishers.Length == 0)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            if (publishers?.Contains(publisher) != true)
+            {
+                if (publisher is not null)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                }
+
+                var publisherPrompt = new SelectionPrompt<string>()
+                    .Title("Select a publisher:")
+                    .UseConverter(p => p)
+                    .PageSize(10)
+                    .EnableSearch()
+                    .HighlightStyle(Style.Parse("darkmagenta"))
+                    .AddChoices(publishers!);
+
+                publisher = AnsiConsole.Prompt(publisherPrompt);
+            }
 
             var exitCode = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)

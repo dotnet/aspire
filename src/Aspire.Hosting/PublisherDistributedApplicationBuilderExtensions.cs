@@ -26,6 +26,11 @@ public static class PublisherDistributedApplicationBuilderExtensions
         // TODO: We need to add validation here since this needs to be something we refer to on the CLI.
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, TPublisher>(name);
 
+        builder.Eventing.Subscribe<PublisherAdvertisementEvent>((e, ct) => {
+            e.AddAdvertisement(name);
+            return Task.CompletedTask;
+        });
+
         if (configureOptions is not null)
         {
             builder.Services.Configure("name", configureOptions);
