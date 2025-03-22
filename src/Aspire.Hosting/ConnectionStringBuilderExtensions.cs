@@ -23,16 +23,13 @@ public static class ConnectionStringBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var postgres = builder
-    ///     .AddPostgres("postgres")
+    /// var apiKey = builder.AddParameter("apiKey", secret: true);
     ///
-    /// var database = postgres.AddDatabase("database");
-    ///
-    /// var cs = builder.AddConnectionString("cs", $"{database};Include Error Details=true");
+    /// var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Endpoint=http://something;Key={apiKey}"));
     ///
     /// var backend = builder
     ///     .AddProject&lt;Projects.Backend&gt;("backend")
-    ///     .WithReference(cs) // cs is the connection string name, not database
+    ///     .WithReference(cs)
     ///     .WaitFor(database);
     ///
     /// builder.Build().Run();
@@ -49,5 +46,38 @@ public static class ConnectionStringBuilderExtensions
                           State = KnownResourceStates.Hidden,
                           Properties = []
                       });
+    }
+
+    /// <summary>
+    /// Adds a connection string resource to the distributed application with the specified expression.
+    /// </summary>
+    /// <remarks>
+    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
+    /// </remarks>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="connectionStringBuilder">The callback to configure the connection string expression.</param>
+    /// <returns>An <see cref="IResourceBuilder{ConnectionStringResource}"/> instance.</returns>
+    /// <example>
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var apiKey = builder.AddParameter("apiKey", secret: true);
+    ///
+    /// var cs = builder.AddConnectionString("cs", b => b.AppendFormatted($"Endpoint=http://something;Key={apiKey}");
+    ///
+    /// var backend = builder
+    ///     .AddProject&lt;Projects.Backend&gt;("backend")
+    ///     .WithReference(cs)
+    ///     .WaitFor(database);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ReferenceExpressionBuilder> connectionStringBuilder)
+    {
+        var rb = new ReferenceExpressionBuilder();
+        connectionStringBuilder(rb);
+        return builder.AddConnectionString(name, rb.Build());
     }
 }
