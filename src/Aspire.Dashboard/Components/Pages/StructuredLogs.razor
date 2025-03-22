@@ -37,10 +37,9 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.StructuredLogsPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearStructureLogs" />
-
-            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.StructuredLogsPaused" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"

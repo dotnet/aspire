@@ -36,10 +36,9 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.TracesPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearTraces" />
-
-            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.TracesPaused" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"

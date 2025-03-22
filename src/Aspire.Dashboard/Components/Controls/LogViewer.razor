@@ -1,6 +1,5 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
 @inject IJSRuntime JS
@@ -11,29 +10,53 @@
         @if (LogEntries is { } logEntries)
         {
             <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
-                <div class="log-line-row-container">
-                    <div class="log-line-row console-line-row">
-                        <span class="log-line-area" role="log">
-                            <span class="log-line-number">@context.LineNumber</span>
-                            <span class="log-content">
-                                @{
-                                    var hasPrefix = false;
-                                }
-                                @if (ShowTimestamp && context.Timestamp is { } timestamp)
-                                {
-                                    hasPrefix = true;
-                                    <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
-                                }
-                                @if (context.Type == LogEntryType.Error)
-                                {
-                                    hasPrefix = true;
-                                    <fluent-badge appearance="accent">stderr</fluent-badge>
-                                }
-                                @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
+                @if (context is { Type: LogEntryType.Pause, Timestamp: { } startTimestamp} && PauseManager.TryGetConsoleLogPause(startTimestamp, out var pause))
+                {
+                    // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
+                    if (!pause.HasFilteredLogsForApplication(ApplicationName, out var count) && pause.End is not null)
+                    {
+                        return;
+                    }
+
+                    <span class="log-line-number"></span>
+                    var text = pause.End is null
+                        ? string.Format(
+                            "<Currently paused log capture. {0} log entries filtered out>",
+                            count)
+                        : string.Format(
+                            "<Log capture paused between {0} and {1}. {2} log entries filtered out>",
+                            FormatHelpers.FormatDateTime(TimeProvider, startTimestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture),
+                            FormatHelpers.FormatDateTime(TimeProvider, pause.End.Value, MillisecondsDisplay.Full, CultureInfo.CurrentCulture),
+                            count);
+
+                    <span class="log-content">@text</span>
+                }
+                else
+                {
+                     <div class="log-line-row-container">
+                        <div class="log-line-row console-line-row">
+                            <span class="log-line-area" role="log">
+                                <span class="log-line-number">@context.LineNumber</span>
+                                <span class="log-content">
+                                    @{
+                                        var hasPrefix = false;
+                                    }
+                                    @if (ShowTimestamp && context.Timestamp is { } timestamp)
+                                    {
+                                        hasPrefix = true;
+                                        <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
+                                    }
+                                    @if (context.Type == LogEntryType.Error)
+                                    {
+                                        hasPrefix = true;
+                                        <fluent-badge appearance="accent">stderr</fluent-badge>
+                                    }
+                                    @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
+                                </span>
                             </span>
-                        </span>
+                        </div>
                     </div>
-                </div>
+                }
             </Virtualize>
         }
     </div>

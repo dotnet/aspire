@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Dashboard.Model;
 
@@ -14,22 +15,47 @@ public sealed class PauseManager
 
     public bool ConsoleLogsPaused { get; private set; }
 
-    private ImmutableArray<DateTimeRange> _consoleLogsPausedRanges = [];
+    private static readonly IComparer<DateTime> s_startTimeComparer = Comparer<DateTime>.Create((x, y) => x.CompareTo(y));
+    private ImmutableSortedDictionary<DateTime, ConsoleLogPause> _consoleLogsPausedRanges = ImmutableSortedDictionary.Create<DateTime, ConsoleLogPause>(s_startTimeComparer);
+    public ImmutableSortedDictionary<DateTime, ConsoleLogPause> ConsoleLogsPausedRanges => _consoleLogsPausedRanges;
 
-    public bool IsConsoleLogFiltered(DateTime timestamp)
+    public bool TryGetConsoleLogPause(DateTime startTime, [NotNullWhen(true)] out ConsoleLogPause? pause)
     {
-        foreach (var range in _consoleLogsPausedRanges)
+        if (_consoleLogsPausedRanges.TryGetValue(startTime, out var range))
         {
-            if (range.IsOverlapping(timestamp))
-            {
-                return true;
-            }
+            pause = range;
+            return true;
         }
 
+        pause = null;
         return false;
     }
 
-    public void SetConsoleLogsPaused(bool isPaused)
+    public bool IsConsoleLogFiltered(DateTime timestamp, string application)
+    {
+        ConsoleLogPause? foundRange = null;
+
+        foreach (var range in _consoleLogsPausedRanges.Values)
+        {
+            if (range.IsOverlapping(timestamp))
+            {
+                foundRange = range;
+                break;
+            }
+        }
+
+        if (foundRange is not null)
+        {
+            ImmutableInterlocked.Update(
+                ref _consoleLogsPausedRanges,
+                ranges => ranges.SetItem(foundRange.Start,
+                    foundRange with { FilteredLogsByApplication = foundRange.FilteredLogsByApplication.SetItem(application, foundRange.FilteredLogsByApplication.GetValueOrDefault(application) + 1) }));
+        }
+
+        return foundRange is not null;
+    }
+
+    public void SetConsoleLogsPaused(bool isPaused, DateTime timestamp)
     {
         ConsoleLogsPaused = isPaused;
 
@@ -37,25 +63,31 @@ public sealed class PauseManager
         {
             if (isPaused)
             {
-                return ranges.Add(new DateTimeRange(Start: DateTime.UtcNow, End: null));
+                return ranges.Add(timestamp, new ConsoleLogPause(Start: timestamp, End: null, FilteredLogsByApplication: ImmutableDictionary<string, int>.Empty));
             }
             else
             {
-                Debug.Assert(ranges.Length > 0, "ConsoleLogsPausedRanges should not be empty when resuming.");
-                var lastRange = ranges.Last();
+                Debug.Assert(ranges.Count > 0, "ConsoleLogsPausedRanges should not be empty when resuming.");
+                var lastRange = ranges.Values.Last();
                 if (lastRange.End is not null)
                 {
                     throw new InvalidOperationException("Last range end should be null when resuming.");
                 }
 
-                return ranges.Replace(lastRange, lastRange with { End = DateTime.UtcNow });
+                return ranges.SetItem(lastRange.Start, lastRange with { End = DateTime.UtcNow });
             }
         });
     }
 }
 
-public record DateTimeRange(DateTime Start, DateTime? End)
+public record ConsoleLogPause(DateTime Start, DateTime? End, ImmutableDictionary<string, int> FilteredLogsByApplication)
 {
+    public bool HasFilteredLogsForApplication(string? application, out int count)
+    {
+        count = 0;
+        return application is not null && FilteredLogsByApplication.TryGetValue(application, out count) && count > 0;
+    }
+
     public bool IsOverlapping(DateTime date)
     {
         return date >= Start && (End is null || date <= End);

@@ -33,11 +33,11 @@ internal sealed class LogEntries(int maximumEntryCount)
         BaseLineNumber = null;
     }
 
-    public void InsertSorted(LogEntry logLine)
+    public void InsertSorted(LogEntry logLine, int skipLineCount = 1)
     {
         Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
 
-        InsertSortedCore(logLine);
+        InsertSortedCore(logLine, skipLineCount);
 
         // Verify log entry order is correct in debug builds.
         VerifyLogEntryOrder();
@@ -64,10 +64,10 @@ internal sealed class LogEntries(int maximumEntryCount)
         }
     }
 
-    private void InsertSortedCore(LogEntry logEntry)
+    private void InsertSortedCore(LogEntry logEntry, int skipLineCount)
     {
         // If there is no timestamp then add to the end.
-        if (logEntry.Timestamp == null)
+        if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
         {
             InsertAt(_logEntries.Count);
             return;
@@ -128,6 +128,12 @@ internal sealed class LogEntries(int maximumEntryCount)
 
         void InsertAt(int index)
         {
+            if (logEntry.Type is LogEntryType.Pause)
+            {
+                _logEntries.Insert(index, logEntry);
+                return;
+            }
+
             // Set the line number of the log entry.
             if (index == 0)
             {
@@ -136,7 +142,7 @@ internal sealed class LogEntries(int maximumEntryCount)
             }
             else
             {
-                logEntry.LineNumber = _logEntries[index - 1].LineNumber + 1;
+                logEntry.LineNumber = _logEntries[index - 1].LineNumber + skipLineCount;
             }
 
             if (_earliestTimestampIndex == null && logEntry.Timestamp != null)
