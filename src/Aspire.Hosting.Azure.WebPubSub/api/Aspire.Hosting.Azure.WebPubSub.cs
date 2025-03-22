@@ -17,6 +17,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddEventHandler(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> builder, ApplicationModel.ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, global::Azure.Provisioning.WebPubSub.UpstreamAuthSettings? authSettings = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddHub(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> builder, string hubName) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> target, params global::Azure.Provisioning.WebPubSub.WebPubSubBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -36,5 +39,7 @@ namespace Aspire.Hosting.ApplicationModel
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference Endpoint { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }

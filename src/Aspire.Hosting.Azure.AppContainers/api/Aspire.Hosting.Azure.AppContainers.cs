@@ -22,6 +22,8 @@ namespace Aspire.Hosting
 
     public static partial class AzureContainerAppExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> AddAzureContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
         public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) { throw null; }
     }
 
@@ -45,5 +47,29 @@ namespace Aspire.Hosting.Azure
         public AzureContainerAppCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> configure) { }
 
         public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> Configure { get { throw null; } }
+    }
+}
+
+namespace Aspire.Hosting.Azure.AppContainers
+{
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource
+    {
+        public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        public BicepOutputReference ContainerAppDomain { get { throw null; } }
+
+        public BicepOutputReference ContainerAppEnvironmentId { get { throw null; } }
+
+        public BicepOutputReference ContainerAppEnvironmentName { get { throw null; } }
+
+        public BicepOutputReference ContainerRegistryManagedIdentityId { get { throw null; } }
+
+        public BicepOutputReference ContainerRegistryUrl { get { throw null; } }
+
+        public BicepOutputReference LogAnalyticsWorkspaceId { get { throw null; } }
+
+        public BicepOutputReference ManagedIdentityId { get { throw null; } }
+
+        public BicepOutputReference PrincipalName { get { throw null; } }
     }
 }
