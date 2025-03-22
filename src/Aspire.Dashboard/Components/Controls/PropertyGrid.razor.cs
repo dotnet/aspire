@@ -103,6 +103,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     [Parameter]
     public string? ValueColumnTitle { get; set; }
 
+    [Parameter]
+    public bool Multiline { get; set; }
+
     /// <summary>
     /// Gets and sets the sorting behavior of the name column. Defaults to sorting on <see cref="IPropertyGridItem.Name"/>.
     /// </summary>

@@ -242,6 +242,21 @@
         <target state="translated">格式化 XML</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="translated">显示值</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="translated">确认要显示该值。将来，打开文本可视化工具将自动显示所有值</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="translated">已隐藏敏感值</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
         <target state="translated">选择格式</target>

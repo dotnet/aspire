@@ -1,5 +1,6 @@
-# Workflow to run tests for a given test project
-
+# This is a reusable workflow to run tests for a given test project.
+# It is designed to be called from other workflows, such as the integration or template tests workflows.
+# The workflow includes steps for setting up the environment, building the test project, running the tests, and uploading the results.
 name: Run Tests
 
 on:
@@ -38,9 +39,6 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
-    # Playground, and EndToEnd tests are disabled on windows
-    # because of missing docker support
-    if: inputs.os != 'windows-latest' || (inputs.testShortName != 'EndToEnd' && inputs.testShortName != 'Playground')
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -97,7 +95,7 @@ jobs:
           CI: false
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
-          /p:SkipPackageCheckForWorkloadTesting=true
+          /p:SkipPackageCheckForTemplatesTesting=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Install Azure Functions Core Tools
@@ -200,7 +198,6 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-          DISABLE_PLAYWRIGHT_TESTS: ${{ inputs.os == 'ubuntu-latest' }}
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
           NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
@@ -277,5 +274,5 @@ jobs:
           path: |
             **/*.binlog
             testresults/**
-            artifacts/bin/Aspire.Workload.Tests/Debug/net8.0/logs/**
+            artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**

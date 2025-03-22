@@ -432,6 +432,61 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyContainerCreateFile()
+    {
+        using var testProgram = CreateTestProgram("verify-container-create-file");
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var destination = "/tmp";
+        var umask = UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+        var createFileEntries = new List<ContainerFileSystemItem>
+        {
+            new ContainerDirectory
+            {
+                Name = "test-folder",
+                Owner = 1000,
+                Entries = [
+                    new ContainerFile
+                    {
+                        Name = "test.txt",
+                        Contents = "Hello World!",
+                        Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    },
+                ],
+            },
+        };
+
+        AddRedisContainer(testProgram.AppBuilder, "verify-container-create-file-redis")
+            .WithContainerFiles(destination, createFileEntries, umask: umask);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal(RedisImageSource, item.Spec.Image);
+                Assert.Equal(new List<ContainerCreateFileSystem>
+                {
+                    new ContainerCreateFileSystem
+                    {
+                        Destination = destination,
+                        Umask = (int?)umask,
+                        Entries = createFileEntries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
+                    }
+                },
+                item.Spec.CreateFiles);
+            });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyContainerStopStartWorks()
     {

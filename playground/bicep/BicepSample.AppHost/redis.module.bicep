@@ -27,7 +27,7 @@ resource redis 'Microsoft.Cache/redis@2024-03-01' = {
 }
 
 resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-  name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+  name: guid(redis.id, principalId, 'Data Contributor')
   properties: {
     accessPolicyName: 'Data Contributor'
     objectId: principalId
@@ -37,3 +37,5 @@ resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-0
 }
 
 output connectionString string = '${redis.properties.hostName},ssl=true'
+
+output name string = redis.name

@@ -346,6 +346,39 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return Task.CompletedTask;
     }
 
+    private List<MenuButtonItem> GetFilterMenuItems()
+    {
+        var filterMenuItems = new List<MenuButtonItem>();
+
+        foreach (var filter in TracesViewModel.Filters)
+        {
+            filterMenuItems.Add(new MenuButtonItem
+            {
+                OnClick = () => OpenFilterAsync(filter),
+                Text = filter.GetDisplayText(FilterLoc),
+                Class = "filter-menu-item",
+            });
+        }
+
+        filterMenuItems.Add(new MenuButtonItem
+        {
+            IsDivider = true
+        });
+
+        filterMenuItems.Add(new MenuButtonItem
+        {
+            Text = DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsRemoveAllButtonText)],
+            Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Delete(),
+            OnClick = () =>
+            {
+                TracesViewModel.ClearFilters();
+                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+            }
+        });
+
+        return filterMenuItems;
+    }
+
     public class TracesPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }

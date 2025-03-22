@@ -242,6 +242,21 @@
         <target state="translated">Формат XML</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="translated">Показать значение</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="translated">Подтвердите, что хотите отобразить значение. В будущем при открытии визуализатора текста все значения будут отображаться автоматически</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="translated">Конфиденциальное значение скрыто</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
         <target state="translated">Выберите формат</target>

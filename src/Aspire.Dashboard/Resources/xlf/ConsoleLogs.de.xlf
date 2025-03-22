@@ -74,12 +74,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
-        <target state="new">Show timestamps</target>
+        <target state="translated">Zeitstempel anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShowUtc">
         <source>UTC timestamps</source>
-        <target state="new">UTC timestamps</target>
+        <target state="translated">UTC-Zeitstempel</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

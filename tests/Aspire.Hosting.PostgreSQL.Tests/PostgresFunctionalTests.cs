@@ -467,7 +467,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         async Task<string?[]> RunContainersAsync()
         {
-            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
                 .WithTempAspireStore(aspireStorePath)
                 .WithResourceCleanUp(false);
 
@@ -511,7 +511,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var postgres = builder.AddPostgres("pg1");
 
@@ -556,7 +556,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var postgres = builder.AddPostgres("pg1");
 
@@ -611,7 +611,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             for (var i = 0; i < 2; i++)
             {
-                using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+                using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
                 var usernameParameter = builder.AddParameter("user", username);
                 var passwordParameter = builder.AddParameter("pwd", password, secret: true);
@@ -678,7 +678,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var postgres = builder.AddPostgres("pg1");
 

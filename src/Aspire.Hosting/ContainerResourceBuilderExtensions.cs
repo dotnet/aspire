@@ -700,6 +700,141 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="entries">The file system entries to create.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// For containers with a <see cref="ContainerLifetime.Persistent"/> lifetime, changing the contents of create file entries will result in the container being recreated.
+    /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
+    /// unique on a per-run basis.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Create a directory called <c>custom-entry</c> in the container's file system at the path <c>/usr/data</c> and create a file called <c>entrypoint.sh</c> inside it with the content <c>echo hello world</c>.
+    /// The default permissions for these files will be for the user or group to be able to read and write to the files, but not execute them. entrypoint.sh will be created with execution permissions for the owner.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///     .WithContainerFiles("/usr/data", [
+    ///         new ContainerDirectory
+    ///         {
+    ///             Name = "custom-entry",
+    ///             Entries = [
+    ///                 new ContainerFile
+    ///                 {
+    ///                     Name = "entrypoint.sh",
+    ///                     Contents = "echo hello world",
+    ///                     Mode = UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite,
+    ///                 },
+    ///             ],
+    ///         },
+    ///     ],
+    ///     defaultOwner: 1000);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(entries);
+
+        var annotation = new ContainerFileSystemCallbackAnnotation
+        {
+            DestinationPath = destinationPath,
+            Callback = (_, _) => Task.FromResult(entries),
+            DefaultOwner = defaultOwner,
+            DefaultGroup = defaultGroup,
+            Umask = umask,
+        };
+
+        builder.Resource.Annotations.Add(annotation);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container. Receives a callback that will be invoked
+    /// when the container is started to allow the files to be created based on other resources in the application model.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="callback">The callback that will be invoked when the resource is being created.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// For containers with a <see cref="ContainerLifetime.Persistent"/> lifetime, changing the contents of create file entries will result in the container being recreated.
+    /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
+    /// unique on a per-run basis.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Create a configuration file for every Postgres instance in the application model.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///     .WithContainerFiles("/", (context, cancellationToken) =>
+    ///     {
+    ///         var appModel = context.ServiceProvider.GetRequiredService{DistributedApplicationModel}();
+    ///         var postgresInstances = appModel.Resources.OfType{PostgresDatabaseResource}();
+    ///
+    ///         return [
+    ///             new ContainerDirectory
+    ///             {
+    ///                 Name = ".pgweb",
+    ///                 Entries = [
+    ///                     new ContainerDirectory
+    ///                     {
+    ///                         Name = "bookmarks",
+    ///                         Entries = postgresInstances.Select(instance =>
+    ///                         new ContainerFile
+    ///                         {
+    ///                             Name = $"{instance.Name}.toml",
+    ///                             Contents = instance.ToPgWebBookmark(),
+    ///                             Owner = defaultOwner,
+    ///                             Group = defaultGroup,
+    ///                         }),
+    ///                 },
+    ///             ],
+    ///         },
+    ///     ];
+    /// });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var annotation = new ContainerFileSystemCallbackAnnotation
+        {
+            DestinationPath = destinationPath,
+            Callback = callback,
+            DefaultOwner = defaultOwner,
+            DefaultGroup = defaultGroup,
+            Umask = umask,
+        };
+
+        builder.Resource.Annotations.Add(annotation);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Set whether a container resource can use proxied endpoints or whether they should be disabled for all endpoints belonging to the container.
     /// If set to <c>false</c>, endpoints belonging to the container resource will ignore the configured proxy settings and run proxy-less.
     /// </summary>

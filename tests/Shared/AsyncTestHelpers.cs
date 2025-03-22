@@ -182,7 +182,7 @@ internal static class AsyncTestHelpers
         {
             if (i > 0)
             {
-                await Task.Delay((i + 1) * (i + 1) * 10);
+                await Task.Delay((i + 1) * (i + 1) * 10 * 5);
             }
 
             if (await assert())

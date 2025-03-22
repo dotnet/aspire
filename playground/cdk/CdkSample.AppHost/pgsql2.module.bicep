@@ -65,3 +65,5 @@ resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@
 }
 
 output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'
+
+output name string = pgsql2.name

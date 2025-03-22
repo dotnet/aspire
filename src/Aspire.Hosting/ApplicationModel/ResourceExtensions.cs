@@ -486,6 +486,17 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to retrieve the URLs for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve the URLs for.</param>
+    /// <param name="urls">The URLs for the given resource, if found.</param>
+    /// <returns>True if the URLs were found, false otherwise.</returns>
+    public static bool TryGetUrls(this IResource resource, [NotNullWhen(true)] out IEnumerable<ResourceUrlAnnotation>? urls)
+    {
+        return TryGetAnnotationsOfType(resource, out urls);
+    }
+
+    /// <summary>
     /// Gets the endpoints for the specified resource.
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
