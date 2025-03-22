@@ -36,7 +36,7 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     /// Gets the connection string expression for the Azure Cosmos DB Database Container.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{Parent.ConnectionStringExpression};Container={ContainerName}");
+        Parent.Parent.GetConnectionString(Parent.Name, ContainerName);
 
     // ensure Azure Functions projects can WithReference a CosmosDB database container
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
