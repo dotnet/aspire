@@ -177,6 +177,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
         UpdateMenuButtons();
 
+        var showResourceTypeColumn = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowResourceTypes);
+        if (showResourceTypeColumn.Success)
+        {
+            _showResourceTypeColumn = showResourceTypeColumn.Value;
+        }
+
         if (DashboardClient.IsEnabled)
         {
             var collapsedResult = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.ResourcesCollapsedResourceNames);
@@ -647,6 +653,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     private async Task OnToggleResourceType()
     {
         _showResourceTypeColumn = !_showResourceTypeColumn;
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesShowResourceTypes, _showResourceTypeColumn);
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }

@@ -761,5 +761,6 @@ fluent-tooltip[anchor="dialog_close"] > div {
 
 .resource-icon {
     vertical-align: text-bottom;
+    margin-right: 3px;
 }
 
