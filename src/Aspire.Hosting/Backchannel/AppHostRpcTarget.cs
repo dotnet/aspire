@@ -66,7 +66,14 @@ internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotifi
         var baseUrlWithLoginToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
         var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
 
-        return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+        if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
+        {
+            return Task.FromResult<(string, string?)>((baseUrlWithLoginToken, null));
+        }
+        else
+        {
+            return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+        }
     }
 
     public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
