@@ -703,6 +703,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             output vaultUri string = keyVault.properties.vaultUri
 
             output name string = existingResourceName
+
+            output id string = keyVault.id
             """;
 
         output.WriteLine(BicepText);
