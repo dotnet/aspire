@@ -145,19 +145,33 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public async Task AddAzurePostgresWithPasswordAuth(bool specifyUserName, bool specifyPassword)
+    [InlineData(true, true, null)]
+    [InlineData(true, true, "mykeyvault")]
+    [InlineData(true, false, null)]
+    [InlineData(true, false, "mykeyvault")]
+    [InlineData(false, true, null)]
+    [InlineData(false, true, "mykeyvault")]
+    [InlineData(false, false, null)]
+    [InlineData(false, false, "mykeyvault")]
+    public async Task AddAzurePostgresWithPasswordAuth(bool specifyUserName, bool specifyPassword, string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var userName = specifyUserName ? builder.AddParameter("user") : null;
         var password = specifyPassword ? builder.AddParameter("password") : null;
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data")
-            .WithPasswordAuthentication(userName, password);
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+
+        if (kvName is null)
+        {
+            kvName = "postgres-data-kv";
+            postgres.WithPasswordAuthentication(userName, password);
+        }
+        else
+        {
+            var keyVault = builder.AddAzureKeyVault(kvName);
+            postgres.WithPasswordAuthentication(keyVault, userName, password);
+        }
 
         postgres.AddDatabase("db1", "db1Name");
 
@@ -166,12 +180,12 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data-kv.secrets.postgres-data--connectionString}",
+              "connectionString": "{{{kvName}}.secrets.postgres-data--connectionString}",
               "path": "postgres-data.module.bicep",
               "params": {
                 "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
                 "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
-                "keyVaultName": "{postgres-data-kv.outputs.name}"
+                "keyVaultName": "{{{kvName}}.outputs.name}"
               }
             }
             """;

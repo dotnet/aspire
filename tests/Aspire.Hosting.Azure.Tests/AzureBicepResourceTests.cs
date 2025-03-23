@@ -237,8 +237,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
-    [Fact]
-    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -247,23 +249,34 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .ConfigureInfrastructure(infrastructure =>
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
-            }).WithAccessKeyAuthentication();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
         var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
         db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
-        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>("cosmos-kv");
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
 
         kv.Resource.Secrets["cosmos--connectionString"] = "mycosmosconnectionstring";
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos-kv.secrets.cosmos--connectionString}",
+                                 "connectionString": "{{{kvName}}.secrets.cosmos--connectionString}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "keyVaultName": "{cosmos-kv.outputs.name}"
+                                   "keyVaultName": "{{{kvName}}.outputs.name}"
                                  }
                                }
                                """;

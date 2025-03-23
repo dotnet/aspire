@@ -40,11 +40,10 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     BicepOutputReference IKeyVaultResource.VaultUriOutputReference => VaultUri;
     BicepOutputReference IKeyVaultResource.IdOutputReference => Id;
 
-    /// <summary>
-    /// The secrets for the Azure Key Vault resource. Used in run mode to resolve
-    /// </summary>
+    // For testing purposes only
     internal Dictionary<string, string> Secrets { get; } = [];
 
+    // In run mode, this is set to the secret client used to access the Azure Key Vault.
     internal SecretClient? SecretClient { get; set; }
 
     SecretClient? IKeyVaultResource.SecretClient

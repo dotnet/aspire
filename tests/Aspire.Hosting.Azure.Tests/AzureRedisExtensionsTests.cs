@@ -89,23 +89,35 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AddAzureRedisWithAccessKeyAuthentication()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureRedisWithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddAzureRedis("redis-cache")
-            .WithAccessKeyAuthentication();
+        var redis = builder.AddAzureRedis("redis-cache");
+
+        if (kvName is null)
+        {
+            kvName = "redis-cache-kv";
+
+            redis.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            redis.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{redis-cache-kv.secrets.redis-cache--connectionString}",
+              "connectionString": "{{{kvName}}.secrets.redis-cache--connectionString}",
               "path": "redis-cache.module.bicep",
               "params": {
-                "keyVaultName": "{redis-cache-kv.outputs.name}"
+                "keyVaultName": "{{{kvName}}.outputs.name}"
               }
             }
             """;
