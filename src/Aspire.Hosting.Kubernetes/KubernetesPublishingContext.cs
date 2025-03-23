@@ -92,37 +92,36 @@ internal partial class KubernetesPublishingContext(
 
     private void AppendResourceContextToHelmValues(IResource resource, KubernetesResourceContext resourceContext)
     {
-        // Process parameters used in anything that isn't a configmap / secret.
-        if (resourceContext.Parameters.Count > 0 && _helmValues[HelmExtensions.ParametersKey] is Dictionary<string, object> helmParameters)
-        {
-            var paramValues = resourceContext.Parameters
-                .Where(kvp => kvp.Value.Value != null)
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Value!);
+        AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
+        AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
+        AddValuesToHelmSection(resource, resourceContext.Secrets, HelmExtensions.SecretsKey);
+    }
 
-            if (paramValues.Count > 0)
+    private void AddValuesToHelmSection(
+        IResource resource,
+        Dictionary<string, KubernetesResourceContext.HelmExpressionWithValue> contextItems,
+        string helmKey)
+    {
+        if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
+        {
+            return;
+        }
+
+        var paramValues = new Dictionary<string, string>();
+
+        foreach (var (key, helmExpressionWithValue) in contextItems)
+        {
+            if (helmExpressionWithValue.ValueContainsHelmExpression)
             {
-                helmParameters[resource.Name] = paramValues;
+                continue;
             }
+
+            paramValues[key] = helmExpressionWithValue.Value ?? string.Empty;
         }
 
-        // Add config section if needed
-        if (resourceContext.EnvironmentVariables.Count > 0 && _helmValues[HelmExtensions.ConfigKey] is Dictionary<string, object> helmConfig)
+        if (paramValues.Count > 0)
         {
-            var configValues = resourceContext.EnvironmentVariables
-                .Where(kvp => kvp.Value.Value == null || !kvp.Value.Value.IsHelmExpression())
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Value ?? string.Empty);
-
-            helmConfig[resource.Name] = configValues;
-        }
-
-        // Add secrets section if needed
-        if (resourceContext.Secrets.Count > 0 && _helmValues[HelmExtensions.SecretsKey] is Dictionary<string, object> helmSecrets)
-        {
-            var secretValues = resourceContext.Secrets
-                .Where(kvp => kvp.Value.Value == null || !kvp.Value.Value.IsHelmExpression())
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Value ?? string.Empty);
-
-            helmSecrets[resource.Name] = secretValues;
+            helmSection[resource.Name] = paramValues;
         }
     }
 

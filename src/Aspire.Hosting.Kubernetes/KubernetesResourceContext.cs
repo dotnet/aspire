@@ -15,11 +15,10 @@ internal sealed class KubernetesResourceContext(
     KubernetesPublisherOptions publisherOptions)
 {
     internal record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, string Name);
-    internal record struct HelmExpressionValue(string Expression, string? Value);
     public readonly Dictionary<string, EndpointMapping> EndpointMappings = [];
-    public readonly Dictionary<string, HelmExpressionValue> EnvironmentVariables = [];
-    public readonly Dictionary<string, HelmExpressionValue> Secrets = [];
-    public readonly Dictionary<string, HelmExpressionValue> Parameters = [];
+    public readonly Dictionary<string, HelmExpressionWithValue> EnvironmentVariables = [];
+    public readonly Dictionary<string, HelmExpressionWithValue> Secrets = [];
+    public readonly Dictionary<string, HelmExpressionWithValue> Parameters = [];
     public Dictionary<string, string> Labels = [];
     public List<BaseKubernetesResource> TemplatedResources { get; } = [];
     internal List<string> Commands { get; } = [];
@@ -78,7 +77,7 @@ internal sealed class KubernetesResourceContext(
         var value = $"{resourceInstance.Name}:latest";
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
-        Parameters[imageEnvName] = new HelmExpressionValue(expression, value);
+        Parameters[imageEnvName] = new(expression, value);
         containerImageName = expression;
         return false;
 
@@ -102,7 +101,12 @@ internal sealed class KubernetesResourceContext(
 
         foreach (var endpoint in endpoints)
         {
-            var port = endpoint.TargetPort ?? 80;
+            var port = endpoint.TargetPort ?? endpoint.UriScheme switch
+            {
+                "http" => 8080,
+                "https" => 8443,
+                _ => 9000,
+            };
 
             EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, port, port, endpoint.Name);
         }
@@ -174,41 +178,57 @@ internal sealed class KubernetesResourceContext(
                 await c.Callback(context).ConfigureAwait(false);
             }
 
-            var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var kv in context.EnvironmentVariables)
+            foreach (var environmentVariable in context.EnvironmentVariables)
             {
-                var value = await ProcessValueAsync(kv.Value).ConfigureAwait(false);
-                var key = kv.Key.ToManifestFriendlyResourceName();
-                var stringValue = value.ToString() ?? string.Empty;
+                var key = environmentVariable.Key.ToManifestFriendlyResourceName();
+                var value = await ProcessValueAsync(environmentVariable.Value).ConfigureAwait(false);
 
-                if (processedKeys.Contains(key))
+                switch (value)
                 {
-                    continue;
+                    case HelmExpressionWithValue helmExpression:
+                        ProcessEnvironmentHelmExpression(helmExpression, key);
+                        continue;
+                    case string stringValue:
+                        ProcessEnvironmentStringValue(stringValue, key, resource.Name);
+                        continue;
+                    default:
+                        ProcessEnvironmentDefaultValue(value, key, resource.Name);
+                        break;
                 }
-
-                // Move connection strings to secrets
-                if (key.IsConnectionString())
-                {
-                    var expression = key.ToHelmSecretExpression(resource.Name);
-                    Secrets[key] = new HelmExpressionValue(expression, stringValue);
-                    continue;
-                }
-
-                if (stringValue.IsHelmSecretExpression())
-                {
-                    // If the value references secrets, it belongs in secrets
-                    var expression = key.ToHelmSecretExpression(resource.Name);
-                    Secrets[key] = new HelmExpressionValue(expression, stringValue);
-                    continue;
-                }
-
-                // All other values go to environment variables
-                var configExpression = key.ToHelmConfigExpression(resource.Name);
-                EnvironmentVariables[key] = new HelmExpressionValue(configExpression, stringValue);
-                processedKeys.Add(key);
             }
         }
+    }
+
+    private void ProcessEnvironmentHelmExpression(HelmExpressionWithValue helmExpression, string key)
+    {
+        switch (helmExpression)
+        {
+            case {IsHelmSecretExpression: true, ValueContainsSecretExpression: false}:
+                Secrets[key] = helmExpression;
+                return;
+            case {IsHelmSecretExpression: false, ValueContainsSecretExpression: false}:
+                EnvironmentVariables[key] = helmExpression;
+                break;
+        }
+    }
+
+    private void ProcessEnvironmentStringValue(string stringValue, string key, string resourceName)
+    {
+        if (stringValue.ContainsHelmSecretExpression())
+        {
+            var secretExpression = stringValue.ToHelmSecretExpression(resourceName);
+            Secrets[key] = new(secretExpression, stringValue);
+            return;
+        }
+
+        var configExpression = key.ToHelmConfigExpression(resourceName);
+        EnvironmentVariables[key] = new(configExpression, stringValue);
+    }
+
+    private void ProcessEnvironmentDefaultValue(object value, string key, string resourceName)
+    {
+        var configExpression = key.ToHelmConfigExpression(resourceName);
+        EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
     }
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
@@ -316,53 +336,39 @@ internal sealed class KubernetesResourceContext(
         }
     }
 
-    private string AllocateParameter(ParameterResource parameter)
+    private HelmExpressionWithValue AllocateParameter(ParameterResource parameter)
     {
         var formattedName = parameter.Name.ToManifestFriendlyResourceName();
+
+        var expression = parameter.Secret ?
+            formattedName.ToHelmSecretExpression(resource.Name) :
+            formattedName.ToHelmConfigExpression(resource.Name);
+
         var value = parameter.Default is null ? null : parameter.Value;
-
-        if (parameter.Secret)
-        {
-            var expression = formattedName.ToHelmSecretExpression(resource.Name);
-            Secrets[formattedName] = new HelmExpressionValue(expression, value);
-            return expression;
-        }
-
-        // For non-secret parameters, store in config map
-        var configExpression = formattedName.ToHelmConfigExpression(resource.Name);
-        var configValue = parameter.Default is null ? null : parameter.Value;
-        EnvironmentVariables[formattedName] = new HelmExpressionValue(configExpression, configValue);
-        return configValue ?? configExpression;
+        return new(expression, value);
     }
 
-    private string ResolveUnknownValue(IManifestExpressionProvider parameter)
+    private HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter)
     {
         var formattedName = parameter.ValueExpression.Replace("{", "")
             .Replace("}", "")
             .Replace(".", "_")
             .ToManifestFriendlyResourceName();
 
-        var value = parameter.ValueExpression;
+        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
+            formattedName.ToHelmSecretExpression(resource.Name) :
+            formattedName.ToHelmConfigExpression(resource.Name);
 
-        // If the value contains Helm expressions
-        if (value.IsHelmExpression())
-        {
-            // Store in secrets if it references secrets, otherwise in config
-            if (value.IsHelmSecretExpression())
-            {
-                var expression = formattedName.ToHelmSecretExpression(resource.Name);
-                Secrets[formattedName] = new HelmExpressionValue(expression, value);
-                return expression;
-            }
+        return new(helmExpression, parameter.ValueExpression);
+    }
 
-            var configExpression = formattedName.ToHelmConfigExpression(resource.Name);
-            EnvironmentVariables[formattedName] = new HelmExpressionValue(configExpression, value);
-            return configExpression;
-        }
-
-        // For values without Helm expressions
-        var targetExpression = formattedName.ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables[formattedName] = new HelmExpressionValue(targetExpression, value);
-        return targetExpression;
+    internal class HelmExpressionWithValue(string helmExpression, string? value)
+    {
+        public string HelmExpression { get; } = helmExpression;
+        public string? Value { get; } = value;
+        public bool IsHelmSecretExpression => HelmExpression.ContainsHelmSecretExpression();
+        public bool ValueContainsSecretExpression => Value?.ContainsHelmSecretExpression() ?? false;
+        public bool ValueContainsHelmExpression => Value?.ContainsHelmExpression() ?? false;
+        public override string ToString() => Value ?? HelmExpression;
     }
 }

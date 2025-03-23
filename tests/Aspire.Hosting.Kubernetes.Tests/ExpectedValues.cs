@@ -32,7 +32,7 @@ public static class ExpectedValues
         config:
           myapp:
             ASPNETCORE_ENVIRONMENT: "Development"
-            PORT: "80"
+            PORT: "8080"
             param0: ""
             param2: "default"
           project1:
@@ -41,7 +41,7 @@ public static class ExpectedValues
             OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
             OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION: "true"
             OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION: "true"
-            services__myapp__http__0: "http://myapp:80"
+            services__myapp__http__0: "http://myapp:8080"
 
         """;
 
@@ -128,7 +128,7 @@ public static class ExpectedValues
                   ports:
                     - name: "http"
                       protocol: "TCP"
-                      containerPort: 80
+                      containerPort: 8080
                   volumeMounts:
                     - name: "logs"
                       mountPath: "/logs"
@@ -165,8 +165,8 @@ public static class ExpectedValues
           ports:
             - name: "http"
               protocol: "TCP"
-              port: 80
-              targetPort: 80
+              port: 8080
+              targetPort: 8080
 
         """;
 

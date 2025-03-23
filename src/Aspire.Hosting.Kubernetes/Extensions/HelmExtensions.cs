@@ -49,12 +49,9 @@ internal static class HelmExtensions
     public static string ToPvName(this string resourceName, string volumeName)
         => $"{resourceName}-{volumeName}-{PvKey}";
 
-    public static bool IsHelmExpression(this string value)
+    public static bool ContainsHelmExpression(this string value)
         => value.Contains($"{{{{ {ValuesSegment}.", StringComparison.Ordinal);
 
-    public static bool IsHelmSecretExpression(this string value)
+    public static bool ContainsHelmSecretExpression(this string value)
         => value.Contains($"{{{{ {ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
-
-    public static bool IsConnectionString(this string value)
-        => value.StartsWith("CONNECTIONSTRINGS__", StringComparison.OrdinalIgnoreCase);
 }
