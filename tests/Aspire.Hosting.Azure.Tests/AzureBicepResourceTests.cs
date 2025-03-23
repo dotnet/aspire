@@ -1250,6 +1250,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output vaultUri string = mykv.properties.vaultUri
 
             output name string = mykv.name
+
+            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1280,11 +1282,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param principalType string
-
+            
             param principalId string
-
+            
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
@@ -1300,7 +1302,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'mykv'
               }
             }
-
+            
             resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
               properties: {
@@ -1310,10 +1312,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: mykv
             }
-
+            
             output vaultUri string = mykv.properties.vaultUri
-
+            
             output name string = mykv.name
+            
+            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
