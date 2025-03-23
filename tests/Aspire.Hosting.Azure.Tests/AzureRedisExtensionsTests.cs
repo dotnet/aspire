@@ -114,7 +114,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{{{kvName}}.secrets.redis-cache--connectionString}",
+              "connectionString": "{{{kvName}}.secrets.connectionstrings--redis-cache}",
               "path": "redis-cache.module.bicep",
               "params": {
                 "keyVaultName": "{{{kvName}}.outputs.name}"
@@ -153,7 +153,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'redis-cache--connectionString'
+              name: 'connectionstrings--redis-cache'
               properties: {
                 value: '${redis_cache.properties.hostName},ssl=true,password=${redis_cache.listKeys().primaryKey}'
               }

@@ -180,7 +180,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{{{kvName}}.secrets.postgres-data--connectionString}",
+              "connectionString": "{{{kvName}}.secrets.connectionstrings--postgres-data}",
               "path": "postgres-data.module.bicep",
               "params": {
                 "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
@@ -265,7 +265,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'postgres-data--connectionString'
+              name: 'connectionstrings--postgres-data'
               properties: {
                 value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
@@ -273,7 +273,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             }
             
             resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'postgres-data--db1-connectionString'
+              name: 'connectionstrings--db1'
               properties: {
                 value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
               }

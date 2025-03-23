@@ -852,7 +852,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{postgresSql-kv.secrets.postgresSql--connectionString}",
+              "connectionString": "{postgresSql-kv.secrets.connectionstrings--postgresSql}",
               "path": "postgresSql.module.bicep",
               "params": {
                 "administratorLogin": "{existingUserName.value}",
@@ -901,7 +901,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'postgresSql--connectionString'
+              name: 'connectionstrings--postgresSql'
               properties: {
                 value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
@@ -1338,7 +1338,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{redis-kv.secrets.redis--connectionString}",
+              "connectionString": "{redis-kv.secrets.connectionstrings--redis}",
               "path": "redis.module.bicep",
               "params": {
                 "keyVaultName": "{redis-kv.outputs.name}"
@@ -1367,7 +1367,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'redis--connectionString'
+              name: 'connectionstrings--redis'
               properties: {
                 value: '${redis.properties.hostName},ssl=true,password=${redis.listKeys().primaryKey}'
               }
@@ -1617,7 +1617,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{cosmos-kv.secrets.cosmos--connectionString}",
+              "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
               "path": "cosmos.module.bicep",
               "params": {
                 "keyVaultName": "{cosmos-kv.outputs.name}",
@@ -1676,7 +1676,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'cosmos--connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }

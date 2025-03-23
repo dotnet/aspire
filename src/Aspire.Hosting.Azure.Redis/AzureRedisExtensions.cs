@@ -263,7 +263,7 @@ public static class AzureRedisExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = $"connectionstrings-{redisResource.Name}",
+                Name = $"connectionstrings--{redisResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
