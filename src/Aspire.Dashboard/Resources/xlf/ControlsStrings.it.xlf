@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="EndpointNameColumnHeader">
         <source>Endpoint name</source>
-        <target state="new">Endpoint name</target>
+        <target state="translated">Nome endpoint</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
