@@ -19,7 +19,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
     /// </summary>
-    public BicepOutputReference VaultUriOutputReference => new("vaultUri", this);
+    public BicepOutputReference VaultUri => new("vaultUri", this);
 
     /// <summary>
     /// Gets the "name" output reference for the Azure Key Vault resource.
@@ -29,13 +29,16 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the resource identifier of the Azure Key Vault resource.
     /// </summary>
-    public BicepOutputReference IdOutputReference => new("id", this);
+    public BicepOutputReference Id => new("id", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUriOutputReference}");
+        ReferenceExpression.Create($"{VaultUri}");
+
+    BicepOutputReference IKeyVaultResource.VaultUriOutputReference => VaultUri;
+    BicepOutputReference IKeyVaultResource.IdOutputReference => Id;
 
     /// <summary>
     /// The secrets for the Azure Key Vault resource. Used in run mode to resolve
