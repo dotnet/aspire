@@ -1,102 +1,88 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Aspire.Hosting.Kubernetes.Tests;
 
-public class KubernetesPublisherTests
+[Collection(KubernetesPublisherFixture.CollectionName)]
+public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 {
-    private readonly List<string> _expectedFiles =
-    [
-        "Chart.yaml",
-        "values.yaml",
-        "templates/project1/deployment.yaml",
-        "templates/project1/configmap.yaml",
-        "templates/myapp/deployment.yaml",
-        "templates/myapp/service.yaml",
-        "templates/myapp/configmap.yaml",
-        "templates/myapp/secret.yaml",
-    ];
+    private static bool s_publisherHasRun;
 
-    private readonly Dictionary<string, string> _expectedValuesContentCache = [];
-
-    [Fact]
-    public async Task PublishAsync_GeneratesValidHelmChart()
+    private static readonly Dictionary<string, string> s_expectedFilesCache = new()
     {
-        // Arrange
-        LoadSnapshots();
-        using var tempDirectory = new TempDirectory();
-        var options = new OptionsMonitor(
-            new()
-            {
-                OutputPath = tempDirectory.Path,
-            });
+        ["Chart.yaml"] = ExpectedValues.Chart,
+        ["values.yaml"] = ExpectedValues.Values,
+        ["templates/project1/deployment.yaml"] = ExpectedValues.ProjectOneDeployment,
+        ["templates/project1/configmap.yaml"] = ExpectedValues.ProjectOneConfigMap,
+        ["templates/myapp/deployment.yaml"] = ExpectedValues.MyAppDeployment,
+        ["templates/myapp/service.yaml"] = ExpectedValues.MyAppService,
+        ["templates/myapp/configmap.yaml"] = ExpectedValues.MyAppConfigMap,
+        ["templates/myapp/secret.yaml"] = ExpectedValues.MyAppSecret,
+    };
 
-        var builder = DistributedApplication.CreateBuilder();
+    public static TheoryData<string> GetExpectedFiles() => new(s_expectedFilesCache.Keys);
 
-        var param0 = builder.AddParameter("param0");
-        var param1 = builder.AddParameter("param1", secret: true);
-        var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
-        var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+    [Theory, MemberData(nameof(GetExpectedFiles))]
+    public async Task PublishAsync_GeneratesValidHelmChart(string expectedFile)
+    {
+        if (!s_publisherHasRun)
+        {
+            // Arrange
+            ArgumentNullException.ThrowIfNull(fixture.TempDirectoryInstance);
+            var options = new OptionsMonitor(
+                new()
+                {
+                    OutputPath = fixture.TempDirectoryInstance.Path,
+                });
 
-        // Add a container to the application
-        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
-            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-            .WithHttpEndpoint(env: "PORT")
-            .WithEnvironment("param0", param0)
-            .WithEnvironment("param1", param1)
-            .WithEnvironment("param2", param2)
-            .WithReference(cs)
-            .WithVolume("logs", "/logs")
-            .WithArgs("--cs", cs.Resource);
+            var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddProject<TestProject>("project1", launchProfileName: null)
-            .WithReference(api.GetEndpoint("http"));
+            var param0 = builder.AddParameter("param0");
+            var param1 = builder.AddParameter("param1", secret: true);
+            var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
+            var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
-        var app = builder.Build();
+            // Add a container to the application
+            var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+                .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+                .WithHttpEndpoint(env: "PORT")
+                .WithEnvironment("param0", param0)
+                .WithEnvironment("param1", param1)
+                .WithEnvironment("param2", param2)
+                .WithReference(cs)
+                .WithVolume("logs", "/logs")
+                .WithArgs("--cs", cs.Resource);
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+            builder.AddProject<TestProject>("project1", launchProfileName: null)
+                .WithReference(api.GetEndpoint("http"));
 
-        var publisher = new KubernetesPublisher(
-            "test", options,
-            NullLogger<KubernetesPublisher>.Instance,
-            new(DistributedApplicationOperation.Publish));
+            var app = builder.Build();
 
-        // Act
-        await publisher.PublishAsync(model, CancellationToken.None);
+            var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+            var publisher = new KubernetesPublisher(
+                "test", options,
+                NullLogger<KubernetesPublisher>.Instance,
+                new(DistributedApplicationOperation.Publish));
+
+            // Act
+            await publisher.PublishAsync(model, CancellationToken.None);
+            s_publisherHasRun = true;
+        }
+
+        ArgumentNullException.ThrowIfNull(fixture.TempDirectoryInstance);
 
         // Assert
-        foreach (var expectedFile in _expectedFiles)
-        {
-            await AssertOutputFileContentsEqualExpectedFileContents(tempDirectory, expectedFile);
-        }
-    }
-
-    private void LoadSnapshots()
-    {
-        var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());
-
-        foreach (var expectedFile in _expectedFiles)
-        {
-            using var stream = embeddedProvider.GetFileInfo($"ExpectedValues.{expectedFile.Replace('/', '.')}").CreateReadStream() ?? throw new FileNotFoundException($"Expected file not found: {expectedFile}");
-            using var reader = new StreamReader(stream);
-            _expectedValuesContentCache[expectedFile] = reader.ReadToEnd();
-        }
-    }
-
-    private async Task AssertOutputFileContentsEqualExpectedFileContents(TempDirectory tempDirectory, string outputPath)
-    {
-        var file = Path.Combine(tempDirectory.Path, outputPath);
+        var file = Path.Combine(fixture.TempDirectoryInstance.Path, expectedFile);
         Assert.True(File.Exists(file), $"File not found: {file}");
         var outputContent = await File.ReadAllTextAsync(file);
-        Assert.Equal(_expectedValuesContentCache[outputPath], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+        Assert.Equal(s_expectedFilesCache[expectedFile], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     private sealed class OptionsMonitor(KubernetesPublisherOptions options) : IOptionsMonitor<KubernetesPublisherOptions>
@@ -106,19 +92,6 @@ public class KubernetesPublisherTests
         public IDisposable OnChange(Action<KubernetesPublisherOptions, string> listener) => null!;
 
         public KubernetesPublisherOptions CurrentValue => options;
-    }
-
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = Directory.CreateTempSubdirectory(".aspire-kubernetes").FullName;
-
-        public void Dispose()
-        {
-            if (File.Exists(Path))
-            {
-                File.Delete(Path);
-            }
-        }
     }
 
     private sealed class TestProject : IProjectMetadata
