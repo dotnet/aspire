@@ -355,7 +355,7 @@ internal sealed class AzureResourcePreparer(
 
         if (value is IKeyVaultSecretReference keyVaultSecretReference)
         {
-            azureReferences.Add(keyVaultSecretReference.KeyVaultResource);
+            azureReferences.Add(keyVaultSecretReference.Resource);
             return;
         }
 

@@ -20,7 +20,7 @@ public sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaul
     /// <summary>
     /// Gets the Azure Key Vault resource.
     /// </summary>
-    public IKeyVaultResource KeyVaultResource => azureKeyVaultResource;
+    public IKeyVaultResource Resource => azureKeyVaultResource;
 
     string IManifestExpressionProvider.ValueExpression => $"{{{azureKeyVaultResource.Name}.secrets.{SecretName}}}";
 
