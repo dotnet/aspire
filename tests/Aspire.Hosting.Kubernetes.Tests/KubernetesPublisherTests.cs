@@ -60,6 +60,11 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
                 .WithArgs("--cs", cs.Resource);
 
             builder.AddProject<TestProject>("project1", launchProfileName: null)
+                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true")
+                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true")
+                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory")
+                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "true")
+                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION", "true")
                 .WithReference(api.GetEndpoint("http"));
 
             var app = builder.Build();
