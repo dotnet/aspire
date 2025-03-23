@@ -259,7 +259,7 @@
       </trans-unit>
       <trans-unit id="ResourcesUrlsColumnHeader">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">Adresy URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
