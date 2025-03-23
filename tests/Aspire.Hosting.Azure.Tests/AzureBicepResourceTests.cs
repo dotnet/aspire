@@ -266,14 +266,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
 
-        kv.Resource.Secrets["cosmos--connectionString"] = "mycosmosconnectionstring";
+        kv.Resource.Secrets["connectionstrings--cosmos"] = "mycosmosconnectionstring";
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.cosmos--connectionString}",
+                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
                                    "keyVaultName": "{{{kvName}}.outputs.name}"
@@ -345,7 +345,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'cosmos--connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }
@@ -506,14 +506,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>("cosmos-kv");
 
-        kv.Resource.Secrets["cosmos--connectionString"] = "mycosmosconnectionstring";
+        kv.Resource.Secrets["connectionstrings--cosmos"] = "mycosmosconnectionstring";
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         var expectedManifest = """
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos-kv.secrets.cosmos--connectionString}",
+                                 "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
                                    "keyVaultName": "{cosmos-kv.outputs.name}"
@@ -586,7 +586,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'cosmos--connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }

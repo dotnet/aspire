@@ -357,7 +357,7 @@ public static class AzureCosmosExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference(
-            $"{azureResource.Name}--connectionString");
+            $"connectionstrings--{azureResource.Name}");
 
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
@@ -444,7 +444,7 @@ public static class AzureCosmosExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = $"{azureResource.Name}--connectionString",
+                Name = $"connectionstrings--{azureResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")

@@ -837,8 +837,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           name: pg_kv_outputs_name
         }
         
-        resource pg_kv_outputs_name_kv_pg__db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'pg--db-connectionString'
+        resource pg_kv_outputs_name_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'connectionstrings--db'
           parent: pg_kv_outputs_name_kv
         }
         
@@ -851,7 +851,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'connectionstrings--db'
                   identity: api_identity_outputs_id
-                  keyVaultUrl: pg_kv_outputs_name_kv_pg__db_connectionString.properties.secretUri
+                  keyVaultUrl: pg_kv_outputs_name_kv_connectionstrings__db.properties.secretUri
                 }
                 {
                   name: 'secretval'
@@ -1768,8 +1768,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           name: mydb_secretoutputs
         }
         
-        resource mydb_kv_outputs_name_kv_mydb__connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'mydb--connectionString'
+        resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'connectionstrings--mydb'
           parent: mydb_kv_outputs_name_kv
         }
         
@@ -1787,7 +1787,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'connectionstrings--mydb'
                   identity: api_identity_outputs_id
-                  keyVaultUrl: mydb_kv_outputs_name_kv_mydb__connectionString.properties.secretUri
+                  keyVaultUrl: mydb_kv_outputs_name_kv_connectionstrings__mydb.properties.secretUri
                 }
                 {
                   name: 'connectionstring'

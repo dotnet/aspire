@@ -319,7 +319,7 @@ public static class AzurePostgresExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"{builder.Resource.Name}--connectionString");
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{builder.Resource.Name}");
 
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
@@ -445,7 +445,7 @@ public static class AzurePostgresExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = $"{azureResource.Name}--connectionString",
+                Name = $"connectionstrings--{azureResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
@@ -458,7 +458,7 @@ public static class AzurePostgresExtensions
                 var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier(database.Key + "_connectionString"))
                 {
                     Parent = keyVault,
-                    Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(azureResource.Name, database.Key),
+                    Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
                     Properties = new SecretProperties
                     {
                         Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword};Database={database.Value}")

@@ -99,13 +99,13 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         // Note that the bicep template puts each database's connection string in a KeyVault secret.
         if (InnerResource is null && ConnectionStringSecretOutput is not null)
         {
-            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecretReference(GetDatabaseKeyVaultSecretName(Name, databaseResourceName))}");
+            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecretReference(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
         }
 
         return ReferenceExpression.Create($"{this};Database={databaseName}");
     }
 
-    internal static string GetDatabaseKeyVaultSecretName(string name, string databaseResourceName) => $"{name}--{databaseResourceName}-connectionString";
+    internal static string GetDatabaseKeyVaultSecretName(string databaseResourceName) => $"connectionstrings--{databaseResourceName}";
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

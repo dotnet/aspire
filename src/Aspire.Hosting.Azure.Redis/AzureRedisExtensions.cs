@@ -210,7 +210,7 @@ public static class AzureRedisExtensions
         ArgumentNullException.ThrowIfNull(keyVaultBuilder);
 
         var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"{azureResource.Name}--connectionString");
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{azureResource.Name}");
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
@@ -263,7 +263,7 @@ public static class AzureRedisExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = $"{redisResource.Name}--connectionString",
+                Name = $"connectionstrings-{redisResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
