@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -41,7 +43,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
                     OutputPath = fixture.TempDirectoryInstance.Path,
                 });
 
-            var builder = DistributedApplication.CreateBuilder();
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
             var param0 = builder.AddParameter("param0");
             var param1 = builder.AddParameter("param1", secret: true);
@@ -60,21 +62,20 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
                 .WithArgs("--cs", cs.Resource);
 
             builder.AddProject<TestProject>("project1", launchProfileName: null)
-                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true")
-                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true")
-                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory")
-                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "true")
-                .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION", "true")
                 .WithReference(api.GetEndpoint("http"));
 
             var app = builder.Build();
 
+            await ExecuteBeforeStartHooksAsync(app, default);
+
             var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+            await ExecuteBeforeStartHooksAsync(app, default);
 
             var publisher = new KubernetesPublisher(
                 "test", options,
                 NullLogger<KubernetesPublisher>.Instance,
-                new(DistributedApplicationOperation.Publish));
+                builder.ExecutionContext);
 
             // Act
             await publisher.PublishAsync(model, CancellationToken.None);
@@ -89,6 +90,9 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         var outputContent = await File.ReadAllTextAsync(file);
         Assert.Equal(s_expectedFilesCache[expectedFile], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class OptionsMonitor(KubernetesPublisherOptions options) : IOptionsMonitor<KubernetesPublisherOptions>
     {

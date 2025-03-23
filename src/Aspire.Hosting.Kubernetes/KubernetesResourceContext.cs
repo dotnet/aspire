@@ -203,10 +203,10 @@ internal sealed class KubernetesResourceContext(
     {
         switch (helmExpression)
         {
-            case {IsHelmSecretExpression: true, ValueContainsSecretExpression: false}:
+            case { IsHelmSecretExpression: true, ValueContainsSecretExpression: false }:
                 Secrets[key] = helmExpression;
                 return;
-            case {IsHelmSecretExpression: false, ValueContainsSecretExpression: false}:
+            case { IsHelmSecretExpression: false, ValueContainsSecretExpression: false }:
                 EnvironmentVariables[key] = helmExpression;
                 break;
         }
