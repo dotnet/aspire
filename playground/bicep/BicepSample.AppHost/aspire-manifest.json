@@ -99,17 +99,26 @@
     },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "{postgres2.secretOutputs.connectionString}",
+      "connectionString": "{postgres2-kv.secrets.connectionstrings--postgres2}",
       "path": "postgres2.module.bicep",
       "params": {
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}",
-        "keyVaultName": ""
+        "keyVaultName": "{postgres2-kv.outputs.name}"
+      }
+    },
+    "postgres2-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{postgres2-kv.outputs.vaultUri}",
+      "path": "postgres2-kv.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
       }
     },
     "db2": {
       "type": "value.v0",
-      "connectionString": "{postgres2.secretOutputs.db2-connectionString}"
+      "connectionString": "{postgres2-kv.secrets.connectionstrings--db2}"
     },
     "cosmos": {
       "type": "azure.bicep.v0",
@@ -121,7 +130,7 @@
     },
     "db3": {
       "type": "value.v0",
-      "connectionString": "{cosmos.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db3"
     },
     "lawkspc": {
       "type": "azure.bicep.v0",

@@ -6,8 +6,6 @@ param infra_outputs_volumes_cache_0 string
 @secure()
 param cache_password_value string
 
-param infra_outputs_azure_container_registry_managed_identity_id string
-
 param infra_outputs_azure_container_apps_environment_id string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
@@ -65,12 +63,6 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
           storageName: infra_outputs_volumes_cache_0
         }
       ]
-    }
-  }
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }
