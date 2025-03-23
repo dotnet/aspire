@@ -12,22 +12,22 @@ namespace Aspire.Hosting.Azure;
 public interface IKeyVaultResource : IResource, IAzureResource
 {
     /// <summary>
-    /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
+    /// Gets the output reference that represents the vault uri for the Azure Key Vault resource.
     /// </summary>
     BicepOutputReference VaultUriOutputReference { get; }
 
     /// <summary>
-    /// Gets the "name" output reference for the Azure Key Vault resource.
+    /// Gets the output reference that represents the name of Azure Key Vault resource.
     /// </summary>
     BicepOutputReference NameOutputReference { get; }
 
     /// <summary>
-    /// Gets the resource identifier of the Azure Key Vault resource.
+    /// the output reference that represents the resource id for the Azure Key Vault resource.
     /// </summary>
     BicepOutputReference IdOutputReference { get; }
 
     /// <summary>
-    /// The secret client used to access the Azure Key Vault at runtime.
+    /// The secret client used to access the Azure Key Vault in run mode.
     /// </summary>
     SecretClient? SecretClient { get; set; }
 
