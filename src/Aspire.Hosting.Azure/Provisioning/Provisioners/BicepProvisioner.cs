@@ -276,8 +276,8 @@ internal sealed class BicepProvisioner(
         if (resource is IKeyVaultResource kvr)
         {
             // Outputs should be resolved above
-            var id = resource.Outputs[kvr.Id.Name] as string ?? throw new InvalidOperationException($"Key vault {kvr.Id.Name} not found in outputs.");
-            var vaultUri = resource.Outputs[kvr.VaultUri.Name] as string ?? throw new InvalidOperationException($"Key vault {kvr.VaultUri.Name} not found in outputs.");
+            var id = resource.Outputs[kvr.IdOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.IdOutputReference.Name} not found in outputs.");
+            var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
 
             // Set the client for resolving secrets at runtime
             kvr.SecretClient = new SecretClient(new(vaultUri), context.Credential);

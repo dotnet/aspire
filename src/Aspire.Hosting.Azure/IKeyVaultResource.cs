@@ -14,7 +14,7 @@ public interface IKeyVaultResource : IResource, IAzureResource
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
     /// </summary>
-    BicepOutputReference VaultUri { get; }
+    BicepOutputReference VaultUriOutputReference { get; }
 
     /// <summary>
     /// Gets the "name" output reference for the Azure Key Vault resource.
@@ -24,13 +24,7 @@ public interface IKeyVaultResource : IResource, IAzureResource
     /// <summary>
     /// Gets the resource identifier of the Azure Key Vault resource.
     /// </summary>
-    BicepOutputReference Id { get; }
-
-    /// <summary>
-    /// The secrets for the Azure Key Vault resource. Used in run mode to resolve
-    /// the secrets from the Key Vault.
-    /// </summary>
-    IDictionary<string, string> Secrets { get; }
+    BicepOutputReference IdOutputReference { get; }
 
     /// <summary>
     /// The secret client used to access the Azure Key Vault at runtime.

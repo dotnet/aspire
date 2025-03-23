@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="secretName">The name of the secret.</param>
 /// <param name="azureKeyVaultResource">The Azure Key Vault resource.</param>
-public sealed class AzureKeyVaultSecretReference(string secretName, IKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
+public sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
 {
     /// <summary>
     /// Gets the name of the secret.
@@ -28,7 +28,7 @@ public sealed class AzureKeyVaultSecretReference(string secretName, IKeyVaultRes
     {
         if (azureKeyVaultResource.Secrets.TryGetValue(secretName, out var secretValue))
         {
-            return new(secretValue);
+            return secretValue;
         }
 
         if (azureKeyVaultResource.SecretClient is { } client)

@@ -19,7 +19,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
     /// </summary>
-    public BicepOutputReference VaultUri => new("vaultUri", this);
+    public BicepOutputReference VaultUriOutputReference => new("vaultUri", this);
 
     /// <summary>
     /// Gets the "name" output reference for the Azure Key Vault resource.
@@ -29,22 +29,26 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the resource identifier of the Azure Key Vault resource.
     /// </summary>
-    public BicepOutputReference Id => new("id", this);
+    public BicepOutputReference IdOutputReference => new("id", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUri}");
+        ReferenceExpression.Create($"{VaultUriOutputReference}");
 
     /// <summary>
     /// The secrets for the Azure Key Vault resource. Used in run mode to resolve
     /// </summary>
-    public Dictionary<string, string> Secrets { get; } = [];
+    internal Dictionary<string, string> Secrets { get; } = [];
 
-    IDictionary<string, string> IKeyVaultResource.Secrets => Secrets;
+    internal SecretClient? SecretClient { get; set; }
 
-    SecretClient? IKeyVaultResource.SecretClient { get; set; }
+    SecretClient? IKeyVaultResource.SecretClient
+    {
+        get => SecretClient;
+        set => SecretClient = value;
+    }
 
     /// <summary>
     /// Gets a secret reference for the specified secret name.
