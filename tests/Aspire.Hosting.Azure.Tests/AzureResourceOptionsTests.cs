@@ -130,6 +130,8 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
                 }
 
                 output sqlServerFqdn string = sql_server.properties.fullyQualifiedDomainName
+
+                output name string = sql_server.name
                 """;
             output.WriteLine(actualBicep);
             Assert.Equal(expectedBicep, actualBicep);

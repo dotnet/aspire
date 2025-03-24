@@ -5,7 +5,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
-                       .WithPgAdmin()
+                       .WithPgAdmin(resource =>
+                       {
+                           resource.WithUrlForEndpoint("http", u => u.DisplayText = "PG Admin");
+                       })
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
@@ -15,10 +18,12 @@ var basketCache = builder.AddRedis("basketcache")
 basketCache.WithRedisCommander(c =>
             {
                 c.WithHostPort(33801);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Commander");
             })
            .WithRedisInsight(c =>
             {
                 c.WithHostPort(33802);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Insight");
             });
 #endif
 
@@ -56,6 +61,8 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
+       .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
+       .WithUrl("https://someotherplace.com/some-path", "Some other place")
        .WithReference(basketService)
        .WithReference(catalogService);
 

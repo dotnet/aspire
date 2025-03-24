@@ -33,8 +33,9 @@ internal sealed class DockerComposePublishingContext(
 
     internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
-        if (executionContext.IsRunMode)
+        if (!executionContext.IsPublishMode)
         {
+            logger.NotInPublishingMode();
             return;
         }
 

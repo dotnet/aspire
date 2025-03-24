@@ -251,5 +251,16 @@ public class ReferenceExpressionBuilder
         {
             builder.AppendFormatted(valueProvider);
         }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider.Resource);
+        }
     }
 }

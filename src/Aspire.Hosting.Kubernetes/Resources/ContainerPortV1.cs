@@ -68,12 +68,12 @@ public sealed class ContainerPortV1
     /// for the proper routing of network traffic within a containerized application.
     /// </remarks>
     [YamlMember(Alias = "containerPort")]
-    public int ContainerPort { get; set; }
+    public Int32OrStringV1? ContainerPort { get; set; }
 
     /// <summary>
     /// Gets or sets the port number on the host machine that is mapped to the container's port.
     /// This enables external access to the container's service.
     /// </summary>
     [YamlMember(Alias = "hostPort")]
-    public int? HostPort { get; set; }
+    public Int32OrStringV1? HostPort { get; set; }
 }

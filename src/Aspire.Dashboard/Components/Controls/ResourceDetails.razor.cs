@@ -31,7 +31,7 @@ public partial class ResourceDetails
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
-    // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
+    // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
     private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
@@ -46,8 +46,8 @@ public partial class ResourceDetails
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<DisplayedEndpoint> FilteredEndpoints =>
-        GetEndpoints()
+    internal IQueryable<DisplayedUrl> FilteredUrls =>
+        GetUrls()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
@@ -78,7 +78,7 @@ public partial class ResourceDetails
 
     private bool _isVolumesExpanded;
     private bool _isEnvironmentVariablesExpanded;
-    private bool _isEndpointsExpanded;
+    private bool _isUrlsExpanded;
     private bool _isHealthChecksExpanded;
     private bool _isRelationshipsExpanded;
     private bool _isBackRelationshipsExpanded;
@@ -93,7 +93,7 @@ public partial class ResourceDetails
         set { _isMaskAllChecked = value; }
     }
 
-    private readonly GridSort<DisplayedEndpoint> _endpointValueSort = GridSort<DisplayedEndpoint>.ByAscending(vm => vm.Url ?? vm.Text);
+    private readonly GridSort<DisplayedUrl> _urlValueSort = GridSort<DisplayedUrl>.ByAscending(vm => vm.Url ?? vm.Text);
 
     protected override void OnParametersSet()
     {
@@ -110,7 +110,7 @@ public partial class ResourceDetails
             _resource = Resource;
 
             // Collapse details sections when they have no data.
-            _isEndpointsExpanded = GetEndpoints().Any();
+            _isUrlsExpanded = GetUrls().Count > 0;
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();
             _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports
@@ -211,9 +211,9 @@ public partial class ResourceDetails
         return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private List<DisplayedEndpoint> GetEndpoints()
+    private List<DisplayedUrl> GetUrls()
     {
-        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
+        return ResourceUrlHelpers.GetUrls(Resource, includeInternalUrls: true, includeNonEndpointUrls: true);
     }
 
     private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)

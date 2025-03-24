@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -10,10 +12,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzurePublisherTests
+public class AzurePublisherTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task PublishAsync_GeneratesMainBicep()
@@ -81,30 +84,29 @@ public class AzurePublisherTests
 
         var content = File.ReadAllText(Path.Combine(tempDir.Path, "main.bicep"));
 
-        Assert.Equal(
-            """
+        var expectedBicep = """
             targetScope = 'subscription'
 
             param environmentName string
-            
+
             param location string
-            
+
             param principalId string
-            
+
             param storageSku string = 'Standard_LRS'
-            
+
             param skuDescription string = 'The sku is '
-            
+
             var tags = {
               'aspire-env-name': environmentName
             }
-            
+
             resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
               name: 'rg-${environmentName}'
               location: location
               tags: tags
             }
-            
+
             module acaEnv 'acaEnv/acaEnv.bicep' = {
               name: 'acaEnv'
               scope: rg
@@ -113,28 +115,23 @@ public class AzurePublisherTests
                 userPrincipalId: principalId
               }
             }
-            
+
             module pg 'pg/pg.bicep' = {
               name: 'pg'
               scope: rg
               params: {
                 location: location
-                principalId: acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
-                principalType: 'ServicePrincipal'
-                principalName: acaEnv.outputs.MANAGED_IDENTITY_NAME
               }
             }
-            
+
             module account 'account/account.bicep' = {
               name: 'account'
               scope: rg
               params: {
                 location: location
-                principalType: 'ServicePrincipal'
-                principalId: acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
               }
             }
-            
+
             module storage 'storage/storage.bicep' = {
               name: 'storage'
               scope: rg
@@ -144,7 +141,7 @@ public class AzurePublisherTests
                 sku_description: '${skuDescription} ${storageSku}'
               }
             }
-            
+
             module mod 'mod/mod.bicep' = {
               name: 'mod'
               scope: rg
@@ -153,31 +150,63 @@ public class AzurePublisherTests
                 pgdb: '${pg.outputs.connectionString};Database=pgdb'
               }
             }
-            
-            module fe_roles 'fe-roles/fe-roles.bicep' = {
-              name: 'fe-roles'
+
+            module myapp_identity 'myapp-identity/myapp-identity.bicep' = {
+              name: 'myapp-identity'
+              scope: rg
+              params: {
+                location: location
+              }
+            }
+
+            module myapp_roles_account 'myapp-roles-account/myapp-roles-account.bicep' = {
+              name: 'myapp-roles-account'
+              scope: rg
+              params: {
+                location: location
+                account_outputs_name: account.outputs.name
+                principalId: myapp_identity.outputs.principalId
+              }
+            }
+
+            module fe_identity 'fe-identity/fe-identity.bicep' = {
+              name: 'fe-identity'
+              scope: rg
+              params: {
+                location: location
+              }
+            }
+
+            module fe_roles_storage 'fe-roles-storage/fe-roles-storage.bicep' = {
+              name: 'fe-roles-storage'
               scope: rg
               params: {
                 location: location
                 storage_outputs_name: storage.outputs.name
+                principalId: fe_identity.outputs.principalId
               }
             }
-            
+
+            output myapp_identity_id string = myapp_identity.outputs.id
+
+            output myapp_identity_clientId string = myapp_identity.outputs.clientId
+
             output account_connectionString string = account.outputs.connectionString
-            
+
             output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
-            
+
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
-            
-            output fe_roles_id string = fe_roles.outputs.id
-            
-            output fe_roles_clientId string = fe_roles.outputs.clientId
-            
+
+            output fe_identity_id string = fe_identity.outputs.id
+
+            output fe_identity_clientId string = fe_identity.outputs.clientId
+
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
-            
+
             output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-            """,
-                content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+            """;
+        output.WriteLine(content);
+        Assert.Equal(expectedBicep, content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

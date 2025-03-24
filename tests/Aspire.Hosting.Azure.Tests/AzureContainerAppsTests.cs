@@ -725,7 +725,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         builder.AddAzureContainerAppsInfrastructure();
 
-        // CosmosDB uses secret outputs
         var db = builder.AddAzureCosmosDB("mydb");
         db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
@@ -734,7 +733,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var rawCs = builder.AddConnectionString("cs");
 
-        // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
@@ -779,8 +777,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var proj = Assert.Single(model.GetProjectResources());
-        var rolesName = $"{proj.Name}-roles";
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == rolesName));
+        var identityName = $"{proj.Name}-identity";
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == identityName));
 
         proj.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
@@ -789,7 +787,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
 
         var m = manifest.ToString();
 
@@ -799,8 +797,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_roles_outputs_id": "{api-roles.outputs.id}",
-            "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+            "api_identity_outputs_id": "{api-identity.outputs.id}",
+            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "api_containerport": "{api.containerPort}",
             "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
@@ -819,27 +817,24 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        var expectedRolesManifest =
+        var expectedIdentityManifest =
         """
         {
           "type": "azure.bicep.v0",
-          "path": "api-roles.module.bicep",
-          "params": {
-            "storage_outputs_name": "{storage.outputs.name}"
-          }
+          "path": "api-identity.module.bicep"
         }
         """;
 
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+        Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
 
         var expectedBicep =
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param api_roles_outputs_id string
+        param api_identity_outputs_id string
 
-        param api_roles_outputs_clientid string
+        param api_identity_outputs_clientid string
 
         param api_containerport string
 
@@ -1016,7 +1011,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     }
                     {
                       name: 'AZURE_CLIENT_ID'
-                      value: api_roles_outputs_clientid
+                      value: api_identity_outputs_clientid
                     }
                   ]
                 }
@@ -1029,7 +1024,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           identity: {
             type: 'UserAssigned'
             userAssignedIdentities: {
-              '${api_roles_outputs_id}': { }
+              '${api_identity_outputs_id}': { }
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
           }
@@ -1038,50 +1033,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
 
-        var expectedRolesBicep =
+        var expectedIdentityBicep =
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param storage_outputs_name string
-
         resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
           name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
           location: location
-        }
-
-        resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-          name: storage_outputs_name
-        }
-
-        resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-          properties: {
-            principalId: api_identity.properties.principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-            principalType: 'ServicePrincipal'
-          }
-          scope: storage
-        }
-
-        resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-          properties: {
-            principalId: api_identity.properties.principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-            principalType: 'ServicePrincipal'
-          }
-          scope: storage
-        }
-
-        resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-          properties: {
-            principalId: api_identity.properties.principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-            principalType: 'ServicePrincipal'
-          }
-          scope: storage
         }
 
         output id string = api_identity.id
@@ -1089,10 +1048,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         output clientId string = api_identity.properties.clientId
 
         output principalId string = api_identity.properties.principalId
+
+        output principalName string = api_identity.name
         """;
 
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        output.WriteLine(identityBicep);
+        Assert.Equal(expectedIdentityBicep, identityBicep);
     }
 
     [Fact]
@@ -1102,7 +1063,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         builder.AddAzureContainerAppEnvironment("cae");
 
-        // CosmosDB uses secret outputs
         var db = builder.AddAzureCosmosDB("mydb");
         db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
@@ -1111,7 +1071,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var rawCs = builder.AddConnectionString("cs");
 
-        // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
@@ -1156,8 +1115,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var proj = Assert.Single(model.GetProjectResources());
-        var rolesName = $"{proj.Name}-roles";
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == rolesName));
+        var identityName = $"{proj.Name}-identity";
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == identityName));
 
         proj.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
@@ -1166,7 +1125,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
 
         var m = manifest.ToString();
 
@@ -1176,8 +1135,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_roles_outputs_id": "{api-roles.outputs.id}",
-            "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+            "api_identity_outputs_id": "{api-identity.outputs.id}",
+            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "api_containerport": "{api.containerPort}",
             "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
@@ -1196,18 +1155,15 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        var expectedRolesManifest =
+        var expectedIdentityManifest =
         """
         {
           "type": "azure.bicep.v0",
-          "path": "api-roles.module.bicep",
-          "params": {
-            "storage_outputs_name": "{storage.outputs.name}"
-          }
+          "path": "api-identity.module.bicep"
         }
         """;
 
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+        Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
     }
 
     [Fact]
@@ -2469,7 +2425,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var project = Assert.Single(model.GetProjectResources());
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles"));
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles-storage"));
 
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
@@ -2479,7 +2435,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-        var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
+        var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
         var (rolesStorageManifest, rolesStorageBicep) = await GetManifestWithBicep(projRolesStorage);
 
         var expectedManifest =
@@ -2488,8 +2444,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "api.module.bicep",
               "params": {
-                "api_roles_outputs_id": "{api-roles.outputs.id}",
-                "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
                 "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
                 "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
                 "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
@@ -2499,14 +2455,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        var expectedRolesManifest =
+        var expectedIdentityManifest =
             """
             {
               "type": "azure.bicep.v0",
-              "path": "api-roles.module.bicep"
+              "path": "api-identity.module.bicep"
             }
             """;
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
+        Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
 
         var expectedRolesStorageManifest =
             """
@@ -2515,8 +2471,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               "path": "api-roles-storage.module.bicep",
               "params": {
                 "storage_outputs_name": "{storage.outputs.name}",
-                "api_roles_outputs_id": "{api-roles.outputs.id}",
-                "api_roles_outputs_principalid": "{api-roles.outputs.principalId}"
+                "principalId": "{api-identity.outputs.principalId}"
               },
               "scope": {
                 "resourceGroup": "{storageRG.value}"
@@ -2530,9 +2485,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param api_roles_outputs_id string
+            param api_identity_outputs_id string
 
-            param api_roles_outputs_clientid string
+            param api_identity_outputs_clientid string
 
             param outputs_azure_container_registry_managed_identity_id string
 
@@ -2576,7 +2531,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                         }
                         {
                           name: 'AZURE_CLIENT_ID'
-                          value: api_roles_outputs_clientid
+                          value: api_identity_outputs_clientid
                         }
                       ]
                     }
@@ -2589,7 +2544,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               identity: {
                 type: 'UserAssigned'
                 userAssignedIdentities: {
-                  '${api_roles_outputs_id}': { }
+                  '${api_identity_outputs_id}': { }
                   '${outputs_azure_container_registry_managed_identity_id}': { }
                 }
               }
@@ -2598,7 +2553,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
 
-        var expectedRolesBicep =
+        var expectedIdentityBicep =
             """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
@@ -2613,9 +2568,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             output clientId string = api_identity.properties.clientId
 
             output principalId string = api_identity.properties.principalId
+
+            output principalName string = api_identity.name
             """;
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        output.WriteLine(identityBicep);
+        Assert.Equal(expectedIdentityBicep, identityBicep);
 
         var expectedRolesStorageBicep =
             """
@@ -2624,18 +2581,16 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
             param storage_outputs_name string
 
-            param api_roles_outputs_id string
-
-            param api_roles_outputs_principalid string
+            param principalId string
 
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
               name: storage_outputs_name
             }
 
             resource storage_StorageBlobDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, api_roles_outputs_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'))
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'))
               properties: {
-                principalId: api_roles_outputs_principalid
+                principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
                 principalType: 'ServicePrincipal'
               }
@@ -2644,6 +2599,423 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             """;
         output.WriteLine(rolesStorageBicep);
         Assert.Equal(expectedRolesStorageBicep, rolesStorageBicep);
+    }
+
+    [Fact]
+    public async Task RoleAssignmentsWithAsExistingCosmosDB()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var cosmosName = builder.AddParameter("cosmosName");
+        var cosmosRG = builder.AddParameter("cosmosRG");
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .PublishAsExisting(cosmosName, cosmosRG);
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+               .WithReference(cosmos);
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles-cosmos"));
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
+        var (rolesCosmosManifest, rolesCosmosBicep) = await GetManifestWithBicep(projRolesStorage);
+
+        var expectedManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "api.module.bicep",
+              "params": {
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
+                "cosmos_outputs_connectionstring": "{cosmos.outputs.connectionString}",
+                "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+                "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+                "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+                "api_containerimage": "{api.containerImage}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var expectedIdentityManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "api-identity.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
+
+        var expectedRolesCosmosManifest =
+            """
+            {
+              "type": "azure.bicep.v1",
+              "path": "api-roles-cosmos.module.bicep",
+              "params": {
+                "cosmos_outputs_name": "{cosmos.outputs.name}",
+                "principalId": "{api-identity.outputs.principalId}"
+              },
+              "scope": {
+                "resourceGroup": "{cosmosRG.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesCosmosManifest, rolesCosmosManifest.ToString());
+
+        var expectedBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param api_identity_outputs_id string
+
+            param api_identity_outputs_clientid string
+
+            param cosmos_outputs_connectionstring string
+
+            param outputs_azure_container_registry_managed_identity_id string
+
+            param outputs_azure_container_apps_environment_id string
+
+            param outputs_azure_container_registry_endpoint string
+
+            param api_containerimage string
+
+            resource api 'Microsoft.App/containerApps@2024-03-01' = {
+              name: 'api'
+              location: location
+              properties: {
+                configuration: {
+                  activeRevisionsMode: 'Single'
+                  registries: [
+                    {
+                      server: outputs_azure_container_registry_endpoint
+                      identity: outputs_azure_container_registry_managed_identity_id
+                    }
+                  ]
+                }
+                environmentId: outputs_azure_container_apps_environment_id
+                template: {
+                  containers: [
+                    {
+                      image: api_containerimage
+                      name: 'api'
+                      env: [
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
+                          value: 'true'
+                        }
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
+                          value: 'true'
+                        }
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
+                          value: 'in_memory'
+                        }
+                        {
+                          name: 'ConnectionStrings__cosmos'
+                          value: cosmos_outputs_connectionstring
+                        }
+                        {
+                          name: 'AZURE_CLIENT_ID'
+                          value: api_identity_outputs_clientid
+                        }
+                      ]
+                    }
+                  ]
+                  scale: {
+                    minReplicas: 1
+                  }
+                }
+              }
+              identity: {
+                type: 'UserAssigned'
+                userAssignedIdentities: {
+                  '${api_identity_outputs_id}': { }
+                  '${outputs_azure_container_registry_managed_identity_id}': { }
+                }
+              }
+            }
+            """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+
+        var expectedIdentityBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            output id string = api_identity.id
+
+            output clientId string = api_identity.properties.clientId
+
+            output principalId string = api_identity.properties.principalId
+
+            output principalName string = api_identity.name
+            """;
+        output.WriteLine(identityBicep);
+        Assert.Equal(expectedIdentityBicep, identityBicep);
+
+        var expectedRolesCosmosBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param cosmos_outputs_name string
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: cosmos_outputs_name
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+            """;
+        output.WriteLine(rolesCosmosBicep);
+        Assert.Equal(expectedRolesCosmosBicep, rolesCosmosBicep);
+    }
+
+    [Fact]
+    public async Task RoleAssignmentsWithAsExistingRedis()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var redis = builder.AddAzureRedis("redis")
+            .PublishAsExisting("myredis", "myRG");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(redis);
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles-redis"));
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
+        var (rolesRedisManifest, rolesRedisBicep) = await GetManifestWithBicep(projRolesStorage);
+
+        var expectedManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "api.module.bicep",
+              "params": {
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
+                "redis_outputs_connectionstring": "{redis.outputs.connectionString}",
+                "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+                "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+                "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+                "api_containerimage": "{api.containerImage}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var expectedIdentityManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "api-identity.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
+
+        var expectedRolesRedisManifest =
+            """
+            {
+              "type": "azure.bicep.v1",
+              "path": "api-roles-redis.module.bicep",
+              "params": {
+                "redis_outputs_name": "{redis.outputs.name}",
+                "principalId": "{api-identity.outputs.principalId}",
+                "principalName": "{api-identity.outputs.principalName}"
+              },
+              "scope": {
+                "resourceGroup": "myRG"
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesRedisManifest, rolesRedisManifest.ToString());
+
+        var expectedBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param api_identity_outputs_id string
+
+            param api_identity_outputs_clientid string
+
+            param redis_outputs_connectionstring string
+
+            param outputs_azure_container_registry_managed_identity_id string
+
+            param outputs_azure_container_apps_environment_id string
+
+            param outputs_azure_container_registry_endpoint string
+
+            param api_containerimage string
+
+            resource api 'Microsoft.App/containerApps@2024-03-01' = {
+              name: 'api'
+              location: location
+              properties: {
+                configuration: {
+                  activeRevisionsMode: 'Single'
+                  registries: [
+                    {
+                      server: outputs_azure_container_registry_endpoint
+                      identity: outputs_azure_container_registry_managed_identity_id
+                    }
+                  ]
+                }
+                environmentId: outputs_azure_container_apps_environment_id
+                template: {
+                  containers: [
+                    {
+                      image: api_containerimage
+                      name: 'api'
+                      env: [
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
+                          value: 'true'
+                        }
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
+                          value: 'true'
+                        }
+                        {
+                          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
+                          value: 'in_memory'
+                        }
+                        {
+                          name: 'ConnectionStrings__redis'
+                          value: redis_outputs_connectionstring
+                        }
+                        {
+                          name: 'AZURE_CLIENT_ID'
+                          value: api_identity_outputs_clientid
+                        }
+                      ]
+                    }
+                  ]
+                  scale: {
+                    minReplicas: 1
+                  }
+                }
+              }
+              identity: {
+                type: 'UserAssigned'
+                userAssignedIdentities: {
+                  '${api_identity_outputs_id}': { }
+                  '${outputs_azure_container_registry_managed_identity_id}': { }
+                }
+              }
+            }
+            """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+
+        var expectedIdentityBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+              name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
+              location: location
+            }
+
+            output id string = api_identity.id
+
+            output clientId string = api_identity.properties.clientId
+
+            output principalId string = api_identity.properties.principalId
+
+            output principalName string = api_identity.name
+            """;
+        output.WriteLine(identityBicep);
+        Assert.Equal(expectedIdentityBicep, identityBicep);
+
+        var expectedRolesRedisBicep =
+            """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param redis_outputs_name string
+
+            param principalId string
+
+            param principalName string
+
+            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
+              name: redis_outputs_name
+            }
+
+            resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+              name: guid(redis.id, principalId, 'Data Contributor')
+              properties: {
+                accessPolicyName: 'Data Contributor'
+                objectId: principalId
+                objectIdAlias: principalName
+              }
+              parent: redis
+            }
+            """;
+        output.WriteLine(rolesRedisBicep);
+        Assert.Equal(expectedRolesRedisBicep, rolesRedisBicep);
     }
 
     [Fact]

@@ -131,6 +131,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>StructuredFiltering.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\KnownUrlsDisplay.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>KnownUrlsDisplay.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -232,6 +237,10 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Commands.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Update="Resources\KnownUrlsDisplay.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>KnownUrlsDisplay.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -253,6 +262,7 @@
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
+    <Compile Include="..\Shared\KnownUrls.cs" Link="Utils\KnownUrls.cs" />
   </ItemGroup>
 
   <ItemGroup>

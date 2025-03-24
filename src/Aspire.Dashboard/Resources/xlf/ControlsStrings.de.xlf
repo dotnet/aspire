@@ -117,6 +117,11 @@
         <target state="translated">Dauer</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="new">Endpoint name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">Ereignis</target>
@@ -154,12 +159,12 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
         <source>Grow column width</source>
-        <target state="new">Grow column width</target>
+        <target state="translated">Spaltenbreite vergrößern</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResetAriaLabelText">
         <source>Reset column widths</source>
-        <target state="new">Reset column widths</target>
+        <target state="translated">Spaltenbreiten zurücksetzen</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
@@ -169,7 +174,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeDiscreteLabel">
         <source>Column width</source>
-        <target state="new">Column width</target>
+        <target state="translated">Spaltenbreite</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
@@ -179,7 +184,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellShrinkAriaLabelText">
         <source>Shrink column width</source>
-        <target state="new">Shrink column width</target>
+        <target state="translated">Spaltenbreite verkleinern</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
@@ -199,7 +204,7 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSubmitAriaLabelText">
         <source>Set column widths</source>
-        <target state="new">Set column widths</target>
+        <target state="translated">Spaltenbreiten festlegen</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -240,6 +245,11 @@
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
         <target state="translated">(Nicht festgelegt)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkColumnHeader">
+        <source>Link</source>
+        <target state="new">Link</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -342,11 +352,6 @@
         <target state="translated">Rückverweise</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">Endpunkte</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
         <target state="translated">Umgebungsvariablen</target>
@@ -367,6 +372,11 @@
         <target state="translated">Typ</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="new">URLs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
         <target state="translated">Volumes</target>
@@ -376,6 +386,11 @@
         <source>{0} (replica of {1})</source>
         <target state="translated">{0} (Replikat von {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
+      </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="new">No endpoints</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>

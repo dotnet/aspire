@@ -381,7 +381,7 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
-        var createFile = container.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
+        var createFile = container.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createFile.DestinationPath);
     }
@@ -472,7 +472,7 @@ public class AddPostgresTests
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
 
-        var createServers = pgadmin.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
+        var createServers = pgadmin.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createServers.DestinationPath);
         Assert.Null(createServers.Umask);
@@ -543,7 +543,7 @@ public class AddPostgresTests
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var pgweb = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
-        var createBookmarks = pgweb.Annotations.OfType<ContainerCreateFilesCallbackAnnotation>().Single();
+        var createBookmarks = pgweb.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/", createBookmarks.DestinationPath);
         Assert.Null(createBookmarks.Umask);
