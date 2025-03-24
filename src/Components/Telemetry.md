@@ -49,27 +49,7 @@ Aspire.Azure.Messaging.WebPubSub:
   - none (currently not supported by the Azure SDK)
 
 Aspire.Azure.Npgsql:
-- Log categories:
-  - "Npgsql.Command"
-  - "Npgsql.Connection"
-  - "Npgsql.Copy"
-  - "Npgsql.Exception"
-  - "Npgsql.Replication"
-  - "Npgsql.Transaction"
-- Activity source names:
-  - "Npgsql"
-- Metric names:
-  - "Npgsql":
-    - "db.client.commands.bytes_read"
-    - "db.client.commands.bytes_written"
-    - "db.client.commands.duration"
-    - "db.client.commands.executing"
-    - "db.client.commands.failed"
-    - "db.client.connections.create_time"
-    - "db.client.connections.max"
-    - "db.client.connections.pending_requests"
-    - "db.client.connections.timeouts"
-    - "db.client.connections.usage"
+- Everything from `Aspire.Npgsql`
 
 Aspire.Azure.Search.Documents:
 - Log categories:
