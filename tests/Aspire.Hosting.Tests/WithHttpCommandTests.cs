@@ -12,6 +12,27 @@ namespace Aspire.Hosting.Tests;
 public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void WithHttpCommand_AddsHttpClientFactory()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var resourceBuilder = builder.AddContainer("name", "image")
+            .WithHttpEndpoint()
+            .WithHttpCommand("/some-path", "Do The Thing");
+
+        using var app = builder.Build();
+
+        // Assert
+        var httpClientFactoryServiceDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(IHttpClientFactory));
+        Assert.NotNull(httpClientFactoryServiceDescriptor);
+
+        var httpClientFactory = app.Services.GetService<IHttpClientFactory>();
+        Assert.NotNull(httpClientFactory);
+    }
+
+    [Fact]
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
         // Arrange
