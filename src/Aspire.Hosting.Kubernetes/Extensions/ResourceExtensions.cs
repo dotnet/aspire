@@ -26,7 +26,8 @@ internal static class ResourceExtensions
                     Type = "RollingUpdate",
                     RollingUpdate = new()
                     {
-                        MaxUnavailable = 1, MaxSurge = 1,
+                        MaxUnavailable = 1,
+                        MaxSurge = 1,
                     },
                 },
             },
@@ -138,8 +139,8 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    Port = mapping.InternalPort,
-                    TargetPort = mapping.ExposedPort,
+                    Port = new(mapping.Port),
+                    TargetPort = new(mapping.Port),
                     Protocol = "TCP",
                 });
         }
@@ -265,7 +266,7 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = mapping.InternalPort,
+                    ContainerPort = new(mapping.Port),
                     Protocol = "TCP",
                 });
         }

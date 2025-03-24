@@ -14,7 +14,7 @@ internal sealed class KubernetesResourceContext(
     KubernetesPublishingContext kubernetesPublishingContext,
     KubernetesPublisherOptions publisherOptions)
 {
-    internal record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, string Name);
+    internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
     public readonly Dictionary<string, EndpointMapping> EndpointMappings = [];
     public readonly Dictionary<string, HelmExpressionWithValue> EnvironmentVariables = [];
     public readonly Dictionary<string, HelmExpressionWithValue> Secrets = [];
@@ -101,15 +101,31 @@ internal sealed class KubernetesResourceContext(
 
         foreach (var endpoint in endpoints)
         {
-            var port = endpoint.TargetPort ?? endpoint.UriScheme switch
+            if (resource is ProjectResource && endpoint.TargetPort is null)
             {
-                "http" => 8080,
-                "https" => 8443,
-                _ => 9000,
-            };
+                GenerateDefaultProjectEndpointMapping(endpoint);
+                continue;
+            }
 
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, port, port, endpoint.Name);
+            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
+            var portValue = port.ToString(CultureInfo.InvariantCulture);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, portValue, endpoint.Name);
         }
+    }
+
+    private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
+    {
+        const string defaultPort = "8080";
+
+        var paramName = $"port_{endpoint.Name}".ToManifestFriendlyResourceName();
+
+        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
+        Parameters[paramName] = new(helmExpression, defaultPort);
+
+        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
+        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
+
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
     }
 
     private void ProcessVolumes()
@@ -233,15 +249,15 @@ internal sealed class KubernetesResourceContext(
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
-        var (scheme, host, internalPort, exposedPort, _) = mapping;
+        var (scheme, host, port, _, _) = mapping;
 
         return property switch
         {
-            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{internalPort}"),
+            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{port}"),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => internalPort.ToString(CultureInfo.InvariantCulture),
-            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{internalPort}"),
-            EndpointProperty.TargetPort => $"{exposedPort}",
+            EndpointProperty.Port => port,
+            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
+            EndpointProperty.TargetPort => port,
             EndpointProperty.Scheme => scheme,
             _ => throw new NotSupportedException(),
         };

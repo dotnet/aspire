@@ -53,7 +53,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
             // Add a container to the application
             var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
                 .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-                .WithHttpEndpoint(env: "PORT")
+                .WithHttpEndpoint(targetPort: 8080)
                 .WithEnvironment("param0", param0)
                 .WithEnvironment("param1", param1)
                 .WithEnvironment("param2", param2)

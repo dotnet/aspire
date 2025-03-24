@@ -12,7 +12,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Aspire.Hosting.Kubernetes;
 
-internal partial class KubernetesPublishingContext(
+internal sealed class KubernetesPublishingContext(
     DistributedApplicationExecutionContext executionContext,
     KubernetesPublisherOptions publisherOptions,
     ILogger logger,
@@ -30,6 +30,7 @@ internal partial class KubernetesPublishingContext(
     private readonly ISerializer _serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTypeConverter(new ByteArrayStringYamlConverter())
+        .WithTypeConverter(new IntOrStringYamlConverter())
         .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
         .WithEventEmitter(e => new FloatEmitter(e))
         .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))

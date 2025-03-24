@@ -32,7 +32,6 @@ public static class ExpectedValues
         config:
           myapp:
             ASPNETCORE_ENVIRONMENT: "Development"
-            PORT: "8080"
             param0: ""
             param2: "default"
           project1:
@@ -124,7 +123,7 @@ public static class ExpectedValues
                   ports:
                     - name: "http"
                       protocol: "TCP"
-                      containerPort: 8080
+                      containerPort: "8080"
                   volumeMounts:
                     - name: "logs"
                       mountPath: "/logs"
@@ -161,8 +160,8 @@ public static class ExpectedValues
           ports:
             - name: "http"
               protocol: "TCP"
-              port: 8080
-              targetPort: 8080
+              port: "8080"
+              targetPort: "8080"
 
         """;
 
@@ -178,7 +177,6 @@ public static class ExpectedValues
             component: "myapp"
         data:
           ASPNETCORE_ENVIRONMENT: "{{ .Values.config.myapp.ASPNETCORE_ENVIRONMENT }}"
-          PORT: "{{ .Values.config.myapp.PORT }}"
           param0: "{{ .Values.config.myapp.param0 }}"
           param2: "{{ .Values.config.myapp.param2 }}"
 
