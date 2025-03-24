@@ -22,9 +22,12 @@ namespace Aspire.Hosting.Docker;
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
     DockerComposePublisherOptions publisherOptions,
+    IResourceContainerImageBuilder imageBuilder,
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
+    public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
+
     public readonly PortAllocator PortAllocator = new();
     private readonly Dictionary<string, (string Description, string? DefaultValue)> _env = [];
     private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
@@ -86,7 +89,7 @@ internal sealed class DockerComposePublishingContext(
 
             var composeServiceContext = await ProcessResourceAsync(resource).ConfigureAwait(false);
 
-            var composeService = composeServiceContext.BuildComposeService();
+            var composeService = await composeServiceContext.BuildComposeServiceAsync(cancellationToken).ConfigureAwait(false);
 
             HandleComposeFileVolumes(composeServiceContext, composeFile);
 
@@ -175,12 +178,11 @@ internal sealed class DockerComposePublishingContext(
         private List<string> Commands { get; } = [];
         public List<Volume> Volumes { get; } = [];
 
-        public Service BuildComposeService()
+        public async Task<Service> BuildComposeServiceAsync(CancellationToken cancellationToken)
         {
-            if (!TryGetContainerImageName(resource, out var containerImageName))
-            {
-                composePublishingContext.Logger.FailedToGetContainerImage(resource.Name);
-            }
+            var image = await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+            var imageEnvName = $"{resource.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
+            composePublishingContext.AddEnv(imageEnvName, $"Container image name for {resource.Name}", image);
 
             var composeService = new Service
             {
@@ -191,7 +193,7 @@ internal sealed class DockerComposePublishingContext(
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
             AddPorts(composeService);
             AddVolumes(composeService);
-            SetContainerImage(containerImageName, composeService);
+            SetContainerImage($"${{{imageEnvName}}}", composeService);
 
             return composeService;
         }
@@ -231,25 +233,6 @@ internal sealed class DockerComposePublishingContext(
             {
                 composeService.Image = containerImageName;
             }
-        }
-
-        private bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
-        {
-            // If the resource has a Dockerfile build annotation, we don't have the image name
-            // it will come as a parameter
-            if (resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resourceInstance is ProjectResource)
-            {
-                var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
-
-                composePublishingContext.AddEnv(imageEnvName,
-                                                $"Container image name for {resourceInstance.Name}",
-                                                $"{resourceInstance.Name}:latest");
-
-                containerImageName = $"${{{imageEnvName}}}";
-                return false;
-            }
-
-            return resourceInstance.TryGetContainerImageName(out containerImageName);
         }
 
         public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)

@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -37,7 +38,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithReference(cs)
                          .WithArgs("--cs", cs.Resource);
 
-        builder.AddProject<TestProject>("project1", launchProfileName: null)
+        builder.AddProject<Projects.TestingAppHost1_MyWebApp>("project1", launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
 
         var app = builder.Build();
@@ -48,7 +49,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
-            builder.ExecutionContext);
+            builder.ExecutionContext,
+            app.Services.GetRequiredService<IResourceContainerImageBuilder>()
+            );
 
         // Act
         await publisher.PublishAsync(model, default);
@@ -107,6 +110,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
             # Parameter param2
             PARAM2=default
+
+            # Container image name for myapp
+            MYAPP_IMAGE=mcr.microsoft.com/dotnet/aspnet
 
             # Container image name for project1
             PROJECT1_IMAGE=project1:latest

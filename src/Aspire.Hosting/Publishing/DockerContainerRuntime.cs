@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
 {
-    private async Task<(int ExitCode, string? Output)> RunDockerBuildAsync(string contextPath, string dockerfilePath, CancellationToken cancellationToken)
+    private async Task<(int ExitCode, string? Output)> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -21,6 +20,8 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         startInfo.ArgumentList.Add("build");
         startInfo.ArgumentList.Add("--file");
         startInfo.ArgumentList.Add(dockerfilePath);
+        startInfo.ArgumentList.Add("--tag");
+        startInfo.ArgumentList.Add(imageName);
         startInfo.ArgumentList.Add("--quiet");
         startInfo.ArgumentList.Add(contextPath);
 
@@ -56,27 +57,21 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task<string> BuildAsync(IResource resource, CancellationToken cancellationToken)
+    public async Task<string> BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
-        if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileAnnotation))
-        {
-            var result = await RunDockerBuildAsync(
-                dockerfileAnnotation.ContextPath,
-                dockerfileAnnotation.DockerfilePath,
-                cancellationToken).ConfigureAwait(false);
+        var result = await RunDockerBuildAsync(
+            contextPath,
+            dockerfilePath,
+            imageName,
+            cancellationToken).ConfigureAwait(false);
 
-            if (result.ExitCode == 0)
-            {
-                return result.Output!;
-            }
-            else
-            {
-                throw new DistributedApplicationException($"Docker build failed with exit code {result.ExitCode}.");
-            }
+        if (result.ExitCode == 0)
+        {
+            return result.Output!;
         }
         else
         {
-            throw new NotSupportedException();
+            throw new DistributedApplicationException($"Docker build failed with exit code {result.ExitCode}.");
         }
     }
 }
