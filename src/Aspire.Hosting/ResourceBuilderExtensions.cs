@@ -1508,6 +1508,8 @@ public static class ResourceBuilderExtensions
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
 
+        builder.ApplicationBuilder.Services.AddHttpClient();
+
         commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}-{path}";
 
         var targetRunning = false;
