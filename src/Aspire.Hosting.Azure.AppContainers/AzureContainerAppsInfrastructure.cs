@@ -195,12 +195,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                     var id = BicepFunction.Interpolate($"{containerAppIdentityId}").Compile().ToString();
 
-                    containerAppResource.Identity = new ManagedServiceIdentity()
-                    {
-                        ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                        UserAssignedIdentities = []
-                    };
-
+                    containerAppResource.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                     containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
                     EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = appIdentityResource.ClientId.AsProvisioningParameter(c) });
@@ -961,15 +956,10 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return;
                 }
 
-                app.Identity ??= new ManagedServiceIdentity()
-                {
-                    ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                    UserAssignedIdentities = []
-                };
-
                 // REVIEW: This is is a little hacky, we should probably have a better way to do this
                 var id = BicepFunction.Interpolate($"{_containerRegistryManagedIdentityIdParameter}").Compile().ToString();
 
+                app.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                 app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
             }
 

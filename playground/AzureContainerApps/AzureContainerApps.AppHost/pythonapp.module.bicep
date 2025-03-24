@@ -36,6 +36,7 @@ resource pythonapp 'Microsoft.App/containerApps@2024-03-01' = {
     }
   }
   identity: {
+    type: 'UserAssigned'
     userAssignedIdentities: {
       '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }

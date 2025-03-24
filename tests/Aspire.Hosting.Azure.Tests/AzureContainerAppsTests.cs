@@ -182,6 +182,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
+            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -306,6 +307,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
+            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -419,6 +421,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
+            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -513,6 +516,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
+            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
@@ -2342,6 +2346,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
           }
           identity: {
+            type: 'UserAssigned'
             userAssignedIdentities: {
               '${outputs_azure_container_registry_managed_identity_id}': { }
             }
