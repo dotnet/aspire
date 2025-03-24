@@ -6,4 +6,3 @@ using Aspire.Npgsql;
 using Azure.Core;
 
 [assembly: ConfigurationSchema("Aspire:Npgsql", typeof(NpgsqlSettings))]
-[assembly: ConfigurationSchema("Aspire:Npgsql:Credential", typeof(TokenCredential))]
