@@ -4,21 +4,28 @@
 namespace Aspire.Dashboard.Model;
 
 using Microsoft.FluentUI.AspNetCore.Components;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 internal static class ResourceIconHelpers
 {
     /// <summary>
     /// Maps a resource to a default icon.
     /// </summary>
-    public static Icon GetIconForResource(ResourceViewModel resource)
+    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize)
     {
-        return resource.ResourceType switch
+        var icon = resource.ResourceType switch
         {
-            KnownResourceTypes.Executable => new Icons.Filled.Size24.Database(),
-            KnownResourceTypes.Project => new Icons.Filled.Size24.CodeCircle(),
-            KnownResourceTypes.Container => new Icons.Filled.Size24.Box(),
-            string t => t.Contains("database", StringComparison.OrdinalIgnoreCase) ? new Icons.Filled.Size24.Database() : new Icons.Filled.Size24.SettingsCogMultiple(),
+            KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, IconVariant.Filled),
+            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, IconVariant.Filled),
+            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
         };
-    }  
+
+        if (icon == null)
+        {
+            throw new InvalidOperationException($"Couldn't resolve resource icon for {resource.Name}.");
+        }
+
+        return icon;
+    }
 }

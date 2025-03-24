@@ -36,7 +36,7 @@ public static class ResourceGraphMapper
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
         var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
 
-        var icon = GetIconPathData(ResourceIconHelpers.GetIconForResource(r));
+        var icon = GetIconPathData(ResourceIconHelpers.GetIconForResource(r, IconSize.Size24));
 
         var stateIcon = ResourceStateViewModel.GetStateViewModel(r, columnsLoc);
 

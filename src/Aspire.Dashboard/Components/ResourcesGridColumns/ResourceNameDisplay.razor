@@ -7,10 +7,13 @@
 @inject IStringLocalizer<Columns> Loc
 
 <span class="resource-name-container">
-    <FluentIcon Width="16px" Class="resource-icon "
-        Value="@ResourceIconHelpers.GetIconForResource(Resource).WithColor(ColorGenerator.Instance.GetColorHexByKey(FormatName(Resource)))" />
+    <FluentIcon Width="16px"
+                Class="resource-icon"
+                Color="Color.Custom"
+                CustomColor="@ColorGenerator.Instance.GetColorHexByKey(FormatName(Resource))"
+                Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
 
-    <span class="resource-name-text" title="@FormatName(Resource)">
+    <span class="resource-name-text">
         <FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" />
     </span>
 
