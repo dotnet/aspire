@@ -83,12 +83,19 @@ public static class AspireAzureNpgsqlExtensions
     private static AzureNpgsqlSettings ConfigureSettings(Action<AzureNpgsqlSettings>? userConfigureSettings, NpgsqlSettings settings)
     {
         var azureSettings = new AzureNpgsqlSettings();
+
+        // Copy the values updated by Npgsql integration.
         CopySettings(settings, azureSettings);
+
+        // Invoke the Aspire configuration.
         userConfigureSettings?.Invoke(azureSettings);
+
+        // Copy to the Npgsql integration settings as it needs to get any values set in userConfigureSettings.
         CopySettings(azureSettings, settings);
 
         return azureSettings;
     }
+
     private static void CopySettings(NpgsqlSettings source, NpgsqlSettings destination)
     {
         destination.ConnectionString = source.ConnectionString;
