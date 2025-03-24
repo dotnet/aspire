@@ -78,7 +78,6 @@
     <OpenTelemetryInstrumentationHttpVersion>1.11.1</OpenTelemetryInstrumentationHttpVersion>
     <OpenTelemetryInstrumentationExtensionsHostingVersion>1.11.2</OpenTelemetryInstrumentationExtensionsHostingVersion>
     <OpenTelemetryInstrumentationRuntimeVersion>1.11.1</OpenTelemetryInstrumentationRuntimeVersion>
-    <OpenTelemetryInstrumentationGrpcNetClientVersion>1.11.0-beta.2</OpenTelemetryInstrumentationGrpcNetClientVersion>
     <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.11.2</OpenTelemetryExporterOpenTelemetryProtocolVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
