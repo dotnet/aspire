@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -14,6 +15,7 @@ namespace Aspire.Hosting.Tests.Publishing;
 public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 {
     [Fact]
+    [RequiresDocker]
     public async Task CanBuildImageFromProjectResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -27,6 +29,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
