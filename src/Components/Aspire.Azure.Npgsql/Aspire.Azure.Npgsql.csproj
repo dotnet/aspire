@@ -12,9 +12,6 @@
 
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
-    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
-    <Compile Include="..\Common\ConnectionStringValidation.cs" Link="ConnectionStringValidation.cs" />
-    <Compile Include="..\Aspire.Npgsql\NpgsqlCommon.cs" Link="NpgsqlCommon.cs" />
     <Compile Include="..\Aspire.Npgsql\AssemblyInfo.LoggingCategories.cs" Link="AssemblyInfo.cs" />
   </ItemGroup>
 
