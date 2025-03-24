@@ -72,6 +72,14 @@
     <MicrosoftExtensionsHttpVersion>9.0.3</MicrosoftExtensionsHttpVersion>
     <SystemFormatsAsn1Version>9.0.3</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.3</SystemTextJsonVersion>
+    <!-- OpenTelemetry (OTel) -->
+    <OpenTelemetryVersion>1.11.2</OpenTelemetryVersion>
+    <OpenTelemetryInstrumentationAspNetCoreVersion>1.11.1</OpenTelemetryInstrumentationAspNetCoreVersion>
+    <OpenTelemetryInstrumentationHttpVersion>1.11.1</OpenTelemetryInstrumentationHttpVersion>
+    <OpenTelemetryInstrumentationExtensionsHostingVersion>1.11.2</OpenTelemetryInstrumentationExtensionsHostingVersion>
+    <OpenTelemetryInstrumentationRuntimeVersion>1.11.1</OpenTelemetryInstrumentationRuntimeVersion>
+    <OpenTelemetryInstrumentationGrpcNetClientVersion>1.11.0-beta.2</OpenTelemetryInstrumentationGrpcNetClientVersion>
+    <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.11.2</OpenTelemetryExporterOpenTelemetryProtocolVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">
@@ -103,5 +111,8 @@
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
     <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.5</SystemTextJsonLTSVersion>
+    <!-- OpenTelemetry (OTel) -->
+    <OpenTelemetryLTSVersion>1.9.0</OpenTelemetryLTSVersion>
+    <OpenTelemetryInstrumentationGrpcNetClientLTSVersion>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientLTSVersion>
   </PropertyGroup>
 </Project>
