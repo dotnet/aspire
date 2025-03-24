@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data;
 using System.Net.Sockets;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -1227,7 +1228,49 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="executeCommand">
+    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// The callback result is used to indicate success or failure in the UI.
+    /// </param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
+    /// and can be executed by a user using the dashboard UI.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithCommand<T>(
+        this IResourceBuilder<T> builder,
+        string name,
+        string displayName,
+        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        CommandOptions? commandOptions = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(displayName);
+        ArgumentNullException.ThrowIfNull(executeCommand);
+
+        commandOptions ??= CommandOptions.Default;
+
+        // Replace existing annotation with the same name.
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
+        if (existingAnnotation is not null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, commandOptions.UpdateState, executeCommand, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
@@ -1258,6 +1301,7 @@ public static class ResourceBuilderExtensions
     /// and can be executed by a user using the dashboard UI.</para>
     /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
     /// </remarks>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload that accepts a CommandOptions instance instead.")]
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
         string name,
@@ -1294,26 +1338,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
-    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
-    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
-    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
-    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
-    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="updateState">
-    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
-    /// <para>If a callback isn't specified, the command is enabled when the resource is in the <c>Running</c> state.</para>
-    /// </param>
-    /// <param name="displayDescription">
-    /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
-    /// </param>
-    /// <param name="confirmationMessage">
-    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
-    /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
-    /// <param name="iconVariant">The icon variant.</param>
-    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -1332,19 +1357,19 @@ public static class ResourceBuilderExtensions
     /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
     /// </para>
     /// <para>
-    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// If <see cref="HttpCommandOptions.Method"/> is not specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
-    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// Specifying <see cref="HttpCommandOptions.HttpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
     /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
-    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// If <see cref="HttpCommandOptions.HttpClientName"/> is not specified, the default <see cref="HttpClient"/> will be used.
     /// </para>
     /// <para>
-    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// The <see cref="HttpCommandOptions.PrepareRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
     /// before the request is sent.
     /// </para>
     /// <para>
-    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
@@ -1364,13 +1389,16 @@ public static class ResourceBuilderExtensions
     ///     .WithHttpsEndpoint("admin")
     ///     .WithEnvironment("ADMIN_KEY", adminKey)
     ///     .WithHttpCommand("/reset-db", "Reset database",
-    ///                      method: HttpMethod.Get,
     ///                      endpointName: "admin",
-    ///                      confirmationMessage: "Are you sure you want to reset the database?"
-    ///                      configureRequest: request =>
+    ///                      commandOptions: new ()
     ///                      {
-    ///                          request.Headers.Add("X-Admin-Key", adminKey);
-    ///                          return Task.CompletedTask;
+    ///                         Method = HttpMethod.Get,
+    ///                         ConfirmationMessage = "Are you sure you want to reset the database?",
+    ///                         PrepareRequest: request =>
+    ///                         {
+    ///                             request.Headers.Add("X-Admin-Key", adminKey);
+    ///                             return Task.CompletedTask;
+    ///                         }
     ///                      });
     /// </code>
     /// </example>
@@ -1379,17 +1407,7 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         [EndpointName] string? endpointName = null,
-        HttpMethod? method = null,
-        string? httpClientName = null,
-        Func<HttpCommandRequestContext, Task>? configureRequest = null,
-        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
-        string? commandName = null,
-        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
-        string? displayDescription = null,
-        string? confirmationMessage = null,
-        string? iconName = null,
-        IconVariant? iconVariant = null,
-        bool isHighlighted = false)
+        HttpCommandOptions? commandOptions = null)
         where TResource : IResourceWithEndpoints
         => builder.WithHttpCommand(
             path: path,
@@ -1397,17 +1415,7 @@ public static class ResourceBuilderExtensions
             endpointSelector: endpointName is not null
                 ? NamedEndpointSelector(builder, [endpointName])
                 : NamedEndpointSelector(builder, s_httpSchemes),
-            method: method,
-            httpClientName: httpClientName,
-            configureRequest: configureRequest,
-            getCommandResult: getCommandResult,
-            commandName: commandName,
-            updateState: updateState,
-            displayDescription: displayDescription,
-            confirmationMessage: confirmationMessage,
-            iconName: iconName,
-            iconVariant: iconVariant,
-            isHighlighted: isHighlighted);
+            commandOptions);
 
     /// <summary>
     /// Adds a command to the resource that when invoked sends an HTTP request to the specified endpoint and path.
@@ -1417,26 +1425,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointSelector">A callback that selects the HTTP endpoint to send the request to when the command is invoked.</param>
-    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
-    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
-    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
-    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
-    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="updateState">
-    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
-    /// <para>If a callback isn't specified, the command is enabled when the resource associated with the endpoint returned by <paramref name="endpointSelector"/> is in the <c>Running</c> state.</para>
-    /// </param>
-    /// <param name="displayDescription">
-    /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
-    /// </param>
-    /// <param name="confirmationMessage">
-    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
-    /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
-    /// <param name="iconVariant">The icon variant.</param>
-    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
     /// <remarks>
@@ -1444,30 +1433,30 @@ public static class ResourceBuilderExtensions
     /// The command will be added to the resource represented by <paramref name="builder"/>.
     /// </para>
     /// <para>
-    /// If no <paramref name="endpointSelector"/> is specified, the first HTTP endpoint found on the resource will be used.
+    /// If no <see cref="HttpCommandOptions.EndpointSelector"/> is specified, the first HTTP endpoint found on the resource will be used.
     /// HTTP endpoints with an <c>https</c> scheme are preferred over those with an <c>http</c> scheme. If no HTTP endpoint
     /// is found on the resource, an exception will be thrown.
     /// </para>
     /// <para>
-    /// The supplied <paramref name="endpointSelector"/> may return an endpoint from a different resource to that which the command is being added to.
+    /// The supplied <see cref="HttpCommandOptions.EndpointSelector"/> may return an endpoint from a different resource to that which the command is being added to.
     /// </para>
     /// <para>
     /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
     /// </para>
     /// <para>
-    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// If <see cref="HttpCommandOptions.Method"/> is not specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
-    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// Specifying a <see cref="HttpCommandOptions.HttpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
     /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
-    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// If no <see cref="HttpCommandOptions.HttpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
     /// </para>
     /// <para>
-    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// The <see cref="HttpCommandOptions.PrepareRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
     /// before the request is sent.
     /// </para>
     /// <para>
-    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
@@ -1488,21 +1477,9 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         Func<EndpointReference>? endpointSelector,
-        HttpMethod? method = null,
-        string? httpClientName = null,
-        Func<HttpCommandRequestContext, Task>? configureRequest = null,
-        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
-        string? commandName = null,
-        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
-        string? displayDescription = null,
-        string? confirmationMessage = null,
-        string? iconName = null,
-        IconVariant? iconVariant = null,
-        bool isHighlighted = false)
+        HttpCommandOptions? commandOptions)
         where TResource : IResourceWithEndpoints
     {
-        method ??= HttpMethod.Post;
-
         endpointSelector ??= DefaultEndpointSelector(builder);
 
         var endpoint = endpointSelector()
@@ -1510,7 +1487,9 @@ public static class ResourceBuilderExtensions
 
         builder.ApplicationBuilder.Services.AddHttpClient();
 
-        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}-{path}";
+        commandOptions ??= HttpCommandOptions.Default;
+
+        var defaultCommandName = $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{commandOptions.Method.Method.ToLowerInvariant()}-{path}";
 
         var targetRunning = false;
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
@@ -1531,7 +1510,7 @@ public static class ResourceBuilderExtensions
             return Task.CompletedTask;
         });
 
-        builder.WithCommand(commandName, displayName,
+        builder.WithCommand(commandOptions.CommandName ?? defaultCommandName, displayName,
             async context =>
             {
                 if (!endpoint.IsAllocated)
@@ -1540,9 +1519,9 @@ public static class ResourceBuilderExtensions
                 }
 
                 var uri = new UriBuilder(endpoint.Url) { Path = path }.Uri;
-                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName ?? Options.DefaultName);
-                var request = new HttpRequestMessage(method, uri);
-                if (configureRequest is not null)
+                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(commandOptions.HttpClientName ?? Options.DefaultName);
+                var request = new HttpRequestMessage(commandOptions.Method, uri);
+                if (commandOptions.PrepareRequest is not null)
                 {
                     var requestContext = new HttpCommandRequestContext
                     {
@@ -1553,12 +1532,12 @@ public static class ResourceBuilderExtensions
                         HttpClient = httpClient,
                         Request = request
                     };
-                    await configureRequest(requestContext).ConfigureAwait(false);
+                    await commandOptions.PrepareRequest(requestContext).ConfigureAwait(false);
                 }
                 try
                 {
                     var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
-                    if (getCommandResult is not null)
+                    if (commandOptions.GetCommandResult is not null)
                     {
                         var resultContext = new HttpCommandResultContext
                         {
@@ -1569,7 +1548,7 @@ public static class ResourceBuilderExtensions
                             HttpClient = httpClient,
                             Response = response
                         };
-                        return await getCommandResult(resultContext).ConfigureAwait(false);
+                        return await commandOptions.GetCommandResult(resultContext).ConfigureAwait(false);
                     }
 
                     return response.IsSuccessStatusCode
@@ -1581,12 +1560,7 @@ public static class ResourceBuilderExtensions
                     return CommandResults.Failure(ex);
                 }
             },
-            updateState: updateState ?? (context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled),
-            displayDescription: displayDescription,
-            confirmationMessage: confirmationMessage,
-            iconName: iconName,
-            iconVariant: iconVariant,
-            isHighlighted: isHighlighted);
+            commandOptions);
 
         return builder;
     }
