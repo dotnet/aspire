@@ -8,9 +8,9 @@ using Newtonsoft.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.WithAzureCosmosDatabase("db")
-    .AddContainer("entries")
-    .AddContainer("users");
+builder.AddAzureCosmosDatabase("db")
+    .AddKeyedContainer("entries")
+    .AddKeyedContainer("users");
 builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 {
     configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);

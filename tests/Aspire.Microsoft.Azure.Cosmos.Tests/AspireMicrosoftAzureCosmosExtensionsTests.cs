@@ -201,7 +201,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<Database>);
-        Assert.Equal("The connection string 'cosmos-key' does not exist or is missing the database name.", exception.Message);
+        Assert.Equal("A Database could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:cosmos-key'.", exception.Message);
     }
 
     [Theory]
@@ -217,7 +217,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(() => host.Services.GetRequiredKeyedService<Database>(serviceKey));
-        Assert.Contains("The connection string 'cosmos-key' does not exist or is missing the database name.", exception.Message);
+        Assert.Equal("A Database could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:cosmos-key'.", exception.Message);
     }
 
     [Fact]
@@ -242,34 +242,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void AddAzureCosmosDatabase_ReusesExistingClient()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var databaseName = "testdb";
-        var expectedEndpoint = "https://localhost:8081/";
-        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
-
-        PopulateConfiguration(builder.Configuration, connectionString);
-
-        builder.AddAzureCosmosClient("cosmos", configureClientOptions: options =>
-        {
-            options.LimitToEndpoint = false;
-        });
-        builder.AddAzureCosmosDatabase("cosmos");
-
-        using var host = builder.Build();
-
-        var client = host.Services.GetRequiredService<CosmosClient>();
-        var database = host.Services.GetRequiredService<Database>();
-
-        Assert.Same(client, database.Client);
-        Assert.Equal(databaseName, database.Id);
-        Assert.Equal(expectedEndpoint, database.Client.Endpoint.ToString());
-        Assert.False(database.Client.ClientOptions.LimitToEndpoint);
-    }
-
-    [Fact]
-    public void AddAzureCosmosContainer_ReusesExistingClient()
+    public void AddAzureCosmosContainer_DoesNoReuseExistingClient()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -290,66 +263,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         var client = host.Services.GetRequiredService<CosmosClient>();
         var container = host.Services.GetRequiredService<Container>();
 
-        Assert.Same(client, container.Database.Client);
-        Assert.Equal(containerName, container.Id);
-        Assert.Equal(expectedEndpoint, container.Database.Client.Endpoint.ToString());
-        Assert.False(container.Database.Client.ClientOptions.LimitToEndpoint);
-    }
-
-    [Fact]
-    public void AddKeyedAzureCosmosDatabase_ReusesExistingKeyedClient()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var serviceKey = "cosmos-key";
-        var databaseName = "testdb";
-        var expectedEndpoint = "https://localhost:8081/";
-        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
-
-        PopulateConfiguration(builder.Configuration, connectionString, serviceKey);
-
-        builder.AddKeyedAzureCosmosClient(serviceKey, configureClientOptions: options =>
-        {
-            options.LimitToEndpoint = false;
-        });
-        builder.AddKeyedAzureCosmosDatabase(serviceKey);
-
-        using var host = builder.Build();
-
-        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
-        var database = host.Services.GetRequiredKeyedService<Database>(serviceKey);
-
-        Assert.Same(client, database.Client);
-        Assert.Equal(databaseName, database.Id);
-        Assert.Equal(expectedEndpoint, database.Client.Endpoint.ToString());
-        Assert.False(database.Client.ClientOptions.LimitToEndpoint);
-    }
-
-    [Fact]
-    public void AddKeyedAzureCosmosContainer_ReusesExistingKeyedClient()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var serviceKey = "cosmos-key";
-        var databaseName = "testdb";
-        var containerName = "testcontainer";
-        var expectedEndpoint = "https://localhost:8081/";
-        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};Container={containerName};";
-
-        PopulateConfiguration(builder.Configuration, connectionString, serviceKey);
-
-        builder.AddKeyedAzureCosmosClient(serviceKey, configureClientOptions: options =>
-        {
-            options.LimitToEndpoint = false;
-        });
-        builder.AddKeyedAzureCosmosContainer(serviceKey);
-
-        using var host = builder.Build();
-
-        var client = host.Services.GetRequiredKeyedService<CosmosClient>(serviceKey);
-        var container = host.Services.GetRequiredKeyedService<Container>(serviceKey);
-
-        Assert.Same(client, container.Database.Client);
-        Assert.Equal(containerName, container.Id);
-        Assert.Equal(expectedEndpoint, container.Database.Client.Endpoint.ToString());
+        Assert.NotSame(client, container.Database.Client);
     }
 
     [Fact]
@@ -465,7 +379,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_NoAddContainer_DoesNothing()
+    public void AddAzureCosmosDatabase_NoAddKeyedContainer_AddsDatabase()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -474,20 +388,21 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
 
         PopulateConfiguration(builder.Configuration, connectionString);
 
-        builder.WithAzureCosmosDatabase("cosmos");
+        builder.AddAzureCosmosDatabase("cosmos");
 
         using var host = builder.Build();
         var database = host.Services.GetService<Database>();
         var client = host.Services.GetService<CosmosClient>();
         var container = host.Services.GetService<Container>();
 
-        Assert.Null(database);
+        Assert.NotNull(database);
+        Assert.Equal(databaseName, database.Id);
         Assert.Null(client);
         Assert.Null(container);
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_AddContainer_RegistersContainerWithDatabaseKey()
+    public void AddAzureCosmosDatabase_AddKeyedContainer_RegistersContainerWithDatabaseKey()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -500,16 +415,19 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={containerName};")
         ]);
 
-        var databaseBuilder = builder.WithAzureCosmosDatabase("cosmos");
-        databaseBuilder.AddContainer("container1");
+        var databaseBuilder = builder.AddAzureCosmosDatabase("cosmos");
+        databaseBuilder.AddKeyedContainer("container1");
 
         using var host = builder.Build();
 
         // Database and client should not be registered
         var database = host.Services.GetService<Database>();
         var client = host.Services.GetService<CosmosClient>();
-        Assert.Null(database);
         Assert.Null(client);
+
+        // Verify that database was registered
+        Assert.NotNull(database);
+        Assert.Equal(databaseName, database.Id);
 
         // Verify container was registered with the key correct key
         var container = host.Services.GetRequiredKeyedService<Container>("container1");
@@ -518,7 +436,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_AddMultipleContainers_RegistersAllWithSameClient()
+    public void AddAzureCosmosDatabase_AddMultipleContainers_RegistersAllWithSameClient()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -533,9 +451,9 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:container2", $"{connectionString}Container={container2Name};")
         ]);
 
-        builder.WithAzureCosmosDatabase("cosmos")
-            .AddContainer("container1")
-            .AddContainer("container2");
+        builder.AddAzureCosmosDatabase("cosmos")
+            .AddKeyedContainer("container1")
+            .AddKeyedContainer("container2");
 
         using var host = builder.Build();
 
@@ -553,7 +471,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_AddContainer_ThrowsWhenContainerNameMissing()
+    public void AddAzureCosmosDatabase_AddKeyedContainer_ThrowsWhenContainerNameMissing()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -564,8 +482,8 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:container1", connectionString)
         ]);
 
-        builder.WithAzureCosmosDatabase("cosmos")
-            .AddContainer("container1");
+        builder.AddAzureCosmosDatabase("cosmos")
+            .AddKeyedContainer("container1");
 
         using var host = builder.Build();
 
@@ -575,7 +493,32 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_AddContainer_CustomizeClientOptions()
+    public void AddAzureCosmosDatabase_AddKeyedContainer_WorksWithNoConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var connectionString = $"AccountEndpoint=https://localhost:8081/;AccountKey=fake;Database={databaseName};";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString)
+        ]);
+
+        builder.AddAzureCosmosDatabase("cosmos")
+            .AddKeyedContainer("container1");
+
+        using var host = builder.Build();
+
+        var container = host.Services.GetKeyedService<Container>("container1");
+        var database = host.Services.GetRequiredService<Database>();
+
+        Assert.NotNull(container);
+        Assert.Equal("container1", container.Id);
+        Assert.Equal(databaseName, container.Database.Id);
+        Assert.Equal("https://localhost:8081/", container.Database.Client.Endpoint.ToString());
+    }
+
+    [Fact]
+    public void AddAzureCosmosDatabase_AddKeyedContainer_CustomizeClientOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -588,12 +531,12 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={containerName};")
         ]);
 
-        builder.WithAzureCosmosDatabase("cosmos",
+        builder.AddAzureCosmosDatabase("cosmos",
             configureClientOptions: options => {
                 options.ApplicationName = "TestApp";
                 options.LimitToEndpoint = false;
             })
-            .AddContainer("container1");
+            .AddKeyedContainer("container1");
 
         using var host = builder.Build();
 
@@ -604,7 +547,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_ConfigureSettings_AppliesToAllContainers()
+    public void AddAzureCosmosDatabase_ConfigureSettings_AppliesToAllContainers()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var databaseName = "testdb";
@@ -619,15 +562,15 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:container2", $"{connectionString}Container={container2Name};")
         ]);
 
-        var databaseBuilder = builder.WithAzureCosmosDatabase("cosmos",
+        var databaseBuilder = builder.AddAzureCosmosDatabase("cosmos",
             configureSettings: settings =>
             {
                 // Database name comes from settings, not connection string
                 settings.DatabaseName = databaseName;
                 settings.DisableTracing = true;
             })
-            .AddContainer("container1")
-            .AddContainer("container2");
+            .AddKeyedContainer("container1")
+            .AddKeyedContainer("container2");
 
         using var host = builder.Build();
 
@@ -640,7 +583,7 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
     }
 
     [Fact]
-    public void WithAzureCosmosDatabase_CalledMultipleTimes_CreatesIndependentBuilders()
+    public void AddAzureCosmosDatabase_CalledMultipleTimes_CreatesIndependentBuilders()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var database1Name = "db1";
@@ -664,11 +607,11 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         ]);
 
         // Create two separate database builders
-        builder.WithAzureCosmosDatabase("cosmos1")
-            .AddContainer("users")
-            .AddContainer("orders");
-        builder.WithAzureCosmosDatabase("cosmos2")
-            .AddContainer("products");
+        builder.AddAzureCosmosDatabase("cosmos1")
+            .AddKeyedContainer("users")
+            .AddKeyedContainer("orders");
+        builder.AddAzureCosmosDatabase("cosmos2")
+            .AddKeyedContainer("products");
 
         using var host = builder.Build();
 

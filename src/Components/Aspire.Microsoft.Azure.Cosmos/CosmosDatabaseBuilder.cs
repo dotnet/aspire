@@ -19,20 +19,61 @@ public sealed class CosmosDatabaseBuilder(
 {
     private CosmosClient? _client;
 
-    internal CosmosDatabaseBuilder AddContainer(string name)
+    internal CosmosDatabaseBuilder AddDatabase()
+    {
+        hostBuilder.Services.AddSingleton(sp =>
+        {
+            if (string.IsNullOrEmpty(settings.DatabaseName))
+            {
+                throw new InvalidOperationException(
+                    $"A Database could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}'.");
+            }
+            _client ??= AspireMicrosoftAzureCosmosExtensions.GetCosmosClient(connectionName, settings, clientOptions);
+            return _client.GetDatabase(settings.DatabaseName);
+        });
+
+        return this;
+    }
+
+    internal CosmosDatabaseBuilder AddKeyedDatabase()
+    {
+        hostBuilder.Services.AddKeyedSingleton(connectionName, (sp, _) =>
+        {
+            if (string.IsNullOrEmpty(settings.DatabaseName))
+            {
+                throw new InvalidOperationException(
+                    $"A Database could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}'.");
+            }
+            _client ??= AspireMicrosoftAzureCosmosExtensions.GetCosmosClient(connectionName, settings, clientOptions);
+            return _client.GetDatabase(settings.DatabaseName);
+        });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Register a <see cref="Container"/> against the database managed with <see cref="CosmosDatabaseBuilder"/> as a
+    /// keyed singleton.
+    /// </summary>
+    /// <param name="name">The name of the container to register.</param>
+    /// <returns>A <see cref="CosmosDatabaseBuilder"/> that can be used for further chaining.</returns>
+    public CosmosDatabaseBuilder AddKeyedContainer(string name)
     {
         _client ??= AspireMicrosoftAzureCosmosExtensions.GetCosmosClient(connectionName, settings, clientOptions);
 
-        var connectionInfo = hostBuilder.GetCosmosConnectionInfo(name) ?? throw new InvalidOperationException($"The connection string '{name}' does not exist.");
+        var connectionInfo = hostBuilder.GetCosmosConnectionInfo(name);
 
         hostBuilder.Services.AddKeyedSingleton(name, (sp, _) =>
         {
-            if (string.IsNullOrEmpty(connectionInfo.ContainerName))
+            // If a connection string was provided, check that it contains a valid container name.
+            if (connectionInfo is not null && string.IsNullOrEmpty(connectionInfo?.ContainerName))
             {
                 throw new InvalidOperationException(
                     $"A Container could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{name}'");
             }
-            return _client.GetContainer(settings.DatabaseName, connectionInfo.ContainerName);
+
+            // Use the container name from the connection string if provided, otherwise use the name
+            return _client.GetContainer(settings.DatabaseName, connectionInfo?.ContainerName ?? name);
         });
 
         return this;
