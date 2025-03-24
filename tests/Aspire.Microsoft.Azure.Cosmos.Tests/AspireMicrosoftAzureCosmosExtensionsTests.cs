@@ -464,6 +464,229 @@ public class AspireMicrosoftAzureCosmosExtensionsTests
         Assert.False(container.Database.Client.ClientOptions.LimitToEndpoint);
     }
 
+    [Fact]
+    public void WithAzureCosmosDatabase_NoAddContainer_DoesNothing()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
+
+        PopulateConfiguration(builder.Configuration, connectionString);
+
+        builder.WithAzureCosmosDatabase("cosmos");
+
+        using var host = builder.Build();
+        var database = host.Services.GetService<Database>();
+        var client = host.Services.GetService<CosmosClient>();
+        var container = host.Services.GetService<Container>();
+
+        Assert.Null(database);
+        Assert.Null(client);
+        Assert.Null(container);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_AddContainer_RegistersContainerWithDatabaseKey()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var containerName = "testcontainer";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={containerName};")
+        ]);
+
+        var databaseBuilder = builder.WithAzureCosmosDatabase("cosmos");
+        databaseBuilder.AddContainer("container1");
+
+        using var host = builder.Build();
+
+        // Database and client should not be registered
+        var database = host.Services.GetService<Database>();
+        var client = host.Services.GetService<CosmosClient>();
+        Assert.Null(database);
+        Assert.Null(client);
+
+        // Verify container was registered with the key correct key
+        var container = host.Services.GetRequiredKeyedService<Container>("container1");
+        Assert.NotNull(container);
+        Assert.Equal(containerName, container.Id);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_AddMultipleContainers_RegistersAllWithSameClient()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var container1Name = "container1";
+        var container2Name = "container2";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={container1Name};"),
+            new KeyValuePair<string, string?>("ConnectionStrings:container2", $"{connectionString}Container={container2Name};")
+        ]);
+
+        builder.WithAzureCosmosDatabase("cosmos")
+            .AddContainer("container1")
+            .AddContainer("container2");
+
+        using var host = builder.Build();
+
+        var container1 = host.Services.GetRequiredKeyedService<Container>("container1");
+        var container2 = host.Services.GetRequiredKeyedService<Container>("container2");
+
+        // Different containers
+        Assert.NotNull(container1);
+        Assert.NotNull(container2);
+        Assert.Equal(container1Name, container1.Id);
+        Assert.Equal(container2Name, container2.Id);
+
+        // With the same client
+        Assert.Same(container2.Database.Client, container1.Database.Client);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_AddContainer_ThrowsWhenContainerNameMissing()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var connectionString = $"AccountEndpoint=https://localhost:8081/;AccountKey=fake;Database={databaseName};";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:container1", connectionString)
+        ]);
+
+        builder.WithAzureCosmosDatabase("cosmos")
+            .AddContainer("container1");
+
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => host.Services.GetRequiredKeyedService<Container>("container1"));
+        Assert.Contains("A Container could not be configured", exception.Message);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_AddContainer_CustomizeClientOptions()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var containerName = "testcontainer";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={containerName};")
+        ]);
+
+        builder.WithAzureCosmosDatabase("cosmos",
+            configureClientOptions: options => {
+                options.ApplicationName = "TestApp";
+                options.LimitToEndpoint = false;
+            })
+            .AddContainer("container1");
+
+        using var host = builder.Build();
+
+        // Verify container has the expected client options
+        var container = host.Services.GetRequiredKeyedService<Container>("container1");
+        Assert.Contains("TestApp", container.Database.Client.ClientOptions.ApplicationName);
+        Assert.False(container.Database.Client.ClientOptions.LimitToEndpoint);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_ConfigureSettings_AppliesToAllContainers()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var container1Name = "container1";
+        var container2Name = "container2";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", connectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:container1", $"{connectionString}Container={container1Name};"),
+            new KeyValuePair<string, string?>("ConnectionStrings:container2", $"{connectionString}Container={container2Name};")
+        ]);
+
+        var databaseBuilder = builder.WithAzureCosmosDatabase("cosmos",
+            configureSettings: settings =>
+            {
+                // Database name comes from settings, not connection string
+                settings.DatabaseName = databaseName;
+                settings.DisableTracing = true;
+            })
+            .AddContainer("container1")
+            .AddContainer("container2");
+
+        using var host = builder.Build();
+
+        var container1 = host.Services.GetRequiredKeyedService<Container>("container1");
+        var container2 = host.Services.GetRequiredKeyedService<Container>("container2");
+
+        Assert.Equal(databaseName, container1.Database.Id);
+        Assert.Equal(databaseName, container2.Database.Id);
+        Assert.Same(container1.Database.Client, container2.Database.Client);
+    }
+
+    [Fact]
+    public void WithAzureCosmosDatabase_CalledMultipleTimes_CreatesIndependentBuilders()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var database1Name = "db1";
+        var database2Name = "db2";
+        var container1Name = "users";
+        var container2Name = "orders";
+        var container3Name = "products";
+        var expectedEndpoint = "https://localhost:8081/";
+        var connectionString1 = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={database1Name};";
+        var connectionString2 = $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={database2Name};";
+
+        builder.Configuration.AddInMemoryCollection([
+            // First database connection
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos1", connectionString1),
+            new KeyValuePair<string, string?>("ConnectionStrings:users", $"{connectionString1}Container={container1Name};"),
+            new KeyValuePair<string, string?>("ConnectionStrings:orders", $"{connectionString1}Container={container2Name};"),
+
+            // Second database connection
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos2", connectionString2),
+            new KeyValuePair<string, string?>("ConnectionStrings:products", $"{connectionString2}Container={container3Name};")
+        ]);
+
+        // Create two separate database builders
+        builder.WithAzureCosmosDatabase("cosmos1")
+            .AddContainer("users")
+            .AddContainer("orders");
+        builder.WithAzureCosmosDatabase("cosmos2")
+            .AddContainer("products");
+
+        using var host = builder.Build();
+
+        var usersContainer = host.Services.GetRequiredKeyedService<Container>(container1Name);
+        var ordersContainer = host.Services.GetRequiredKeyedService<Container>(container2Name);
+        var productsContainer = host.Services.GetRequiredKeyedService<Container>(container3Name);
+
+        Assert.Equal(container1Name, usersContainer.Id);
+        Assert.Equal(container2Name, ordersContainer.Id);
+        Assert.Equal(container3Name, productsContainer.Id);
+        Assert.Equal(database1Name, usersContainer.Database.Id);
+        Assert.Equal(database1Name, ordersContainer.Database.Id);
+        Assert.Equal(database2Name, productsContainer.Database.Id);
+
+        Assert.Same(usersContainer.Database.Client, ordersContainer.Database.Client);
+        Assert.NotSame(usersContainer.Database.Client, productsContainer.Database.Client);
+    }
+
     private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString, string? key = null) =>
         configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>($"ConnectionStrings:{key ?? "cosmos"}", connectionString)

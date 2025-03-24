@@ -197,7 +197,46 @@ public static class AspireMicrosoftAzureCosmosExtensions
         });
     }
 
-    private static CosmosConnectionInfo? GetCosmosConnectionInfo(this IHostApplicationBuilder builder, string connectionName)
+    /// <summary>
+    /// Returns a <see cref="CosmosDatabaseBuilder"/> for the given connection name that can be used to
+    /// register multiple containers against the same database.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">The connection name to use to find a connection string.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
+    public static CosmosDatabaseBuilder WithAzureCosmosDatabase(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
+        Action<CosmosClientOptions>? configureClientOptions = null)
+    {
+        var settings = builder.GetSettings(connectionName, configureSettings);
+        var clientOptions = builder.GetClientOptions(settings, configureClientOptions);
+        return new CosmosDatabaseBuilder(builder, connectionName, settings, clientOptions);
+    }
+
+    /// <summary>
+    /// Register a <see cref="Container"/> against the database managed with <see cref="CosmosDatabaseBuilder"/>.
+    /// This method can be called multiple times to register multiple containers against the same database.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <returns>A <see cref="CosmosDatabaseBuilder"/> that can be used for further chaining.</returns>
+    /// <remarks>
+    /// Containers registered with this method will always use the account and database associated
+    /// with the parent <see cref="CosmosDatabaseBuilder"/>. The connection string for the container.
+    /// </remarks>
+    public static CosmosDatabaseBuilder AddContainer(
+        this CosmosDatabaseBuilder builder,
+        string name)
+    {
+        return builder.AddContainer(name);
+    }
+
+    internal static CosmosConnectionInfo? GetCosmosConnectionInfo(this IHostApplicationBuilder builder, string connectionName)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
@@ -275,7 +314,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         return clientOptions;
     }
 
-    private static CosmosClient GetCosmosClient(string connectionName, MicrosoftAzureCosmosSettings settings, CosmosClientOptions clientOptions)
+    internal static CosmosClient GetCosmosClient(string connectionName, MicrosoftAzureCosmosSettings settings, CosmosClientOptions clientOptions)
     {
         if (!string.IsNullOrEmpty(settings.ConnectionString))
         {
