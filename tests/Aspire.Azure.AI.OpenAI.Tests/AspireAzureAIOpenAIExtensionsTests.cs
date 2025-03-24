@@ -194,4 +194,56 @@ public class AspireAzureAIOpenAIExtensionsTests
         Assert.Equal(applicationId, options.UserAgentApplicationId);
         Assert.Equal(networkTimeout, options.NetworkTimeout);
     }
+
+    [Fact]
+    public void AddAzureOpenAIClient_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "openaitest";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Azure:AI:OpenAI:{connectionName}:DisableMetrics"] = "true",
+            [$"Aspire:Azure:AI:OpenAI:{connectionName}:DisableTracing"] = "true"
+        });
+
+        AzureOpenAISettings? capturedSettings = null;
+        builder.AddAzureOpenAIClient(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.True(capturedSettings.DisableMetrics);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddAzureOpenAIClient_WithConnectionSpecific_FavorsConnectionSpecificSettings()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "openaitest";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // General settings
+            [$"Aspire:Azure:AI:OpenAI:DisableTracing"] = "false",
+            // Connection-specific settings
+            [$"Aspire:Azure:AI:OpenAI:{connectionName}:DisableTracing"] = "true",
+        });
+
+        AzureOpenAISettings? capturedSettings = null;
+        builder.AddAzureOpenAIClient(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.True(capturedSettings.DisableTracing);
+    }
 }

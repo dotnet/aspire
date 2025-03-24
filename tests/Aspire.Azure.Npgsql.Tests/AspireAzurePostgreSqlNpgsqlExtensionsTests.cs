@@ -47,6 +47,35 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void ReadsUsernameFromManagedIdentityToken(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        var fakeCred = new FakeTokenCredential(useManagedIdentity: true);
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: settings => settings.Credential = fakeCred);
+        }
+        else
+        {
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: settings => settings.Credential = fakeCred);
+        }
+
+        using var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
+            host.Services.GetRequiredService<NpgsqlDataSource>();
+
+        Assert.Contains(ConnectionString, dataSource.ConnectionString);
+        Assert.Contains("Username=mi-123", dataSource.ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void TokenCredentialIsIgnoreWhenUsernameAndPasswordAreSet(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

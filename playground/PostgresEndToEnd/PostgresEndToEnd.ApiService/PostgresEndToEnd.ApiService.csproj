@@ -12,6 +12,7 @@
     <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
     <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <PackageReference Include="Azure.Identity" />
   </ItemGroup>
 
 </Project>

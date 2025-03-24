@@ -431,7 +431,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansClient", "playground
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansContracts", "playground\orleans\OrleansContracts\OrleansContracts.csproj", "{75760E8A-7025-4F6A-B152-6622688D0E7D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Workload.Tests", "tests\Aspire.Workload.Tests\Aspire.Workload.Tests.csproj", "{3ECB176E-3CC8-4BEE-AF48-F439F9742C8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Templates.Tests", "tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj", "{3ECB176E-3CC8-4BEE-AF48-F439F9742C8B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Seq.Tests", "tests\Aspire.Seq.Tests\Aspire.Seq.Tests.csproj", "{0505F739-6F85-4502-A554-77E0D7325F26}"
 EndProject

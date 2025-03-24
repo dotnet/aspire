@@ -823,6 +823,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${principalName}'
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -901,6 +903,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1169,6 +1173,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1243,6 +1249,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1294,7 +1302,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              name: guid(redis.id, principalId, 'Data Contributor')
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
@@ -1304,6 +1312,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = '${redis.properties.hostName},ssl=true'
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1358,6 +1368,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = redis.name
             """;
 
         output.WriteLine(BicepText);
@@ -1509,7 +1521,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               "path": "cosmos.module.bicep",
               "params": {
                 "existingResourceName": "{existingResourceName.value}",
-                "principalType": "",
                 "principalId": ""
               },
               "scope": {
@@ -1524,8 +1535,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param existingResourceName string
-
-            param principalType string
 
             param principalId string
 
@@ -1576,6 +1585,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);
@@ -1664,6 +1675,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
+
+            output name string = existingResourceName
             """;
 
         output.WriteLine(BicepText);

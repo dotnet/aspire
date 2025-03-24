@@ -12,6 +12,27 @@ namespace Aspire.Hosting.Tests;
 public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void WithHttpCommand_AddsHttpClientFactory()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var resourceBuilder = builder.AddContainer("name", "image")
+            .WithHttpEndpoint()
+            .WithHttpCommand("/some-path", "Do The Thing");
+
+        using var app = builder.Build();
+
+        // Assert
+        var httpClientFactoryServiceDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(IHttpClientFactory));
+        Assert.NotNull(httpClientFactoryServiceDescriptor);
+
+        var httpClientFactory = app.Services.GetService<IHttpClientFactory>();
+        Assert.NotNull(httpClientFactory);
+    }
+
+    [Fact]
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
         // Arrange
@@ -255,7 +276,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                     Assert.NotNull(requestContext.Endpoint);
                     Assert.NotNull(requestContext.HttpClient);
                     Assert.NotNull(requestContext.Request);
-                    
+
                     callbackCalled = true;
                     return Task.CompletedTask;
                 });
@@ -280,6 +301,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
@@ -322,6 +344,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
@@ -384,7 +407,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        
+
         builder.Configuration["CODESPACES"] = "false";
 
         var enableCommand = false;

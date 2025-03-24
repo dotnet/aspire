@@ -20,6 +20,7 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireAzureNpgsqlExtensions
 {
     private const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
+    private const string AzureManagementScope = "https://management.azure.com/.default";
 
     private static readonly TokenRequestContext s_databaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
 
@@ -113,7 +114,8 @@ public static class AspireAzureNpgsqlExtensions
 
         if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
         {
-            var token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
+            // ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
+            var token = credential.GetToken(new([AzureManagementScope]), default);
 
             if (TryGetUsernameFromToken(token.Token, out var username))
             {
@@ -160,8 +162,14 @@ public static class AspireAzureNpgsqlExtensions
         var reader = new Utf8JsonReader(decodedBytes);
         var payloadJson = JsonElement.ParseValue(ref reader);
 
-        // Try to get the username from 'upn', 'preferred_username', or 'unique_name' claims
-        if (payloadJson.TryGetProperty("upn", out var upn))
+        // Try to get the username from 'xms_mirid', 'upn', 'preferred_username', or 'unique_name' claims
+        if (payloadJson.TryGetProperty("xms_mirid", out var xms_mirid) &&
+            xms_mirid.GetString() is string xms_miridString &&
+            ParsePrincipalName(xms_miridString) is string principalName)
+        {
+            username = principalName;
+        }
+        else if (payloadJson.TryGetProperty("upn", out var upn))
         {
             username = upn.GetString();
         }
@@ -175,6 +183,27 @@ public static class AspireAzureNpgsqlExtensions
         }
 
         return username != null;
+    }
+
+    // parse the xms_mirid claim which look like
+    // /subscriptions/{subId}/resourcegroups/{resourceGroup}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{principalName}
+    private static string? ParsePrincipalName(string xms_mirid)
+    {
+        var lastSlashIndex = xms_mirid.LastIndexOf('/');
+        if (lastSlashIndex == -1)
+        {
+            return null;
+        }
+
+        var beginning = xms_mirid.AsSpan(0, lastSlashIndex);
+        var principalName = xms_mirid.AsSpan(lastSlashIndex + 1);
+
+        if (principalName.IsEmpty || !beginning.EndsWith("providers/Microsoft.ManagedIdentity/userAssignedIdentities", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return principalName.ToString();
     }
 
     private static string AddBase64Padding(string base64) => (base64.Length % 4) switch

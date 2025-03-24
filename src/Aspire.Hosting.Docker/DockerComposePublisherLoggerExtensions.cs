@@ -30,4 +30,7 @@ internal static partial class DockerComposePublisherLoggerExtensions
 
     [LoggerMessage(LogLevel.Warning, "Failed to get container image for resource '{ResourceName}', it will be skipped in the output.")]
     internal static partial void FailedToGetContainerImage(this ILogger logger, string resourceName);
+
+    [LoggerMessage(LogLevel.Warning, "Not in publishing mode. Skipping writing docker-compose.yaml output file.")]
+    internal static partial void NotInPublishingMode(this ILogger logger);
 }

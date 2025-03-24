@@ -36,7 +36,8 @@ public static class AzureCosmosExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureCosmosDBResource(name, ConfigureCosmosDBInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -298,15 +299,24 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        return builder.WithEndpoint(endpointName: "data-explorer", endpoint =>
-        {
-            endpoint.UriScheme = "http";
-            endpoint.TargetPort = 1234;
-            endpoint.Port = port;
-        });
+        return
+            builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
+            {
+                endpoint.UriScheme = "http";
+                endpoint.TargetPort = 1234;
+                endpoint.Port = port;
+            })
+            .WithUrls(context =>
+            {
+                var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
+                if (url is not null)
+                {
+                    url.DisplayText = KnownUrls.DataExplorer.DisplayText;
+                }
+            });
     }
 
-    /// <summary>    
+    /// <summary>
     /// Configures the resource to use access key authentication with Azure Cosmos DB.
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
@@ -331,6 +341,13 @@ public static class AzureCosmosExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
 
         return builder;
     }
@@ -418,31 +435,41 @@ public static class AzureCosmosExtensions
         }
         else
         {
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
+            // use managed identity
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-
-            var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
-            roleDefinition.Parent = cosmosAccount;
-            roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
-            infrastructure.Add(roleDefinition);
-
-            infrastructure.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
             {
-                NameOverride = BicepFunction.CreateGuid(principalIdParameter, roleDefinition.Id, cosmosAccount.Id),
-                Parent = cosmosAccount,
-                Scope = cosmosAccount.Id,
-                RoleDefinitionId = roleDefinition.Id,
-                PrincipalId = principalIdParameter
-            });
+                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+                infrastructure.Add(principalIdParameter);
+
+                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter);
+            }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = cosmosAccount.DocumentEndpoint
             });
         }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
+    }
+
+    internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId)
+    {
+        var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
+        roleDefinition.Parent = cosmosAccount;
+        roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
+        infra.Add(roleDefinition);
+
+        infra.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+        {
+            NameOverride = BicepFunction.CreateGuid(principalId, roleDefinition.Id, cosmosAccount.Id),
+            Parent = cosmosAccount,
+            Scope = cosmosAccount.Id,
+            RoleDefinitionId = roleDefinition.Id,
+            PrincipalId = principalId
+        });
     }
 }
 

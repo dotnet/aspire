@@ -47,22 +47,17 @@
                           title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
                           slot="end" />
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentLabel slot="end">@FilterLoc[nameof(StructuredFiltering.Filters)]</FluentLabel>
             @if (TracesViewModel.Filters.Count == 0)
             {
                 <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
             }
             else
             {
-                for (var i = 0; i < TracesViewModel.Filters.Count; i++)
-                {
-                    var filter = TracesViewModel.Filters[i];
-                    if (i != 0)
-                    {
-                        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                    }
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)" class="telemetry-filter-button" title="@filter.GetDisplayText(FilterLoc)">@filter.GetDisplayText(FilterLoc)</FluentButton>
-                }
+                <div slot="end">
+                    <FluentCounterBadge HorizontalPosition="70" Count="@(TracesViewModel.Filters.Count)" Appearance="Appearance.Accent">
+                        <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
+                    </FluentCounterBadge>
+                </div>
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)

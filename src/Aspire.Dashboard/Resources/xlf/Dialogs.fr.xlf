@@ -244,17 +244,17 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningAcknowledge">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">Afficher une valeur</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="new">Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</target>
+        <target state="translated">Confirmez que vous souhaitez afficher la valeur. À l’avenir, l’ouverture du visualiseur de texte affichera automatiquement toutes les valeurs</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">
         <source>Sensitive value hidden</source>
-        <target state="new">Sensitive value hidden</target>
+        <target state="translated">Valeur sensible cachée</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

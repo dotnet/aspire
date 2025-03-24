@@ -687,6 +687,152 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Registers a callback to customize the URLs displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The callback that will customize URLs for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated for this resource.<br/>
+    /// This allows you to modify any URLs for the resource, including adding, modifying, or even deletion.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Update all displayed URLs to have display text:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrls(c =>
+    ///                       {
+    ///                           foreach (var url in c.Urls)
+    ///                           {
+    ///                               if (string.IsNullOrEmpty(url.DisplayText))
+    ///                               {
+    ///                                   url.DisplayText = "frontend";
+    ///                               }
+    ///                           }
+    ///                       });
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Update endpoint URLs to use a custom host name based on the resource name:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrls(c =>
+    ///                       {
+    ///                           foreach (var url in c.Urls)
+    ///                           {
+    ///                               if (url.Endpoint is not null)
+    ///                               {
+    ///                                   var uri = new UriBuilder(url.Url) { Host = $"{c.Resource.Name}.localhost" };
+    ///                                   url.Url = uri.ToString();
+    ///                               }
+    ///                           }
+    ///                       });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Registers an async callback to customize the URLs displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The async callback that will customize URLs for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated for this resource.<br/>
+    /// This allows you to modify any URLs for the resource, including adding, modifying, or even deletion.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, DisplayText = displayText })));
+    }
+
+    /// <summary>
+    /// Registers a callback to customize the URL displayed for the endpoint with the specified name.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to customize the URL for.</param>
+    /// <param name="callback">The callback that will customize the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.
+    /// </para>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated and the URL has been generated.<br/>
+    /// This allows you to modify the URL or its display text.
+    /// </para>
+    /// <para>
+    /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Customize the URL for the "https" endpoint to use the link text "Home":
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", url => url.DisplayText = "Home");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
+        where T : IResource
+    {
+        builder.WithUrls(context =>
+        {
+            var urlForEndpoint = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == endpointName);
+            if (urlForEndpoint is not null)
+            {
+                callback(urlForEndpoint);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to customize endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
     /// Excludes a resource from being published to the manifest.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -1362,6 +1508,8 @@ public static class ResourceBuilderExtensions
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
 
+        builder.ApplicationBuilder.Services.AddHttpClient();
+
         commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}-{path}";
 
         var targetRunning = false;
@@ -1547,7 +1695,7 @@ public static class ResourceBuilderExtensions
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
-    /// 
+    ///
     /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
     ///                      .WithParentRelationship(backend);
     /// </code>

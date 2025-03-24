@@ -61,7 +61,7 @@ services:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "8011"
-      ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Database=sqldb"
+      ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Initial Catalog=sqldb"
       P0: "${PARAM0}"
       P1: "${PARAM1}"
       P2: "${PARAM2}"

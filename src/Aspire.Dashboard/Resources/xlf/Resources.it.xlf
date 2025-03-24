@@ -172,11 +172,6 @@
         <target state="translated">Ora di arresto</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">Endpoint</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">Ambiente</target>
@@ -185,6 +180,21 @@
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">Con filtri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="new">Reset</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="new">Zoom in</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="new">Zoom out</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
@@ -245,6 +255,11 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">Tipo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="new">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
