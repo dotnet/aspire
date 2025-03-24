@@ -307,7 +307,7 @@ public static class AspireServiceBusExtensions
 
                 if (string.IsNullOrEmpty(settings.QueueOrTopicName) && string.IsNullOrEmpty(settings.SubscriptionName))
                 {
-                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' and, if using a subscription, 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
                 }
 
                 var client = !string.IsNullOrEmpty(connectionString) ?
@@ -343,7 +343,7 @@ public static class AspireServiceBusExtensions
 
                 if (string.IsNullOrEmpty(settings.QueueOrTopicName) && string.IsNullOrEmpty(settings.SubscriptionName))
                 {
-                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' and, if using a subscription, 'SubscriptionName' in the '{configurationSectionName}' configuration section.");
                 }
 
                 var client = !string.IsNullOrEmpty(connectionString) ?

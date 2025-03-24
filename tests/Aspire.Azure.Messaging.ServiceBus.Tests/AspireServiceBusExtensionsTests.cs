@@ -715,7 +715,7 @@ public class AspireServiceBusExtensionsTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<ServiceBusReceiver>);
-        Assert.Equal($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
+        Assert.Equal($"A ServiceBusReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' and, if using a subscription, 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
     }
 
     [Fact]
@@ -759,7 +759,7 @@ public class AspireServiceBusExtensionsTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<ServiceBusProcessor>);
-        Assert.Equal($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' or 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
+        Assert.Equal($"A ServiceBusProcessor could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'QueueOrTopicName' and, if using a subscription, 'SubscriptionName' in the '{configurationSectionName}' configuration section.", exception.Message);
     }
 
     private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>
