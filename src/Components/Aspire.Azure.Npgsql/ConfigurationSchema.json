@@ -25,30 +25,5 @@
         }
       }
     }
-  },
-  "type": "object",
-  "properties": {
-    "Aspire": {
-      "type": "object",
-      "properties": {
-        "Npgsql": {
-          "type": "object",
-          "properties": {
-            "ConnectionString": {
-              "type": "string"
-            },
-            "DisableHealthChecks": {
-              "type": "boolean"
-            },
-            "DisableMetrics": {
-              "type": "boolean"
-            },
-            "DisableTracing": {
-              "type": "boolean"
-            }
-          }
-        }
-      }
-    }
   }
 }
