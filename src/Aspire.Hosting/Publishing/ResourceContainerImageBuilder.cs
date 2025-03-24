@@ -24,7 +24,11 @@ public interface IResourceContainerImageBuilder
     Task<string> BuildImageAsync(IResource resource, CancellationToken cancellationToken);
 }
 
-internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerImageBuilder> logger, IOptions<DcpOptions> dcpOptions, IServiceProvider serviceProvider) : IResourceContainerImageBuilder
+internal sealed class ResourceContainerImageBuilder(
+    ILogger<ResourceContainerImageBuilder> logger,
+    IOptions<DcpOptions> dcpOptions,
+    IServiceProvider serviceProvider,
+    IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
     public async Task<string> BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
@@ -32,8 +36,11 @@ internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerIma
 
         if (resource is ProjectResource)
         {
-            // This is a resource project so we'll use the .NET SDK to build the container image.
-            var image = await BuildProjectContainerImageAsync(resource, cancellationToken).ConfigureAwait(false);
+            // If it is a project resource we need to build the container image
+            // using the .NET SDK.
+            var image = await BuildProjectContainerImageAsync(
+                resource,
+                cancellationToken).ConfigureAwait(false);
             return image;
         }
         else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var contaimerImageAnnotation))
@@ -41,11 +48,13 @@ internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerIma
             if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
             {
                 // This is a container resource so we'll use the container runtime to build the image
-                return await BuildContainerImageFromDockerfileAsync(
+                var image =  await BuildContainerImageFromDockerfileAsync(
+                    resource.Name,
                     dockerfileBuildAnnotation.ContextPath,
                     dockerfileBuildAnnotation.DockerfilePath,
                     contaimerImageAnnotation.Image,
                     cancellationToken).ConfigureAwait(false);
+                return image;
             }
             else
             {
@@ -61,6 +70,14 @@ internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerIma
 
     private async Task<string> BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
     {
+        var publishingActivity = await activityReporter.CreateActivityAsync(
+            $"{resource.Name}-build-image",
+            $"Building image: {resource.Name}",
+            isPrimary: false,
+            cancellationToken
+            ).ConfigureAwait(false);
+
+        // This is a resource project so we'll use the .NET SDK to build the container image.
         if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
         {
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
@@ -100,28 +117,57 @@ internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerIma
                 stdout,
                 stderr);
 
+            publishingActivity.IsError = true;
+            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+
             throw new DistributedApplicationException("Failed to build container image.");
         }
         else
         {
+            publishingActivity.IsComplete = true;
+            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+
             return $"{resource.Name}:latest";
         }
     }
 
-    private async Task<string> BuildContainerImageFromDockerfileAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task<string> BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
-        var containerRuntime = dcpOptions.Value.ContainerRuntime switch
+        var publishingActivity = await activityReporter.CreateActivityAsync(
+            $"{resourceName}-build-image",
+            $"Building image: {resourceName}",
+            isPrimary: false,
+            cancellationToken
+            ).ConfigureAwait(false);
+
+        try
         {
-            "podman" => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("podman"),
-            _ => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
-        };
+            var containerRuntime = dcpOptions.Value.ContainerRuntime switch
+            {
+                "podman" => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("podman"),
+                _ => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
+            };
 
-        var image = await containerRuntime.BuildImageAsync(
-            contextPath,
-            dockerfilePath,
-            imageName,
-            cancellationToken).ConfigureAwait(false);
+            var image = await containerRuntime.BuildImageAsync(
+                contextPath,
+                dockerfilePath,
+                imageName,
+                cancellationToken).ConfigureAwait(false);
 
-        return image;
+            publishingActivity.IsComplete = true;
+            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+
+            return image;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to build container image from Dockerfile.");
+
+            publishingActivity.IsError = true;
+            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+
+            throw;
+        }
+
     }
 }
