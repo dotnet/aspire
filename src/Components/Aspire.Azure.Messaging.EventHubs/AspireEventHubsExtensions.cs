@@ -19,7 +19,7 @@ public static class AspireEventHubsExtensions
     private const string DefaultConfigSectionName = "Aspire:Azure:Messaging:EventHubs:";
 
     /// <summary>
-    /// Registers <see cref="EventProcessorClient"/> as a singleton in the services provided by the<paramref name="builder"/>.
+    /// Registers <see cref="EventProcessorClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
