@@ -41,7 +41,7 @@ internal sealed class ResourceContainerImageBuilder(ILogger<ResourceContainerIma
         }
         else
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException($"The resource type '{resource.GetType().Name}' is not supported.");
         }
     }
 
