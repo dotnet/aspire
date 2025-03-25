@@ -278,7 +278,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.StructuredLogsPaused)
         {
-            _logger.LogTrace("{LogCount} incoming structured log(s) was ignored because of an active pause.", resourceLogs.Count);
+            _logger.LogTrace("{Count} incoming structured log(s) ignored because of an active pause.", resourceLogs.Count);
             return;
         }
 
@@ -817,7 +817,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.AreMetricsPaused(out _))
         {
-            _logger.LogTrace("{LogCount} incoming metric(s) was ignored because of an active pause.", resourceMetrics.Count);
+            _logger.LogTrace("{Count} incoming metric(s) ignored because of an active pause.", resourceMetrics.Count);
             return;
         }
 
@@ -845,7 +845,7 @@ public sealed class TelemetryRepository
     {
         if (_pauseManager.TracesPaused)
         {
-            _logger.LogTrace("{LogCount} incoming trace(s) was ignored because of an active pause.", resourceSpans.Count);
+            _logger.LogTrace("{Count} incoming trace(s) ignored because of an active pause.", resourceSpans.Count);
             return;
         }
 
