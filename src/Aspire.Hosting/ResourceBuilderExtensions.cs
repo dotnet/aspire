@@ -1262,7 +1262,7 @@ public static class ResourceBuilderExtensions
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, commandOptions.UpdateState, executeCommand, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, commandOptions.UpdateState ?? (c => ResourceCommandState.Enabled), executeCommand, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
     }
 
     /// <summary>
@@ -1488,27 +1488,32 @@ public static class ResourceBuilderExtensions
         builder.ApplicationBuilder.Services.AddHttpClient();
 
         commandOptions ??= HttpCommandOptions.Default;
+        commandOptions.Method ??= HttpMethod.Post;
 
         var defaultCommandName = $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{commandOptions.Method.Method.ToLowerInvariant()}-{path}";
 
-        var targetRunning = false;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        if (commandOptions.UpdateState is null)
         {
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            _ = Task.Run(async () =>
+            var targetRunning = false;
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
             {
-                await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
+                var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+                _ = Task.Run(async () =>
                 {
-                    if (resourceEvent.Resource == endpoint.Resource)
+                    await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
                     {
-                        var resourceState = resourceEvent.Snapshot.State?.Text;
-                        targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                        if (resourceEvent.Resource == endpoint.Resource)
+                        {
+                            var resourceState = resourceEvent.Snapshot.State?.Text;
+                            targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                        }
                     }
-                }
-            }, ct);
+                }, ct);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
+            commandOptions.UpdateState = context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+        }
 
         builder.WithCommand(commandOptions.CommandName ?? defaultCommandName, displayName,
             async context =>

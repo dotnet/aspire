@@ -8,35 +8,35 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class HttpCommandOptions : CommandOptions
 {
-    internal static new HttpCommandOptions Default { get; } = new HttpCommandOptions();
+    internal static new HttpCommandOptions Default { get; } = new();
 
     /// <summary>
     /// Gets or sets a callback that selects the HTTP endpoint to send the request to when the command is invoked.
     /// </summary>
-    public Func<EndpointReference>? EndpointSelector { get; init; }
+    public Func<EndpointReference>? EndpointSelector { get; set; }
 
     /// <summary>
-    /// Gets or sets the HTTP method to use when sending the request. Defaults to <c>POST</c>.
+    /// Gets or sets the HTTP method to use when sending the request.
     /// </summary>
-    public HttpMethod Method { get; init; } = HttpMethod.Post;
+    public HttpMethod? Method { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.
     /// </summary>
-    public string? HttpClientName { get; init; }
+    public string? HttpClientName { get; set; }
 
     /// <summary>
     /// Gets or sets a callback to be invoked to configure the request before it is sent.
     /// </summary>
-    public Func<HttpCommandRequestContext, Task>? PrepareRequest { get; init; }
+    public Func<HttpCommandRequestContext, Task>? PrepareRequest { get; set; }
 
     /// <summary>
     /// Gets or sets a callback to be invoked after the response is received to determine the result of the command invocation.
     /// </summary>
-    public Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? GetCommandResult { get; init; }
+    public Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? GetCommandResult { get; set; }
 
     /// <summary>
     /// Gets or sets the name of command. The name uniquely identifies the command.
     /// </summary>
-    public string? CommandName { get; init; }
+    public string? CommandName { get; set; }
 }
