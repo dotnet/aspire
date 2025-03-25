@@ -26,18 +26,11 @@ internal sealed class AzureKeyVaultSecretReference(string secretName, BicepOutpu
 
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var secretUri = await bicepOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-        if (secretUri is null)
-        {
-            return null;
-        }
-
         if (Resource.SecretResolver is null)
         {
             throw new InvalidOperationException($"The secret resolver is not set for the Azure Key Vault resource '{Resource.Name}'.");
         }
 
-        return await Resource.SecretResolver(secretUri, cancellationToken).ConfigureAwait(false);
+        return await Resource.SecretResolver(this, cancellationToken).ConfigureAwait(false);
     }
 }

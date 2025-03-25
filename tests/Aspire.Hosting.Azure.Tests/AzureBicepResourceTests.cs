@@ -271,9 +271,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (secretReference, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretReference.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -286,7 +286,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
+                                 "connectionString": "{{{kvName}}.outputs.secrets_connectionstrings__cosmos_uri}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
                                    "keyVaultName": "{{{kvName}}.outputs.name}"
@@ -537,9 +537,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (reference, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(reference.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -552,7 +552,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
+                                 "connectionString": "{{{kvName}}.outputs.secrets_connectionstrings__cosmos_uri}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
                                    "keyVaultName": "{{{kvName}}.outputs.name}"
