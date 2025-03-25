@@ -17,6 +17,11 @@
         <target state="translated">Yapılandırılmış günlük sınırı aşıldı</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Currently paused structured logs capture starting at {0}</source>
+        <target state="new">Currently paused structured logs capture starting at {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Filtre ekle</target>

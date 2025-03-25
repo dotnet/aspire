@@ -632,7 +632,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
     }
 
-    private Task IsPausedChangedAsync(bool isPaused)
+    private void OnPausedChanged(bool isPaused)
     {
         var timestamp = DateTime.UtcNow;
 
@@ -645,7 +645,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
 
         PauseManager.SetConsoleLogsPaused(isPaused, timestamp);
-        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()

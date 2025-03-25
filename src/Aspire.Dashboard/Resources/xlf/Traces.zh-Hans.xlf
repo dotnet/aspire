@@ -12,6 +12,11 @@
         <target state="translated">已超出跟踪限制</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Currently paused trace capture starting at {0}</source>
+        <target state="new">Currently paused trace capture starting at {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">名称: {0}</target>

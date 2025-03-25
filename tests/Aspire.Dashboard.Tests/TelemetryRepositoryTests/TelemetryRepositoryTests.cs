@@ -25,9 +25,9 @@ public class TelemetryRepositoryTests
         using var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Other, () => Task.CompletedTask);
 
         // Act and assert
-        pauseManager.StructuredLogsPaused = true;
+        pauseManager.SetStructuredLogsPaused(true);
         pauseManager.SetMetricsPaused(true);
-        pauseManager.TracesPaused = true;
+        pauseManager.SetTracesPaused(true);
         AddLog();
         AddMetric();
         AddTrace();
@@ -37,9 +37,9 @@ public class TelemetryRepositoryTests
         Assert.Null(repository.GetApplication(applicationKey));
         Assert.Empty(repository.GetTraces(new GetTracesRequest { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
 
-        pauseManager.StructuredLogsPaused = false;
+        pauseManager.SetStructuredLogsPaused(false);
         pauseManager.SetMetricsPaused(false);
-        pauseManager.TracesPaused = false;
+        pauseManager.SetTracesPaused(false);
 
         AddLog();
         AddMetric();

@@ -24,8 +24,13 @@
                     }
 
                     var text = pause.End is null
-                        ? string.Format(Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)], filteredLogCount)
+                        ? string.Format(
+                            CultureInfo.CurrentCulture,
+                            Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)],
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
+                            filteredLogCount)
                         : string.Format(
+                            CultureInfo.CurrentCulture,
                             Loc[nameof(ConsoleLogs.ConsoleLogsPauseDetails)],
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
                             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.End.Value, MillisecondsDisplay.Truncated),

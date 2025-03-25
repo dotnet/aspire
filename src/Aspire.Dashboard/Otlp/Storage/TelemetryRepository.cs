@@ -276,7 +276,7 @@ public sealed class TelemetryRepository
 
     public void AddLogs(AddContext context, RepeatedField<ResourceLogs> resourceLogs)
     {
-        if (_pauseManager.StructuredLogsPaused)
+        if (_pauseManager.AreStructuredLogsPaused(out _))
         {
             _logger.LogTrace("{Count} incoming structured log(s) ignored because of an active pause.", resourceLogs.Count);
             return;
@@ -843,7 +843,7 @@ public sealed class TelemetryRepository
 
     public void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
     {
-        if (_pauseManager.TracesPaused)
+        if (_pauseManager.AreTracesPaused(out _))
         {
             _logger.LogTrace("{Count} incoming trace(s) ignored because of an active pause.", resourceSpans.Count);
             return;

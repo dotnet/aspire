@@ -38,7 +38,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch @bind-IsPaused="@PauseManager.StructuredLogsPaused" />
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreStructuredLogsPaused(out _)" IsPausedChanged="@PauseManager.SetStructuredLogsPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearStructureLogs" />
 
@@ -185,9 +185,11 @@
                 </Details>
             </SummaryDetailsView>
         </MainSection>
-
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
+            <TotalItemsFooter
+                @ref="_totalItemsFooter"
+                TotalItemCount="@_totalItemsCount"
+                PauseText="@PauseText" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

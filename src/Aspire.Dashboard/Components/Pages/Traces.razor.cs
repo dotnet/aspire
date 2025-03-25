@@ -248,6 +248,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         });
     }
 
+    private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
+
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();

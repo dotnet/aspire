@@ -27,7 +27,7 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@IsPausedChangedAsync" />
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
             @if (_highlightedCommands.Count > 0)

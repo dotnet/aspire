@@ -408,6 +408,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         });
     }
 
+    private string? PauseText => PauseManager.AreStructuredLogsPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
+
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
