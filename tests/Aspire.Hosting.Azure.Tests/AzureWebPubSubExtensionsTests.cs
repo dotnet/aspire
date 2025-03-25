@@ -114,6 +114,20 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void AddAzureWebPubSub_HasCorrectConnectionExpressions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        var hub = wps.AddHub("abc");
+        var otherHub = wps.AddHub("def", "hij");
+
+        Assert.Equal("{wps1.outputs.endpoint}", wps.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=abc", hub.Resource.ConnectionStringExpression.ValueExpression);
+        // Uses hub name instead of resource name since it was explicitly provided
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hij", otherHub.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public async Task AddWebPubSubWithHubConfigure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -230,7 +244,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             param capacity int = 1
 
             param principalType string
-            
+
             param principalId string
 
             param abc_url_0 string
