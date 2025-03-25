@@ -5,13 +5,13 @@ using Microsoft.DotNet.XUnitExtensions;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
-public class RequiresDockerDiscoverer : ITraitDiscoverer
+public class RequiresPlaywrightDiscoverer : ITraitDiscoverer
 {
     public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
     {
-        if (!RequiresDockerAttribute.IsSupported)
+        if (!RequiresPlaywrightAttribute.IsSupported)
         {
             yield return new KeyValuePair<string, string>(XunitConstants.Category, "failing");
         }

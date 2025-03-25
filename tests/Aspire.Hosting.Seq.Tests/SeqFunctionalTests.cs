@@ -3,7 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Xunit;

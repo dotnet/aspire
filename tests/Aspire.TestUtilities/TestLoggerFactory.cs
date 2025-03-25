@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Aspire.Components.ConformanceTests;
+namespace Aspire.TestUtilities;
 
 public sealed class TestLoggerFactory : ILoggerFactory
 {

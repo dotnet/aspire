@@ -10,6 +10,7 @@
 
     <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    
 
     <PackageReference Include="Testcontainers.PostgreSQL" />
   </ItemGroup>

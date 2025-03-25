@@ -3,7 +3,7 @@
 
 using System.Net.Http.Json;
 using System.Net;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;

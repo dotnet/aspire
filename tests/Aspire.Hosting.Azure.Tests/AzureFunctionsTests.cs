@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;

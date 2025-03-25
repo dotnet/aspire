@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
 internal static class FileUtil
 {
