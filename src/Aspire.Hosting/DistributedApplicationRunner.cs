@@ -16,8 +16,8 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
         if (executionContext.IsPublishMode)
         {
             var publishingActivity = await activityReporter.CreateActivityAsync(
-                "docker-compose",
-                "Docker Compose artifacts",
+                "publishing-artifacts",
+                "Publishing artifacts",
                 isPrimary: true,
                 stoppingToken).ConfigureAwait(false);
 
