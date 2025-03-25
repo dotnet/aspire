@@ -151,20 +151,9 @@ public static class AzureWebPubSubExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="hubName">The hub name. Hub name is case-insensitive.</param>
     /// <returns></returns>
-    [Obsolete("This method is obsolete because it has been superceded by the AddHub(IResourceBuilder<AzureWebPubSubResource>, string, string?) overload.", true)]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(hubName);
-
-        AzureWebPubSubHubResource? hubResource;
-        if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
-        {
-            hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
-            builder.Resource.Hubs[hubName] = hubResource;
-        }
-        var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
-        return hubBuilder;
+        return AddHub(builder, hubName, hubName);
     }
 
     /// <summary>
@@ -185,7 +174,7 @@ public static class AzureWebPubSubExtensions
         AzureWebPubSubHubResource? hubResource;
         if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
         {
-            hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+            hubResource = new AzureWebPubSubHubResource(name, hubName, builder.Resource);
             builder.Resource.Hubs[hubName] = hubResource;
         }
         var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
