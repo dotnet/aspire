@@ -31,8 +31,6 @@ runs:
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
-      env:
-        CI: false
       shell: pwsh
       run: >
         dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
@@ -57,8 +55,6 @@ runs:
       id: generate_integrations_matrix
       if: ${{ inputs.includeIntegrations }}
       shell: pwsh
-      env:
-        CI: false
       run: |
         $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
         $lines = Get-Content $filePath

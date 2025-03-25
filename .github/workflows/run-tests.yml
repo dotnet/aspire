@@ -108,8 +108,6 @@ jobs:
 
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
-        env:
-          CI: false
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForTemplatesTesting=true
@@ -124,8 +122,6 @@ jobs:
       - name: Compute test project path
         id: compute_project_path
         shell: pwsh
-        env:
-          CI: false
         run: |
           $testShortName = "${{ inputs.testShortName }}"
           $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
@@ -149,15 +145,11 @@ jobs:
 
       - name: Build test project
         if: ${{ ! inputs.requiresNugets }}
-        env:
-          CI: false
         run: |
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
-        env:
-          CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
@@ -166,8 +158,6 @@ jobs:
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
         if: inputs.testShortName == 'Playground'
-        env:
-          CI: false
         run: |
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
@@ -212,7 +202,6 @@ jobs:
         if: ${{ inputs.requiresNugets }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
@@ -233,7 +222,6 @@ jobs:
         if: ${{ ! inputs.requiresNugets }}
         id: run-tests
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).

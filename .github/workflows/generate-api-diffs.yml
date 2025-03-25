@@ -22,7 +22,7 @@ jobs:
 
           # Find all csproj files excluding specific paths
           find src -name '*.csproj' | egrep -v 'Aspire.ProjectTemplates|Aspire.Cli' | while read proj; do
-            export CI=false && ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
+            ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
           done
         continue-on-error: true
 
