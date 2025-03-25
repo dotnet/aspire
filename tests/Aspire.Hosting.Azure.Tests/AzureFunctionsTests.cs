@@ -312,21 +312,21 @@ public class AzureFunctionsTests(ITestOutputHelper output)
               scope: funcstorage634f8
             }
 
-            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
             resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
               properties: {
                 principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+            
+            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
                 principalType: 'ServicePrincipal'
               }
               scope: funcstorage634f8
@@ -593,21 +593,21 @@ public class AzureFunctionsTests(ITestOutputHelper output)
               scope: funcstorage634f8
             }
 
-            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
             resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
               properties: {
                 principalId: principalId
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: 'ServicePrincipal'
+              }
+              scope: funcstorage634f8
+            }
+
+            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
                 principalType: 'ServicePrincipal'
               }
               scope: funcstorage634f8

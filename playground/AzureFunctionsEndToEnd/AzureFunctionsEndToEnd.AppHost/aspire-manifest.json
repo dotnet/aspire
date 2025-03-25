@@ -53,11 +53,11 @@
     },
     "mydatabase": {
       "type": "value.v0",
-      "connectionString": "{cosmosdb.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmosdb.outputs.connectionString};Database=mydatabase"
     },
     "mycontainer": {
       "type": "value.v0",
-      "connectionString": "{cosmosdb.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmosdb.outputs.connectionString};Database=mydatabase;Container=mycontainer"
     },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
@@ -98,8 +98,8 @@
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
-        "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",
