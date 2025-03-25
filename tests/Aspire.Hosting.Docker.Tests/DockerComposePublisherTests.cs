@@ -10,12 +10,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Docker.Tests;
 
 public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    [RequiresDocker]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
     {
         using var tempDir = new TempDirectory();
