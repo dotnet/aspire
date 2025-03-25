@@ -94,7 +94,7 @@ public static class AspireWebPubSubExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, null, configureClientBuilder, connectionName: connectionName, serviceKey: connectionName);
+        new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: connectionName, serviceKey: connectionName);
     }
 
     private sealed class WebPubSubComponent : AzureComponent<AzureMessagingWebPubSubSettings, WebPubSubServiceClient, WebPubSubServiceClientOptions>
