@@ -101,12 +101,22 @@ internal sealed class ResourceContainerImageBuilder(
         startInfo.ArgumentList.Add("/t:PublishContainer");
         startInfo.ArgumentList.Add($"/p:ContainerRepository={resource.Name}");
 
+        logger.LogInformation(
+            "Starting .NET CLI with arguments: {Arguments}",
+            string.Join(" ", startInfo.ArgumentList.ToArray())
+            );
+
         using var process = Process.Start(startInfo);
 
         if (process is null)
         {
             throw new DistributedApplicationException("Failed to start .NET CLI.");
         }
+
+        logger.LogInformation(
+            "Started .NET CLI with PID: {PID}",
+            process.Id
+            );
 
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -130,6 +140,10 @@ internal sealed class ResourceContainerImageBuilder(
         {
             publishingActivity.IsComplete = true;
             await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+
+            logger.LogError(
+                ".NET CLI completed with exit code: {ExitCode}",
+                process.ExitCode);
 
             return $"{resource.Name}:latest";
         }
