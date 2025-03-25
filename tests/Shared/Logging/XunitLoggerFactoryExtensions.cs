@@ -4,7 +4,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Microsoft.Extensions.Logging;
 

@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry.Trace;
 
 namespace DatabaseMigration.MigrationService;

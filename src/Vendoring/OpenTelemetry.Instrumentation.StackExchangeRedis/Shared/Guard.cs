@@ -10,12 +10,10 @@
 // Note: For some targets this file will contain more than one type/namespace.
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1403 // File may only contain a single namespace

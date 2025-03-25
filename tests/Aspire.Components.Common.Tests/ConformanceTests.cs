@@ -3,14 +3,14 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
-using Aspire.TestUtilities;
+using Json.Schema;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Json.Schema;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Xunit;

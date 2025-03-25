@@ -4,7 +4,6 @@
 #nullable disable
 
 using System.Diagnostics;
-using System.Reflection;
 using OpenTelemetry.Trace;
 
 namespace OpenTelemetry.Instrumentation.SqlClient.Implementation;
