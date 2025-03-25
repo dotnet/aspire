@@ -24,7 +24,7 @@ public static class AzureWebPubSubExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// By default references to the Azure Web PubSub resource will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="WebPubSubBuiltInRole.WebPubSubServiceOwner"/>
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureWebPubSubResource}, WebPubSubBuiltInRole[])"/>.
@@ -153,13 +153,28 @@ public static class AzureWebPubSubExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
+        return AddHub(builder, hubName, hubName);
+    }
+
+    /// <summary>
+    /// Adds an Azure Web Pub Sub hub resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure WebPubSub resource builder.</param>
+    /// <param name="name">The name of the Azure WebPubSub Hub resource.</param>
+    /// <param name="hubName">The name of the Azure WebPubSub Hub. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string name, string? hubName = null)
+    {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(hubName);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        // Use the resource name as the hub name if it's not provided
+        hubName ??= name;
 
         AzureWebPubSubHubResource? hubResource;
         if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
         {
-            hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+            hubResource = new AzureWebPubSubHubResource(name, hubName, builder.Resource);
             builder.Resource.Hubs[hubName] = hubResource;
         }
         var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
@@ -251,7 +266,7 @@ public static class AzureWebPubSubExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var webPubSub = builder.AddAzureWebPubSub("webPubSub");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(webPubSub, WebPubSubBuiltInRole.WebPubSubServiceReader)
     ///   .WithReference(webPubSub);
