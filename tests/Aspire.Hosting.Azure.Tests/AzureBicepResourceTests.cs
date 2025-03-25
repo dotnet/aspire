@@ -237,8 +237,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
-    [Fact]
-    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -247,32 +249,61 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .ConfigureInfrastructure(infrastructure =>
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
-            }).WithAccessKeyAuthentication();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
         var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
         db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
-        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (name, _) =>
+        {
+            if (!secrets.TryGetValue(name, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "keyVaultName": ""
+                                   "keyVaultName": "{{{kvName}}.outputs.name}"
                                  }
                                }
                                """;
+        var m = manifest.ManifestNode.ToString();
+        output.WriteLine(m);
+
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param keyVaultName string
-
+            
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -294,7 +325,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-
+            
             resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -305,7 +336,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-
+            
             resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -321,13 +352,13 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: db
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }
@@ -472,8 +503,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
     }
 
-    [Fact]
-    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication()
+    [Theory]
+    [InlineData("mykeyvault")]
+    [InlineData(null)]
+    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -482,32 +515,62 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .ConfigureInfrastructure(infrastructure =>
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
-            }).WithAccessKeyAuthentication();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
         var db = cosmos.AddCosmosDatabase("mydatabase");
         db.AddContainer("mycontainer", "mypartitionkeypath");
 
-        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (name, _) =>
+        {
+            if (!secrets.TryGetValue(name, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "keyVaultName": ""
+                                   "keyVaultName": "{{{kvName}}.outputs.name}"
                                  }
                                }
                                """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var m = manifest.ManifestNode.ToString();
+
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param keyVaultName string
-
+            
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -529,7 +592,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-
+            
             resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -540,7 +603,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-
+            
             resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -556,19 +619,19 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: mydatabase
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }
               parent: keyVault
             }
-
+            
             output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
@@ -1239,6 +1302,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output vaultUri string = mykv.properties.vaultUri
 
             output name string = mykv.name
+
+            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1269,11 +1334,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param principalType string
-
+            
             param principalId string
-
+            
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
@@ -1289,7 +1354,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'mykv'
               }
             }
-
+            
             resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
               properties: {
@@ -1299,10 +1364,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: mykv
             }
-
+            
             output vaultUri string = mykv.properties.vaultUri
-
+            
             output name string = mykv.name
+            
+            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

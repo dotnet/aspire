@@ -318,24 +318,31 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
 
 public sealed record KnownProperty(string Key, string DisplayName);
 
-[DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
+[DebuggerDisplay("EndpointName = {EndpointName}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
 {
-    public string Name { get; }
+    public string? EndpointName { get; }
     public Uri Url { get; }
     public bool IsInternal { get; }
     public bool IsInactive { get; }
+    public UrlDisplayPropertiesViewModel DisplayProperties { get; }
 
-    public UrlViewModel(string name, Uri url, bool isInternal, bool isInactive)
+    public UrlViewModel(string? endpointName, Uri url, bool isInternal, bool isInactive, UrlDisplayPropertiesViewModel displayProperties)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(displayProperties);
 
-        Name = name;
+        EndpointName = endpointName;
         Url = url;
         IsInternal = isInternal;
+        DisplayProperties = displayProperties;
         IsInactive = isInactive;
     }
+}
+
+public record UrlDisplayPropertiesViewModel(string DisplayName, int SortOrder)
+{
+    public static readonly UrlDisplayPropertiesViewModel Empty = new(string.Empty, 0);
 }
 
 public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem

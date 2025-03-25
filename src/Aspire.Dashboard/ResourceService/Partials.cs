@@ -7,6 +7,8 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 using CommandsResources = Aspire.Dashboard.Resources.Commands;
+using Aspire.Dashboard.Resources;
+using Aspire.Hosting;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -91,12 +93,21 @@ partial class Resource
 
         ImmutableArray<UrlViewModel> GetUrls()
         {
+            static string TranslateKnownUrlName(Url url)
+            {
+                return (url.EndpointName, url.DisplayProperties.DisplayName) switch
+                {
+                    (KnownUrls.DataExplorer.EndpointName, KnownUrls.DataExplorer.DisplayText) => KnownUrlsDisplay.DataExplorer,
+                    _ => url.DisplayProperties.DisplayName
+                };
+            }
+
             // Filter out bad urls
             return (from u in Urls
                     let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
                     where parsedUri != null
-                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal, u.IsInactive))
-                    .ToImmutableArray();
+                    select new UrlViewModel(u.EndpointName, parsedUri, u.IsInternal, u.IsInactive, new UrlDisplayPropertiesViewModel(TranslateKnownUrlName(u), u.DisplayProperties.SortOrder)))
+                .ToImmutableArray();
         }
 
         ImmutableArray<VolumeViewModel> GetVolumes()

@@ -390,4 +390,129 @@ public class ResourceWithAzureFunctionsConfigTests
         Assert.True(target.ContainsKey("myservicebus__fullyQualifiedNamespace"));
         Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myservicebus__FullyQualifiedNamespace", target.Keys);
     }
+
+    [Fact]
+    public void AzureServiceBusQueue_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus");
+        var queueResource = serviceBusResource.AddServiceBusQueue("ordersqueue").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)queueResource).ApplyAzureFunctionsConfiguration(target, "myqueue");
+
+        // Assert
+        Assert.True(target.ContainsKey("myqueue__fullyQualifiedNamespace"));
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__FullyQualifiedNamespace", target.Keys);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__QueueOrTopicName", target.Keys);
+        Assert.Equal("ordersqueue", target["Aspire__Azure__Messaging__ServiceBus__myqueue__QueueOrTopicName"]);
+    }
+
+    [Fact]
+    public void AzureServiceBusQueueEmulator_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
+        var queueResource = serviceBusResource.AddServiceBusQueue("ordersqueue").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)queueResource).ApplyAzureFunctionsConfiguration(target, "myqueue");
+
+        // Assert
+        Assert.True(target.ContainsKey("myqueue"));
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__ConnectionString", target.Keys);
+
+        var connectionStringExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Azure__Messaging__ServiceBus__myqueue__ConnectionString"]);
+        Assert.Equal(queueResource.ConnectionStringExpression.ValueExpression, connectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureServiceBusTopic_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus");
+        var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)topicResource).ApplyAzureFunctionsConfiguration(target, "mytopic");
+
+        // Assert
+        Assert.True(target.ContainsKey("mytopic__fullyQualifiedNamespace"));
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__FullyQualifiedNamespace", target.Keys);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__QueueOrTopicName", target.Keys);
+        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mytopic__QueueOrTopicName"]);
+    }
+
+    [Fact]
+    public void AzureServiceBusTopicEmulator_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
+        var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)topicResource).ApplyAzureFunctionsConfiguration(target, "mytopic");
+
+        // Assert
+        Assert.True(target.ContainsKey("mytopic"));
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__ConnectionString", target.Keys);
+
+        var connectionStringExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Azure__Messaging__ServiceBus__mytopic__ConnectionString"]);
+        Assert.Equal(topicResource.ConnectionStringExpression.ValueExpression, connectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureServiceBusSubscription_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus");
+        var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic");
+        var subscriptionResource = topicResource.AddServiceBusSubscription("usersubscription").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)subscriptionResource).ApplyAzureFunctionsConfiguration(target, "mysub");
+
+        // Assert
+        Assert.True(target.ContainsKey("mysub__fullyQualifiedNamespace"));
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__FullyQualifiedNamespace", target.Keys);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__QueueOrTopicName", target.Keys);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__SubscriptionName", target.Keys);
+        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mysub__QueueOrTopicName"]);
+        Assert.Equal("usersubscription", target["Aspire__Azure__Messaging__ServiceBus__mysub__SubscriptionName"]);
+    }
+
+    [Fact]
+    public void AzureServiceBusSubscriptionEmulator_AppliesCorrectConfigurationFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
+        var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic");
+        var subscriptionResource = topicResource.AddServiceBusSubscription("usersubscription").Resource;
+        var target = new Dictionary<string, object>();
+
+        // Act
+        ((IResourceWithAzureFunctionsConfig)subscriptionResource).ApplyAzureFunctionsConfiguration(target, "mysub");
+
+        // Insert settings for both Functions host and Aspire client integrations
+        Assert.True(target.ContainsKey("mysub"));
+        Assert.True(target.ContainsKey("Aspire__Azure__Messaging__ServiceBus__mysub__ConnectionString"));
+
+        // Aspire client integration should get the connection string of the child resource
+        var connectionStringExpression = Assert.IsType<ReferenceExpression>(target["Aspire__Azure__Messaging__ServiceBus__mysub__ConnectionString"]);
+        Assert.Equal(subscriptionResource.ConnectionStringExpression.ValueExpression, connectionStringExpression.ValueExpression);
+
+        connectionStringExpression = Assert.IsType<ReferenceExpression>(target["mysub"]);
+        Assert.Equal(serviceBusResource.Resource.ConnectionStringExpression.ValueExpression, connectionStringExpression.ValueExpression);
+    }
 }

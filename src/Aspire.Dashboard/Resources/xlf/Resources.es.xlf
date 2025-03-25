@@ -172,11 +172,6 @@
         <target state="translated">Hora de detención</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">Puntos de conexión</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">Entorno</target>
@@ -260,6 +255,11 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">Tipo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="new">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

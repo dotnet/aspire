@@ -8,7 +8,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class EndpointsColumnDisplay
+public partial class UrlsColumnDisplay
 {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -17,7 +17,7 @@ public partial class EndpointsColumnDisplay
     public required bool HasMultipleReplicas { get; set; }
 
     [Parameter, EditorRequired]
-    public required IList<DisplayedEndpoint> DisplayedEndpoints { get; set; }
+    public required IList<DisplayedUrl> DisplayedUrls { get; set; }
 
     [Parameter]
     public string? AdditionalMessage { get; set; }

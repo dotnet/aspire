@@ -49,6 +49,11 @@ resource ChatForAspire 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
   parent: wps1
 }
 
+resource NotificationForAspire 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+  name: 'NotificationForAspire'
+  parent: wps1
+}
+
 output endpoint string = 'https://${wps1.properties.hostName}'
 
 output name string = wps1.name

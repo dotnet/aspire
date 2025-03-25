@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -17,7 +19,7 @@ public class DockerComposePublisherTests
         using var tempDir = new TempDirectory();
         // Arrange
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
@@ -41,9 +43,11 @@ public class DockerComposePublisherTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
+        await ExecuteBeforeStartHooksAsync(app, default);
+
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
+            builder.ExecutionContext);
 
         // Act
         await publisher.PublishAsync(model, default);
@@ -110,6 +114,9 @@ public class DockerComposePublisherTests
             """,
             envContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class OptionsMonitor(DockerComposePublisherOptions options) : IOptionsMonitor<DockerComposePublisherOptions>
     {

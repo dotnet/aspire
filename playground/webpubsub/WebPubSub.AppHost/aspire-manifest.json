@@ -20,7 +20,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
-        "ConnectionStrings__wps1": "{wps1.connectionString}"
+        "ConnectionStrings__ChatForAspire": "{ChatForAspire.connectionString}",
+        "ConnectionStrings__NotificationForAspire": "{NotificationForAspire.connectionString}"
       },
       "bindings": {
         "http": {
@@ -36,6 +37,14 @@
           "external": true
         }
       }
+    },
+    "ChatForAspire": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={wps1.outputs.endpoint};Hub=ChatForAspire"
+    },
+    "NotificationForAspire": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={wps1.outputs.endpoint};Hub=NotificationForAspire"
     }
   }
 }

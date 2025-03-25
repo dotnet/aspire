@@ -1,15 +1,15 @@
-::deep.endpoint-list {
+::deep.url-list {
     margin: 0;
     padding: 0;
 }
 
-::deep.endpoint-list li {
+::deep.url-list li {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-::deep.endpoint-popup {
+::deep.url-popup {
     max-width: 500px;
     max-height: 400px;
     overflow-x: hidden;
@@ -17,7 +17,7 @@
     padding: 5px 10px;
 }
 
-::deep.endpoint-link {
+::deep.url-link {
     margin-bottom: 4px;
     overflow: hidden;
     text-overflow: ellipsis;

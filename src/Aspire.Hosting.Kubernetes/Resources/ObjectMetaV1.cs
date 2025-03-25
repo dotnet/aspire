@@ -166,7 +166,7 @@ public sealed class ObjectMetaV1
     /// management operations and can also assist in search and filtering processes.
     /// </remarks>
     [YamlMember(Alias = "labels")]
-    public Dictionary<string, string> Labels { get; } = [];
+    public Dictionary<string, string> Labels { get; set; } = [];
 
     /// <summary>
     /// A collection of ManagedFieldsEntryV1 instances that provide metadata about field-level management in a Kubernetes resource.

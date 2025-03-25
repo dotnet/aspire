@@ -37,11 +37,11 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
-    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Redis resource.
+    /// Gets the "connectionString" secret reference from the key vault associated with this resource.
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
@@ -99,7 +99,6 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         // for the Azure Functions host.
         target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
         // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
-        // Use the child resource connection string here to support child resource integrations.
         target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
         target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
     }
@@ -124,5 +123,36 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         var principalId = roleAssignmentContext.PrincipalId;
 
         AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
+    }
+
+    internal ReferenceExpression GetConnectionString(string? databaseName = null, string? containerName = null)
+    {
+        if (string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator || UseAccessKeyAuthentication)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"AccountEndpoint={ConnectionStringExpression}");
+        }
+
+        if (!string.IsNullOrEmpty(databaseName))
+        {
+            builder.Append($";Database={databaseName}");
+
+            if (!string.IsNullOrEmpty(containerName))
+            {
+                builder.Append($";Container={containerName}");
+            }
+        }
+
+        return builder.Build();
     }
 }

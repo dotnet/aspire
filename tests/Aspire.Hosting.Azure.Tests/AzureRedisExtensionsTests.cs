@@ -89,34 +89,48 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AddAzureRedisWithAccessKeyAuthentication()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureRedisWithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddAzureRedis("redis-cache")
-            .WithAccessKeyAuthentication();
+        var redis = builder.AddAzureRedis("redis-cache");
+
+        if (kvName is null)
+        {
+            kvName = "redis-cache-kv";
+
+            redis.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            redis.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{redis-cache.secretOutputs.connectionString}",
+              "connectionString": "{{{kvName}}.secrets.connectionstrings--redis-cache}",
               "path": "redis-cache.module.bicep",
               "params": {
-                "keyVaultName": ""
+                "keyVaultName": "{{{kvName}}.outputs.name}"
               }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        var m = manifest.ManifestNode.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param keyVaultName string
-
+            
             resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
               name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -133,19 +147,19 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 'aspire-resource-name': 'redis-cache'
               }
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
             
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--redis-cache'
               properties: {
                 value: '${redis_cache.properties.hostName},ssl=true,password=${redis_cache.listKeys().primaryKey}'
               }
               parent: keyVault
             }
-
+            
             output name string = redis_cache.name
             """;
         output.WriteLine(manifest.BicepText);

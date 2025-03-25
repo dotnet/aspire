@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Kubernetes.Yaml;
-using Aspire.Hosting.Yaml;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Aspire.Hosting.Kubernetes.Resources;
 
@@ -30,25 +27,4 @@ public abstract class BaseKubernetesResource(string apiVersion, string kind) : B
     /// </remarks>
     [YamlMember(Alias = "metadata", Order = -1)]
     public ObjectMetaV1 Metadata { get; set; } = new();
-
-    /// <summary>
-    /// Converts the current Kubernetes resource object into its YAML representation.
-    /// </summary>
-    /// <param name="lineEndings">Specifies the line endings to be used in the YAML output. Defaults to a newline character ("\n").</param>
-    /// <returns>A string representing the YAML-encoded content of the current resource object.</returns>
-    public string ToYaml(string lineEndings = "\n")
-    {
-        var serializer = new SerializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithTypeConverter(new ByteArrayStringYamlConverter())
-            .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
-            .WithEventEmitter(e => new FloatEmitter(e))
-            .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
-            .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
-            .WithNewLine(lineEndings)
-            .WithIndentedSequences()
-            .Build();
-
-        return serializer.Serialize(this);
-    }
 }

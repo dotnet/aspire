@@ -23,7 +23,11 @@
             else
             {
                 @ContentBeforeValue
-                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                if (ValueTemplate is not null)
+                {
+                    @ValueTemplate(Value)
+                }
+                else if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
                 {
                     <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
                 }

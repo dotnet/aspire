@@ -90,7 +90,7 @@ public sealed class PersistentVolumeSpecV1
     /// and the values define the corresponding quantity for the capacity type.
     /// </summary>
     [YamlMember(Alias = "capacity")]
-    public Dictionary<string, string> Capacity { get; } = [];
+    public Dictionary<string, string> Capacity { get; set; } = [];
 
     /// <summary>
     /// Specifies constraints that limit which nodes a persistent volume can be accessed from.

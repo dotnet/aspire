@@ -5,7 +5,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
-                       .WithPgAdmin()
+                       .WithPgAdmin(resource =>
+                       {
+                           resource.WithUrlForEndpoint("http", u => u.DisplayText = "PG Admin");
+                       })
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
@@ -15,10 +18,12 @@ var basketCache = builder.AddRedis("basketcache")
 basketCache.WithRedisCommander(c =>
             {
                 c.WithHostPort(33801);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Commander");
             })
            .WithRedisInsight(c =>
             {
                 c.WithHostPort(33802);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Insight");
             });
 #endif
 
@@ -30,13 +35,16 @@ if (builder.Environment.IsDevelopment())
     var resetDbKey = Guid.NewGuid().ToString();
     catalogDbApp.WithEnvironment("DatabaseResetKey", resetDbKey)
                 .WithHttpCommand("/reset-db", "Reset Database",
-                    displayDescription: "Reset the catalog database to its initial state. This will delete and recreate the database.",
-                    confirmationMessage: "Are you sure you want to reset the catalog database?",
-                    iconName: "DatabaseLightning",
-                    configureRequest: requestContext =>
+                    commandOptions: new()
                     {
-                        requestContext.Request.Headers.Add("Authorization", $"Key {resetDbKey}");
-                        return Task.CompletedTask;
+                        Description = "Reset the catalog database to its initial state. This will delete and recreate the database.",
+                        ConfirmationMessage = "Are you sure you want to reset the catalog database?",
+                        IconName = "DatabaseLightning",
+                        PrepareRequest = requestContext =>
+                        {
+                            requestContext.Request.Headers.Add("Authorization", $"Key {resetDbKey}");
+                            return Task.CompletedTask;
+                        }
                     });
 }
 
@@ -56,6 +64,8 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
+       .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
+       .WithUrl("https://someotherplace.com/some-path", "Some other place")
        .WithReference(basketService)
        .WithReference(catalogService);
 
