@@ -50,6 +50,7 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// <remarks>
     /// This will be set to the resource in all cases where .NET Aspire invokes the callback.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the EnvironmentCallbackContext was created without a specified resource.</exception>
     public IResource Resource => _resource ?? throw new InvalidOperationException($"{nameof(Resource)} is not set. This callback context is not associated with a resource.");
 
     /// <summary>
