@@ -11,11 +11,11 @@
     },
     "db": {
       "type": "value.v0",
-      "connectionString": "{cosmos.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db"
     },
     "entries": {
       "type": "value.v0",
-      "connectionString": "{cosmos.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=entries"
     },
     "api": {
       "type": "project.v0",
@@ -26,7 +26,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__cosmos": "{cosmos.connectionString}"
+        "ConnectionStrings__db": "{db.connectionString}",
+        "ConnectionStrings__entries": "{entries.connectionString}"
       },
       "bindings": {
         "http": {

@@ -116,10 +116,17 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var db1 = cosmos.AddCosmosDatabase("db1");
         var container1 = db1.AddContainer("container1", "id");
 
+        var cosmos1 = builder.AddAzureCosmosDB("cosmos1").RunAsEmulator();
+        var db2 = cosmos1.AddCosmosDatabase("db2", "db");
+        var container2 = db2.AddContainer("container2", "id", "container");
+
         Assert.DoesNotContain(";Database=db1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
         Assert.DoesNotContain(";Database=db1;Container=container1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+        // Validate behavior when resource name and container/database name are different
+        Assert.Contains(";Database=db2", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db2;Container=container2", container2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -233,6 +240,120 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDatabase_WorksWithAccessKeyAuth_ChildResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .WithAccessKeyAuthentication();
+        var database = cosmos.AddCosmosDatabase("db1");
+        var container = database.AddContainer("container1", "id");
+
+        builder.AddContainer("api", "myimage")
+            .WithReference(cosmos);
+
+        Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.secretOutputs.connectionString};Database=db1", database.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.secretOutputs.connectionString};Database=db1;Container=container1", container.Resource.ConnectionStringExpression.ValueExpression);
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param keyVaultName string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
+              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
+              location: location
+              properties: {
+                locations: [
+                  {
+                    locationName: location
+                    failoverPriority: 0
+                  }
+                ]
+                consistencyPolicy: {
+                  defaultConsistencyLevel: 'Session'
+                }
+                databaseAccountOfferType: 'Standard'
+                disableLocalAuth: false
+              }
+              kind: 'GlobalDocumentDB'
+              tags: {
+                'aspire-resource-name': 'cosmos'
+              }
+            }
+
+            resource db1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
+              name: 'db1'
+              location: location
+              properties: {
+                resource: {
+                  id: 'db1'
+                }
+              }
+              parent: cosmos
+            }
+
+            resource container1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+              name: 'container1'
+              location: location
+              properties: {
+                resource: {
+                  id: 'container1'
+                  partitionKey: {
+                    paths: [
+                      'id'
+                    ]
+                  }
+                }
+              }
+              parent: db1
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
+              }
+              parent: keyVault
+            }
+
+            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'db1-connectionString'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1'
+              }
+              parent: keyVault
+            }
+
+            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'db1-container1-connectionString'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1;Container=container1'
+              }
+              parent: keyVault
+            }
 
             output name string = cosmos.name
             """;
