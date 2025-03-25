@@ -38,7 +38,10 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithReference(cs)
                          .WithArgs("--cs", cs.Resource);
 
-        builder.AddProject<Projects.TestingAppHost1_MyWebApp>("project1", launchProfileName: null)
+        builder.AddProject(
+            "project1",
+            "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
+            launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
 
         var app = builder.Build();
