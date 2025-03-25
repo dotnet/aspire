@@ -121,6 +121,7 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8299")]
     public void MetricsTree_MetricsAdded_TreeUpdated()
     {
         // Arrange
