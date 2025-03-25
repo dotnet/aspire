@@ -275,20 +275,15 @@ internal sealed class BicepProvisioner(
         // Populate secret outputs from key vault (if any)
         if (resource is IKeyVaultResource kvr)
         {
-            // Outputs should be resolved above
-            var id = resource.Outputs[kvr.IdOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.IdOutputReference.Name} not found in outputs.");
             var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
 
             // Set the client for resolving secrets at runtime
-            kvr.SecretClient = new SecretClient(new(vaultUri), context.Credential);
-
-            // We don't need to do this every deployment
-            // Make sure we can access the key vault so we can get the secrets at runtime
-            // Key Vault Reader
-            // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-reader
-            var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "21090545-7ca7-4776-b22c-e363652d74d2");
-
-            await DoRoleAssignmentAsync(context.ArmClient, ResourceIdentifier.Parse(id), context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+            var client = new SecretClient(new(vaultUri), context.Credential);
+            kvr.SecretResolver = async (secretName, ct) =>
+            {
+                var secret = await client.GetSecretAsync(secretName, cancellationToken: ct).ConfigureAwait(false);
+                return secret.Value.Value;
+            };
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>

@@ -202,7 +202,7 @@ public static class AzureRedisExtensions
     /// Configures the resource to use access key authentication for Azure Cache for Redis.
     /// </summary>
     /// <param name="builder">The Azure Cache for Redis resource builder.</param>
-    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
     public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IKeyVaultResource> keyVaultBuilder)
     {

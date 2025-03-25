@@ -266,7 +266,20 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
 
-        kv.Resource.Secrets["connectionstrings--cosmos"] = "mycosmosconnectionstring";
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (name, _) =>
+        {
+            if (!secrets.TryGetValue(name, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
@@ -490,8 +503,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
     }
 
-    [Fact]
-    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication()
+    [Theory]
+    [InlineData("mykeyvault")]
+    [InlineData(null)]
+    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -500,23 +515,47 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .ConfigureInfrastructure(infrastructure =>
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
-            }).WithAccessKeyAuthentication();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
         var db = cosmos.AddCosmosDatabase("mydatabase");
         db.AddContainer("mycontainer", "mypartitionkeypath");
 
-        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>("cosmos-kv");
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
 
-        kv.Resource.Secrets["connectionstrings--cosmos"] = "mycosmosconnectionstring";
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (name, _) =>
+        {
+            if (!secrets.TryGetValue(name, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
+                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
-                                   "keyVaultName": "{cosmos-kv.outputs.name}"
+                                   "keyVaultName": "{{{kvName}}.outputs.name}"
                                  }
                                }
                                """;
@@ -592,7 +631,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
-
+            
             output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);

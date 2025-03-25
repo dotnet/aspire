@@ -37,7 +37,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
-    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Redis resource.
+    /// Gets the "connectionString" secret reference from the key vault associated with this resource.
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>

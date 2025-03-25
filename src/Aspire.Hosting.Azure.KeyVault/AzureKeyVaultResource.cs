@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Primitives;
-using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure;
 
@@ -40,16 +39,13 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     BicepOutputReference IKeyVaultResource.VaultUriOutputReference => VaultUri;
     BicepOutputReference IKeyVaultResource.IdOutputReference => Id;
 
-    // For testing purposes only
-    internal Dictionary<string, string> Secrets { get; } = [];
-
     // In run mode, this is set to the secret client used to access the Azure Key Vault.
-    internal SecretClient? SecretClient { get; set; }
+    internal Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
-    SecretClient? IKeyVaultResource.SecretClient
+    Func<string, CancellationToken, Task<string?>>? IKeyVaultResource.SecretResolver
     {
-        get => SecretClient;
-        set => SecretClient = value;
+        get => SecretResolver;
+        set => SecretResolver = value;
     }
 
     /// <summary>

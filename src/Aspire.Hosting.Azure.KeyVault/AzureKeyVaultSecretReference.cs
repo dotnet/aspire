@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="secretName">The name of the secret.</param>
 /// <param name="azureKeyVaultResource">The Azure Key Vault resource.</param>
-public sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
+internal sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
 {
     /// <summary>
     /// Gets the name of the secret.
@@ -26,16 +26,9 @@ public sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaul
 
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        if (azureKeyVaultResource.Secrets.TryGetValue(secretName, out var secretValue))
+        if (azureKeyVaultResource.SecretResolver is { } secretResolver)
         {
-            return secretValue;
-        }
-
-        if (azureKeyVaultResource.SecretClient is { } client)
-        {
-            var secret = await client.GetSecretAsync(secretName, cancellationToken: cancellationToken).ConfigureAwait(false);
-            var response = secret.Value;
-            return response.Value;
+            return await secretResolver(secretName, cancellationToken).ConfigureAwait(false);
         }
 
         throw new InvalidOperationException($"Secret '{secretName}' not found in Key Vault '{azureKeyVaultResource.Name}'.");

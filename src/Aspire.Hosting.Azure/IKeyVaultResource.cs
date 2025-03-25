@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure;
 
@@ -27,9 +26,9 @@ public interface IKeyVaultResource : IResource, IAzureResource
     BicepOutputReference IdOutputReference { get; }
 
     /// <summary>
-    /// The secret client used to access the Azure Key Vault in run mode.
+    /// Gets or sets the secret resolver function used to resolve secrets at runtime.
     /// </summary>
-    SecretClient? SecretClient { get; set; }
+    Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
     /// <summary>
     /// Gets a secret reference for the specified secret name.
