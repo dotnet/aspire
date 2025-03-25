@@ -422,7 +422,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 // Response code is outside of valid range
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -435,7 +435,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 // DNS Question mismatch
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -449,7 +449,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             {
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -460,7 +460,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             SendQueryError validationError = ValidateResponse(header.ResponseCode, queryStartedTime, answers, authorities, ref expirationTime);
 
             // we transfer ownership of RawData to the response
-            DnsResponse response = new(responseReader.RawData!, header, queryStartedTime, expirationTime, answers, authorities, additionals);
+            DnsResponse response = new DnsResponse(responseReader.RawData!, header, queryStartedTime, expirationTime, answers, authorities, additionals);
             responseReader = default; // avoid disposing (and returning RawData to the pool)
 
             return new SendQueryResult { Response = response, Error = validationError };
@@ -472,7 +472,10 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
         static bool TryReadRecords(int count, ref int ttl, ref DnsDataReader reader, out List<DnsResourceRecord> records)
         {
-            records = new(count);
+            // Since `count` is attacker controlled, limit the initial capacity
+            // to 32 items to avoid excessive memory allocation. More than 32
+            // records are unusual so we don't need to optimize for them.
+            records = new(Math.Min(count, 32));
 
             for (int i = 0; i < count; i++)
             {

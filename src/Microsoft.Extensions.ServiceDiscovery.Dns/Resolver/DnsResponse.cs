@@ -16,7 +16,7 @@ internal struct DnsResponse : IDisposable
     public ReadOnlyMemory<byte> RawData => _rawData ?? ReadOnlyMemory<byte>.Empty;
     private byte[]? _rawData;
 
-    public DnsResponse(byte[] rawData, DnsMessageHeader header, DateTime createdAt, DateTime expiration, List<DnsResourceRecord> answers, List<DnsResourceRecord> authorities, List<DnsResourceRecord> additionals)
+    public DnsResponse(byte[]? rawData, DnsMessageHeader header, DateTime createdAt, DateTime expiration, List<DnsResourceRecord> answers, List<DnsResourceRecord> authorities, List<DnsResourceRecord> additionals)
     {
         _rawData = rawData;
 

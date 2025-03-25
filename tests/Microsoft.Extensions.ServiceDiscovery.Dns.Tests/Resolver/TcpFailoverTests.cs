@@ -43,7 +43,6 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         Options.Attempts = 1;
         Options.Timeout = TimeSpan.FromSeconds(60);
 
-        IPAddress address = IPAddress.Parse("172.213.245.111");
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
             builder.Flags |= QueryFlags.ResultTruncated;
@@ -67,7 +66,6 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         Options.Attempts = 1;
         Options.Timeout = TimeSpan.FromMilliseconds(100000);
 
-        IPAddress address = IPAddress.Parse("172.213.245.111");
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
             builder.Flags |= QueryFlags.ResultTruncated;

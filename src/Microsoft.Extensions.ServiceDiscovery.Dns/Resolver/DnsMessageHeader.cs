@@ -21,7 +21,7 @@ internal struct DnsMessageHeader
 
     public QueryResponseCode ResponseCode
     {
-        get => (QueryResponseCode)((int)QueryFlags & 0x000F);
+        get => (QueryResponseCode)(QueryFlags & QueryFlags.ResponseCodeMask);
     }
 
     public bool IsResultTruncated

@@ -11,4 +11,5 @@ internal enum QueryFlags : ushort
     ResultTruncated = 0x0200,
     HasAuthorityAnswer = 0x0400,
     HasResponse = 0x8000,
+    ResponseCodeMask = 0x000F,
 }
