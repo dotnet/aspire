@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class CommandOptions
 {
-    internal static CommandOptions Default { get; } = new CommandOptions();
+    internal static CommandOptions Default { get; } = new();
 
     /// <summary>
     /// Optional description of the command, to be shown in the UI.
