@@ -1,0 +1,49 @@
+<Project>
+  <!--
+
+    This file is used to generate a list of tests to run on GitHub Actions. 
+
+         .\build.cmd -test /p:TestRunnerName=TestRunsheetBuilder /bl
+
+    For the large part this is a copy of the Arcade SDK's implementations:
+      - https://github.com/dotnet/arcade/blob/b888df17/src/Microsoft.DotNet.Arcade.Sdk/tools/XUnit/XUnit.Runner.targets
+      - https://github.com/dotnet/arcade/blob/b888df17/src/Microsoft.DotNet.Arcade.Sdk/tools/VSTest.targets
+   -->
+
+  <Target Name="RunTests"
+          Outputs="%(TestToRun.ResultsStdOutPath)"
+          Condition=" '$(SkipTests)' != 'true' and '$(RunTestsOnGithubActions)' == 'true' ">
+
+    <PropertyGroup>
+      <_TestEnvironment>%(TestToRun.EnvironmentDisplay)</_TestEnvironment>
+      <_TestAssembly>%(TestToRun.Identity)</_TestAssembly>
+      <_TestRuntime>%(TestToRun.TestRuntime)</_TestRuntime>
+      <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
+      <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_TestRunsheet>$([System.IO.Path]::GetFileNameWithoutExtension('%(TestToRun.ResultsHtmlPath)'))</_TestRunsheet>
+
+      <_TestResultDirectory>$([System.IO.Path]::GetDirectoryName('%(TestToRun.ResultsTrxPath)'))</_TestResultDirectory>
+      <_TestResultTrxFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsTrxPath)'))</_TestResultTrxFileName>
+      <_TestResultHtmlFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsHtmlPath)'))</_TestResultHtmlFileName>
+
+      <_TestRunnerCommand>&quot;$(DotNetTool)&quot; test $(_TestAssembly) --logger:"console%3Bverbosity=normal" --logger:"trx%3BLogFileName=$(_TestResultTrxFileName)" --logger:"html%3BLogFileName=$(_TestResultHtmlFileName)" "--ResultsDirectory:$(_TestResultDirectory)" "--Framework:%(TestToRun.TargetFrameworkIdentifier),Version=%(TestToRun.TargetFrameworkVersion)"</_TestRunnerCommand>
+      <_TestRunnerCommand Condition="'$(VSTestRunSettingsFile)' != ''">$(_TestRunnerCommand) "--settings:$(VSTestRunSettingsFile)"</_TestRunnerCommand>
+      <_TestRunnerCommand Condition="'$(_TestRunnerAdditionalArguments)' != ''">$(_TestRunnerCommand) $(_TestRunnerAdditionalArguments)</_TestRunnerCommand>
+
+      <!-- 
+        Redirect std output of the runner.
+      -->
+      <_TestRunnerCommand Condition="'$(TestCaptureOutput)' != 'false'">$(_TestRunnerCommand) >> "%(TestToRun.ResultsStdOutPath)" 2>&amp;1</_TestRunnerCommand>
+    </PropertyGroup>
+
+    <WriteLinesToFile
+            File="$(ArtifactsTmpDir)\$(_TestRunsheet).txt"
+            Lines="$(_TestRunnerCommand)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true" />
+  </Target>
+
+</Project>
