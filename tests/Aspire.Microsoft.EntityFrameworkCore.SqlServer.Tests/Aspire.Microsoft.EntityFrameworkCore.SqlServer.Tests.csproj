@@ -18,7 +18,8 @@
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     
 
-   <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+    <PackageReference Include="Testcontainers.MsSql" />
   </ItemGroup>
 
 </Project>
