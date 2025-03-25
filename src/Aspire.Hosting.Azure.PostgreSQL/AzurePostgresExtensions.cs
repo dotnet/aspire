@@ -118,7 +118,7 @@ public static class AzurePostgresExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
     ///
-    /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
+    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{IKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
@@ -286,6 +286,29 @@ public static class AzurePostgresExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+                                           .WithParentRelationship(builder.Resource);
+
+        return builder.WithPasswordAuthentication(kv, userName, password);
+    }
+
+    /// <summary>
+    /// Configures the resource to use password authentication for Azure PostgreSQL Flexible Server.
+    /// This overload is used when the PostgreSQL resource is created in a container and the password is stored in an Azure Key Vault secret.
+    /// </summary>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
+        this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
+        IResourceBuilder<IKeyVaultResource> keyVaultBuilder,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var azureResource = builder.Resource;
 
         azureResource.UserNameParameter = userName?.Resource ??
@@ -296,7 +319,9 @@ public static class AzurePostgresExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
-        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{builder.Resource.Name}");
+
+        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;
@@ -420,7 +445,7 @@ public static class AzurePostgresExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = "connectionString",
+                Name = $"connectionstrings--{azureResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")

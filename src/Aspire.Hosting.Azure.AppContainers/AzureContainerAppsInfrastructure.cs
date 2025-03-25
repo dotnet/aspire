@@ -87,12 +87,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             // HACK: This forces parameters to be resolved for any AzureProvisioningResource
             r.GetBicepTemplateFile();
 
-            // REVIEW: the secret key vault resources aren't coupled to the container app environment. This
-            // is a side effect from how azd worked. We can move them to another service in the future.
+            // This will throw an exception if there's no value specified, in this new mode, we don't no longer support
+            // automagic secret key vault references.
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
 
             // Set the known parameters for the container app environment
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ManagedIdentityId);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ContainerRegistryManagedIdentityId);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
@@ -148,7 +148,6 @@ internal sealed class AzureContainerAppsInfrastructure(
             private (int? Port, bool Http2, bool External)? _httpIngress;
             private readonly List<int> _additionalPorts = [];
 
-            private ProvisioningParameter? _managedIdentityIdParameter;
             private ProvisioningParameter? _containerRegistryUrlParameter;
             private ProvisioningParameter? _containerRegistryManagedIdentityIdParameter;
 
@@ -170,8 +169,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
-                AllocateManagedIdentityIdParameter();
-
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
@@ -185,19 +182,20 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
                 {
-                    Name = resource.Name.ToLowerInvariant(),
-                    Identity = new ManagedServiceIdentity()
-                    {
-                        ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                        UserAssignedIdentities = []
-                    }
+                    Name = resource.Name.ToLowerInvariant()
                 };
+
+                BicepValue<string>? containerAppIdentityId = null;
 
                 if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
                 {
                     var appIdentityResource = appIdentityAnnotation.IdentityResource;
-                    var id = BicepFunction.Interpolate($"{appIdentityResource.Id.AsProvisioningParameter(c)}").Compile().ToString();
 
+                    containerAppIdentityId = appIdentityResource.Id.AsProvisioningParameter(c);
+
+                    var id = BicepFunction.Interpolate($"{containerAppIdentityId}").Compile().ToString();
+
+                    containerAppResource.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                     containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
                     EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = appIdentityResource.ClientId.AsProvisioningParameter(c) });
@@ -216,7 +214,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 AddIngress(configuration);
 
                 AddContainerRegistryParameters(configuration);
-                AddSecrets(configuration);
+                AddSecrets(containerAppIdentityId, configuration);
 
                 var template = new ContainerAppTemplate();
                 containerAppResource.Template = template;
@@ -550,8 +548,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                             if (secretType == SecretType.KeyVault)
                             {
-                                var managedIdentityParameter = AllocateManagedIdentityIdParameter();
-                                secret.Identity = managedIdentityParameter;
                                 // TODO: this should be able to use ToUri(), but it hit an issue
                                 secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
                             }
@@ -713,6 +709,16 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
+                if (value is IKeyVaultSecretReference vaultSecretReference)
+                {
+                    if (parent is null)
+                    {
+                        return (AllocateKeyVaultSecretUriReference(vaultSecretReference), SecretType.KeyVault);
+                    }
+
+                    return (AllocateParameter(vaultSecretReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
+                }
+
                 if (value is EndpointReferenceExpression epExpr)
                 {
                     var context = epExpr.Endpoint.Resource == resource
@@ -786,14 +792,37 @@ internal sealed class AzureContainerAppsInfrastructure(
                 return secret.Properties.SecretUri;
             }
 
+            private BicepValue<string> AllocateKeyVaultSecretUriReference(IKeyVaultSecretReference secretOutputReference)
+            {
+                if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
+                {
+                    // We resolve the keyvault that represents the storage for secret outputs
+                    var parameter = AllocateParameter(secretOutputReference.Resource.NameOutputReference);
+                    kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
+                    kv.Name = parameter;
+
+                    KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
+                }
+
+                if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
+                {
+                    // Now we resolve the secret
+                    var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.SecretName}");
+                    secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
+                    secret.Name = secretOutputReference.SecretName;
+                    secret.Parent = kv;
+
+                    KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
+                }
+
+                return secret.Properties.SecretUri;
+            }
+
             private ProvisioningParameter AllocateContainerImageParameter()
                 => AllocateParameter(ResourceExpression.GetContainerImageExpression(resource));
 
             private BicepValue<int> AllocateContainerPortParameter()
                 => AllocateParameter(ResourceExpression.GetContainerPortExpression(resource));
-
-            private ProvisioningParameter AllocateManagedIdentityIdParameter()
-                => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ManagedIdentityId);
 
             private void AllocateContainerRegistryParameters()
             {
@@ -898,7 +927,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            private void AddSecrets(ContainerAppConfiguration config)
+            private void AddSecrets(BicepValue<string>? containerAppIdentityId, ContainerAppConfiguration config)
             {
                 if (Secrets.Count == 0)
                 {
@@ -909,15 +938,28 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 foreach (var s in Secrets)
                 {
+                    IBicepValue keyVaultUri = s.KeyVaultUri;
+
+                    if (keyVaultUri.Kind != BicepValueKind.Unset && containerAppIdentityId is not null)
+                    {
+                        s.Identity = containerAppIdentityId;
+                    }
+
                     config.Secrets.Add(s);
                 }
             }
 
             private void AddContainerRegistryManagedIdentity(ContainerApp app)
             {
-                // REVIEW: This is is a little hacky, we should probably have a better way to do this
-                var id = BicepFunction.Interpolate($"{_managedIdentityIdParameter}").Compile().ToString();
+                if (_containerRegistryManagedIdentityIdParameter is null)
+                {
+                    return;
+                }
 
+                // REVIEW: This is is a little hacky, we should probably have a better way to do this
+                var id = BicepFunction.Interpolate($"{_containerRegistryManagedIdentityIdParameter}").Compile().ToString();
+
+                app.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                 app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
             }
 
