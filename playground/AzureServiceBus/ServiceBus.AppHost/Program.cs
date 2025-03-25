@@ -8,7 +8,7 @@ var serviceBus = builder.AddAzureServiceBus("sbemulator");
 var queue = serviceBus.AddServiceBusQueue("queueOne", "queue1")
     .WithProperties(queue => queue.DeadLetteringOnMessageExpiration = false);
 
-var topic = serviceBus.AddServiceBusTopic("topicOne", "topic1")
+var subscription = serviceBus.AddServiceBusTopic("topicOne", "topic1")
     .AddServiceBusSubscription("sub1")
     .WithProperties(subscription =>
     {
@@ -38,6 +38,6 @@ serviceBus.RunAsEmulator(configure => configure.WithConfiguration(document =>
 
 builder.AddProject<Projects.ServiceBusWorker>("worker")
     .WithReference(queue).WaitFor(queue)
-    .WithReference(topic).WaitFor(topic);
+    .WithReference(subscription).WaitFor(subscription);
 
 builder.Build().Run();
