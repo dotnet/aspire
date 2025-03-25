@@ -36,7 +36,7 @@
 
     <DownloadFile SourceUrl="https://dot.net/v1/$(_DotNetInstallScriptName)"
                   DestinationFolder="$(ArtifactsObjDir)"
-                  Retries="3"
+                  Retries="6"
                   Condition="!Exists($(_DotNetInstallScriptPath))"/>
 
     <RemoveDir Directories="$(SdkTargetDir)" />
