@@ -114,6 +114,20 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void AddAzureWebPubSub_HasCorrectConnectionExpressions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        var hub = wps.AddHub("abc");
+        var otherHub = wps.AddHub("def", "hij");
+
+        Assert.Equal("{wps1.outputs.endpoint}", wps.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=abc", hub.Resource.ConnectionStringExpression.ValueExpression);
+        // Uses hub name instead of resource name since it was explicitly provided
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hij", otherHub.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public async Task AddWebPubSubWithHubConfigure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -230,7 +244,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             param capacity int = 1
 
             param principalType string
-            
+
             param principalId string
 
             param abc_url_0 string
@@ -508,6 +522,49 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public void AddHub_WithDifferentNameAndHubName_SetsPropertiesCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        var hub1 = wps.AddHub("hub1");
+        var hub2 = wps.AddHub("resource2", "hub2");
+        var hub3 = wps.AddHub("hub3", "hub3");
+        var hub4 = wps.AddHub("hub4", null);
+
+        Assert.Equal("hub1", hub1.Resource.Name);
+        Assert.Equal("resource2", hub2.Resource.Name);
+        Assert.Equal("hub3", hub3.Resource.Name);
+        Assert.Equal("hub4", hub4.Resource.Name);
+
+        Assert.Equal("hub1", hub1.Resource.HubName);
+        Assert.Equal("hub2", hub2.Resource.HubName);
+        Assert.Equal("hub3", hub3.Resource.HubName);
+        Assert.Equal("hub4", hub4.Resource.HubName);
+
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub1", hub1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub2", hub2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub3", hub3.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub4", hub4.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AddHub_CalledTwiceWithSameHubName_ReturnsSameResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        // Call AddHub twice with the same hub name but different resource names
+        var hub1 = wps.AddHub("resource1", "same-hub");
+        var hub2 = wps.AddHub("resource2", "same-hub");
+
+        // Verify both calls return the same hub resource (only the first one is registered)
+        Assert.Same(hub1.Resource, hub2.Resource);
+        Assert.Equal("resource1", hub1.Resource.Name);
+        Assert.Equal("same-hub", hub1.Resource.HubName);
     }
 
     private sealed class ProjectA : IProjectMetadata

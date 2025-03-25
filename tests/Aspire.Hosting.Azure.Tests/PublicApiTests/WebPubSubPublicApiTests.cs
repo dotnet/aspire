@@ -57,14 +57,14 @@ public class WebPubSubPublicApiTests
     {
         using var testBuilder = TestDistributedApplicationBuilder.Create();
         var builder = testBuilder.AddAzureWebPubSub("web-pub-sub");
-        var hubName = isNull ? null! : string.Empty;
+        var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddHub(hubName);
+        var action = () => builder.AddHub(name);
 
         var exception = isNull
            ? Assert.Throws<ArgumentNullException>(action)
            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(hubName), exception.ParamName);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Theory]
@@ -133,7 +133,7 @@ public class WebPubSubPublicApiTests
         var name = isNull ? null! : string.Empty;
         var webpubsub = new AzureWebPubSubResource("web-pub-sub", (_) => { });
 
-        var action = () => new AzureWebPubSubHubResource(name, webpubsub);
+        var action = () => new AzureWebPubSubHubResource(name, name, webpubsub);
 
         var exception = isNull
            ? Assert.Throws<ArgumentNullException>(action)
@@ -147,7 +147,7 @@ public class WebPubSubPublicApiTests
         const string name = "web-pub-sub";
         AzureWebPubSubResource webpubsub = null!;
 
-        var action = () => new AzureWebPubSubHubResource(name, webpubsub);
+        var action = () => new AzureWebPubSubHubResource(name, name, webpubsub);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(webpubsub), exception.ParamName);

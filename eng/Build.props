@@ -4,7 +4,7 @@
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj"  />
+    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(TestNoBuild)' != 'true'" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
