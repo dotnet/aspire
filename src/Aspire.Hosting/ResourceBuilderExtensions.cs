@@ -1510,7 +1510,7 @@ public static class ResourceBuilderExtensions
                         if (resourceEvent.Resource == endpoint.Resource)
                         {
                             var resourceState = resourceEvent.Snapshot.State?.Text;
-                            targetRunning = resourceState is KnownResourceStates.Running or KnownResourceStates.RuntimeUnhealthy;
+                            targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
                         }
                     }
                 }, ct);
