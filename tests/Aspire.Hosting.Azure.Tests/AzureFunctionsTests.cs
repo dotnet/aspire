@@ -257,6 +257,39 @@ public class AzureFunctionsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddAzureFunctionsProject_CanGetStorageManifestSuccessfully()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // hardcoded sha256 to make the storage name deterministic
+        builder.Configuration["AppHost:Sha256"] = "634f8";
+        var project = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var storage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcstorage634f8"));
+
+        var (storageManifest, _) = await GetManifestWithBicep(storage);
+
+        var expectedRolesManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "funcstorage634f8.module.bicep",
+              "params": {
+                "principalType": "",
+                "principalId": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedRolesManifest, storageManifest.ToString());
+    }
+
+    [Fact]
     public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
