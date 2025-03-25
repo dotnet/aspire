@@ -110,6 +110,7 @@ internal sealed class ResourceContainerImageBuilder(
         startInfo.ArgumentList.Add("Release");
         startInfo.ArgumentList.Add("--output");
         startInfo.ArgumentList.Add(temporaryOutputPath);
+        startInfo.ArgumentList.Add("--no-bulid");
         startInfo.ArgumentList.Add("/t:PublishContainer");
         startInfo.ArgumentList.Add($"/p:ContainerRepository={resource.Name}");
 
