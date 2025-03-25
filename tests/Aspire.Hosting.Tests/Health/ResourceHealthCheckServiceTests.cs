@@ -137,6 +137,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8103")]
     public async Task ResourcesWithHealthCheck_StopsAndRestartsMonitoringWithResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
