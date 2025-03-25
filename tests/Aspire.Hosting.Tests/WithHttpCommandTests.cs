@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -262,22 +263,26 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8192")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/8192")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
         var callbackCalled = false;
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+        builder.Services.AddHttpClient("mockclient")
+            .AddHttpMessageHandler(() => new MockHttpHandler(HttpStatusCode.OK));
+        var resourceBuilder = builder.AddResource(new MockResource("resourcea"))
+            .WithHttpEndpoint()
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandOptions: new()
                 {
                     CommandName = "mycommand",
+                    HttpClientName = "mockclient",
                     PrepareRequest = requestContext =>
                     {
                         Assert.NotNull(requestContext);
                         Assert.NotNull(requestContext.ServiceProvider);
-                        Assert.Equal("servicea", requestContext.ResourceName);
+                        Assert.Equal("resourcea", requestContext.ResourceName);
                         Assert.NotNull(requestContext.Endpoint);
                         Assert.NotNull(requestContext.HttpClient);
                         Assert.NotNull(requestContext.Request);
@@ -288,10 +293,19 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                 });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
+        var endpointsAllocated = new TaskCompletionSource();
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            var endpoint = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+            endpoint!.AllocatedEndpoint = new(endpoint, "http://localhost", 1234);
+            endpointsAllocated.SetResult();
+            return Task.CompletedTask;
+        });
+
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await endpointsAllocated.Task;
 
         var context = new ExecuteCommandContext
         {
@@ -307,22 +321,26 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
         var callbackCalled = false;
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
+        builder.Services.AddHttpClient("mockclient")
+            .AddHttpMessageHandler(() => new MockHttpHandler(HttpStatusCode.OK));
+        var resourceBuilder = builder.AddResource(new MockResource("resourcea"))
+            .WithHttpEndpoint()
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandOptions: new()
                 {
                     CommandName = "mycommand",
+                    HttpClientName = "mockclient",
                     GetCommandResult = resultContext =>
                     {
                         Assert.NotNull(resultContext);
                         Assert.NotNull(resultContext.ServiceProvider);
-                        Assert.Equal("servicea", resultContext.ResourceName);
+                        Assert.Equal("resourcea", resultContext.ResourceName);
                         Assert.NotNull(resultContext.Endpoint);
                         Assert.NotNull(resultContext.HttpClient);
                         Assert.NotNull(resultContext.Response);
@@ -333,10 +351,19 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                 });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
+        var endpointsAllocated = new TaskCompletionSource();
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            var endpoint = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+            endpoint!.AllocatedEndpoint = new(endpoint, "http://localhost", 1234);
+            endpointsAllocated.SetResult();
+            return Task.CompletedTask;
+        });
+
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await endpointsAllocated.Task;
 
         var context = new ExecuteCommandContext
         {
@@ -484,5 +511,37 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport
     {
 
+    }
+
+    private sealed class MockHttpHandler(HttpStatusCode statusCode) : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(statusCode));
+        }
+    }
+
+    private sealed class MockResource(string name) : IResource, IResourceWithEndpoints
+    {
+        public string Name { get; } = name;
+
+        public ResourceAnnotationCollection Annotations { get; } = [];
+    }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+
+        public LaunchSettings LaunchSettings { get; } = new()
+        {
+            Profiles = new()
+            {
+                ["http"] = new()
+                {
+                    CommandName = "project",
+                    ApplicationUrl = "http://localhost:12345"
+                }
+            }
+        };
     }
 }
