@@ -87,16 +87,6 @@ internal sealed class ResourceContainerImageBuilder(
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
         }
 
-        var temporaryOutputPath = Path.Combine(
-            Path.GetTempPath(),
-            Path.GetRandomFileName());
-
-        Directory.CreateDirectory(temporaryOutputPath);
-
-        logger.LogInformation(
-            "Creating temporary output path: {TemporaryOutputPath}",
-            temporaryOutputPath);
-
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -108,9 +98,6 @@ internal sealed class ResourceContainerImageBuilder(
         startInfo.ArgumentList.Add(projectMetadata.ProjectPath);
         startInfo.ArgumentList.Add("--configuration");
         startInfo.ArgumentList.Add("Release");
-        startInfo.ArgumentList.Add("--output");
-        startInfo.ArgumentList.Add(temporaryOutputPath);
-        startInfo.ArgumentList.Add("--no-bulid");
         startInfo.ArgumentList.Add("/t:PublishContainer");
         startInfo.ArgumentList.Add($"/p:ContainerRepository={resource.Name}");
 
@@ -157,12 +144,6 @@ internal sealed class ResourceContainerImageBuilder(
             logger.LogError(
                 ".NET CLI completed with exit code: {ExitCode}",
                 process.ExitCode);
-
-            Directory.Delete(temporaryOutputPath, true);
-
-            logger.LogInformation(
-                "Deleted temporary output path: {TemporaryOutputPath}",
-                temporaryOutputPath);
 
             return $"{resource.Name}:latest";
         }
