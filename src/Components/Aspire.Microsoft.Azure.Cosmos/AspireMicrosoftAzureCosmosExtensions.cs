@@ -46,6 +46,15 @@ public static class AspireMicrosoftAzureCosmosExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
+    /// <remarks>
+    /// The <see cref="Container"/> is registered as a singleton in the services provided by
+    /// the <paramref name="builder"/> and does not reuse any existing <see cref="CosmosClient"/>
+    /// instances in the DI container. The connection string associated with the <paramref name="connectionName"/>
+    /// must contain the database name and container name or be set in the <paramref name="configureSettings" />
+    /// callback. To interact with multiple containers against the same database, use
+    /// <see cref="CosmosDatabaseBuilder"/> to register the database and then call
+    /// <see cref="CosmosDatabaseBuilder.AddKeyedContainer(string)"/> for each container.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosContainer(
         this IHostApplicationBuilder builder,
@@ -101,6 +110,15 @@ public static class AspireMicrosoftAzureCosmosExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos:{name}" section.</remarks>
+    /// <remarks>
+    /// The <see cref="Container"/> is registered as a singleton in the services provided by
+    /// the <paramref name="builder"/> and does not reuse any existing <see cref="CosmosClient"/>
+    /// instances in the DI container. The connection string associated with the <paramref name="name"/>
+    /// must contain the database name and container name or be set in the <paramref name="configureSettings" />
+    /// callback. To interact with multiple containers against the same database, use
+    /// <see cref="CosmosDatabaseBuilder"/> to register the database and then call
+    /// <see cref="CosmosDatabaseBuilder.AddKeyedContainer(string)"/> for each container.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedAzureCosmosContainer(
         this IHostApplicationBuilder builder,
