@@ -388,7 +388,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
-        cut.WaitForAssertion(() => Assert.Equal(pauseConsoleLogLine.TextContent, string.Format(loc[Resources.ConsoleLogs.ConsoleLogsPauseActive], 1)));
+        cut.WaitForAssertion(() => Assert.Equal(pauseConsoleLogLine.TextContent, string.Format(loc[Resources.ConsoleLogs.ConsoleLogsPauseActive], FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pauseManager.ConsoleLogsPausedRanges.Keys.Last(), MillisecondsDisplay.Truncated), 1)));
 
         // Resume and write a new log, check that
         // - the pause line has been replaced with pause details
