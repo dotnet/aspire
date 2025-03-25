@@ -1338,7 +1338,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
-    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="commandName">Optional name of the command. The name uniquely identifies the command. If a name isn't specified then it's inferred using the command's endpoint and HTTP method.</param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
