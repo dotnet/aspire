@@ -18,13 +18,6 @@
     <ExtractTestClassNamesPrefix>Aspire.Templates.Tests</ExtractTestClassNamesPrefix>
   </PropertyGroup>
 
-  <!-- Skipping the following tests classes due to https://github.com/dotnet/aspire/issues/6193 -->
-  <ItemGroup>
-    <TestClassNamesToSkipTests Include="Aspire.Templates.Tests.NewUpAndBuildStandaloneTemplateTests"/>
-    <TestClassNamesToSkipTests Include="Aspire.Templates.Tests.NewUpAndBuildSupportProjectTemplates"/>
-    <TestClassNamesToSkipTests Include="Aspire.Templates.Tests.NewUpTemplatesWithAlternateName"/>
-  </ItemGroup>
-
   <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />
 
   <ItemGroup>
