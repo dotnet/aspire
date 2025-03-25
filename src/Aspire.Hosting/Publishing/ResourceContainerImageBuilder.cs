@@ -118,10 +118,6 @@ internal sealed class ResourceContainerImageBuilder(
             process.Id
             );
 
-        logger.LogInformation("Waiting for 1 minute");
-        await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Finished waiting for 1 minute");
-
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
