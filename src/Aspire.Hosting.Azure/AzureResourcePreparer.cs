@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
@@ -16,7 +17,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 internal sealed class AzureResourcePreparer(
     IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext
+    DistributedApplicationExecutionContext executionContext,
+    ResourceNotificationService notificationService
     ) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
@@ -183,7 +185,7 @@ internal sealed class AzureResourcePreparer(
 
         if (!options.SupportsTargetedRoleAssignments || executionContext.IsRunMode)
         {
-            CreateGlobalRoleAssignments(appModel, options);
+            await CreateGlobalRoleAssignments(appModel, options).ConfigureAwait(false);
         }
     }
 
@@ -388,7 +390,7 @@ internal sealed class AzureResourcePreparer(
         }
     }
 
-    private static void CreateGlobalRoleAssignments(DistributedApplicationModel appModel, AzureProvisioningOptions provisioningOptions)
+    private async Task CreateGlobalRoleAssignments(DistributedApplicationModel appModel, AzureProvisioningOptions provisioningOptions)
     {
         var azureResourceSnapshot = appModel.Resources.OfType<AzureProvisioningResource>().ToArray(); // avoid modifying the collection while iterating
 
@@ -398,6 +400,14 @@ internal sealed class AzureResourcePreparer(
             {
                 var roleAssignmentResource = CreateGlobalRoleAssignmentsResource(provisioningOptions, azureResource, appliedRoleAssignments.Roles);
                 appModel.Resources.Add(roleAssignmentResource);
+
+                azureResource.Annotations.Add(new WaitAnnotation(roleAssignmentResource, WaitType.WaitUntilHealthy) { WaitBehavior = WaitBehavior.StopOnResourceUnavailable });
+
+                roleAssignmentResource.Annotations.Add(new ResourceRelationshipAnnotation(azureResource, KnownRelationshipTypes.Parent));
+                await notificationService.PublishUpdateAsync(roleAssignmentResource, s => s with
+                {
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, azureResource.Name)
+                }).ConfigureAwait(false);
             }
         }
     }
