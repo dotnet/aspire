@@ -212,7 +212,7 @@
     <value>Close</value>
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
-    <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
+    <value>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</value>
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
