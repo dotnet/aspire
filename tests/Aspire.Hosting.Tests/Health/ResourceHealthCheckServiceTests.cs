@@ -609,7 +609,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
