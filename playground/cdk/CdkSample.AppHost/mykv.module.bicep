@@ -45,3 +45,5 @@ resource mysecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 output vaultUri string = mykv.properties.vaultUri
 
 output name string = mykv.name
+
+output id string = mykv.id

@@ -11,7 +11,7 @@
     },
     "cosmosdb": {
       "type": "value.v0",
-      "connectionString": "{cosmos.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=cosmosdb"
     },
     "storagesku": {
       "type": "parameter.v0",
@@ -108,17 +108,26 @@
     },
     "pgsql": {
       "type": "azure.bicep.v0",
-      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsql}",
       "path": "pgsql.module.bicep",
       "params": {
         "administratorLogin": "{pgsqlAdministratorLogin.value}",
         "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}",
-        "keyVaultName": ""
+        "keyVaultName": "{pgsql-kv.outputs.name}"
+      }
+    },
+    "pgsql-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql-kv.outputs.vaultUri}",
+      "path": "pgsql-kv.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
       }
     },
     "pgsqldb": {
       "type": "value.v0",
-      "connectionString": "{pgsql.secretOutputs.pgsqldb-connectionString}"
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsqldb}"
     },
     "pgsql2": {
       "type": "azure.bicep.v0",

@@ -703,6 +703,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             output vaultUri string = keyVault.properties.vaultUri
 
             output name string = existingResourceName
+
+            output id string = keyVault.id
             """;
 
         output.WriteLine(BicepText);
@@ -850,39 +852,41 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{postgresSql.secretOutputs.connectionString}",
+              "connectionString": "{postgresSql-kv.secrets.connectionstrings--postgresSql}",
               "path": "postgresSql.module.bicep",
               "params": {
                 "administratorLogin": "{existingUserName.value}",
                 "administratorLoginPassword": "{existingPassword.value}",
-                "existingResourceName": "{existingResourceName.value}",
-                "keyVaultName": ""
+                "keyVaultName": "{postgresSql-kv.outputs.name}",
+                "existingResourceName": "{existingResourceName.value}"
               },
               "scope": {
                 "resourceGroup": "{existingResourceGroupName.value}"
               }
             }
             """;
+        var m = ManifestNode.ToString();
+        output.WriteLine(m);
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param existingResourceName string
-
+            
             param administratorLogin string
-
+            
             @secure()
             param administratorLoginPassword string
-
+            
             param keyVaultName string
-
+            
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
             }
-
+            
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
@@ -891,13 +895,13 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: postgresSql
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--postgresSql'
               properties: {
                 value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
@@ -1334,41 +1338,42 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{redis.secretOutputs.connectionString}",
+              "connectionString": "{redis-kv.secrets.connectionstrings--redis}",
               "path": "redis.module.bicep",
               "params": {
-                "keyVaultName": ""
+                "keyVaultName": "{redis-kv.outputs.name}"
               },
               "scope": {
                 "resourceGroup": "existingResourceGroupName"
               }
             }
             """;
-
-        Assert.Equal(expectedManifest, ManifestNode.ToString());
+        var m = ManifestNode.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param keyVaultName string
-
+            
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--redis'
               properties: {
                 value: '${redis.properties.hostName},ssl=true,password=${redis.listKeys().primaryKey}'
               }
               parent: keyVault
             }
-
+            
             output name string = redis.name
             """;
 
@@ -1612,31 +1617,33 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v1",
-              "connectionString": "{cosmos.secretOutputs.connectionString}",
+              "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
               "path": "cosmos.module.bicep",
               "params": {
-                "existingResourceName": "{existingResourceName.value}",
-                "keyVaultName": ""
+                "keyVaultName": "{cosmos-kv.outputs.name}",
+                "existingResourceName": "{existingResourceName.value}"
               },
               "scope": {
                 "resourceGroup": "{existingResourceGroupName.value}"
               }
             }
             """;
-        Assert.Equal(expectedManifest, ManifestNode.ToString());
+        var m = ManifestNode.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedManifest, m);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
+            
             param existingResourceName string
-
+            
             param keyVaultName string
-
+            
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
               name: existingResourceName
             }
-
+            
             resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydb'
               location: location
@@ -1647,7 +1654,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-
+            
             resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'container'
               location: location
@@ -1663,19 +1670,19 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: mydb
             }
-
+            
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
+            
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }
               parent: keyVault
             }
-
+            
             output name string = existingResourceName
             """;
 
