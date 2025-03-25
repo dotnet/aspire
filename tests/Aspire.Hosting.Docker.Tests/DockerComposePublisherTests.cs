@@ -112,7 +112,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             PARAM2=default
 
             # Container image name for myapp
-            MYAPP_IMAGE=mcr.microsoft.com/dotnet/aspnet
+            MYAPP_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0
 
             # Container image name for project1
             PROJECT1_IMAGE=project1:latest

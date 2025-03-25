@@ -43,7 +43,7 @@ internal sealed class ResourceContainerImageBuilder(
                 cancellationToken).ConfigureAwait(false);
             return image;
         }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var contaimerImageAnnotation))
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
         {
             if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
             {
@@ -52,14 +52,18 @@ internal sealed class ResourceContainerImageBuilder(
                     resource.Name,
                     dockerfileBuildAnnotation.ContextPath,
                     dockerfileBuildAnnotation.DockerfilePath,
-                    contaimerImageAnnotation.Image,
+                    containerImageAnnotation.Image,
                     cancellationToken).ConfigureAwait(false);
                 return image;
             }
             else
             {
-                // ... except in this case where there is nothing to build, so we just return the image name.
-                return contaimerImageAnnotation.Image;
+                if (!resource.TryGetContainerImageName(out var containerImageName))
+                {
+                    throw new DistributedApplicationException($"Could not get container image name for resource '{resource.Name}'.");
+                }
+
+                return containerImageName;
             }
         }
         else
