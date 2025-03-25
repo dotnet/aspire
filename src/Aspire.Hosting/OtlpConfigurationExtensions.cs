@@ -25,7 +25,8 @@ public static class OtlpConfigurationExtensions
     /// <param name="resource">The resource to add annotations to.</param>
     /// <param name="configuration">The configuration to use for the OTLP exporter endpoint URL.</param>
     /// <param name="environment">The host environment to check if the application is running in development mode.</param>
-    public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
+    /// <param name="prefix">The prefix to OTEL environment variable names.</param>
+    public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment, string prefix = "")
     {
         ArgumentNullException.ThrowIfNull(resource);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -65,12 +66,12 @@ public static class OtlpConfigurationExtensions
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
             var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
-            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
+            context.EnvironmentVariables[$"{prefix}OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
+            context.EnvironmentVariables[$"{prefix}OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
-                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
+                context.EnvironmentVariables[$"{prefix}OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
             }
 
             // Configure OTLP to quickly provide all data with a small delay in development.
@@ -79,21 +80,21 @@ public static class OtlpConfigurationExtensions
                 // Set a small batch schedule delay in development.
                 // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
                 var value = "1000"; // milliseconds
-                context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = value;
-                context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = value;
-                context.EnvironmentVariables["OTEL_METRIC_EXPORT_INTERVAL"] = value;
+                context.EnvironmentVariables[$"{prefix}OTEL_BLRP_SCHEDULE_DELAY"] = value;
+                context.EnvironmentVariables[$"{prefix}OTEL_BSP_SCHEDULE_DELAY"] = value;
+                context.EnvironmentVariables[$"{prefix}OTEL_METRIC_EXPORT_INTERVAL"] = value;
 
                 // Configure trace sampler to send all traces to the dashboard.
-                context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
+                context.EnvironmentVariables[$"{prefix}OTEL_TRACES_SAMPLER"] = "always_on";
                 // Configure metrics to include exemplars.
-                context.EnvironmentVariables["OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
+                context.EnvironmentVariables[$"{prefix}OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
             }
         }));
 
-        static void SetOtelEndpointAndProtocol(Dictionary<string, object> environmentVariables, string url, string protocol)
+        void SetOtelEndpointAndProtocol(Dictionary<string, object> environmentVariables, string url, string protocol)
         {
-            environmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
-            environmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
+            environmentVariables[$"{prefix}OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
+            environmentVariables[$"{prefix}OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
         }
     }
 
@@ -105,12 +106,13 @@ public static class OtlpConfigurationExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="prefix">The prefix to OTEL environment variable names.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
+    public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder, string prefix = "") where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
+        AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment, prefix);
         return builder;
     }
 }
