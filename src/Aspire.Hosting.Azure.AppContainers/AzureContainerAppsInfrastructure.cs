@@ -711,11 +711,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 if (value is IKeyVaultSecretReference vaultSecretReference)
                 {
-                    if (parent is null)
-                    {
-                        return (AllocateKeyVaultSecretUriReference(vaultSecretReference), SecretType.KeyVault);
-                    }
-
                     return (AllocateParameter(vaultSecretReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
@@ -784,32 +779,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                     var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.Name}");
                     secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
                     secret.Name = secretOutputReference.Name;
-                    secret.Parent = kv;
-
-                    KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
-                }
-
-                return secret.Properties.SecretUri;
-            }
-
-            private BicepValue<string> AllocateKeyVaultSecretUriReference(IKeyVaultSecretReference secretOutputReference)
-            {
-                if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
-                {
-                    // We resolve the keyvault that represents the storage for secret outputs
-                    var parameter = AllocateParameter(secretOutputReference.Resource.NameOutputReference);
-                    kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
-                    kv.Name = parameter;
-
-                    KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
-                }
-
-                if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
-                {
-                    // Now we resolve the secret
-                    var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.SecretName}");
-                    secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
-                    secret.Name = secretOutputReference.SecretName;
                     secret.Parent = kv;
 
                     KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;

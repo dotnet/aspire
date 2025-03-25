@@ -9,8 +9,8 @@ namespace Aspire.Hosting.Azure;
 /// Represents a reference to a secret in an Azure Key Vault resource.
 /// </summary>
 /// <param name="secretName">The name of the secret.</param>
-/// <param name="azureKeyVaultResource">The Azure Key Vault resource.</param>
-internal sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVaultResource azureKeyVaultResource) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
+/// <param name="bicepOutputReference">The Bicep output reference.</param>
+internal sealed class AzureKeyVaultSecretReference(string secretName, BicepOutputReference bicepOutputReference) : IKeyVaultSecretReference, IValueProvider, IManifestExpressionProvider
 {
     /// <summary>
     /// Gets the name of the secret.
@@ -20,17 +20,24 @@ internal sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVa
     /// <summary>
     /// Gets the Azure Key Vault resource.
     /// </summary>
-    public IKeyVaultResource Resource => azureKeyVaultResource;
+    public IKeyVaultResource Resource => (IKeyVaultResource)bicepOutputReference.Resource;
 
-    string IManifestExpressionProvider.ValueExpression => $"{{{azureKeyVaultResource.Name}.secrets.{SecretName}}}";
+    string IManifestExpressionProvider.ValueExpression => bicepOutputReference.ValueExpression;
 
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        if (azureKeyVaultResource.SecretResolver is { } secretResolver)
+        var secretUri = await bicepOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+        if (secretUri is null)
         {
-            return await secretResolver(secretName, cancellationToken).ConfigureAwait(false);
+            return null;
         }
 
-        throw new InvalidOperationException($"Secret '{secretName}' not found in Key Vault '{azureKeyVaultResource.Name}'.");
+        if (Resource.SecretResolver is null)
+        {
+            throw new InvalidOperationException($"The secret resolver is not set for the Azure Key Vault resource '{Resource.Name}'.");
+        }
+
+        return await Resource.SecretResolver(secretUri, cancellationToken).ConfigureAwait(false);
     }
 }

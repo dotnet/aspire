@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Primitives;
 
@@ -48,6 +49,8 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
         set => SecretResolver = value;
     }
 
+    internal Dictionary<string, BicepOutputReference> SecretReferences { get; } = [];
+
     /// <summary>
     /// Gets a secret reference for the specified secret name.
     /// </summary>
@@ -58,7 +61,13 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     {
         ArgumentException.ThrowIfNullOrEmpty(secretName, nameof(secretName));
 
-        return new AzureKeyVaultSecretReference(secretName, this);
+        if (!SecretReferences.TryGetValue(secretName, out var reference))
+        {
+            reference = new BicepOutputReference(Infrastructure.NormalizeBicepIdentifier($"secrets_{secretName}_uri"), this);
+            SecretReferences[secretName] = reference;
+        }
+
+        return new AzureKeyVaultSecretReference(secretName, reference);
     }
 
     /// <inheritdoc/>
