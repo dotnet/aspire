@@ -24,10 +24,14 @@ on:
       extraTestArgs:
         required: false
         type: string
+      # Triggers downloading the built nugets, and running the tests
+      # from the archive outside the repo
       requiresNugets:
         required: false
         type: boolean
         default: false
+      # Installs the sdks used for test via tests/workloads.proj
+      # Useful for tests that can't use system dotnet
       requiresTestSdk:
         required: false
         type: boolean
