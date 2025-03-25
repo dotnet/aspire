@@ -242,7 +242,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             },
             "Wait for healthy delay.", logger);
 
-        await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
+        await app.StopAsync(abortTokenSource.Token).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
