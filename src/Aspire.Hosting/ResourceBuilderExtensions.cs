@@ -1338,6 +1338,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
+    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -1407,6 +1408,7 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         [EndpointName] string? endpointName = null,
+        string? commandName = null,
         HttpCommandOptions? commandOptions = null)
         where TResource : IResourceWithEndpoints
         => builder.WithHttpCommand(
@@ -1415,7 +1417,8 @@ public static class ResourceBuilderExtensions
             endpointSelector: endpointName is not null
                 ? NamedEndpointSelector(builder, [endpointName])
                 : NamedEndpointSelector(builder, s_httpSchemes),
-            commandOptions);
+            commandName: commandName,
+            commandOptions: commandOptions);
 
     /// <summary>
     /// Adds a command to the resource that when invoked sends an HTTP request to the specified endpoint and path.
@@ -1426,6 +1429,7 @@ public static class ResourceBuilderExtensions
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointSelector">A callback that selects the HTTP endpoint to send the request to when the command is invoked.</param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
+    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
     /// <remarks>
@@ -1477,7 +1481,8 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         Func<EndpointReference>? endpointSelector,
-        HttpCommandOptions? commandOptions)
+        string? commandName = null,
+        HttpCommandOptions? commandOptions = null)
         where TResource : IResourceWithEndpoints
     {
         endpointSelector ??= DefaultEndpointSelector(builder);
@@ -1490,7 +1495,7 @@ public static class ResourceBuilderExtensions
         commandOptions ??= HttpCommandOptions.Default;
         commandOptions.Method ??= HttpMethod.Post;
 
-        var defaultCommandName = $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{commandOptions.Method.Method.ToLowerInvariant()}-{path}";
+        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{commandOptions.Method.Method.ToLowerInvariant()}-{path}";
 
         if (commandOptions.UpdateState is null)
         {
@@ -1515,7 +1520,7 @@ public static class ResourceBuilderExtensions
             commandOptions.UpdateState = context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
-        builder.WithCommand(commandOptions.CommandName ?? defaultCommandName, displayName,
+        builder.WithCommand(commandName, displayName,
             async context =>
             {
                 if (!endpoint.IsAllocated)

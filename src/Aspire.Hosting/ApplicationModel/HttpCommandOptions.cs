@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Optional configuration for resource HTTP commands added with <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, string?, HttpCommandOptions?)"/>."/>
+/// Optional configuration for resource HTTP commands added with <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(Aspire.Hosting.ApplicationModel.IResourceBuilder{TResource}, string, string, string?, string?, Aspire.Hosting.ApplicationModel.HttpCommandOptions?)"/>."/>
 /// </summary>
 public class HttpCommandOptions : CommandOptions
 {
@@ -34,9 +34,4 @@ public class HttpCommandOptions : CommandOptions
     /// Gets or sets a callback to be invoked after the response is received to determine the result of the command invocation.
     /// </summary>
     public Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? GetCommandResult { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of command. The name uniquely identifies the command.
-    /// </summary>
-    public string? CommandName { get; set; }
 }
