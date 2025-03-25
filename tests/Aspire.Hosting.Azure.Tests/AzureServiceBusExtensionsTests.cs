@@ -792,22 +792,22 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         ((IResourceWithAzureFunctionsConfig)queue.Resource).ApplyAzureFunctionsConfiguration(target, "queue");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__FullyQualifiedNamespace", k),
-            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__QueueName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__queue__QueueOrTopicName", k),
             k => Assert.Equal("queue__fullyQualifiedNamespace", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)topic.Resource).ApplyAzureFunctionsConfiguration(target, "topic");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__FullyQualifiedNamespace", k),
-            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__TopicName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__topic__QueueOrTopicName", k),
             k => Assert.Equal("topic__fullyQualifiedNamespace", k));
 
         target.Clear();
         ((IResourceWithAzureFunctionsConfig)subscription.Resource).ApplyAzureFunctionsConfiguration(target, "sub");
         Assert.Collection(target.Keys.OrderBy(k => k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__QueueOrTopicName", k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__SubscriptionName", k),
-            k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__TopicName", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
     }
 

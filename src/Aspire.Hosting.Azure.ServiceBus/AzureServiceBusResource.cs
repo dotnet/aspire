@@ -41,22 +41,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-    {
-        if (IsEmulator)
-        {
-            // Injected to support Azure Functions listener initialization.
-            target[$"{connectionName}"] = ConnectionStringExpression;
-            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
-        }
-        else
-        {
-            // Injected to support Azure Functions listener initialization.
-            target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
-            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
-        }
-    }
+        => ApplyAzureFunctionsConfiguration(target, connectionName);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
@@ -96,5 +81,31 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         }
 
         return builder.Build();
+    }
+
+    internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName, string? queueOrTopicName = null, string? subscriptionName = null)
+    {
+        if (IsEmulator)
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}"] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = GetConnectionString(queueOrTopicName, subscriptionName);
+        }
+        else
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
+            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
+            if (queueOrTopicName != null)
+            {
+                target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__QueueOrTopicName"] = queueOrTopicName;
+            }
+            if (subscriptionName != null)
+            {
+                target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__SubscriptionName"] = subscriptionName;
+            }
+        }
     }
 }

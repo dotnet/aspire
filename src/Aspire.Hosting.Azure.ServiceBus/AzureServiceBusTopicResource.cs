@@ -67,21 +67,7 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
 
     // ensure Azure Functions projects can WithReference a ServiceBus topic
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-    {
-        // Pass the connection string without the EntityPath for the Functions host.
-        // Provide the Aspire integrations for FQN-based connections via named settings.
-        if (Parent.IsEmulator)
-        {
-            target[$"{connectionName}"] = Parent.ConnectionStringExpression;
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
-        }
-        else
-        {
-            target[$"{connectionName}__fullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = Parent.ServiceBusEndpoint;
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__TopicName"] = TopicName;
-        }
-    }
+        => Parent.ApplyAzureFunctionsConfiguration(target, connectionName, TopicName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

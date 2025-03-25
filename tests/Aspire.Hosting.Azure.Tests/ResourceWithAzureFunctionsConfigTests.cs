@@ -406,8 +406,8 @@ public class ResourceWithAzureFunctionsConfigTests
         // Assert
         Assert.True(target.ContainsKey("myqueue__fullyQualifiedNamespace"));
         Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__FullyQualifiedNamespace", target.Keys);
-        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__QueueName", target.Keys);
-        Assert.Equal("ordersqueue", target["Aspire__Azure__Messaging__ServiceBus__myqueue__QueueName"]);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__myqueue__QueueOrTopicName", target.Keys);
+        Assert.Equal("ordersqueue", target["Aspire__Azure__Messaging__ServiceBus__myqueue__QueueOrTopicName"]);
     }
 
     [Fact]
@@ -445,8 +445,8 @@ public class ResourceWithAzureFunctionsConfigTests
         // Assert
         Assert.True(target.ContainsKey("mytopic__fullyQualifiedNamespace"));
         Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__FullyQualifiedNamespace", target.Keys);
-        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__TopicName", target.Keys);
-        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mytopic__TopicName"]);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mytopic__QueueOrTopicName", target.Keys);
+        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mytopic__QueueOrTopicName"]);
     }
 
     [Fact]
@@ -485,9 +485,9 @@ public class ResourceWithAzureFunctionsConfigTests
         // Assert
         Assert.True(target.ContainsKey("mysub__fullyQualifiedNamespace"));
         Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__FullyQualifiedNamespace", target.Keys);
-        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__TopicName", target.Keys);
+        Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__QueueOrTopicName", target.Keys);
         Assert.Contains("Aspire__Azure__Messaging__ServiceBus__mysub__SubscriptionName", target.Keys);
-        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mysub__TopicName"]);
+        Assert.Equal("notificationstopic", target["Aspire__Azure__Messaging__ServiceBus__mysub__QueueOrTopicName"]);
         Assert.Equal("usersubscription", target["Aspire__Azure__Messaging__ServiceBus__mysub__SubscriptionName"]);
     }
 
