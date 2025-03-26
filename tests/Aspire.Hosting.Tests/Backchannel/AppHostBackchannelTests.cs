@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Backchannel;
 
