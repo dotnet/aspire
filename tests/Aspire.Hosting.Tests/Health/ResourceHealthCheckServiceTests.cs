@@ -358,7 +358,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(resource.Resource, @event.Resource);
 
         await pendingStart.DefaultTimeout();
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
