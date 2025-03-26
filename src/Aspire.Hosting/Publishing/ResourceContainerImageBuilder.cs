@@ -162,8 +162,8 @@ internal sealed class ResourceContainerImageBuilder(
         {
             var containerRuntime = dcpOptions.Value.ContainerRuntime switch
             {
-                "podman" => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("podman"),
-                _ => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
+                string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
+                null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
             };
 
             var image = await containerRuntime.BuildImageAsync(
