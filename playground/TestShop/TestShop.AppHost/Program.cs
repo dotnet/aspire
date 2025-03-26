@@ -66,8 +66,7 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
        .WithReference(basketService)
        .WithReference(catalogService)
-       .WithUrlForEndpoint("http", c => c.DisplayText = "Online store (http)")
-       .WithUrlForEndpoint("https", c => c.DisplayText = "Online store (https)");
+       .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
        .WithReference(messaging).WaitFor(messaging);
