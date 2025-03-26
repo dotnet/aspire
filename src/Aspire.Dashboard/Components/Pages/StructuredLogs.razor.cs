@@ -17,6 +17,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
+
 namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
@@ -317,6 +319,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 ViewModel.AddFilter(filter);
                 await ClearSelectedLogEntryAsync();
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -359,6 +369,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             {
                 OnClick = () => OpenFilterAsync(filter),
                 Text = filter.GetDisplayText(FilterLoc),
+                Icon = filter.Enabled ? new Icons.Regular.Size16.CheckboxChecked() : new Icons.Regular.Size16.CheckboxUnchecked(),
                 Class = "filter-menu-item",
             });
         }
@@ -371,7 +382,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         filterMenuItems.Add(new MenuButtonItem
         {
             Text = DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsRemoveAllButtonText)],
-            Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Delete(),
+            Icon = new Icons.Regular.Size16.Delete(),
             OnClick = () =>
             {
                 ViewModel.ClearFilters();
