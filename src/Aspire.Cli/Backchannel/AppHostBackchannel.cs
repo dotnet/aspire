@@ -42,13 +42,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return url;
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, (string EndpointName, string EndpointUri)[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting resource states");
 
-        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Resource, string Type, string State, (string EndpointName, string EndpointUri)[])>>(
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)>>(
             "GetResourceStatesAsync",
             Array.Empty<object>(),
             cancellationToken);
