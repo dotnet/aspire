@@ -208,7 +208,7 @@ public class Program
 
                 await AnsiConsole.Live(table).StartAsync(async context => {
 
-                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
+                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, (string EndpointName, string EndpointUri)[] Endpoints)>();
 
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
@@ -245,7 +245,10 @@ public class Program
                             if (knownResource.Value.Endpoints?.Length > 0)
                             {
                                 endpointsRenderable = new Rows(
-                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                    knownResource.Value.Endpoints.Select(
+                                        e => {
+                                            return new Markup($"[link={e.EndpointUri}]{e.EndpointUri}[/]");
+                                        })
                                 );
                             }
 

@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Backchannel;
 
 internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, IDistributedApplicationEventing eventing)
 {   
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, (string EndpointName, string EndpointUri)[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -28,12 +28,22 @@ internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotifi
                 continue;
             }
 
+            if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
+            {
+                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                endpoints = Enumerable.Empty<EndpointAnnotation>();
+            }
+    
+            var endpointUris = endpoints
+                .Where(e => e.AllocatedEndpoint != null)
+                .Select(e => (e.Name, e.AllocatedEndpoint!.UriString))
+                .ToArray();
             // TODO: Decide on whether we want to define a type and share it between codebases for this.
             yield return (
                 resourceEvent.Resource.Name,
                 resourceEvent.Snapshot.ResourceType,
                 resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                resourceEvent.Snapshot.Urls.Select(x => x.Url).ToArray()
+                endpointUris
                 );
         }
     }
