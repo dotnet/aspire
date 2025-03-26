@@ -251,6 +251,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
 
+        // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
+        // we still honour the DCP options around container runtime selection.
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
+
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
@@ -339,8 +344,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
             _innerBuilder.Services.AddSingleton<DcpHost>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
             // We need a unique path per application instance
@@ -361,6 +364,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+        _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
+        _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
+        _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
+        _innerBuilder.Services.AddSingleton<PublishingActivityProgressReporter>();
+        _innerBuilder.Services.AddSingleton<IPublishingActivityProgressReporter, PublishingActivityProgressReporter>(sp => sp.GetRequiredService<PublishingActivityProgressReporter>());
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
