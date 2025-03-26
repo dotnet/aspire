@@ -94,11 +94,35 @@ internal sealed class AzureProvisioner(
             {
                 await resource.AzureResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                await UpdateStateAsync(resource, s => s with
+                var rolesFailed = false;
+                if (resource.AzureResource.TryGetAnnotationsOfType<RoleAssignmentResourceAnnotation>(out var roleAssignments))
                 {
-                    State = new("Running", KnownResourceStateStyles.Success)
-                })
-                .ConfigureAwait(false);
+                    try
+                    {
+                        foreach (var roleAssignment in roleAssignments)
+                        {
+                            await roleAssignment.RolesResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        rolesFailed = true;
+                        await UpdateStateAsync(resource, s => s with
+                        {
+                            State = new("Failed to Provision Roles", KnownResourceStateStyles.Error)
+                        })
+                        .ConfigureAwait(false);
+                    }
+                }
+
+                if (!rolesFailed)
+                {
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Running", KnownResourceStateStyles.Success)
+                    })
+                    .ConfigureAwait(false);
+                }
             }
             catch (MissingConfigurationException)
             {

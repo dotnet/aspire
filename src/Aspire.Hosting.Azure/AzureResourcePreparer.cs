@@ -392,7 +392,10 @@ internal sealed class AzureResourcePreparer(
 
     private async Task CreateGlobalRoleAssignments(DistributedApplicationModel appModel, AzureProvisioningOptions provisioningOptions)
     {
-        var azureResourceSnapshot = appModel.Resources.OfType<AzureProvisioningResource>().ToArray(); // avoid modifying the collection while iterating
+        var azureResourceSnapshot = appModel.Resources
+            .OfType<AzureProvisioningResource>()
+            .Where(r => !r.IsContainer())
+            .ToArray(); // avoid modifying the collection while iterating
 
         foreach (var azureResource in azureResourceSnapshot)
         {
@@ -401,7 +404,7 @@ internal sealed class AzureResourcePreparer(
                 var roleAssignmentResource = CreateGlobalRoleAssignmentsResource(provisioningOptions, azureResource, appliedRoleAssignments.Roles);
                 appModel.Resources.Add(roleAssignmentResource);
 
-                azureResource.Annotations.Add(new WaitAnnotation(roleAssignmentResource, WaitType.WaitUntilHealthy) { WaitBehavior = WaitBehavior.StopOnResourceUnavailable });
+                azureResource.Annotations.Add(new RoleAssignmentResourceAnnotation(roleAssignmentResource));
 
                 roleAssignmentResource.Annotations.Add(new ResourceRelationshipAnnotation(azureResource, KnownRelationshipTypes.Parent));
                 await notificationService.PublishUpdateAsync(roleAssignmentResource, s => s with
@@ -455,4 +458,15 @@ internal sealed class AzureResourcePreparer(
 
         azureResource.AddRoleAssignments(context);
     }
+}
+
+/// <summary>
+/// An annotation that points to the Azure resource that contains the role assignments for the resource.
+/// </summary>
+internal sealed class RoleAssignmentResourceAnnotation(AzureProvisioningResource rolesResource) : IResourceAnnotation
+{
+    /// <summary>
+    /// The Azure resource that contains the role assignments for the resource.
+    /// </summary>
+    public AzureProvisioningResource RolesResource { get; } = rolesResource;
 }
