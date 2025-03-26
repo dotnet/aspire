@@ -152,6 +152,14 @@ jobs:
         run: |
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
+      - name: Check Playground manifests
+        if: ${{ inputs.os == 'windows-latest' }}
+        env:
+          CI: false
+        run: |
+          (cd eng && pwsh ./refreshManifests.ps1) &&
+          git diff --exit-code -- playground
+
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
         env:
