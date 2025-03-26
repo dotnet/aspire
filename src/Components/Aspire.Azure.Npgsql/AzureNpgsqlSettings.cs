@@ -12,7 +12,7 @@ namespace Aspire.Azure.Npgsql;
 public sealed class AzureNpgsqlSettings : NpgsqlSettings
 {
     /// <summary>
-    /// Gets or sets the credential used to authenticate to the Azure Database for PostgreSQL namespace.
+    /// Gets or sets the credential used to authenticate to the Azure Database for PostgreSQL.
     /// </summary>
     public TokenCredential? Credential { get; set; }
 }
