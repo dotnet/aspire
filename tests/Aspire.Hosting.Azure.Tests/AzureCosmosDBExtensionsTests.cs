@@ -189,8 +189,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
-        var manifest = await GetManifestWithBicep(cosmos.Resource, skipPreparer: true);
+        var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

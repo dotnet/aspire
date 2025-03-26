@@ -281,7 +281,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithProperties(hub => hub.PartitionCount = 3)
             .AddConsumerGroup("cg1", "group-name");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -317,8 +319,37 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
             output name string = eh.name
             """;
-
+        testOutputHelper.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"eh-roles"));
+        var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param eh_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource eh 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
+              name: eh_outputs_name
+            }
+
+            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
+                principalType: principalType
+              }
+              scope: eh
+            }
+            """;
+        testOutputHelper.WriteLine(ehRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, ehRolesManifest.BicepText);
     }
 
     [Fact]

@@ -34,12 +34,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             .WithReference(redis);
 
         using var app = builder.Build();
-
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource, skipPreparer: true);
+        var manifest = await GetManifestWithBicep(model, redis.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
