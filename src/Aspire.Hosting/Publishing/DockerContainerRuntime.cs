@@ -22,12 +22,10 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         startInfo.ArgumentList.Add(dockerfilePath);
         startInfo.ArgumentList.Add("--tag");
         startInfo.ArgumentList.Add(imageName);
-        startInfo.ArgumentList.Add("--output");
-        startInfo.ArgumentList.Add("type=oci");
         startInfo.ArgumentList.Add("--quiet");
         startInfo.ArgumentList.Add(contextPath);
 
-        logger.LogInformation("Running Docker CLI with arguments: {Arguments}", startInfo.ArgumentList);
+        logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", startInfo.ArgumentList);
 
         using var process = Process.Start(startInfo);
 
