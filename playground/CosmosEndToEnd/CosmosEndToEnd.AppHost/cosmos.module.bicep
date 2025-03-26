@@ -66,22 +66,6 @@ resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@20
   parent: db
 }
 
-resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-  name: 'users'
-  location: location
-  properties: {
-    resource: {
-      id: 'users'
-      partitionKey: {
-        paths: [
-          '/id'
-        ]
-      }
-    }
-  }
-  parent: db
-}
-
 output connectionString string = cosmos.properties.documentEndpoint
 
 output name string = cosmos.name
