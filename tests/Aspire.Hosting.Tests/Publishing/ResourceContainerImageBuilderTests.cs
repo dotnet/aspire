@@ -25,7 +25,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        _ = await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
     }
 
     [Fact]
@@ -41,6 +41,6 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        _ = await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
     }
 }

@@ -180,9 +180,12 @@ internal sealed class DockerComposePublishingContext(
 
         public async Task<Service> BuildComposeServiceAsync(CancellationToken cancellationToken)
         {
-            var image = await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
-            var imageEnvName = $"{resource.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
-            composePublishingContext.AddEnv(imageEnvName, $"Container image name for {resource.Name}", image);
+            await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+
+            if (!TryGetContainerImageName(resource, out var containerImageName))
+            {
+                composePublishingContext.Logger.FailedToGetContainerImage(resource.Name);
+            }
 
             var composeService = new Service
             {
@@ -193,9 +196,28 @@ internal sealed class DockerComposePublishingContext(
             AddEnvironmentVariablesAndCommandLineArgs(composeService);
             AddPorts(composeService);
             AddVolumes(composeService);
-            SetContainerImage($"${{{imageEnvName}}}", composeService);
+            SetContainerImage(containerImageName, composeService);
 
             return composeService;
+        }
+
+        private bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
+        {
+            // If the resource has a Dockerfile build annotation, we don't have the image name
+            // it will come as a parameter
+            if (resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resourceInstance is ProjectResource)
+            {
+                var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
+
+                composePublishingContext.AddEnv(imageEnvName,
+                                                $"Container image name for {resourceInstance.Name}",
+                                                $"{resourceInstance.Name}:latest");
+
+                containerImageName = $"${{{imageEnvName}}}";
+                return false;
+            }
+
+            return resourceInstance.TryGetContainerImageName(out containerImageName);
         }
 
         private void AddVolumes(Service composeService)

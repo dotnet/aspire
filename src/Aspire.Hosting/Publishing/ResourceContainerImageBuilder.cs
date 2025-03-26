@@ -20,8 +20,7 @@ public interface IResourceContainerImageBuilder
     /// </summary>
     /// <param name="resource">The resource to build.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>String representing the container image.</returns>
-    Task<string> BuildImageAsync(IResource resource, CancellationToken cancellationToken);
+    Task BuildImageAsync(IResource resource, CancellationToken cancellationToken);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -30,7 +29,7 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
-    public async Task<string> BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
 
@@ -38,32 +37,28 @@ internal sealed class ResourceContainerImageBuilder(
         {
             // If it is a project resource we need to build the container image
             // using the .NET SDK.
-            var image = await BuildProjectContainerImageAsync(
+            await BuildProjectContainerImageAsync(
                 resource,
                 cancellationToken).ConfigureAwait(false);
-            return image;
+            return;
         }
         else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
         {
             if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
             {
                 // This is a container resource so we'll use the container runtime to build the image
-                var image =  await BuildContainerImageFromDockerfileAsync(
+                await BuildContainerImageFromDockerfileAsync(
                     resource.Name,
                     dockerfileBuildAnnotation.ContextPath,
                     dockerfileBuildAnnotation.DockerfilePath,
                     containerImageAnnotation.Image,
                     cancellationToken).ConfigureAwait(false);
-                return image;
+                return;
             }
             else
             {
-                if (!resource.TryGetContainerImageName(out var containerImageName))
-                {
-                    throw new DistributedApplicationException($"Could not get container image name for resource '{resource.Name}'.");
-                }
-
-                return containerImageName;
+                // Nothing to do here, the resource is already a container image.
+                return;
             }
         }
         else
