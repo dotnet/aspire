@@ -10,7 +10,6 @@ using Microsoft.Extensions.Hosting;
 using Polly;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Garnet.Tests;
 

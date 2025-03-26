@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;

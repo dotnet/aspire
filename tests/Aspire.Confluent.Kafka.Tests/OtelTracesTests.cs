@@ -10,7 +10,6 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Confluent.Kafka.Tests;
 

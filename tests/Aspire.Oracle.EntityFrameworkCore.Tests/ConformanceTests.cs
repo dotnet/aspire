@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Trace;
 using Oracle.ManagedDataAccess.OpenTelemetry;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 

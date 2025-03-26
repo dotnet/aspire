@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 

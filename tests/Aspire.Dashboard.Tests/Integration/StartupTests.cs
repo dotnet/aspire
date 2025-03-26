@@ -18,7 +18,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 

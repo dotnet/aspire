@@ -7,7 +7,6 @@ using Aspire.Hosting.Utils;
 using Azure.Provisioning.WebPubSub;
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 

@@ -17,7 +17,6 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 
