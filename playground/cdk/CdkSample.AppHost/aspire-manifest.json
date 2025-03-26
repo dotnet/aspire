@@ -154,35 +154,35 @@
     },
     "queue1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=queue1"
     },
     "topic1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1"
     },
     "subscription2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription2"
     },
     "topic2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2"
     },
     "subscription1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2/Subscriptions/subscription1"
     },
     "topic3": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3"
     },
     "sub1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub1"
     },
     "sub2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub2"
     },
     "appConfig": {
       "type": "azure.bicep.v0",

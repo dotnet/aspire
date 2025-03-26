@@ -172,27 +172,27 @@
     },
     "queue1": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=queue1"
     },
     "topic1": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1"
     },
     "subscription1": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription1"
     },
     "subscription2": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription2"
     },
     "topic2": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic2"
     },
     "topic2sub": {
       "type": "value.v0",
-      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic2/Subscriptions/subscription1"
     },
     "signalr": {
       "type": "azure.bicep.v0",
