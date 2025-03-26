@@ -542,6 +542,11 @@
         <target state="translated">Znacznik czasu</target>
         <note />
       </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="new">Capture paused</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Atrybuty</target>

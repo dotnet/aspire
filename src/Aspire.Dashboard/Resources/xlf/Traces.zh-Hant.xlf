@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="PauseInProgressText">
-        <source>Currently paused trace capture starting at {0}</source>
-        <target state="new">Currently paused trace capture starting at {0}</target>
+        <source>Traces capture paused at {0}</source>
+        <target state="new">Traces capture paused at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesFullName">

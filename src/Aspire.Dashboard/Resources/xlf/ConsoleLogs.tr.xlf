@@ -43,8 +43,8 @@
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
-        <source>&lt;Currently paused log capture starting at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="new">&lt;Currently paused log capture starting at {0}, {1} log(s) filtered out&gt;</target>
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="new">&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">

@@ -494,10 +494,15 @@ fluent-switch.table-switch::part(label) {
     background-color: var(--neutral-fill-active);
 }
 
-.total-items-footer {
-    padding-top: calc(var(--design-unit) * 2.5px);
+.items-footer {
+    display: flex;
+    column-gap: 20px;
+    min-height: 46px;
+    align-items: center;
+}
+
+.items-footer .result-count {
     padding-left: calc(var(--design-unit) * 4.5px);
-    padding-bottom: calc(var(--design-unit) * 2.5px);
 }
 
 /* Align the toast with the top of the body/bottom of the header
@@ -762,4 +767,40 @@ fluent-tooltip[anchor="dialog_close"] > div {
 .data-paused-text {
     font-weight: 500;
     color: var(--error);
+    margin-left: 30px;
+}
+
+.block-warning {
+    font-family: var(--body-font);
+    border: 1px solid var(--messagebar-warning-border-color);
+    background-color: var(--messagebar-warning-background-color);
+    color: var(--neutral-foreground-rest);
+    display: grid;
+    grid-template-columns: 24px auto;
+    width: fit-content;
+    align-items: center;
+    min-height: 36px;
+    border-radius: calc(var(--control-corner-radius)* 1px);
+    padding: 0 12px;
+    column-gap: 8px;
+}
+
+.block-warning-icon {
+    grid-column: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.block-warning-message {
+    grid-column: 2;
+    padding: 8px 0;
+    align-self: center;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+}
+
+.block-warning-message .title {
+    font-weight: 600;
+    padding: 0 4px 0 0;
 }

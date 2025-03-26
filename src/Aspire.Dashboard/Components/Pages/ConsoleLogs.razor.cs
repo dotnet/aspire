@@ -636,7 +636,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         var timestamp = DateTime.UtcNow;
 
-        if (isPaused)
+        if (isPaused && PageViewModel.SelectedResource != null)
         {
             // Each pause has its own entry in the log entries and will be displayed
             // unless it ended with 0 logs filtered out during

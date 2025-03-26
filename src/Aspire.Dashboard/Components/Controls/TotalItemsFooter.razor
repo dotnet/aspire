@@ -2,12 +2,23 @@
 @namespace Aspire.Dashboard.Components
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="total-items-footer">
-    @((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))
+<div class="items-footer">
+    <span class="result-count">
+        @((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))
+    </span>
 
     @if (PauseText is not null)
     {
-        <span style="margin-left: 5px;" class="data-paused-text">@PauseText</span>
+        <div class="block-warning">
+            <div class="block-warning-icon">
+                <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" />
+            </div>
+
+            <div class="block-warning-message">
+                <span class="title">@Loc[nameof(ControlsStrings.TotalItemsFooterCapturePaused)]</span>
+                @PauseText
+            </div>
+        </div>
     }
 </div>
 
