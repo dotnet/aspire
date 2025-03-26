@@ -34,7 +34,7 @@
              Condition="'$(SdkVersionToInstall)' == ''"
              Importance="High" />
 
-    <DownloadFile SourceUrl="https://dot.net/v1/$(_DotNetInstallScriptName)"
+    <DownloadFile SourceUrl="https://builds.dotnet.microsoft.com/dotnet/scripts/v1/$(_DotNetInstallScriptName)"
                   DestinationFolder="$(ArtifactsObjDir)"
                   Retries="6"
                   Condition="!Exists($(_DotNetInstallScriptPath))"/>
