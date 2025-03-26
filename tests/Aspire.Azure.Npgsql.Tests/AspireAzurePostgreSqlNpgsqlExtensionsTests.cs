@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Npgsql;
+using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -76,7 +77,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void TokenCredentialIsIgnoreWhenUsernameAndPasswordAreSet(bool useKeyed)
+    public void TokenCredentialIsIgnoredWhenUsernameAndPasswordAreSet(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -141,6 +142,89 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
         Assert.Equal(ConnectionStringWithUsername, dataSource.ConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DoesNotThrowWhenTokenCredentialHasNoUsername(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        FakeTokenCredential? tokenCredential = null;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureAnonumousTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            });
+        }
+        else
+        {
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureAnonumousTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            });
+        }
+
+        using var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
+            host.Services.GetRequiredService<NpgsqlDataSource>();
+
+        Assert.NotNull(tokenCredential);
+        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        Assert.True(tokenCredential.IsGetTokenInvoked);
+        Assert.Contains("https://ossrdbms-aad.database.windows.net/.default", tokenCredential.RequestedScopes);
+        Assert.Contains("https://management.azure.com/.default", tokenCredential.RequestedScopes);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UsernameCanBeConfiguredWhenTokenCredentialHasNoUsername(bool useKeyed)
+    {
+        const string username = "admin";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        FakeTokenCredential? tokenCredential = null;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureAnonumousTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            }, configureDataSourceBuilder: dataSourceBuilder => dataSourceBuilder.ConnectionStringBuilder.Username = username);
+        }
+        else
+        {
+            builder.AddAzureNpgsqlDataSource("npgsql", configureSettings: settings =>
+            {
+                ConfigureAnonumousTokenCredentials(settings);
+                tokenCredential = settings.Credential as FakeTokenCredential;
+            }, configureDataSourceBuilder: dataSourceBuilder => dataSourceBuilder.ConnectionStringBuilder.Username = username);
+        }
+
+        using var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
+            host.Services.GetRequiredService<NpgsqlDataSource>();
+
+        Assert.NotNull(tokenCredential);
+        Assert.Contains(ConnectionString, dataSource.ConnectionString);
+        Assert.Contains("Username=admin", dataSource.ConnectionString);
+        Assert.True(tokenCredential.IsGetTokenInvoked);
     }
 
     [Theory]
@@ -237,5 +321,20 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
     private void ConfigureTokenCredentials(AzureNpgsqlSettings settings)
     {
         settings.Credential = new FakeTokenCredential();
+    }
+
+    private static void ConfigureAnonumousTokenCredentials(AzureNpgsqlSettings settings)
+    {
+        const string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJJc3N1ZWQgQXQiOiIyMDI1LTAzLTIxVDAxOjM3OjAwLjE5OFoiLCJFeHBpcmF0aW9uIjoiMjAyNS0wMy0yMVQwMTozNzowMC4xOThaIiwiUm9sZSI6IkFkbWluIn0.nT9VhsXfI0v78C5J57ehy3NERNNN0e6NvVZwq_XOr-A";
+        var accesstoken = new AccessToken(token, DateTimeOffset.Now.AddHours(1));
+
+        // {
+        //   "Issuer": "Issuer",
+        //   "Issued At": "2025-03-21T01:37:00.198Z",
+        //   "Expiration": "2025-03-21T01:37:00.198Z",
+        //   "Role": "Admin"
+        // }
+
+        settings.Credential = new FakeTokenCredential(accesstoken);
     }
 }

@@ -23,6 +23,7 @@ public static class AspireAzureNpgsqlExtensions
     private const string AzureManagementScope = "https://management.azure.com/.default";
 
     private static readonly TokenRequestContext s_databaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
+    private static readonly TokenRequestContext s_managementTokenRequestContext = new([AzureManagementScope]);
 
     /// <summary>
     /// Registers <see cref="NpgsqlDataSource"/> service for connecting PostgreSQL database with Npgsql client.
@@ -114,22 +115,31 @@ public static class AspireAzureNpgsqlExtensions
 
         if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
         {
-            // ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
-            var token = credential.GetToken(new([AzureManagementScope]), default);
+            // Ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
+            var token = credential.GetToken(s_managementTokenRequestContext, default);
 
             if (TryGetUsernameFromToken(token.Token, out var username))
             {
-                dataSourceBuilder.ConnectionStringBuilder.Username = username;
+                 dataSourceBuilder.ConnectionStringBuilder.Username = username;
             }
             else
             {
-                throw new InvalidOperationException("Could not determine username from token claims");
+                // Otherwise check using the PostgresSql scope
+                token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
+
+                if (TryGetUsernameFromToken(token.Token, out username))
+                {
+                    dataSourceBuilder.ConnectionStringBuilder.Username = username;
+                }
             }
+
+            // If we still don't have a username, we let Npgsql handle the error when trying to connect.
+            // The user will be hinted to provide a username by using the configureDataSourceBuilder callback.
         }
 
         if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
-            // The token is not cached since it it refreshed for each new physical connection, or when it has expired.
+            // The token is not cached since it is refreshed for each new physical connection, or when it has expired.
 
             dataSourceBuilder.UsePasswordProvider(
                 passwordProvider: _ => credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default).Token,

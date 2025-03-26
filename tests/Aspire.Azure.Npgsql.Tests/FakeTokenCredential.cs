@@ -25,29 +25,33 @@ internal sealed class FakeTokenCredential : TokenCredential
     //  "Role": "Admin"
     //}
 
-    private readonly bool _useManagedIdentity;
+    private readonly AccessToken _token;
 
-    public FakeTokenCredential(bool useManagedIdentity = false)
+    public FakeTokenCredential(bool useManagedIdentity = false) :
+        this(new AccessToken(useManagedIdentity ? ManagedIdentityToken : Token, DateTime.UtcNow))
     {
-        _useManagedIdentity = useManagedIdentity;
+    }
+
+    public FakeTokenCredential(AccessToken token)
+    {
+        _token = token;
     }
 
     public bool IsGetTokenInvoked { get; private set; }
 
+    public List<string> RequestedScopes { get; } = [];
+
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
+        RequestedScopes.AddRange(requestContext.Scopes);
         IsGetTokenInvoked = true;
-        return CreateAccessToken();
+        return _token;
     }
 
     public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
+        RequestedScopes.AddRange(requestContext.Scopes);
         IsGetTokenInvoked = true;
-        return new ValueTask<AccessToken>(CreateAccessToken());
-    }
-
-    private AccessToken CreateAccessToken()
-    {
-        return new AccessToken(_useManagedIdentity ? ManagedIdentityToken : Token, DateTimeOffset.Now);
+        return new ValueTask<AccessToken>(_token);
     }
 }

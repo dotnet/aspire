@@ -121,6 +121,21 @@ builder.AddAzureNpgsqlDataSource("postgresdb");
 
 This will also require your Azure environment to be configure by following [these instructions](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning#configuration).
 
+## Troubleshooting
+
+In the rare case that the Username property is not provided and the integration can't detect it using the application's Managed Identity, Npgsql will throw an exception like the following:
+
+```
+Npgsql.PostgresException (0x80004005): 28P01: password authentication failed for user ...
+```
+
+In that case you can configure the Username property in the connection string by using the `configureDataSourceBuilder` callback like so:
+
+```
+builder.AddAzureNpgsqlDataSource("db", configureDataSourceBuilder:
+  dataSourceBuilder => dataSourceBuilder.ConnectionStringBuilder.Username = "<PRINCIPALNAME>");
+```
+
 ## Additional documentation
 
 * https://www.npgsql.org/doc/basic-usage.html
