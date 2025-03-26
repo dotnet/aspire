@@ -99,6 +99,16 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, redisRolesManifest.BicepText);
     }
 
+    [Fact]
+    public void AddAzureRedis_WithAccessKeyAuthentication_NoKeyVaultWithContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureRedis("redis").WithAccessKeyAuthentication().RunAsContainer();
+
+        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("mykeyvault")]
