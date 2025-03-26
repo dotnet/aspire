@@ -226,7 +226,7 @@ jobs:
           --blame-hang-timeout ${{ inputs.testHangTimeout }}
           --blame-crash
           --results-directory ${{ github.workspace }}/testresults
-          ${{ inputs.extraTestArgs }}
+          "${{ inputs.extraTestArgs }}"
           --
           RunConfiguration.CollectSourceInformation=true
           RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
@@ -251,7 +251,7 @@ jobs:
           --results-directory testresults
           --no-restore
           --no-build
-          ${{ inputs.extraTestArgs }}
+          "${{ inputs.extraTestArgs }}"
           --
           RunConfiguration.CollectSourceInformation=true
           RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}

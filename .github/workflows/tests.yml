@@ -101,7 +101,7 @@ jobs:
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
       # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
+      extraTestArgs: "--filter Quarantined!=true&FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
       requiresTestSdk: true
 
@@ -119,7 +119,7 @@ jobs:
       testSessionTimeoutMs: 1200000
       testHangTimeout: 12m
       # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
+      extraTestArgs: "--filter Quarantined!=true&FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
       requiresNugets: true
       requiresTestSdk: true
 
