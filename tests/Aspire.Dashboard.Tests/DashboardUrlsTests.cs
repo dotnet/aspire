@@ -37,19 +37,19 @@ public class DashboardUrlsTests
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
 
-        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", singleFilterUrl);
+        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue%3Aenabled&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", singleFilterUrl);
 
         var multipleFiltersIncludingSpacesUrl = DashboardUrls.StructuredLogsUrl(
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
             filters: TelemetryFilterFormatter.SerializeFiltersToString([
                 new TelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
-                new TelemetryFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!" },
+                new TelemetryFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!", Enabled = false },
                 new TelemetryFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
-        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue%20fieldWithSpacedValue%3Agt%3A!!%2Bmultiple%2Bwords%2Bhere%2B!!%20name%3A!equals%3AnameValue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersIncludingSpacesUrl);
+        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue%3Aenabled%20fieldWithSpacedValue%3Agt%3A!!%2Bmultiple%2Bwords%2Bhere%2B!!%3Adisabled%20name%3A!equals%3AnameValue%3Aenabled&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersIncludingSpacesUrl);
     }
 
     [Fact]
