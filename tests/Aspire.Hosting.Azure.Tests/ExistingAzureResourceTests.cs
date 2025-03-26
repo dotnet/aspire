@@ -1691,7 +1691,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               parent: keyVault
             }
 
-            resource mydb_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--container'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydb;Container=container'

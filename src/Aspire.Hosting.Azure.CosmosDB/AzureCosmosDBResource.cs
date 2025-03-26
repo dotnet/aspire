@@ -134,29 +134,29 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var builder = new ReferenceExpressionBuilder();
 
-        if (IsEmulator || UseAccessKeyAuthentication)
+        if (UseAccessKeyAuthentication)
         {
-            if (ConnectionStringSecretOutput is not null)
-            {
-                builder.Append($"{ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(resourceName))}");
-            }
-            else
-            {
-                builder.AppendFormatted(ConnectionStringExpression);
-            }
+            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(resourceName)));
         }
         else
         {
-            builder.Append($"AccountEndpoint={ConnectionStringExpression}");
-        }
-
-        if (!string.IsNullOrEmpty(databaseName))
-        {
-            builder.Append($";Database={databaseName}");
-
-            if (!string.IsNullOrEmpty(containerName))
+            if (IsEmulator)
             {
-                builder.Append($";Container={containerName}");
+                builder.AppendFormatted(ConnectionStringExpression);
+            }
+            else
+            {
+                builder.Append($"AccountEndpoint={ConnectionStringExpression}");
+            }
+
+            if (!string.IsNullOrEmpty(databaseName))
+            {
+                builder.Append($";Database={databaseName}");
+
+                if (!string.IsNullOrEmpty(containerName))
+                {
+                    builder.Append($";Container={containerName}");
+                }
             }
         }
 

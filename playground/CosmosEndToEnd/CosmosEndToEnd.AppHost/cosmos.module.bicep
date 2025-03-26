@@ -37,11 +37,27 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
 }
 
 resource entries 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-  name: 'entries'
+  name: 'staging-entries'
   location: location
   properties: {
     resource: {
-      id: 'entries'
+      id: 'staging-entries'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+      }
+    }
+  }
+  parent: db
+}
+
+resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+  name: 'users'
+  location: location
+  properties: {
+    resource: {
+      id: 'users'
       partitionKey: {
         paths: [
           '/id'

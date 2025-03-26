@@ -125,8 +125,8 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
         // Validate behavior when resource name and container/database name are different
-        Assert.Contains(";Database=db2", db2.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Contains(";Database=db2;Container=container2", container2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db;Container=container", container2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -260,9 +260,9 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         builder.AddContainer("api", "myimage")
             .WithReference(cosmos);
 
-        Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.secretOutputs.connectionString};Database=db1", database.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{cosmos.secretOutputs.connectionString};Database=db1;Container=container1", container.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--cosmos}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--db1}", database.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--container1}", container.Resource.ConnectionStringExpression.ValueExpression);
 
         using var app = builder.Build();
 
@@ -332,7 +332,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             }
 
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
+              name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
               }
@@ -340,15 +340,15 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             }
 
             resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'db1-connectionString'
+              name: 'connectionstrings--db1'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1'
               }
               parent: keyVault
             }
 
-            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'db1-container1-connectionString'
+            resource container1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--container1'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1;Container=container1'
               }
