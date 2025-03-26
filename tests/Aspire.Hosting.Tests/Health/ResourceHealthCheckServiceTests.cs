@@ -96,6 +96,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8326")]
     public async Task ResourcesWithHealthCheck_CreationErrorIsReported()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
