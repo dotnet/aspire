@@ -13,7 +13,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
 

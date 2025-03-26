@@ -137,6 +137,8 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
                                  ConnectionString).Dispose();
 
+    protected override bool CheckOptionClassSealed => false; // AzureNpgsqlSettings needs to inherit from NpgsqlSettings
+
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
         => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }

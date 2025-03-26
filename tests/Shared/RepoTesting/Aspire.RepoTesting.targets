@@ -55,6 +55,10 @@
     <PackageReference Include="@(AspireProjectOrPackageReference)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(IncludeTestPackages)' == 'true'">
+    <Using Include="Xunit.Abstractions" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'" Label="Test packages">
     <!-- in-repo-builds use Arcade which adds these package references for test projects implicitly.
          But when they are built without Arcade outside the repo, these need to be added

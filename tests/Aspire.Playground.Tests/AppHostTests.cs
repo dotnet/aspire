@@ -14,7 +14,6 @@ using Polly.Timeout;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;

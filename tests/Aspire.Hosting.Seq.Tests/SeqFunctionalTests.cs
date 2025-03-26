@@ -7,7 +7,6 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Seq.Tests;
 

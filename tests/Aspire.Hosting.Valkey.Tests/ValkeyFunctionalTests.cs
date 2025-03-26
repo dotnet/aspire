@@ -11,7 +11,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Valkey.Tests;
 

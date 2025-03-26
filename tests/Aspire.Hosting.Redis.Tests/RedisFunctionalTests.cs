@@ -14,7 +14,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.Hosting.Tests.Dcp;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;

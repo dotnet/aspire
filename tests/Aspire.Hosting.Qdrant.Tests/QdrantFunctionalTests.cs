@@ -13,7 +13,6 @@ using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 

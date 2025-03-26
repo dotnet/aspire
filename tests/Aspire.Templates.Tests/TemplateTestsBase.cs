@@ -7,7 +7,6 @@ using System.Xml;
 using Aspire.Components.Common.Tests;
 using Microsoft.Playwright;
 using Xunit;
-using Xunit.Abstractions;
 using static Aspire.Templates.Tests.TestExtensions;
 
 namespace Aspire.Templates.Tests;

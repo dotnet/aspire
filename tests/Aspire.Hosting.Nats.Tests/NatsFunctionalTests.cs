@@ -4,7 +4,6 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;

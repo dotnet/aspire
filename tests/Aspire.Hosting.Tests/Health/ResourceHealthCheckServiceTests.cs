@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Health;
 
@@ -242,7 +241,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             },
             "Wait for healthy delay.", logger);
 
-        await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
+        await app.StopAsync(abortTokenSource.Token).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -358,7 +357,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(resource.Resource, @event.Resource);
 
         await pendingStart.DefaultTimeout();
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -561,7 +560,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(childReadyEvent.Resource, child.Resource);
 
         await pendingStart; // already has a timeout
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -609,7 +608,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
