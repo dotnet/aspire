@@ -48,6 +48,9 @@ public class ResourceStateViewModelTests
         /* state */ KnownResourceState.Running, null, "Healthy", "NOT_A_VALID_STATE_STYLE",
         /* expected output */ "Running", "Circle", Color.Neutral, "Running")]
     [InlineData(
+        /* state */ KnownResourceState.Running, null, null, "info",
+        /* expected output */ "Running", "Info", Color.Info, "Running")]
+    [InlineData(
         /* state */ KnownResourceState.RuntimeUnhealthy, null, null, null,
         /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceContainerRuntimeUnhealthy)}", "Warning", Color.Warning, "Runtime unhealthy")]
     public void ResourceViewModel_ReturnsCorrectIconAndTooltip(

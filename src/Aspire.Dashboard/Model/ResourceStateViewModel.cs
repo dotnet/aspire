@@ -70,7 +70,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy)
+        else if (resource.HealthStatus is not HealthStatus.Healthy && string.IsNullOrEmpty(resource.StateStyle))
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Warning;
