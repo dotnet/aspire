@@ -28,7 +28,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         // Ensure any ambient configuration doesn't impact this test.
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES"] = null
+            ["ASPIRE_SHOW_DASHBOARD_RESOURCES"] = null
         });
 
         var dashboardPath = Path.GetFullPath("dashboard");

@@ -26,8 +26,8 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
         options.DashboardUrl = configuration["ASPNETCORE_URLS"];
         options.DashboardToken = configuration["AppHost:BrowserToken"];
 
-        options.OtlpGrpcEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
-        options.OtlpHttpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"];
+        options.OtlpGrpcEndpointUrl = configuration.GetString("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        options.OtlpHttpEndpointUrl = configuration.GetString("ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL", "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL");
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";

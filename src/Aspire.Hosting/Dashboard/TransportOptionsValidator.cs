@@ -37,28 +37,28 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
-        // Validate DOTNET_DASHBOARD_OTLP_ENDPOINT_URL
-        var dashboardOtlpGrpcEndpointUrl = configuration[KnownConfigNames.DashboardOtlpGrpcEndpointUrl];
-        var dashboardOtlpHttpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpHttpEndpointUrl];
+        // Validate ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL
+        var dashboardOtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.AspireDashboardOtlpGrpcEndpointUrl, KnownConfigNames.DashboardOtlpGrpcEndpointUrl);
+        var dashboardOtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.AspireDashboardOtlpHttpEndpointUrl, KnownConfigNames.DashboardOtlpHttpEndpointUrl);
         if (string.IsNullOrEmpty(dashboardOtlpGrpcEndpointUrl) && string.IsNullOrEmpty(dashboardOtlpHttpEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.AspireDashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.AspireDashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
 
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.AspireDashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
         {
             return resultGrpc;
         }
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.AspireDashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
         {
             return resultHttp;
         }
 
         // Validate DOTNET_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
-        var resourceServiceEndpointUrl = configuration[KnownConfigNames.ResourceServiceEndpointUrl];
+        var resourceServiceEndpointUrl = configuration.GetString(KnownConfigNames.AspireResourceServiceEndpointUrl, KnownConfigNames.ResourceServiceEndpointUrl);
         if (string.IsNullOrEmpty(resourceServiceEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.ResourceServiceEndpointUrl} setting defined.");
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.AspireResourceServiceEndpointUrl} setting defined.");
         }
 
         if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))

@@ -155,7 +155,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             }
         }
 
-        var snapshot = new CustomResourceSnapshot()
+        var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
             ResourceType = dashboardResource switch
@@ -165,7 +165,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true ? null : KnownResourceStates.Hidden
+            State = configuration.GetBool("ASPIRE_SHOW_DASHBOARD_RESOURCES", "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true ? null : KnownResourceStates.Hidden
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));

@@ -8,6 +8,32 @@ namespace Aspire;
 
 internal static class IConfigurationExtensions
 {
+    public static T GetValue<T>(this IConfiguration configuration, string primaryKey, string secondaryKey, T defaultValue)
+    {
+        var value = configuration.GetValue<T?>(primaryKey, secondaryKey)
+            ?? defaultValue;
+        return value;
+    }
+
+    public static T? GetValue<T>(this IConfiguration configuration, string primaryKey, string secondaryKey)
+    {
+        var value = configuration.GetValue<T>(primaryKey)
+            ?? configuration.GetValue<T>(secondaryKey);
+        return value;
+    }
+
+    public static bool? GetBool(this IConfiguration configuration, string primaryKey, string secondaryKey)
+    {
+        var value = configuration.GetBool(primaryKey) ?? configuration.GetBool(secondaryKey);
+        return value;
+    }
+    
+    public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey)
+    {
+        var value = configuration[primaryKey] ?? configuration[secondaryKey];
+        return value;
+    }
+
     /// <summary>
     /// Gets the named configuration value as a boolean.
     /// </summary>

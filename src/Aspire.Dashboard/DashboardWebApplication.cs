@@ -480,7 +480,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         if (!hasSingleEndpoint)
         {
-            // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
+            // Translate high-level config settings such as ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
             if (otlpGrpcAddress != null)
             {
