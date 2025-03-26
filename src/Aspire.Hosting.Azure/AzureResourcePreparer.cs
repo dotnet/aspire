@@ -37,7 +37,7 @@ internal sealed class AzureResourcePreparer(
             EnsureNoRoleAssignmentAnnotations(appModel);
         }
 
-        await BuildRoleAssignmentAnnotations(appModel, options, cancellationToken).ConfigureAwait(false);
+        await BuildRoleAssignmentAnnotations(appModel, azureResources, options, cancellationToken).ConfigureAwait(false);
 
         // set the ProvisioningBuildOptions on the resource, if necessary
         foreach (var r in azureResources)
@@ -90,12 +90,12 @@ internal sealed class AzureResourcePreparer(
         }
     }
 
-    private async Task BuildRoleAssignmentAnnotations(DistributedApplicationModel appModel, AzureProvisioningOptions options, CancellationToken cancellationToken)
+    private async Task BuildRoleAssignmentAnnotations(DistributedApplicationModel appModel, List<(IResource Resource, IAzureResource AzureResource)> azureResources, AzureProvisioningOptions options, CancellationToken cancellationToken)
     {
         if (!options.SupportsTargetedRoleAssignments)
         {
             // when the app infrastructure doesn't support targeted role assignments, just copy all the default role assignments to applied role assignments
-            foreach (var resource in appModel.Resources)
+            foreach (var resource in azureResources.Select(r => r.AzureResource))
             {
                 if (resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments))
                 {
@@ -113,8 +113,7 @@ internal sealed class AzureResourcePreparer(
             // - if in PublishMode
             //   - if a compute resource has RoleAssignmentAnnotations, use them
             //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations to apply the defaults
-            var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
-            foreach (var resource in resourceSnapshot)
+            foreach (var resource in azureResources.Select(r => r.AzureResource))
             {
                 if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
                 {
@@ -185,7 +184,7 @@ internal sealed class AzureResourcePreparer(
 
         if (!options.SupportsTargetedRoleAssignments || executionContext.IsRunMode)
         {
-            await CreateGlobalRoleAssignments(appModel, options).ConfigureAwait(false);
+            await CreateGlobalRoleAssignments(appModel, azureResources, options).ConfigureAwait(false);
         }
     }
 
@@ -390,14 +389,9 @@ internal sealed class AzureResourcePreparer(
         }
     }
 
-    private async Task CreateGlobalRoleAssignments(DistributedApplicationModel appModel, AzureProvisioningOptions provisioningOptions)
+    private async Task CreateGlobalRoleAssignments(DistributedApplicationModel appModel, List<(IResource Resource, IAzureResource AzureResource)> azureResources, AzureProvisioningOptions provisioningOptions)
     {
-        var azureResourceSnapshot = appModel.Resources
-            .OfType<AzureProvisioningResource>()
-            .Where(r => !r.IsContainer())
-            .ToArray(); // avoid modifying the collection while iterating
-
-        foreach (var azureResource in azureResourceSnapshot)
+        foreach (var azureResource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
         {
             if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
             {
