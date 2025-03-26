@@ -153,11 +153,11 @@ jobs:
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
       - name: Check Playground manifests
-        if: ${{ inputs.os == 'windows-latest' }}
+        if: ${{ inputs.os == 'ubuntu-latest' && inputs.testShortName == 'Playground' }}
         env:
           CI: false
         run: |
-          (cd eng && pwsh ./refreshManifests.ps1) &&
+          for f in `find playground -name '*.AppHost.csproj'`; do (echo "Generating manifest for $f"; cd $(dirname $f); dotnet run --no-build --publisher manifest --output-path aspire-manifest.json); done &&
           git diff --exit-code -- playground
 
       - name: Build and archive test project

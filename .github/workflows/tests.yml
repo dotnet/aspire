@@ -131,7 +131,6 @@ jobs:
       testShortName: EndToEnd
       # EndToEnd is not run on Windows due to missing Docker support
       os: ubuntu-latest
-      testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
 
   playground_tests:
@@ -142,7 +141,6 @@ jobs:
       testShortName: Playground
       # Playground is not run on Windows due to missing Docker support
       os: ubuntu-latest
-      testProjectPath: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
       requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
