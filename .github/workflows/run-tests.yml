@@ -145,21 +145,21 @@ jobs:
           echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
           echo "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV
 
-      - name: Build test project
-        if: ${{ ! inputs.requiresNugets }}
-        env:
-          CI: false
-        run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
-
       - name: Check Playground manifests
         if: ${{ inputs.os == 'ubuntu-latest' && inputs.testShortName == 'Playground' }}
         env:
           CI: false
         run: |
           ./build.sh -testnobuild &&
-          (for f in `find playground -name '*.AppHost.csproj'`; do echo "Generating manifest for $f"; ./dotnet.sh run --project $f --no-build --publisher manifest --output-path $(PWD)/$(dirname $f)/aspire-manifest.json || exit 1; done) &&
+          (for f in `find playground -name '*.AppHost.csproj'`; do echo "Generating manifest for $f"; ./dotnet.sh run --project $f --no-build --publisher manifest --output-path $PWD/$(dirname $f)/aspire-manifest.json || exit 1; done) &&
           git diff --exit-code -- playground
+
+      - name: Build test project
+        if: ${{ ! inputs.requiresNugets }}
+        env:
+          CI: false
+        run: |
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
