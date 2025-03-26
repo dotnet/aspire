@@ -1255,4 +1255,100 @@ public class LogTests
                 Assert.Equal(s_testTime.AddMinutes(1), app.TimeStamp);
             });
     }
+
+    [Fact]
+    public void GetLogs_WithSortFunction()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "Log 1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "Log 2"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "Log 3")
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [],
+            SortFunction = query => query.OrderByDescending(log => log.TimeStamp)
+        });
+
+        // Assert
+        Assert.Collection(logs.Items,
+            log => Assert.Equal("Log 3", log.Message),
+            log => Assert.Equal("Log 2", log.Message),
+            log => Assert.Equal("Log 1", log.Message));
+    }
+
+    [Fact]
+    public void GetLogs_WithSortFunction_AndSubsetSelection()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "Log 1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "Log 2"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "Log 3"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "Log 4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "Log 5")
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 1,
+            Count = 3,
+            Filters = [],
+            SortFunction = query => query.OrderByDescending(log => log.TimeStamp)
+        });
+
+        // Assert
+        Assert.Collection(logs.Items,
+            log => Assert.Equal("Log 4", log.Message),
+            log => Assert.Equal("Log 3", log.Message),
+            log => Assert.Equal("Log 2", log.Message));
+    }
 }

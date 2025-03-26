@@ -1923,4 +1923,102 @@ public class TraceTests
                 AssertId("3-2", s.SpanId);
             });
     }
+
+    [Fact]
+    public void GetTraces_WithSortFunction()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [],
+            SortFunction = query => query.OrderByDescending(trace => trace.FirstSpan.StartTime)
+        });
+
+        // Assert
+        Assert.Collection(traces.PagedResult.Items,
+            trace => AssertId("3", trace.TraceId),
+            trace => AssertId("2", trace.TraceId),
+            trace => AssertId("1", trace.TraceId));
+    }
+
+    [Fact]
+    public void GetTraces_WithSortFunction_AndSubsetSelection()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "4", spanId: "4-1", startTime: s_testTime.AddMinutes(4), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "5", spanId: "5-1", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 1,
+            Count = 3,
+            Filters = [],
+            SortFunction = query => query.OrderByDescending(trace => trace.FirstSpan.StartTime)
+        });
+
+        // Assert
+        Assert.Collection(traces.PagedResult.Items,
+            trace => AssertId("4", trace.TraceId),
+            trace => AssertId("3", trace.TraceId),
+            trace => AssertId("2", trace.TraceId));
+    }
 }

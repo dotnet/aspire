@@ -13,5 +13,5 @@ public sealed class GetTracesRequest
     public required int Count { get; init; }
     public required string FilterText { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
-    public required Func<IQueryable<OtlpTrace>, IQueryable<OtlpTrace>> SortFunction { get; init; }
+    public Func<IQueryable<OtlpTrace>, IQueryable<OtlpTrace>>? SortFunction { get; init; }
 }
