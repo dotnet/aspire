@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -188,18 +188,13 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             .WithReference(cosmos);
 
         using var app = builder.Build();
-
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         await ExecuteBeforeStartHooksAsync(app, default);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource, skipPreparer: true);
+        var manifest = await GetManifestWithBicep(cosmos.Resource, skipPreparer: true);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalId string
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
@@ -223,6 +218,27 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
               }
             }
 
+            output connectionString string = cosmos.properties.documentEndpoint
+
+            output name string = cosmos.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"cosmos-roles"));
+        var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param cosmos_outputs_name string
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: cosmos_outputs_name
+            }
+
             resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
               name: '00000000-0000-0000-0000-000000000002'
               parent: cosmos
@@ -237,13 +253,9 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = cosmos.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(cosmosRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, cosmosRolesManifest.BicepText);
     }
 
     [Fact]
@@ -263,13 +275,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("{cosmos-kv.secrets.connectionstrings--db1}", database.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{cosmos-kv.secrets.connectionstrings--container1}", container.Resource.ConnectionStringExpression.ValueExpression);
 
-        using var app = builder.Build();
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var manifest = await GetManifestWithBicep(cosmos.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -359,7 +365,4 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
-    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

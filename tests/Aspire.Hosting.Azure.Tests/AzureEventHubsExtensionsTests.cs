@@ -289,10 +289,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
             param sku string = 'Standard'
 
-            param principalType string
-
-            param principalId string
-
             resource eh 'Microsoft.EventHub/namespaces@2024-01-01' = {
               name: take('eh-${uniqueString(resourceGroup().id)}', 256)
               location: location
@@ -302,16 +298,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
               tags: {
                 'aspire-resource-name': 'eh'
               }
-            }
-
-            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
-                principalType: principalType
-              }
-              scope: eh
             }
 
             resource hub_resource 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {

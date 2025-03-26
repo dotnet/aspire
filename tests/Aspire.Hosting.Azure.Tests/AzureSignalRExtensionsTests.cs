@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -16,17 +18,17 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await GetManifestWithBicep(signalr.Resource, skipPreparer: true);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
-              "path": "signalr.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "signalr.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -34,10 +36,6 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
               name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
@@ -65,6 +63,29 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
               }
             }
 
+            output hostName string = signalr.properties.hostName
+
+            output name string = signalr.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"signalr-roles"));
+        var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param signalr_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
+              name: signalr_outputs_name
+            }
+
             resource signalr_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(signalr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
               properties: {
@@ -74,13 +95,9 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
               }
               scope: signalr
             }
-
-            output hostName string = signalr.properties.hostName
-
-            output name string = signalr.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(signalrRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, signalrRolesManifest.BicepText);
     }
 
     [Fact]
@@ -90,17 +107,17 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         var signalr = builder.AddAzureSignalR("signalr", AzureSignalRServiceMode.Serverless);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(signalr.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await GetManifestWithBicep(signalr.Resource, skipPreparer: true);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
-              "path": "signalr.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "signalr.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -108,10 +125,6 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
               name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
@@ -139,6 +152,29 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
               }
             }
 
+            output hostName string = signalr.properties.hostName
+
+            output name string = signalr.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"signalr-roles"));
+        var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param signalr_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
+              name: signalr_outputs_name
+            }
+
             resource signalr_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(signalr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
               properties: {
@@ -158,12 +194,8 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
               }
               scope: signalr
             }
-
-            output hostName string = signalr.properties.hostName
-
-            output name string = signalr.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(signalrRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, signalrRolesManifest.BicepText);
     }
 }
