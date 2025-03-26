@@ -199,11 +199,6 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalNameParameter);
-
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
@@ -215,6 +210,13 @@ public static class AzureSqlExtensions
         },
         (infrastructure) =>
         {
+            // Creating a new SqlServer instance requires an administrator,
+            // so we need to create one here using the empty PrincipalId/PrincipalName
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalNameParameter);
+
             return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Administrators = new ServerExternalAdministrator()
