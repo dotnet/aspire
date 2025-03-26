@@ -116,7 +116,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         // not exist the orphan detector will exit.
         startInfo.EnvironmentVariables["ASPIRE_CLI_PID"] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
-        using var process = new Process { StartInfo = startInfo };
+        var process = new Process { StartInfo = startInfo };
 
         logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
 
@@ -199,7 +199,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<AppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
 
         var backchannel = serviceProvider.GetRequiredService<AppHostBackchannel>();
         var connectionAttempts = 0;
@@ -214,6 +214,13 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 await backchannel.ConnectAsync(process, socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
+                return;
+            }
+            catch (SocketException ex) when (process.HasExited)
+            {
+                logger.LogError(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
+                var backchannelException = new InvalidOperationException($"AppHost process has exited unexpectedly. Use --debug to see more deails.");
+                backchannelCompletionSource.SetException(backchannelException);
                 return;
             }
             catch (SocketException ex)
