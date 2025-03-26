@@ -22,6 +22,8 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         startInfo.ArgumentList.Add(dockerfilePath);
         startInfo.ArgumentList.Add("--tag");
         startInfo.ArgumentList.Add(imageName);
+        startInfo.ArgumentList.Add("--output");
+        startInfo.ArgumentList.Add("type=oci");
         startInfo.ArgumentList.Add("--quiet");
         startInfo.ArgumentList.Add(contextPath);
 
