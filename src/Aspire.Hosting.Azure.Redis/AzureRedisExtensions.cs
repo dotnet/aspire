@@ -192,6 +192,12 @@ public static class AzureRedisExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (builder.Resource.IsContainer())
+        {
+            // If the resource is a container, don't add the key vault reference.
+            return builder;
+        }
+
         var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 

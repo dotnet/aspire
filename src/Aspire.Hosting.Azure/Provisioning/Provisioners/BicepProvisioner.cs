@@ -279,9 +279,9 @@ internal sealed class BicepProvisioner(
 
             // Set the client for resolving secrets at runtime
             var client = new SecretClient(new(vaultUri), context.Credential);
-            kvr.SecretResolver = async (secretName, ct) =>
+            kvr.SecretResolver = async (secretRef, ct) =>
             {
-                var secret = await client.GetSecretAsync(secretName, cancellationToken: ct).ConfigureAwait(false);
+                var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);
                 return secret.Value.Value;
             };
         }

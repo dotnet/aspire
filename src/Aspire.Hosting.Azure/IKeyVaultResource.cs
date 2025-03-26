@@ -28,7 +28,7 @@ public interface IKeyVaultResource : IResource, IAzureResource
     /// <summary>
     /// Gets or sets the secret resolver function used to resolve secrets at runtime.
     /// </summary>
-    Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
+    Func<IKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
     /// <summary>
     /// Gets a secret reference for the specified secret name.

@@ -286,6 +286,12 @@ public static class AzurePostgresExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (builder.Resource.IsContainer())
+        {
+            // If the resource is running in a container, we need to set the username and password parameters on the inner resource.
+            return builder;
+        }
+
         var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 

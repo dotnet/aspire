@@ -237,6 +237,20 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
+    [Fact]
+    public void AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
+
+#pragma warning disable ASPIRECOSMOSDB001
+        builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001
+
+        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("mykeyvault")]
@@ -271,9 +285,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -537,9 +551,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }

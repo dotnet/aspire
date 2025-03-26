@@ -144,6 +144,16 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
+    [Fact]
+    public void AddAzurePostgresFlexibleServer_WithPasswordAuthentication_NoKeyVaultWithContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().RunAsContainer();
+
+        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(true, true, null)]
     [InlineData(true, true, "mykeyvault")]
