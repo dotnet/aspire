@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.Keycloak.Authentication\Aspire.Keycloak.Authentication.csproj" />
   </ItemGroup>
 

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
 using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;

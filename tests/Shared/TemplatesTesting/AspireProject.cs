@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Xunit.Sdk;
