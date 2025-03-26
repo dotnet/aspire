@@ -64,10 +64,10 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
-       .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
-       .WithUrl("https://someotherplace.com/some-path", "Some other place")
        .WithReference(basketService)
-       .WithReference(catalogService);
+       .WithReference(catalogService)
+       .WithUrlForEndpoint("http", c => c.DisplayText = "Online store (http)")
+       .WithUrlForEndpoint("https", c => c.DisplayText = "Online store (https)");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
        .WithReference(messaging).WaitFor(messaging);
