@@ -158,7 +158,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataBindMount();
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -175,7 +177,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataBindMount("mydata");
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -192,7 +196,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataVolume();
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -209,7 +215,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataVolume("mydata");
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
