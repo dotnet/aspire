@@ -1,75 +1,58 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param administratorLogin string
-
 @secure()
-param administratorLoginPassword string
+param pg_password_value string
 
-param keyVaultName string
+param env_outputs_azure_container_apps_environment_id string
 
-resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('pg-${uniqueString(resourceGroup().id)}', 63)
+resource pg 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'pg'
   location: location
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
-    authConfig: {
-      activeDirectoryAuth: 'Disabled'
-      passwordAuth: 'Enabled'
+    configuration: {
+      secrets: [
+        {
+          name: 'postgres-password'
+          value: pg_password_value
+        }
+      ]
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: false
+        targetPort: 5432
+        transport: 'tcp'
+      }
     }
-    availabilityZone: '1'
-    backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
+    environmentId: env_outputs_azure_container_apps_environment_id
+    template: {
+      containers: [
+        {
+          image: 'docker.io/library/postgres:17.2'
+          name: 'pg'
+          env: [
+            {
+              name: 'POSTGRES_HOST_AUTH_METHOD'
+              value: 'scram-sha-256'
+            }
+            {
+              name: 'POSTGRES_INITDB_ARGS'
+              value: '--auth-host=scram-sha-256 --auth-local=scram-sha-256'
+            }
+            {
+              name: 'POSTGRES_USER'
+              value: 'postgres'
+            }
+            {
+              name: 'POSTGRES_PASSWORD'
+              secretRef: 'postgres-password'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+      }
     }
-    highAvailability: {
-      mode: 'Disabled'
-    }
-    storage: {
-      storageSizeGB: 32
-    }
-    version: '16'
   }
-  sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
-  }
-  tags: {
-    'aspire-resource-name': 'pg'
-  }
-}
-
-resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-  name: 'AllowAllAzureIps'
-  properties: {
-    endIpAddress: '0.0.0.0'
-    startIpAddress: '0.0.0.0'
-  }
-  parent: pg
-}
-
-resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-  name: 'db'
-  parent: pg
-}
-
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
-}
-
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'connectionString'
-  properties: {
-    value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-  }
-  parent: keyVault
-}
-
-resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'db-connectionString'
-  properties: {
-    value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db'
-  }
-  parent: keyVault
 }
