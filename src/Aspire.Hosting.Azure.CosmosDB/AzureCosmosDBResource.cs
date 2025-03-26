@@ -125,7 +125,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
     }
 
-    internal ReferenceExpression GetConnectionString(string resourceName, string? databaseName = null, string? containerName = null)
+    internal ReferenceExpression GetChildConnectionString(string childResourceName, string? databaseName = null, string? containerName = null)
     {
         if (string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
         {
@@ -136,7 +136,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         if (UseAccessKeyAuthentication)
         {
-            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(resourceName)));
+            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(childResourceName)));
         }
         else
         {
