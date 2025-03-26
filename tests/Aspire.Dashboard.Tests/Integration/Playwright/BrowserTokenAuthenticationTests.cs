@@ -29,7 +29,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7921", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange

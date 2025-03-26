@@ -12,6 +12,7 @@
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
     <RunTestsOnHelix>false</RunTestsOnHelix>
+    <SkipTests Condition=" '$(OS)' != 'Windows_NT' and '$(RunTestsOnGithubActions)' != 'true' and '$(RunTestsOnHelix)' != 'true' ">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
