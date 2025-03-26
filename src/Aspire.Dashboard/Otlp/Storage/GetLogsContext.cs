@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
@@ -11,4 +12,5 @@ public sealed class GetLogsContext
     public required int StartIndex { get; init; }
     public required int Count { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
+    public required Func<IQueryable<OtlpLogEntry>, IQueryable<OtlpLogEntry>> SortFunction { get; init; }
 }

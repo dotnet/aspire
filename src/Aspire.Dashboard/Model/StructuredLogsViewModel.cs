@@ -74,7 +74,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs()
+    public PagedResult<OtlpLogEntry> GetLogs(Func<IQueryable<OtlpLogEntry>, IQueryable<OtlpLogEntry>> sortFunction)
     {
         var logs = _logs;
         if (logs == null)
@@ -95,7 +95,8 @@ public class StructuredLogsViewModel
                 ApplicationKey = ApplicationKey,
                 StartIndex = StartIndex,
                 Count = Count,
-                Filters = filters
+                Filters = filters,
+                SortFunction = sortFunction,
             });
         }
 

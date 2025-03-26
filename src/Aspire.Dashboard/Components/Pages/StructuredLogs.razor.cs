@@ -44,6 +44,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private readonly GridSort<OtlpLogEntry> _timestampSort = GridSort<OtlpLogEntry>.ByDescending(e => e.TimeStamp).ThenAscending(p => p.Message, StringComparers.OtlpFieldValue);
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -111,7 +112,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
-        var logs = ViewModel.GetLogs();
+        var logs = ViewModel.GetLogs(request.ApplySorting);
 
         if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
@@ -136,7 +137,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
-        return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
+        var items = request.ApplySorting(logs.Items.AsQueryable());
+        return GridItemsProviderResult.From(items.ToList(), logs.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()

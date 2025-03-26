@@ -91,7 +91,7 @@
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                     Class="main-grid enable-row-click">
                         <ChildContent>
-                            <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                            <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true" Sortable="true" SortBy="@_timestampSort">
                                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
                             </AspireTemplateColumn>
                             <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">

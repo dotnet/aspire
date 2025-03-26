@@ -401,23 +401,23 @@ public static class OtlpHelpers
         return sb.ToString();
     }
 
-    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count, bool isFull)
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count, bool isFull, Func<IQueryable<T>, IQueryable<T>>? sortFunction)
     {
-        return GetItems<T, T>(results, startIndex, count, isFull, null);
+        return GetItems<T, T>(results, startIndex, count, isFull, null, sortFunction);
     }
 
-    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, bool isFull, Func<TSource, TResult>? select)
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, bool isFull, Func<TSource, TResult>? select, Func<IQueryable<TResult>, IQueryable<TResult>>? sortFunction)
     {
-        var query = results.Skip(startIndex).Take(count);
-        List<TResult> items;
-        if (select != null)
+        var query = select != null
+            ? results.Select(select).AsQueryable()
+            : results.Cast<TResult>().AsQueryable();
+
+        if (sortFunction != null)
         {
-            items = query.Select(select).ToList();
+            query = sortFunction(query);
         }
-        else
-        {
-            items = query.Cast<TResult>().ToList();
-        }
+
+        var items = query.Skip(startIndex).Take(count).ToList();
         var totalItemCount = results.Count();
 
         return new PagedResult<TResult>

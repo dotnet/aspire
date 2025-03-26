@@ -410,7 +410,7 @@ public sealed class TelemetryRepository
                 results = filter.Apply(results);
             }
 
-            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _logs.IsFull);
+            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _logs.IsFull, context.SortFunction);
         }
         finally
         {
@@ -536,7 +536,7 @@ public sealed class TelemetryRepository
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
             var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
 
-            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _traces.IsFull, copyFunc);
+            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _traces.IsFull, copyFunc, context.SortFunction);
             var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
 
             return new GetTracesResponse

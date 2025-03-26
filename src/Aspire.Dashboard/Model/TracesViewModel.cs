@@ -72,7 +72,7 @@ public class TracesViewModel
         _traces = null;
     }
 
-    public PagedResult<OtlpTrace> GetTraces()
+    public PagedResult<OtlpTrace> GetTraces(Func<IQueryable<OtlpTrace>, IQueryable<OtlpTrace>> sortFunction)
     {
         var traces = _traces;
         if (traces == null)
@@ -85,7 +85,8 @@ public class TracesViewModel
                 FilterText = FilterText,
                 StartIndex = StartIndex,
                 Count = Count,
-                Filters = filters
+                Filters = filters,
+                SortFunction = sortFunction
             });
 
             traces = result.PagedResult;

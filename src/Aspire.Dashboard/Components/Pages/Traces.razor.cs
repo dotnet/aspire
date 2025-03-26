@@ -40,6 +40,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
+    private readonly GridSort<OtlpTrace> _timestampSort = GridSort<OtlpTrace>.ByDescending(e => e.TimeStamp).ThenAscending(p => p.FullName, StringComparers.OtlpFieldValue);
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -115,7 +116,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
-        var traces = TracesViewModel.GetTraces();
+        var traces = TracesViewModel.GetTraces(request.ApplySorting);
 
         if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
