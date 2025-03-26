@@ -353,7 +353,7 @@ internal sealed class DockerComposePublishingContext(
 
         private static string GetValue(EndpointMapping mapping, EndpointProperty property)
         {
-            var (scheme, host, internalPort, exposedPort, isHttpIngress) = mapping;
+            var (scheme, host, internalPort, _, isHttpIngress) = mapping;
 
             return property switch
             {
@@ -361,7 +361,7 @@ internal sealed class DockerComposePublishingContext(
                 EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
                 EndpointProperty.Port => internalPort.ToString(CultureInfo.InvariantCulture),
                 EndpointProperty.HostAndPort => GetHostValue(suffix: $":{internalPort}"),
-                EndpointProperty.TargetPort => $"{exposedPort}",
+                EndpointProperty.TargetPort => $"{internalPort}",
                 EndpointProperty.Scheme => scheme,
                 _ => throw new NotSupportedException(),
             };
