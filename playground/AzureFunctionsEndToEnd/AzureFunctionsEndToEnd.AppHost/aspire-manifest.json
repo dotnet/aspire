@@ -41,7 +41,7 @@
     },
     "myqueue": {
       "type": "value.v0",
-      "connectionString": "{messaging.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={messaging.outputs.serviceBusEndpoint};EntityPath=myqueue"
     },
     "cosmosdb": {
       "type": "azure.bicep.v0",
