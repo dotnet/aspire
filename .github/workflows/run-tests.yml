@@ -157,7 +157,8 @@ jobs:
         env:
           CI: false
         run: |
-          for f in `find playground -name '*.AppHost.csproj'`; do (echo "Generating manifest for $f"; cd $(dirname $f); dotnet run --publisher manifest --output-path aspire-manifest.json); done &&
+          ./build.sh -testnobuild &&
+          for f in `find playground -name '*.AppHost.csproj'`; do (echo "Generating manifest for $f"; cd $(dirname $f); dotnet run --no-build --publisher manifest --output-path aspire-manifest.json); done &&
           git diff --exit-code -- playground
 
       - name: Build and archive test project
