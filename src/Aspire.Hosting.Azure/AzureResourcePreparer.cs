@@ -454,14 +454,3 @@ internal sealed class AzureResourcePreparer(
         azureResource.AddRoleAssignments(context);
     }
 }
-
-/// <summary>
-/// An annotation that points to the Azure resource that contains the role assignments for the resource.
-/// </summary>
-internal sealed class RoleAssignmentResourceAnnotation(AzureProvisioningResource rolesResource) : IResourceAnnotation
-{
-    /// <summary>
-    /// The Azure resource that contains the role assignments for the resource.
-    /// </summary>
-    public AzureProvisioningResource RolesResource { get; } = rolesResource;
-}

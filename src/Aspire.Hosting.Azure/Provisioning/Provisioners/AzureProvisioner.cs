@@ -94,27 +94,7 @@ internal sealed class AzureProvisioner(
             {
                 await resource.AzureResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                var rolesFailed = false;
-                if (resource.AzureResource.TryGetAnnotationsOfType<RoleAssignmentResourceAnnotation>(out var roleAssignments))
-                {
-                    try
-                    {
-                        foreach (var roleAssignment in roleAssignments)
-                        {
-                            await roleAssignment.RolesResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        rolesFailed = true;
-                        await UpdateStateAsync(resource, s => s with
-                        {
-                            State = new("Failed to Provision Roles", KnownResourceStateStyles.Error)
-                        })
-                        .ConfigureAwait(false);
-                    }
-                }
-
+                var rolesFailed = await WaitForRoleAssignments(resource).ConfigureAwait(false);
                 if (!rolesFailed)
                 {
                     await UpdateStateAsync(resource, s => s with
@@ -140,6 +120,32 @@ internal sealed class AzureProvisioner(
                 })
                 .ConfigureAwait(false);
             }
+        }
+
+        async Task<bool> WaitForRoleAssignments((IResource Resource, IAzureResource AzureResource) resource)
+        {
+            var rolesFailed = false;
+            if (resource.AzureResource.TryGetAnnotationsOfType<RoleAssignmentResourceAnnotation>(out var roleAssignments))
+            {
+                try
+                {
+                    foreach (var roleAssignment in roleAssignments)
+                    {
+                        await roleAssignment.RolesResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+                    }
+                }
+                catch (Exception)
+                {
+                    rolesFailed = true;
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Failed to Provision Roles", KnownResourceStateStyles.Error)
+                    })
+                    .ConfigureAwait(false);
+                }
+            }
+
+            return rolesFailed;
         }
 
         // Mark all resources as starting
