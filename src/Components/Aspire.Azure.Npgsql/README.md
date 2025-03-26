@@ -125,13 +125,11 @@ This will also require your Azure environment to be configure by following [thes
 
 In the rare case that the Username property is not provided and the integration can't detect it using the application's Managed Identity, Npgsql will throw an exception like the following:
 
-```
-Npgsql.PostgresException (0x80004005): 28P01: password authentication failed for user ...
-```
+> Npgsql.PostgresException (0x80004005): 28P01: password authentication failed for user ...
 
 In that case you can configure the Username property in the connection string by using the `configureDataSourceBuilder` callback like so:
 
-```
+```csharp
 builder.AddAzureNpgsqlDataSource("db", configureDataSourceBuilder:
   dataSourceBuilder => dataSourceBuilder.ConnectionStringBuilder.Username = "<PRINCIPALNAME>");
 ```
