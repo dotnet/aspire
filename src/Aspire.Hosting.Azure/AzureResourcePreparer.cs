@@ -113,7 +113,8 @@ internal sealed class AzureResourcePreparer(
             // - if in PublishMode
             //   - if a compute resource has RoleAssignmentAnnotations, use them
             //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations to apply the defaults
-            foreach (var resource in azureResources.Select(r => r.AzureResource))
+            var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
+            foreach (var resource in resourceSnapshot)
             {
                 if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
                 {

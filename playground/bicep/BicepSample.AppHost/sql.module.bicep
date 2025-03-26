@@ -9,6 +9,13 @@ resource sql 'Microsoft.Sql/servers@2021-11-01' = {
   name: take('sql-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
+    administrators: {
+      administratorType: 'ActiveDirectory'
+      login: principalName
+      sid: principalId
+      tenantId: subscription().tenantId
+      azureADOnlyAuthentication: true
+    }
     minimalTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
     version: '12.0'
