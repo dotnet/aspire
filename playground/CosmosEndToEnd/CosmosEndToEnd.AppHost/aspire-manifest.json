@@ -4,10 +4,7 @@
     "cosmos": {
       "type": "azure.bicep.v0",
       "connectionString": "{cosmos.outputs.connectionString}",
-      "path": "cosmos.module.bicep",
-      "params": {
-        "principalId": ""
-      }
+      "path": "cosmos.module.bicep"
     },
     "db": {
       "type": "value.v0",
@@ -46,6 +43,14 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
       }
     }
   }

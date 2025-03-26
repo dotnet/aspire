@@ -6,9 +6,7 @@
       "connectionString": "{wps1.outputs.endpoint}",
       "path": "wps1.module.bicep",
       "params": {
-        "ChatForAspire_url_0": "{webfrontend.bindings.https.url}/eventhandler/",
-        "principalType": "",
-        "principalId": ""
+        "ChatForAspire_url_0": "{webfrontend.bindings.https.url}/eventhandler/"
       }
     },
     "webfrontend": {
@@ -36,6 +34,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "wps1-roles": {
+      "type": "azure.bicep.v0",
+      "path": "wps1-roles.module.bicep",
+      "params": {
+        "wps1_outputs_name": "{wps1.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     },
     "ChatForAspire": {

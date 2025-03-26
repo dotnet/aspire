@@ -71,19 +71,6 @@ public static class AzureEventHubsExtensions
                     return resource;
                 });
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(new EventHubsBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
-
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             // We need to output name to externalize role assignments.

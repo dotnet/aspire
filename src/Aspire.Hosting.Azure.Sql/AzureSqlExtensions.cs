@@ -205,8 +205,7 @@ public static class AzureSqlExtensions
         infrastructure.Add(principalNameParameter);
 
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-        var addAdminRole = azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _) ||
-            azureResource.InnerResource is not null; // the obsolete AsAzureSqlDatabase use this as well, ensure we generate the role assignment.
+        var addAdminRole = azureResource.InnerResource is not null; // the obsolete AsAzureSqlDatabase uses this, ensure we generate the role assignment.
 
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>

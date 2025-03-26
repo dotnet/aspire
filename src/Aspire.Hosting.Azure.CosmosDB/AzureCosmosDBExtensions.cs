@@ -484,14 +484,6 @@ public static class AzureCosmosExtensions
         {
             // use managed identity
 
-            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
-            {
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter);
-            }
-
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = cosmosAccount.DocumentEndpoint

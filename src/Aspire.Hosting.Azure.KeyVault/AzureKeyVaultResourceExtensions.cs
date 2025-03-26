@@ -66,19 +66,6 @@ public static class AzureKeyVaultResourceExtensions
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
             infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = keyVault.Id });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(keyVault.CreateRoleAssignment(new KeyVaultBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
