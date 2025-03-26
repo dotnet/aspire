@@ -35,7 +35,7 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
     /// Gets the connection string expression for the Azure Cosmos DB database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        Parent.GetConnectionString(Name, DatabaseName, null);
+        Parent.GetChildConnectionString(Name, DatabaseName, null);
 
     // ensure Azure Functions projects can WithReference a CosmosDB database
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
