@@ -131,6 +131,8 @@ public class ExpressionResolverTests
         var test = builder.AddResource(new ContainerResource("testSource"))
             .WithEnvironment(env =>
             {
+                Assert.NotNull(env.Resource);
+
                 env.EnvironmentVariables["envname"] = new HostUrl(hostUrlVal);
             });
 

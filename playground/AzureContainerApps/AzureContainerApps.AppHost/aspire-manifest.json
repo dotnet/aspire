@@ -129,6 +129,7 @@
           "cache_password_value": "{cache-password.value}",
           "account_kv_outputs_name": "{account-kv.outputs.name}",
           "secretparam_value": "{secretparam.value}",
+          "api_identity_outputs_principalname": "{api-identity.outputs.principalName}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
@@ -146,7 +147,8 @@
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__account": "{account.connectionString}",
-        "VALUE": "{secretparam.value}"
+        "VALUE": "{secretparam.value}",
+        "AZURE_PRINCIPAL_NAME": "{api-identity.outputs.principalName}"
       },
       "bindings": {
         "http": {
