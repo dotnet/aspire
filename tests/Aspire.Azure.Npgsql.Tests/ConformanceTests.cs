@@ -11,9 +11,9 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Xunit;
 
-namespace Aspire.Npgsql.Tests;
+namespace Aspire.Azure.Npgsql.Tests;
 
-public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
+public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     private readonly PostgreSQLContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
@@ -51,11 +51,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         }
         """;
 
-    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
-        {
-            ("""{"Aspire": { "Npgsql":{ "DisableMetrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
-        };
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => [];
 
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
     {
@@ -71,25 +67,31 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
             new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), ConnectionString)
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureNpgsqlSettings>? configure = null, string? key = null)
     {
+        void Configure(AzureNpgsqlSettings settings)
+        {
+            configure?.Invoke(settings);
+            settings.Credential = new FakeTokenCredential();
+        };
+
         if (key is null)
         {
-            builder.AddNpgsqlDataSource("npgsql", configure);
+            builder.AddAzureNpgsqlDataSource("npgsql", Configure);
         }
         else
         {
-            builder.AddKeyedNpgsqlDataSource(key, configure);
+            builder.AddKeyedAzureNpgsqlDataSource(key, Configure);
         }
     }
 
-    protected override void SetHealthCheck(NpgsqlSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureNpgsqlSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
 
-    protected override void SetTracing(NpgsqlSettings options, bool enabled)
+    protected override void SetTracing(AzureNpgsqlSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(NpgsqlSettings options, bool enabled)
+    protected override void SetMetrics(AzureNpgsqlSettings options, bool enabled)
         => options.DisableMetrics = !enabled;
 
     protected override void TriggerActivity(NpgsqlDataSource service)
@@ -136,8 +138,6 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
                                  ConnectionString).Dispose();
-
-    protected override bool CheckOptionClassSealed => false; // AzureNpgsqlSettings needs to inherit from NpgsqlSettings
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
         => test(new ConformanceTests(null) { ConnectionString = connectionString });
