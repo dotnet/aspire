@@ -4,17 +4,20 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Docker.Tests;
 
 public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    [RequiresDocker]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
     {
         using var tempDir = new TempDirectory();
@@ -37,7 +40,10 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithReference(cs)
                          .WithArgs("--cs", cs.Resource);
 
-        builder.AddProject<TestProject>("project1", launchProfileName: null)
+        builder.AddProject(
+            "project1",
+            "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
+            launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
 
         var app = builder.Build();
@@ -48,7 +54,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
-            builder.ExecutionContext);
+            builder.ExecutionContext,
+            app.Services.GetRequiredService<IResourceContainerImageBuilder>()
+            );
 
         // Act
         await publisher.PublishAsync(model, default);

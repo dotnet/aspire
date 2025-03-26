@@ -96,6 +96,25 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return publishers;
     }
 
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting publishing activities.");
+
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)>>(
+            "GetPublishingActivitiesAsync",
+            Array.Empty<object>(),
+            cancellationToken);
+
+        logger.LogDebug("Received publishing activities.");
+
+        await foreach (var state in resourceStates.WithCancellation(cancellationToken))
+        {
+            yield return state;
+        }
+    }
+
     public void Dispose()
     {
         try

@@ -14,8 +14,34 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, IDistributedApplicationEventing eventing)
-{   
+internal class AppHostRpcTarget(
+    ILogger<AppHostRpcTarget> logger,
+    ResourceNotificationService resourceNotificationService,
+    IServiceProvider serviceProvider,
+    IDistributedApplicationEventing eventing,
+    PublishingActivityProgressReporter activityReporter) 
+{
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        while (cancellationToken.IsCancellationRequested == false)
+        {
+            var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            yield return (
+                publishingActivity.Id,
+                publishingActivity.StatusMessage,
+                publishingActivity.IsComplete,
+                publishingActivity.IsError
+            );
+
+            if ( publishingActivity.IsPrimary &&(publishingActivity.IsComplete || publishingActivity.IsError))
+            {
+                // If the activity is complete or an error and it is the primary activity,
+                // we can stop listening for updates.
+                break;
+            }
+        }
+    }
+
     public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
