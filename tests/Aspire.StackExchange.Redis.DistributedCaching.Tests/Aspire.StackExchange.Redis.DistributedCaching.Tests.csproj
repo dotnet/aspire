@@ -9,6 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.DistributedCaching\Aspire.StackExchange.Redis.DistributedCaching.csproj" />
     <ProjectReference Include="..\Aspire.StackExchange.Redis.Tests\Aspire.StackExchange.Redis.Tests.csproj" />
   </ItemGroup>
