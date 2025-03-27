@@ -4,11 +4,7 @@
     "openai": {
       "type": "azure.bicep.v0",
       "connectionString": "{openai.outputs.connectionString}",
-      "path": "openai.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "openai.module.bicep"
     },
     "webstory": {
       "type": "project.v0",
@@ -35,6 +31,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "openai-roles": {
+      "type": "azure.bicep.v0",
+      "path": "openai-roles.module.bicep",
+      "params": {
+        "openai_outputs_name": "{openai.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

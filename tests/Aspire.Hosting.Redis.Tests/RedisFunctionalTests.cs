@@ -3,7 +3,7 @@
 
 using System.Net.Http.Json;
 using System.Net;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
@@ -14,7 +14,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.Hosting.Tests.Dcp;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;

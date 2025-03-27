@@ -342,7 +342,7 @@ public static class ResourceExtensions
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
             var config = new Dictionary<string, object>();
-            var context = new EnvironmentCallbackContext(executionContext, config, cancellationToken)
+            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
             {
                 Logger = logger
             };

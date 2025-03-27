@@ -37,11 +37,11 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
-    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Redis resource.
+    /// Gets the "connectionString" secret reference from the key vault associated with this resource.
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
@@ -125,7 +125,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         AzureCosmosExtensions.AddContributorRoleAssignment(infra, cosmosAccount, principalId);
     }
 
-    internal ReferenceExpression GetConnectionString(string? databaseName = null, string? containerName = null)
+    internal ReferenceExpression GetChildConnectionString(string childResourceName, string? databaseName = null, string? containerName = null)
     {
         if (string.IsNullOrEmpty(databaseName) && string.IsNullOrEmpty(containerName))
         {
@@ -134,25 +134,35 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var builder = new ReferenceExpressionBuilder();
 
-        if (IsEmulator || UseAccessKeyAuthentication)
+        if (UseAccessKeyAuthentication)
         {
-            builder.AppendFormatted(ConnectionStringExpression);
+            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(childResourceName)));
         }
         else
         {
-            builder.Append($"AccountEndpoint={ConnectionStringExpression}");
-        }
-
-        if (!string.IsNullOrEmpty(databaseName))
-        {
-            builder.Append($";Database={databaseName}");
-
-            if (!string.IsNullOrEmpty(containerName))
+            if (IsEmulator)
             {
-                builder.Append($";Container={containerName}");
+                builder.AppendFormatted(ConnectionStringExpression);
+            }
+            else
+            {
+                builder.Append($"AccountEndpoint={ConnectionStringExpression}");
+            }
+
+            if (!string.IsNullOrEmpty(databaseName))
+            {
+                builder.Append($";Database={databaseName}");
+
+                if (!string.IsNullOrEmpty(containerName))
+                {
+                    builder.Append($";Container={containerName}");
+                }
             }
         }
 
         return builder.Build();
     }
+
+    internal static string GetKeyValueSecretName(string resourceName)
+        => $"connectionstrings--{resourceName}";
 }

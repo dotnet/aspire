@@ -3,7 +3,7 @@
 
 using System.Text;
 using System.Text.Json.Nodes;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
@@ -14,7 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -159,7 +158,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataBindMount();
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -176,7 +177,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataBindMount("mydata");
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -193,7 +196,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataVolume();
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -210,7 +215,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.WithDataVolume("mydata");
+#pragma warning restore CS0618 // Type or member is obsolete
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -274,17 +281,15 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithProperties(hub => hub.PartitionCount = 3)
             .AddConsumerGroup("cg1", "group-name");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
             param sku string = 'Standard'
-
-            param principalType string
-
-            param principalId string
 
             resource eh 'Microsoft.EventHub/namespaces@2024-01-01' = {
               name: take('eh-${uniqueString(resourceGroup().id)}', 256)
@@ -295,16 +300,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
               tags: {
                 'aspire-resource-name': 'eh'
               }
-            }
-
-            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
-                principalType: principalType
-              }
-              scope: eh
             }
 
             resource hub_resource 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
@@ -324,8 +319,37 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
             output name string = eh.name
             """;
-
+        testOutputHelper.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"eh-roles"));
+        var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param eh_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource eh 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
+              name: eh_outputs_name
+            }
+
+            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
+                principalType: principalType
+              }
+              scope: eh
+            }
+            """;
+        testOutputHelper.WriteLine(ehRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, ehRolesManifest.BicepText);
     }
 
     [Fact]

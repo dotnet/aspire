@@ -99,7 +99,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// method will be called as a top-level statement in the application's entry-point.
     /// </para>
     /// <para>
-    /// Note that the <paramref name="args"/> parameter is a <see langword="string"/> is essential in allowing the application
+    /// Note that the <paramref name="args"/> parameter is a <see langword="string"/> and is essential in allowing the application
     /// host to work with deployment tools because arguments are used to tell the application host that it
     /// is in publish mode. If <paramref name="args"/> is not provided the application will not work with
     /// deployment tools. It is also possible to provide arguments using the <see cref="CreateBuilder(Aspire.Hosting.DistributedApplicationOptions)"/>
@@ -153,15 +153,15 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <remarks>
     /// <para>
     /// The <see cref="DistributedApplication.CreateBuilder(DistributedApplicationOptions)"/> method provides
-    /// greater control over the behavior of the distributed application at runtime. For example using providing
-    /// a <paramref name="options"/> argument allows developers to force all container images to be loaded
+    /// greater control over the behavior of the distributed application at runtime. For example providing
+    /// an <paramref name="options"/> argument allows developers to force all container images to be loaded
     /// from a specified container registry by using the <see cref="DistributedApplicationOptions.ContainerRegistryOverride"/>
-    /// property, or disable the dashboard by using the <see cref="DistributedApplicationOptions.DisableDashboard"/>
+    /// property, or disabling the dashboard by using the <see cref="DistributedApplicationOptions.DisableDashboard"/>
     /// property. Refer to the <see cref="DistributedApplicationOptions"/> class for more details on
     /// each option that may be provided.
     /// </para>
     /// <para>
-    /// When supplying a custom <see cref="DistributedApplicationOptions"/> it is commended to populate the
+    /// When supplying a custom <see cref="DistributedApplicationOptions"/> it is recommended to populate the
     /// <see cref="DistributedApplicationOptions.Args"/> property to ensure that the app host continues to function
     /// correctly when used with deployment tools that need to enable publish mode.
     /// </para>

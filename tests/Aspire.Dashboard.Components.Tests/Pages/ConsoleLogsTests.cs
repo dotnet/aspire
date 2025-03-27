@@ -19,7 +19,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 

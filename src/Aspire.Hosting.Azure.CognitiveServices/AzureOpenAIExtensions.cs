@@ -68,19 +68,6 @@ public static class AzureOpenAIExtensions
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(cogServicesAccount.CreateRoleAssignment(new CognitiveServicesBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
-
             var resource = (AzureOpenAIResource)infrastructure.AspireResource;
 
             CognitiveServicesAccountDeployment? dependency = null;

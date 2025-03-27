@@ -4,10 +4,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.Playwright;
 using Xunit;
-using Xunit.Abstractions;
 using static Aspire.Templates.Tests.TestExtensions;
 
 namespace Aspire.Templates.Tests;

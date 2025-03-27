@@ -20,7 +20,7 @@
     },
     "db1": {
       "type": "value.v0",
-      "connectionString": "{sql1.connectionString};Database=db1"
+      "connectionString": "{sql1.connectionString};Initial Catalog=db1"
     },
     "api": {
       "type": "project.v0",

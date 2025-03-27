@@ -20,7 +20,9 @@ internal sealed class DockerComposePublisher(
     [ServiceKey]string name,
     IOptionsMonitor<DockerComposePublisherOptions> options,
     ILogger<DockerComposePublisher> logger,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
+    DistributedApplicationExecutionContext executionContext,
+    IResourceContainerImageBuilder imageBuilder
+    ) : IDistributedApplicationPublisher
 {
     /// <summary>
     /// Publishes a distributed application model using the Docker Compose publisher implementation.
@@ -45,7 +47,7 @@ internal sealed class DockerComposePublisher(
             );
         }
 
-        var context = new DockerComposePublishingContext(executionContext, publisherOptions, logger, cancellationToken);
+        var context = new DockerComposePublishingContext(executionContext, publisherOptions, imageBuilder, logger, cancellationToken);
 
         await context.WriteModelAsync(model).ConfigureAwait(false);
     }

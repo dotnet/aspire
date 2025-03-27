@@ -6,8 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
-using Aspire.Components.Common.Tests;
-using Xunit.Abstractions;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Runtime.CompilerServices;
 

@@ -68,7 +68,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogdbapp.bindings.http.targetPort}",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
+        "DatabaseResetKey": "9a5cbab2-b477-4a2f-9d2f-91080d988d75"
       },
       "bindings": {
         "http": {

@@ -20,7 +20,6 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
     {
         try
         {
-
             var unixSocketPath = configuration.GetValue<string>(UnixSocketPathEnvironmentVariable);
 
             if (string.IsNullOrEmpty(unixSocketPath))
