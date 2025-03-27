@@ -11,6 +11,6 @@
     <None Include="@(_DataFile)" />
 
     <!-- needed for the RequiresDocker attribute, and discoverer -->
-    <ProjectReference Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

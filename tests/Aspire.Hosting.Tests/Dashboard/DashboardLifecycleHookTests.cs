@@ -17,7 +17,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.Hosting.Devcontainers;
 
 namespace Aspire.Hosting.Tests.Dashboard;

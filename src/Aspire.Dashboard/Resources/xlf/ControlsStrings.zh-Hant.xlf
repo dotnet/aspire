@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="EndpointNameColumnHeader">
         <source>Endpoint name</source>
-        <target state="new">Endpoint name</target>
+        <target state="translated">端點名稱</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="LinkColumnHeader">
         <source>Link</source>
-        <target state="new">Link</target>
+        <target state="translated">連結</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -374,7 +374,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsUrlsHeader">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
@@ -389,7 +389,7 @@
       </trans-unit>
       <trans-unit id="ResourceGraphNoEndpoints">
         <source>No endpoints</source>
-        <target state="new">No endpoints</target>
+        <target state="translated">沒有任何端點</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">

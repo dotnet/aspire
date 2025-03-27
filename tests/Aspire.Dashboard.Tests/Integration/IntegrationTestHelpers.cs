@@ -15,7 +15,6 @@ using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 

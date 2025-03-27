@@ -1,16 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -279,11 +278,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             """
             {
               "type": "azure.bicep.v0",
-              "path": "funcstorage634f8.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "funcstorage634f8.module.bicep"
             }
             """;
         Assert.Equal(expectedRolesManifest, storageManifest.ToString());
@@ -662,9 +657,6 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
-    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class TestProject : IProjectMetadata
     {

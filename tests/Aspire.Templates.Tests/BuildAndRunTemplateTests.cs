@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Templates.Tests;
 

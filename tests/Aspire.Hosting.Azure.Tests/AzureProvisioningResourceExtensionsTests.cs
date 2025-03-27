@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppContainers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 

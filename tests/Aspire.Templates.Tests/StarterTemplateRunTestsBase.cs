@@ -4,10 +4,9 @@
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
 using System.Net.Http.Json;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 
 namespace Aspire.Templates.Tests;
 

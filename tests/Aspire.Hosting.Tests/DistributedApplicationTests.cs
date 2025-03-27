@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -24,7 +24,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
 
