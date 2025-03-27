@@ -588,14 +588,17 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
             while (true)
             {
-                int readLength = await socket.ReceiveAsync(memory, SocketFlags.None, cancellationToken).ConfigureAwait(false);
+                // Because this is UDP, the response must be in a single packet,
+                // if the response does not fit into a single UDP packet, the server will
+                // set the Truncated flag in the header, and we will need to retry with TCP.
+                int packetLength = await socket.ReceiveAsync(memory, SocketFlags.None, cancellationToken).ConfigureAwait(false);
 
-                if (readLength < DnsMessageHeader.HeaderLength)
+                if (packetLength < DnsMessageHeader.HeaderLength)
                 {
                     continue;
                 }
 
-                responseReader = new DnsDataReader(memory.Slice(0, readLength), buffer);
+                responseReader = new DnsDataReader(memory.Slice(0, packetLength), buffer);
                 if (!responseReader.TryReadHeader(out header) ||
                     header.TransactionId != transactionId ||
                     !header.IsResponse)
