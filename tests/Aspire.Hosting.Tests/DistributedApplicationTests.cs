@@ -112,6 +112,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
