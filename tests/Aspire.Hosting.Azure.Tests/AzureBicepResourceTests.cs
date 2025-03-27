@@ -1289,8 +1289,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output vaultUri string = mykv.properties.vaultUri
 
             output name string = mykv.name
-
-            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1339,8 +1337,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output vaultUri string = mykv.properties.vaultUri
 
             output name string = mykv.name
-
-            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
