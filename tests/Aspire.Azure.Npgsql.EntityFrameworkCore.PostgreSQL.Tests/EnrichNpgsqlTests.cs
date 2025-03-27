@@ -15,7 +15,7 @@ using Xunit;
 using Aspire.Npgsql.Tests;
 using OpenTelemetry.Trace;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
@@ -23,13 +23,10 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
     }
 
-    // Sub-classed in Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
-    protected override bool CheckOptionClassSealed => false;
-
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureNpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
-        builder.EnrichNpgsqlDbContext<TestDbContext>(configure);
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>(configure);
     }
 
     [Fact]
@@ -37,7 +34,7 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(settings: null);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.EnrichNpgsqlDbContext<TestDbContext>());
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.EnrichAzureNpgsqlDbContext<TestDbContext>());
         Assert.Equal("DbContext<TestDbContext> was not registered. Ensure you have registered the DbContext in DI before calling EnrichNpgsqlDbContext.", exception.Message);
     }
 
@@ -48,7 +45,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContext<TestDbContext>(options => options.UseNpgsql(ConnectionString));
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
     }
 
     protected override void SetupConnectionInformationIsDelayValidated()
@@ -66,14 +63,14 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsqlBuilder =>
             {
                 npgsqlBuilder.CommandTimeout(123);
             });
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -102,14 +99,14 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsqlBuilder =>
             {
                 npgsqlBuilder.CommandTimeout(123);
             });
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -123,14 +120,14 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString);
         });
 
         var oldOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(oldOptionsDescriptor);
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -159,7 +156,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsqlBuilder =>
             {
                 npgsqlBuilder.EnableRetryOnFailure(456);
@@ -169,12 +166,15 @@ public class EnrichNpgsqlTests : ConformanceTests
         var oldOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(oldOptionsDescriptor);
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         // The service descriptor of DbContextOptions<TestDbContext> should not be affected since Retry is false
         var optionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(optionsDescriptor);
-        Assert.Same(oldOptionsDescriptor, optionsDescriptor);
+
+        // The descriptors are not the same since we update the password providers.
+        // In the non-Azure integration this check is not disabled
+        // Assert.Same(oldOptionsDescriptor, optionsDescriptor);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -203,7 +203,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsqlBuilder =>
             {
                 npgsqlBuilder.EnableRetryOnFailure(456);
@@ -213,7 +213,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         var oldOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(oldOptionsDescriptor);
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -239,11 +239,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString);
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
@@ -257,11 +257,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContext<ITestDbContext, TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString);
         }, contextLifetime: ServiceLifetime.Singleton);
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         var optionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(optionsDescriptor);
@@ -279,11 +279,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = true);
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -308,11 +308,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = false);
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = false);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -326,11 +326,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = false);
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = false);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -359,11 +359,11 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            AspireAzureEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
             optionsBuilder.UseNpgsql(ConnectionString);
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>();
+        builder.EnrichAzureNpgsqlDbContext<TestDbContext>();
 
         using var host = builder.Build();
 
