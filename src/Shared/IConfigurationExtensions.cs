@@ -10,16 +10,19 @@ internal static class IConfigurationExtensions
 {
     public static T GetValue<T>(this IConfiguration configuration, string primaryKey, string secondaryKey, T defaultValue)
     {
-        var value = configuration.GetValue<T?>(primaryKey, secondaryKey)
-            ?? defaultValue;
-        return value;
-    }
+        var primaryValue = configuration.GetValue(typeof(T), primaryKey, null);
+        if (primaryValue is not null)
+        {
+            return (T)primaryValue;
+        }
 
-    public static T? GetValue<T>(this IConfiguration configuration, string primaryKey, string secondaryKey)
-    {
-        var value = configuration.GetValue<T>(primaryKey)
-            ?? configuration.GetValue<T>(secondaryKey);
-        return value;
+        var secondaryValue = configuration.GetValue(typeof(T), secondaryKey, null);
+        if (secondaryValue is not null)
+        {
+            return (T)secondaryValue;
+        }
+
+        return defaultValue;
     }
 
     public static bool? GetBool(this IConfiguration configuration, string primaryKey, string secondaryKey)
