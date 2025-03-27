@@ -4,14 +4,13 @@
 using Microsoft.DotNet.XUnitExtensions;
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
-public class RequiresToolsDiscoverer : ITraitDiscoverer
+public class RequiresSSLCertificateDiscoverer : ITraitDiscoverer
 {
     public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
     {
-        string[] executablesOnPath = (string[])traitAttribute.GetConstructorArguments().First();
-        if (!executablesOnPath.All(executable => FileUtil.FindFullPathFromPath(executable) is not null))
+        if (!RequiresSSLCertificateAttribute.IsSupported)
         {
             yield return new KeyValuePair<string, string>(XunitConstants.Category, "failing");
         }

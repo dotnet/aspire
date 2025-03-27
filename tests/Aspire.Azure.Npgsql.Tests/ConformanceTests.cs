@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
-using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

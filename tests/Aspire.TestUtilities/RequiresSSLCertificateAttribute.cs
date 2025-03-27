@@ -3,9 +3,9 @@
 
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
-[TraitDiscoverer("Aspire.Components.Common.Tests.RequiresSSLCertificateDiscoverer", "Aspire.Components.Common.Tests")]
+[TraitDiscoverer("Aspire.TestUtilities.RequiresSSLCertificateDiscoverer", "Aspire.TestUtilities")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresSSLCertificateAttribute(string? reason = null) : Attribute, ITraitAttribute
 {

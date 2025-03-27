@@ -4,13 +4,13 @@
 using Microsoft.DotNet.XUnitExtensions;
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
-public class RequiresSSLCertificateDiscoverer : ITraitDiscoverer
+public class RequiresDockerDiscoverer : ITraitDiscoverer
 {
     public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
     {
-        if (!RequiresSSLCertificateAttribute.IsSupported)
+        if (!RequiresDockerAttribute.IsSupported)
         {
             yield return new KeyValuePair<string, string>(XunitConstants.Category, "failing");
         }
