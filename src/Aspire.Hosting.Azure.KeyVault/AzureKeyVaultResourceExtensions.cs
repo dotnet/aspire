@@ -71,7 +71,7 @@ public static class AzureKeyVaultResourceExtensions
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(KeyVaultBuiltInRole.GetBuiltInRoleName,
-                KeyVaultBuiltInRole.KeyVaultAdministrator);
+                KeyVaultBuiltInRole.KeyVaultSecretsUser);
     }
 
     /// <summary>
