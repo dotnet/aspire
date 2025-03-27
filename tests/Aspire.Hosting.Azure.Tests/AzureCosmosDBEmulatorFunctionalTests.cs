@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Azure.Cosmos;

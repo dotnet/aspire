@@ -3,9 +3,9 @@
 
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
-[TraitDiscoverer("Aspire.Components.Common.Tests.RequiresPlaywrightDiscoverer", "Aspire.Components.Common.Tests")]
+[TraitDiscoverer("Aspire.TestUtilities.RequiresPlaywrightDiscoverer", "Aspire.TestUtilities")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITraitAttribute
 {

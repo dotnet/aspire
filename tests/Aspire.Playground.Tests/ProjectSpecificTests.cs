@@ -3,7 +3,7 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Tests.Utils;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
