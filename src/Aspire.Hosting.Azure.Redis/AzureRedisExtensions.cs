@@ -282,16 +282,6 @@ public static class AzureRedisExtensions
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
-            if (redisResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
-            {
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-                var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-                infrastructure.Add(principalNameParameter);
-
-                AddContributorPolicyAssignment(infrastructure, redis, principalIdParameter, principalNameParameter);
-            }
-
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")

@@ -4,6 +4,8 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Publishing;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -11,9 +13,10 @@ using Xunit;
 
 namespace Aspire.Hosting.Docker.Tests;
 
-public class DockerComposePublisherTests
+public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    [RequiresDocker]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
     {
         using var tempDir = new TempDirectory();
@@ -36,7 +39,10 @@ public class DockerComposePublisherTests
                          .WithReference(cs)
                          .WithArgs("--cs", cs.Resource);
 
-        builder.AddProject<TestProject>("project1", launchProfileName: null)
+        builder.AddProject(
+            "project1",
+            "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
+            launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
 
         var app = builder.Build();
@@ -47,7 +53,9 @@ public class DockerComposePublisherTests
 
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
-            builder.ExecutionContext);
+            builder.ExecutionContext,
+            app.Services.GetRequiredService<IResourceContainerImageBuilder>()
+            );
 
         // Act
         await publisher.PublishAsync(model, default);
@@ -64,33 +72,33 @@ public class DockerComposePublisherTests
         Assert.Equal(
             """
             services:
-            myapp:
+              myapp:
                 image: "mcr.microsoft.com/dotnet/aspnet:8.0"
                 command:
-                - "--cs"
-                - "Url=${PARAM0}, Secret=${PARAM1}"
+                  - "--cs"
+                  - "Url=${PARAM0}, Secret=${PARAM1}"
                 environment:
-                ASPNETCORE_ENVIRONMENT: "Development"
-                PORT: "8001"
-                param0: "${PARAM0}"
-                param1: "${PARAM1}"
-                param2: "${PARAM2}"
-                ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
+                  ASPNETCORE_ENVIRONMENT: "Development"
+                  PORT: "8000"
+                  param0: "${PARAM0}"
+                  param1: "${PARAM1}"
+                  param2: "${PARAM2}"
+                  ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
                 ports:
-                - "8001:8000"
+                  - "8001:8000"
                 networks:
-                - "aspire"
-            project1:
+                  - "aspire"
+              project1:
                 image: "${PROJECT1_IMAGE}"
                 environment:
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
-                services__myapp__http__0: "http://myapp:8000"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+                  services__myapp__http__0: "http://myapp:8000"
                 networks:
                 - "aspire"
             networks:
-            aspire:
+              aspire:
                 driver: "bridge"
 
             """,
@@ -113,6 +121,48 @@ public class DockerComposePublisherTests
 
             """,
             envContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task DockerComposeCorrectlyEmitsPortMappings()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
+                                                             .WithTestAndResourceLogging(outputHelper);
+
+        builder.AddDockerComposePublisher();
+
+        builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
+               .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+               .WithHttpEndpoint(env: "HTTP_PORT");
+
+        var app = builder.Build();
+
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var content = await File.ReadAllTextAsync(composePath);
+
+        Assert.Equal(
+            """
+            services:
+              resource:
+                image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+                environment:
+                  ASPNETCORE_ENVIRONMENT: "Development"
+                  HTTP_PORT: "8000"
+                ports:
+                  - "8001:8000"
+                networks:
+                  - "aspire"
+            networks:
+              aspire:
+                driver: "bridge"
+
+            """,
+            content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

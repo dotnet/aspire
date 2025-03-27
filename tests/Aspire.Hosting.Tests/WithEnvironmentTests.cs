@@ -19,6 +19,8 @@ public class WithEnvironmentTests
         var container = builder.AddContainer("container", "image")
                                .WithEnvironment(context =>
                                {
+                                   Assert.NotNull(context.Resource);
+
                                    var sp = context.ExecutionContext.ServiceProvider;
                                    context.EnvironmentVariables["SP_AVAILABLE"] = sp is not null ? "true" : "false";
                                });
@@ -161,6 +163,32 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
                               .WithEnvironment(context =>
                               {
+                                  Assert.NotNull(context.Resource);
+
+                                  context.EnvironmentVariables["myName"] = environmentValue;
+                              });
+
+        environmentValue = "value2";
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("value2", config["myName"]);
+    }
+
+    [Fact]
+    public async Task ComplexAsyncEnvironmentCallbackPopulatesValueWhenCalled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var environmentValue = "value";
+        var projectA = builder.AddProject<ProjectA>("projectA")
+                              .WithEnvironment(async context =>
+                              {
+                                  await Task.Yield();
+
+                                  Assert.NotNull(context.Resource);
+
                                   context.EnvironmentVariables["myName"] = environmentValue;
                               });
 

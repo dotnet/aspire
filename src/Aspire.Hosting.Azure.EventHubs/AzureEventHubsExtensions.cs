@@ -71,19 +71,6 @@ public static class AzureEventHubsExtensions
                     return resource;
                 });
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(new EventHubsBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
-
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             // We need to output name to externalize role assignments.
@@ -388,6 +375,7 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    [Obsolete($"This method is obsolete because it doesn't work as intended and will be removed in a future version.")]
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -401,6 +389,7 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    [Obsolete($"This method is obsolete because it doesn't work as intended and will be removed in a future version.")]
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
