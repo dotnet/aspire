@@ -283,4 +283,10 @@
   <data name="TextVisualizerSecretWarningAcknowledge" xml:space="preserve">
     <value>Show value</value>
   </data>
+  <data name="FilterDialogDisableAll" xml:space="preserve">
+    <value>Disable all</value>
+  </data>
+  <data name="FilterDialogEnableAll" xml:space="preserve">
+    <value>Enable all</value>
+  </data>
 </root>

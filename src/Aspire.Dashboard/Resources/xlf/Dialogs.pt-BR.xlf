@@ -62,9 +62,19 @@
         <target state="translated">Condição</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="new">Disable all</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogDisableFilterButtonText">
         <source>Disable filter</source>
         <target state="new">Disable filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="new">Enable all</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogEnableFilterButtonText">

@@ -17,8 +17,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
-
 namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
@@ -361,36 +359,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private List<MenuButtonItem> GetFilterMenuItems()
     {
-        var filterMenuItems = new List<MenuButtonItem>();
-
-        foreach (var filter in ViewModel.Filters)
-        {
-            filterMenuItems.Add(new MenuButtonItem
-            {
-                OnClick = () => OpenFilterAsync(filter),
-                Text = filter.GetDisplayText(FilterLoc),
-                Icon = filter.Enabled ? new Icons.Regular.Size16.CheckboxChecked() : new Icons.Regular.Size16.CheckboxUnchecked(),
-                Class = "filter-menu-item",
-            });
-        }
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            IsDivider = true
-        });
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            Text = DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsRemoveAllButtonText)],
-            Icon = new Icons.Regular.Size16.Delete(),
-            OnClick = () =>
-            {
-                ViewModel.ClearFilters();
-                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
-            }
-        });
-
-        return filterMenuItems;
+        return this.GetFilterMenuItems(
+            ViewModel.Filters,
+            ViewModel.ClearFilters,
+            OpenFilterAsync,
+            FilterLoc,
+            DialogsLoc,
+            _contentLayout);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

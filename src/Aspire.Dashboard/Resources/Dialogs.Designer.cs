@@ -368,5 +368,17 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TextVisualizerSecretWarningAcknowledge", resourceCulture);
             }
         }
+        
+        public static string FilterDialogDisableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogDisableAll", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogEnableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
+            }
+        }
     }
 }
