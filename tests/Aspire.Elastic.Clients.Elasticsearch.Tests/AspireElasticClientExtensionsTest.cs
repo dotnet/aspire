@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;

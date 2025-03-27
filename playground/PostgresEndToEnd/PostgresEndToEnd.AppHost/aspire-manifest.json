@@ -4,12 +4,7 @@
     "pg": {
       "type": "azure.bicep.v0",
       "connectionString": "{pg.outputs.connectionString}",
-      "path": "pg.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalType": "",
-        "principalName": ""
-      }
+      "path": "pg.module.bicep"
     },
     "db1": {
       "type": "value.v0",
@@ -39,6 +34,16 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "pg-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pg-roles.module.bicep",
+      "params": {
+        "pg_outputs_name": "{pg.outputs.name}",
+        "principalType": "",
+        "principalId": "",
+        "principalName": ""
       }
     }
   }

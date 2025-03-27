@@ -451,18 +451,38 @@ public static class AzureCosmosExtensions
                 }
             };
             infrastructure.Add(secret);
+
+            foreach (var database in azureResource.Databases)
+            {
+                var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier(database.Name + "_connectionString"))
+                {
+                    Parent = keyVault,
+                    Name = AzureCosmosDBResource.GetKeyValueSecretName(database.Name),
+                    Properties = new SecretProperties
+                    {
+                        Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey};Database={database.DatabaseName}")
+                    }
+                };
+                infrastructure.Add(dbSecret);
+
+                foreach (var container in database.Containers)
+                {
+                    var containerSecret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier(container.Name + "_connectionString"))
+                    {
+                        Parent = keyVault,
+                        Name = AzureCosmosDBResource.GetKeyValueSecretName(container.Name),
+                        Properties = new SecretProperties
+                        {
+                            Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey};Database={database.DatabaseName};Container={container.ContainerName}")
+                        }
+                    };
+                    infrastructure.Add(containerSecret);
+                }
+            }
         }
         else
         {
             // use managed identity
-
-            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
-            {
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                AddContributorRoleAssignment(infrastructure, cosmosAccount, principalIdParameter);
-            }
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {

@@ -77,7 +77,7 @@ public class Program
         rootCommand.Options.Add(waitForDebuggerOption);
 
         ConfigureRunCommand(rootCommand);
-        ConfigureBuildCommand(rootCommand);
+        ConfigurePublishCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
         ConfigureAddCommand(rootCommand);
         return rootCommand;
@@ -306,9 +306,9 @@ public class Program
         };
     }
 
-    private static void ConfigureBuildCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand)
     {
-        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
+        var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -392,7 +392,7 @@ public class Program
                 publisher = AnsiConsole.Prompt(publisherPrompt);
             }
 
-            AnsiConsole.MarkupLine($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...");
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
 
             var exitCode = await AnsiConsole.Progress()
                 .AutoRefresh(true)

@@ -4,7 +4,7 @@
 using Microsoft.DotNet.XUnitExtensions;
 using Xunit.Sdk;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
 public class RequiresPlaywrightDiscoverer : ITraitDiscoverer
 {
