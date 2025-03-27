@@ -28,15 +28,17 @@ public static class AzureKeyVaultClientBuilderKeyExtensions
     /// 
     /// </summary>
     /// <param name="builder"></param>
-    /// <param name="name"></param>
+    /// <param name="serviceKey"></param>
     /// <param name="configureClientBuilder"></param>
     /// <returns></returns>
     public static AzureKeyVaultClientBuilder AddKeyedKeyClient(
     this AzureKeyVaultClientBuilder builder,
-    string name,
+    string serviceKey,
     Action<IAzureClientBuilder<KeyClient, KeyClientOptions>>? configureClientBuilder = null)
     {
-        return builder.InnerAddKeyClient(configureClientBuilder, name);
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
+        return builder.InnerAddKeyClient(configureClientBuilder, serviceKey);
     }
 
     /// <summary>

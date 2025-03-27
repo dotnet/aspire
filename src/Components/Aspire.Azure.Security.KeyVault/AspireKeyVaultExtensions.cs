@@ -32,7 +32,6 @@ public static class AspireKeyVaultExtensions
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         return new AzureKeyVaultClientBuilder(builder, connectionName, configureSettings)
                    .AddSecretClient(configureClientBuilder);
@@ -56,7 +55,6 @@ public static class AspireKeyVaultExtensions
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new AzureKeyVaultClientBuilder(builder, name, configureSettings)
                    .AddKeyedSecretClient(serviceKey: name, configureClientBuilder);

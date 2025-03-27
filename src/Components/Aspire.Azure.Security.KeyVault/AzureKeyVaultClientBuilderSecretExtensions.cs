@@ -44,6 +44,8 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     string serviceKey,
     Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
         return builder.InnerAddSecretClient(configureClientBuilder, serviceKey);
     }
 
