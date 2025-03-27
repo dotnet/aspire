@@ -79,6 +79,11 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 return (ExitCodeConstants.FailedToInstallTemplates, null);
             }
 
+            // NOTE: This parsing logic is hopefully temporary and in the future we'll
+            //       have structured output:
+            //       
+            //       See: https://github.com/dotnet/sdk/issues/46345
+            //
             if (!TryParsePackageVersionFromStdout(stdout, out var parsedVersion))
             {
                 logger.LogError("Failed to parse template version from stdout.");
@@ -103,10 +108,10 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             version = null;
             return false;
         }
-
-        var templateVersion = successLine.Split(" ") switch {
-            { Length: > 2 } chunks => chunks[1].Split("::") switch {
-                { Length: 2 } versionChunks => versionChunks[1],
+        
+        var templateVersion = successLine.Split(" ") switch { // Break up the success line.
+            { Length: > 2 } chunks => chunks[1].Split("::") switch { // Break up the template+version string
+                { Length: 2 } versionChunks => versionChunks[1], // The version in the second chunk
                 _ => null
             },
             _ => null
