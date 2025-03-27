@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -78,11 +79,48 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 return (ExitCodeConstants.FailedToInstallTemplates, null);
             }
 
-            var successLine = stdout.Split(Environment.NewLine).Single(x => x.StartsWith("Success: Aspire.ProjectTemplates"));
-            var templateString = successLine.Split(" ")[1];
-            var templateVersion = templateString.Split("::")[1];
+            if (!TryParsePackageVersionFromStdout(stdout, out var parsedVersion))
+            {
+                logger.LogError("Failed to parse template version from stdout.");
 
-            return (exitCode, templateVersion);
+                // Throwing here because this should never happen - we don't want to return
+                // the zero exit code if we can't parse the version because its possibly a 
+                // signal that the .NET SDK has changed.
+                throw new InvalidOperationException("Failed to parse template version from stdout.");
+            }
+
+            return (exitCode, parsedVersion);
+        }
+    }
+
+    private static bool TryParsePackageVersionFromStdout(string stdout, [NotNullWhen(true)] out string? version)
+    {
+        var lines = stdout.Split(Environment.NewLine);
+        var successLine = lines.SingleOrDefault(x => x.StartsWith("Success: Aspire.ProjectTemplates"));
+
+        if (successLine is null)
+        {
+            version = null;
+            return false;
+        }
+
+        var templateVersion = successLine.Split(" ") switch {
+            { Length: > 2 } chunks => chunks[1].Split("::") switch {
+                { Length: 2 } versionChunks => versionChunks[1],
+                _ => null
+            },
+            _ => null
+        };
+
+        if (templateVersion is not null)
+        {
+            version = templateVersion;
+            return true;
+        }
+        else
+        {
+            version = null;
+            return false;
         }
     }
 
