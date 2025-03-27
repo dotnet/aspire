@@ -1,6 +1,6 @@
 # Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to PostgreSQL®* and Azure Database for PostgreSQL®*. Enables connection pooling, retries, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to PostgreSQL® and Azure Database for PostgreSQL®. Enables connection pooling, retries, health check, logging and telemetry.
 
 ## Getting started
 
@@ -107,7 +107,6 @@ or
 ```csharp
     builder.EnrichAzureNpgsqlDbContext<MyDbContext>(settings => settings.DisableHealthChecks = true);
 ```
-
 
 Use the `AzureNpgsqlEntityFrameworkCorePostgreSQLSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
