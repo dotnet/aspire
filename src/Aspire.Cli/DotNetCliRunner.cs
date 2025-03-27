@@ -28,7 +28,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             cancellationToken: cancellationToken);
     }
 
-    public async Task<int> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken)
     {
         List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
 
@@ -43,13 +43,47 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             cliArgs.Add(nugetSource);
         }
 
-        return await ExecuteAsync(
+        string? stdout = null;
+        string? stderr = null;
+
+        var exitCode = await ExecuteAsync(
             args: [.. cliArgs],
             env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
-            streamsCallback: null,
+            streamsCallback: (_, output, _) => {
+                // We need to read the output of the streams
+                // here otherwise th process will never exit.
+                stdout = output.ReadToEnd();
+                stderr = output.ReadToEnd();
+            },
             cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError(
+                "Failed to install template {PackageName} with version {Version}. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                packageName,
+                version,
+                stderr,
+                stdout
+            );
+            return (exitCode, null);
+        }
+        else
+        {
+            if (stdout is null)
+            {
+                logger.LogError("Failed to read stdout from the process. This should never happen.");
+                return (ExitCodeConstants.FailedToInstallTemplates, null);
+            }
+
+            var successLine = stdout.Split(Environment.NewLine).Single(x => x.StartsWith("Success: Aspire.ProjectTemplates"));
+            var templateString = successLine.Split(" ")[1];
+            var templateVersion = templateString.Split("::")[1];
+
+            return (exitCode, templateVersion);
+        }
     }
 
     public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken)

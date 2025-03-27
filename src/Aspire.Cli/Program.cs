@@ -554,7 +554,7 @@ public class Program
             var templateVersion = parseResult.GetValue<string>("--version");
             var source = parseResult.GetValue<string?>("--source");
 
-            int templateInstallExitCode = await AnsiConsole.Status()
+            var templateInstallResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync(
@@ -563,11 +563,13 @@ public class Program
                         return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
                     });
 
-            if (templateInstallExitCode != 0)
+            if (templateInstallResult.ExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The template installation failed with exit code {templateInstallExitCode}. For more information run with --debug switch.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
+
+            AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
             var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
 
@@ -603,6 +605,10 @@ public class Program
             {
                 AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
             }
 
             return ExitCodeConstants.Success;
@@ -752,7 +758,16 @@ public class Program
                     }
                 );
 
-                return addPackageResult;
+                if (addPackageResult != 0)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                    return ExitCodeConstants.Success;
+                }
             }
             catch (Exception ex)
             {
