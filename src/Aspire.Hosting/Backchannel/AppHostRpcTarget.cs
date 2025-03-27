@@ -54,12 +54,22 @@ internal class AppHostRpcTarget(
                 continue;
             }
 
+            if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
+            {
+                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                endpoints = Enumerable.Empty<EndpointAnnotation>();
+            }
+    
+            var endpointUris = endpoints
+                .Where(e => e.AllocatedEndpoint != null)
+                .Select(e => e.AllocatedEndpoint!.UriString)
+                .ToArray();
             // TODO: Decide on whether we want to define a type and share it between codebases for this.
             yield return (
                 resourceEvent.Resource.Name,
                 resourceEvent.Snapshot.ResourceType,
                 resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                resourceEvent.Snapshot.Urls.Select(x => x.Url).ToArray()
+                endpointUris
                 );
         }
     }
