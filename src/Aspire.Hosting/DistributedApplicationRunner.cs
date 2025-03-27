@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter, IDistributedApplicationEventing eventing) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -23,8 +24,16 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
 
             try
             {
+                await eventing.PublishAsync<BeforePublishEvent>(
+                    new BeforePublishEvent(serviceProvider, model), stoppingToken
+                    ).ConfigureAwait(false);
+
                 var publisher = serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>(executionContext.PublisherName);
                 await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
+
+                await eventing.PublishAsync<AfterPublishEvent>(
+                    new AfterPublishEvent(serviceProvider, model), stoppingToken
+                    ).ConfigureAwait(false);
 
                 publishingActivity.IsComplete = true;
                 await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
