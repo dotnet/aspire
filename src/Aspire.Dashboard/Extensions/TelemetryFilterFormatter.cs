@@ -23,9 +23,13 @@ public static class TelemetryFilterFormatter
             _ => null
         };
 
-        var state = filter.Enabled ? "enabled" : "disabled";
+        var filterString = $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
+        if (!filter.Enabled)
+        {
+            filterString += ":disabled";
+        }
 
-        return $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}:{state}";
+        return filterString;
     }
 
     public static string SerializeFiltersToString(IEnumerable<TelemetryFilter> filters)
@@ -36,7 +40,7 @@ public static class TelemetryFilterFormatter
     private static TelemetryFilter? DeserializeFilterFromString(string filterString)
     {
         var parts = filterString.Split(':');
-        if (parts.Length != 4)
+        if (parts.Length != 3 && parts.Length != 4)
         {
             return null;
         }
@@ -63,11 +67,7 @@ public static class TelemetryFilterFormatter
 
         var value = Unescape(parts[2]);
 
-        var enabled = parts[3] switch
-        {
-            "enabled" => true,
-            _ => false,
-        };
+        var enabled = parts is not [_, _, _, "disabled"];
 
         return new TelemetryFilter
         {
