@@ -200,7 +200,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 switch (answer.Type)
                 {
                     case QueryType.CNAME:
-                        if (!TryReadTarget(answer, out string? target))
+                        if (!TryReadTarget(answer, response.RawMessageBytes, out string? target))
                         {
                             return (SendQueryError.MalformedResponse, []);
                         }
@@ -248,7 +248,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 if (answer.Type == QueryType.CNAME)
                 {
                     // map the alias to the target name
-                    if (!TryReadTarget(answer, out string? target))
+                    if (!TryReadTarget(answer, response.RawMessageBytes, out string? target))
                     {
                         return (SendQueryError.MalformedResponse, []);
                     }
@@ -303,7 +303,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             aRecordMap.TryGetValue(currentAlias, out List<AddressResult>? finalAddressList);
             return (SendQueryError.NoError, finalAddressList?.ToArray() ?? []);
 
-            static bool TryReadTarget(in DnsResourceRecord record, [NotNullWhen(true)] out string? target)
+            static bool TryReadTarget(in DnsResourceRecord record, ArraySegment<byte> messageBytes, [NotNullWhen(true)] out string? target)
             {
                 Debug.Assert(record.Type == QueryType.CNAME, "Only CNAME records should be processed here.");
 
@@ -311,11 +311,15 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
                 // some servers use domain name compression even inside CNAME records. In order to decode those
                 // correctly, we need to pass the entire message to TryReadQName. The Data span inside the record
-                // should be backed by the array containing the entire DNS message.
+                // should be backed by the array containing the entire DNS message. We just need to account for the
+                // 2 byte offset in case of TCP fallback.
                 var gotArray = MemoryMarshal.TryGetArray(record.Data, out ArraySegment<byte> segment);
                 Debug.Assert(gotArray, "Failed to get array segment");
+                Debug.Assert(segment.Array == messageBytes.Array, "record data backed by different array than the original message");
 
-                bool result = DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out string? targetName, out int bytesRead) && bytesRead == record.Data.Length;
+                int messageOffset = messageBytes.Offset;
+
+                bool result = DnsPrimitives.TryReadQName(segment.Array.AsSpan(messageOffset, segment.Offset + segment.Count - messageOffset), segment.Offset, out string? targetName, out int bytesRead) && bytesRead == record.Data.Length;
                 if (result)
                 {
                     target = targetName;
@@ -521,7 +525,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 // Response code is outside of valid range
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(ArraySegment<byte>.Empty, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -534,7 +538,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 // DNS Question mismatch
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(ArraySegment<byte>.Empty, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -548,7 +552,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             {
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(null, header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(ArraySegment<byte>.Empty, header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.MalformedResponse
                 };
             }
@@ -559,7 +563,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             SendQueryError validationError = ValidateResponse(header.ResponseCode, queryStartedTime, answers, authorities, ref expirationTime);
 
             // we transfer ownership of RawData to the response
-            DnsResponse response = new DnsResponse(responseReader.RawData!, header, queryStartedTime, expirationTime, answers, authorities, additionals);
+            DnsResponse response = new DnsResponse(responseReader.MessageBuffer, header, queryStartedTime, expirationTime, answers, authorities, additionals);
             responseReader = default; // avoid disposing (and returning RawData to the pool)
 
             return new SendQueryResult { Response = response, Error = validationError };
@@ -697,7 +701,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                     continue;
                 }
 
-                responseReader = new DnsDataReader(memory.Slice(0, packetLength), buffer);
+                responseReader = new DnsDataReader(new ArraySegment<byte>(buffer, 0, packetLength), true);
                 if (!responseReader.TryReadHeader(out header) ||
                     header.TransactionId != transactionId ||
                     !header.IsResponse)
@@ -762,7 +766,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 }
             }
 
-            DnsDataReader responseReader = new DnsDataReader(buffer.AsMemory(2, responseLength), buffer);
+            DnsDataReader responseReader = new DnsDataReader(new ArraySegment<byte>(buffer, 2, responseLength), true);
             if (!responseReader.TryReadHeader(out DnsMessageHeader header) ||
                 header.TransactionId != transactionId ||
                 !header.IsResponse)

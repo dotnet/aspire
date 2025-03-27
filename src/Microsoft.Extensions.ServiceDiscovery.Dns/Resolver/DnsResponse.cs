@@ -13,12 +13,11 @@ internal struct DnsResponse : IDisposable
     public List<DnsResourceRecord> Additionals { get; }
     public DateTime CreatedAt { get; }
     public DateTime Expiration { get; }
-    public ReadOnlyMemory<byte> RawData => _rawData ?? ReadOnlyMemory<byte>.Empty;
-    private byte[]? _rawData;
+    public ArraySegment<byte> RawMessageBytes { get; private set; }
 
-    public DnsResponse(byte[]? rawData, DnsMessageHeader header, DateTime createdAt, DateTime expiration, List<DnsResourceRecord> answers, List<DnsResourceRecord> authorities, List<DnsResourceRecord> additionals)
+    public DnsResponse(ArraySegment<byte> rawData, DnsMessageHeader header, DateTime createdAt, DateTime expiration, List<DnsResourceRecord> answers, List<DnsResourceRecord> authorities, List<DnsResourceRecord> additionals)
     {
-        _rawData = rawData;
+        RawMessageBytes = rawData;
 
         Header = header;
         CreatedAt = createdAt;
@@ -30,10 +29,11 @@ internal struct DnsResponse : IDisposable
 
     public void Dispose()
     {
-        if (_rawData != null)
+        if (RawMessageBytes.Array != null)
         {
-            ArrayPool<byte>.Shared.Return(_rawData);
-            _rawData = null;
+            ArrayPool<byte>.Shared.Return(RawMessageBytes.Array);
         }
+
+        RawMessageBytes = default; // prevent further access to the raw data
     }
 }

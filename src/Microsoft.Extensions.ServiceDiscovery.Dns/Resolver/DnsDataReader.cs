@@ -10,22 +10,22 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal struct DnsDataReader : IDisposable
 {
-    public byte[]? RawData { get; private set; }
-    private ReadOnlyMemory<byte> _buffer;
+    public ArraySegment<byte> MessageBuffer { get; private set; }
+    bool _returnToPool;
     private int _position;
 
-    public DnsDataReader(ReadOnlyMemory<byte> buffer, byte[]? returnToPool = null)
+    public DnsDataReader(ArraySegment<byte> buffer, bool returnToPool = false)
     {
-        _buffer = buffer;
+        MessageBuffer = buffer;
         _position = 0;
-        RawData = returnToPool;
+        _returnToPool = returnToPool;
     }
 
     public bool TryReadHeader(out DnsMessageHeader header)
     {
         Debug.Assert(_position == 0);
 
-        if (!DnsPrimitives.TryReadMessageHeader(_buffer.Span, out header, out int bytesRead))
+        if (!DnsPrimitives.TryReadMessageHeader(MessageBuffer.AsSpan(), out header, out int bytesRead))
         {
             header = default;
             return false;
@@ -53,26 +53,26 @@ internal struct DnsDataReader : IDisposable
 
     public bool TryReadUInt16(out ushort value)
     {
-        if (_buffer.Length - _position < 2)
+        if (MessageBuffer.Count - _position < 2)
         {
             value = 0;
             return false;
         }
 
-        value = BinaryPrimitives.ReadUInt16BigEndian(_buffer.Span.Slice(_position));
+        value = BinaryPrimitives.ReadUInt16BigEndian(MessageBuffer.AsSpan(_position));
         _position += 2;
         return true;
     }
 
     public bool TryReadUInt32(out uint value)
     {
-        if (_buffer.Length - _position < 4)
+        if (MessageBuffer.Count - _position < 4)
         {
             value = 0;
             return false;
         }
 
-        value = BinaryPrimitives.ReadUInt32BigEndian(_buffer.Span.Slice(_position));
+        value = BinaryPrimitives.ReadUInt32BigEndian(MessageBuffer.AsSpan(_position));
         _position += 4;
         return true;
     }
@@ -84,13 +84,13 @@ internal struct DnsDataReader : IDisposable
             !TryReadUInt16(out ushort @class) ||
             !TryReadUInt32(out uint ttl) ||
             !TryReadUInt16(out ushort dataLength) ||
-            _buffer.Length - _position < dataLength)
+            MessageBuffer.Count - _position < dataLength)
         {
             record = default;
             return false;
         }
 
-        ReadOnlyMemory<byte> data = _buffer.Slice(_position, dataLength);
+        ReadOnlyMemory<byte> data = MessageBuffer.AsMemory(_position, dataLength);
         _position += dataLength;
 
         record = new DnsResourceRecord(name, (QueryType)type, (QueryClass)@class, (int)ttl, data);
@@ -99,7 +99,7 @@ internal struct DnsDataReader : IDisposable
 
     public bool TryReadDomainName([NotNullWhen(true)] out string? name)
     {
-        if (DnsPrimitives.TryReadQName(_buffer.Span, _position, out name, out int bytesRead))
+        if (DnsPrimitives.TryReadQName(MessageBuffer.AsSpan(), _position, out name, out int bytesRead))
         {
             _position += bytesRead;
             return true;
@@ -110,12 +110,13 @@ internal struct DnsDataReader : IDisposable
 
     public void Dispose()
     {
-        if (RawData is not null)
+        if (!_returnToPool || MessageBuffer.Array == null)
         {
-            ArrayPool<byte>.Shared.Return(RawData);
-            RawData = null;
+            return; // nothing to do if we are not returning to the pool
         }
 
-        _buffer = default;
+        _returnToPool = false;
+        ArrayPool<byte>.Shared.Return(MessageBuffer.Array);
+        MessageBuffer = default;
     }
 }

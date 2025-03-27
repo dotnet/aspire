@@ -57,7 +57,7 @@ public class DnsDataReaderTests
 
         for (int i = 0; i < buffer.Length; i++)
         {
-            DnsDataReader reader = new DnsDataReader(buffer.AsMemory(0, i));
+            DnsDataReader reader = new DnsDataReader(new ArraySegment<byte>(buffer, 0, i));
             Assert.False(reader.TryReadResourceRecord(out _));
         }
     }

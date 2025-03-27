@@ -36,7 +36,7 @@ internal sealed class LoopbackDnsServer : IDisposable
         _tcpSocket.Close();
     }
 
-    private static async Task<int> ProcessRequestCore(ReadOnlyMemory<byte> message, Func<LoopbackDnsResponseBuilder, Task> action, Memory<byte> responseBuffer)
+    private static async Task<int> ProcessRequestCore(ArraySegment<byte> message, Func<LoopbackDnsResponseBuilder, Task> action, Memory<byte> responseBuffer)
     {
         DnsDataReader reader = new DnsDataReader(message);
 
@@ -110,7 +110,7 @@ internal sealed class LoopbackDnsServer : IDisposable
             EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
             SocketReceiveFromResult result = await _dnsSocket.ReceiveFromAsync(buffer, remoteEndPoint);
 
-            int bytesWritten = await ProcessRequestCore(buffer.AsMemory(0, result.ReceivedBytes), action, buffer.AsMemory(0, 512));
+            int bytesWritten = await ProcessRequestCore(new ArraySegment<byte>(buffer, 0, result.ReceivedBytes), action, buffer.AsMemory(0, 512));
 
             await _dnsSocket.SendToAsync(buffer.AsMemory(0, bytesWritten), SocketFlags.None, result.RemoteEndPoint);
         }
@@ -143,7 +143,7 @@ internal sealed class LoopbackDnsServer : IDisposable
                 }
             }
 
-            int bytesWritten = await ProcessRequestCore(buffer.AsMemory(2, length), action, buffer.AsMemory(2));
+            int bytesWritten = await ProcessRequestCore(new ArraySegment<byte>(buffer, 2, length), action, buffer.AsMemory(2));
             BinaryPrimitives.WriteUInt16BigEndian(buffer.AsSpan(0, 2), (ushort)bytesWritten);
             await tcpClient.SendAsync(buffer.AsMemory(0, bytesWritten + 2), SocketFlags.None);
         }
