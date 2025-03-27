@@ -11,7 +11,7 @@
         //"ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:16037",
         "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:16038",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:17037",
-        "ASPIRE__SHOW_DASHBOARD_RESOURCES": "true"
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }
     },
     "http": {
@@ -25,7 +25,7 @@
         //"ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
         "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:16032",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:17031",
-        "ASPIRE__SHOW_DASHBOARD_RESOURCES": "true",
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
