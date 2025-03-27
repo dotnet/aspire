@@ -4,6 +4,7 @@
 using System.Text.RegularExpressions;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Templates.Tests;

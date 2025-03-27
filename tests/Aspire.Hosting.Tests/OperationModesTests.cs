@@ -4,6 +4,7 @@
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -69,6 +70,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8223", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task VerifyExplicitRunModeWithPublisherInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will enter

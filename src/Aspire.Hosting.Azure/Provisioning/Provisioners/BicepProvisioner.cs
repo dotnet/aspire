@@ -94,7 +94,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -295,7 +295,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };

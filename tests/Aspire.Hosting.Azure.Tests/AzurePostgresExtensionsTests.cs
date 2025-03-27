@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -32,6 +33,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         }
 
         using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
@@ -40,18 +42,12 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{postgres-data.outputs.connectionString}",
-              "path": "postgres-data.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalType": "",
-                "principalName": ""
-              }
+              "path": "postgres-data.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         var allowAllIpsFirewall = "";
-        var allowAllIpsDependsOn = "";
         if (!publishMode)
         {
             allowAllIpsFirewall = """
@@ -66,22 +62,11 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 }
             
                 """;
-
-            allowAllIpsDependsOn = """
-
-                    postgreSqlFirewallRule_AllowAllIps
-                """;
         }
 
         var expectedBicep = $$"""
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalType string
-
-            param principalName string
 
             resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
@@ -122,6 +107,31 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres_data
             }
             {{allowAllIpsFirewall}}
+            output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName}'
+
+            output name string = postgres_data.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"postgres-data-roles"));
+        var postgresRolesManifest = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param postgres_data_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            param principalName string
+
+            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+              name: postgres_data_outputs_name
+            }
+
             resource postgres_data_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
               name: principalId
               properties: {
@@ -129,18 +139,10 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 principalType: principalType
               }
               parent: postgres_data
-              dependsOn: [
-                postgres_data
-                postgreSqlFirewallRule_AllowAllAzureIps{{allowAllIpsDependsOn}}
-              ]
             }
-
-            output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${principalName}'
-
-            output name string = postgres_data.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(postgresRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, postgresRolesManifest.BicepText);
     }
 
     [Theory]
@@ -425,7 +427,4 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
-    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;

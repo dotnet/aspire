@@ -26,18 +26,12 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the resource identifier of the Azure Key Vault resource.
-    /// </summary>
-    public BicepOutputReference Id => new("id", this);
-
-    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{VaultUri}");
 
     BicepOutputReference IKeyVaultResource.VaultUriOutputReference => VaultUri;
-    BicepOutputReference IKeyVaultResource.IdOutputReference => Id;
 
     // In run mode, this is set to the secret client used to access the Azure Key Vault.
     internal Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
