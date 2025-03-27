@@ -4,6 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Aspire.Npgsql.Tests;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;

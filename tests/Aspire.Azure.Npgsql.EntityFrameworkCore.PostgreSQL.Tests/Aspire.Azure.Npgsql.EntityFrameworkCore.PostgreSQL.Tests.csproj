@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\Components\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.PostgreSQL" />
   </ItemGroup>
 
