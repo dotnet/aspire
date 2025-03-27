@@ -7,7 +7,7 @@ namespace Aspire.Templates.Tests;
 
 [RequiresDocker("Needs docker to start redis cache")]
 [RequiresSSLCertificate]
-[Active("https://github.com/dotnet/aspire/issues/8191")]
+[ActiveIssue("https://github.com/dotnet/aspire/issues/8191")]
 public class StarterTemplateWithRedisCacheTests_PreviousTFM : StarterTemplateRunTestsBase<StarterTemplateWithRedisCacheFixture_PreviousTFM>
 {
     protected override int DashboardResourcesWaitTimeoutSecs => 300;
