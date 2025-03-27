@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -139,7 +138,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-            
+
             output name string = messaging.name
             """;
 
@@ -203,7 +202,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-            
+
             output name string = existingResourceName
             """;
 
@@ -272,7 +271,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-            
+
             output name string = existingResourceName
             """;
 
@@ -335,7 +334,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-            
+
             output name string = messaging.name
             """;
 
@@ -873,20 +872,20 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param existingResourceName string
-            
+
             param administratorLogin string
-            
+
             @secure()
             param administratorLoginPassword string
-            
+
             param keyVaultName string
-            
+
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
             }
-            
+
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
@@ -895,11 +894,11 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: postgresSql
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--postgresSql'
               properties: {
@@ -1355,17 +1354,17 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param keyVaultName string
-            
+
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--redis'
               properties: {
@@ -1373,7 +1372,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
-            
+
             output name string = redis.name
             """;
 
@@ -1635,15 +1634,15 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param existingResourceName string
-            
+
             param keyVaultName string
-            
+
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
               name: existingResourceName
             }
-            
+
             resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydb'
               location: location
@@ -1654,7 +1653,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-            
+
             resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'container'
               location: location
@@ -1670,11 +1669,11 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: mydb
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--cosmos'
               properties: {
@@ -1682,7 +1681,23 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
-            
+
+            resource mydb_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--mydb'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydb'
+              }
+              parent: keyVault
+            }
+
+            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--container'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydb;Container=container'
+              }
+              parent: keyVault
+            }
+
             output name string = existingResourceName
             """;
 

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.DotNet.XUnitExtensions;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Components.Common.Tests;

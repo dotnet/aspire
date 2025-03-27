@@ -524,7 +524,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
                 {
-                    var context = new EnvironmentCallbackContext(executionContext, cancellationToken: cancellationToken);
+                    var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
 
                     foreach (var c in environmentCallbacks)
                     {

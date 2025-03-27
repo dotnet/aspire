@@ -15,7 +15,11 @@
     },
     "entries": {
       "type": "value.v0",
-      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=entries"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=staging-entries"
+    },
+    "users": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=users"
     },
     "api": {
       "type": "project.v0",

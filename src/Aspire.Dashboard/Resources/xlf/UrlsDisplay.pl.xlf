@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="DataExplorer">
         <source>Data Explorer</source>
-        <target state="new">Data Explorer</target>
+        <target state="translated">Data Explorer</target>
         <note />
       </trans-unit>
     </body>

@@ -17,7 +17,6 @@ using Azure.Provisioning.Search;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -301,9 +300,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param keyVaultName string
-            
+
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -325,7 +324,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-            
+
             resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -336,7 +335,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-            
+
             resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -352,15 +351,31 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: db
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
+              }
+              parent: keyVault
+            }
+
+            resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--db'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
+              }
+              parent: keyVault
+            }
+
+            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--container'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
               }
               parent: keyVault
             }
@@ -568,9 +583,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param keyVaultName string
-            
+
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -592,7 +607,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-            
+
             resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -603,7 +618,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-            
+
             resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -619,11 +634,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: mydatabase
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--cosmos'
               properties: {
@@ -631,7 +646,23 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
-            
+
+            resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--mydatabase'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
+              }
+              parent: keyVault
+            }
+
+            resource mycontainer_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--mycontainer'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
+              }
+              parent: keyVault
+            }
+
             output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
@@ -1334,11 +1365,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param principalType string
-            
+
             param principalId string
-            
+
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
@@ -1354,7 +1385,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'mykv'
               }
             }
-            
+
             resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
               properties: {
@@ -1364,11 +1395,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: mykv
             }
-            
+
             output vaultUri string = mykv.properties.vaultUri
-            
+
             output name string = mykv.name
-            
+
             output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
@@ -1992,7 +2023,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               name: 't2'
               parent: sb
             }
-            
+
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
 
             output name string = sb.name
@@ -2220,11 +2251,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param principalType string
-            
+
             param principalId string
-            
+
             param storagesku string
-            
+
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2868,7 +2899,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param principalType string
-            
+
             param principalId string
 
             param searchSku string

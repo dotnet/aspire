@@ -4,7 +4,6 @@
 using Aspire.Components.Common.Tests;
 using Microsoft.Playwright;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Templates.Tests;
 

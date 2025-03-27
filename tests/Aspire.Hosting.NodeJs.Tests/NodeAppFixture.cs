@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Hosting.NodeJs.Tests;

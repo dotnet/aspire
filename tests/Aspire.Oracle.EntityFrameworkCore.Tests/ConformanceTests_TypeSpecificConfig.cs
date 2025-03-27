@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
-using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 

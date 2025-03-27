@@ -392,19 +392,72 @@ public class Program
                 publisher = AnsiConsole.Prompt(publisherPrompt);
             }
 
-            var exitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...");
+
+            var exitCode = await AnsiConsole.Progress()
+                .AutoRefresh(true)
+                .Columns(
+                    new TaskDescriptionColumn() { Alignment = Justify.Left },
+                    new ProgressBarColumn() { Width = 10 },
+                    new ElapsedTimeColumn())
+                .StartAsync(async context => {
+
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+                    var launchingAppHostTask = context.AddTask("Launching apphost");
+                    launchingAppHostTask.IsIndeterminate();
+                    launchingAppHostTask.StartTask();
+
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
-                        null, // TODO: We will use a backchannel here soon but null for now.
+                        backchannelCompletionSource,
                         ct);
 
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
+
+                    var connectingBackchannelTask = context.AddTask("Opening backchannel");
+                    connectingBackchannelTask.IsIndeterminate();
+                    connectingBackchannelTask.StartTask();
+
+                    using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    connectingBackchannelTask.Value = 100;
+                    connectingBackchannelTask.StopTask();
+
+                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(ct);
+
+                    var progressTasks = new Dictionary<string, ProgressTask>();
+
+                    await foreach (var publishingActivity in publishingActivities)
+                    {
+                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                        {
+                            progressTask = context.AddTask(publishingActivity.Id);
+                            progressTask.StartTask();
+                            progressTask.IsIndeterminate();
+                            progressTasks.Add(publishingActivity.Id, progressTask);
+                        }
+
+                        progressTask.Description = $"{publishingActivity.StatusText}";
+
+                        if (publishingActivity.IsComplete)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                        else if (publishingActivity.IsError)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                    }
+
                     return await pendingRun;
+
                 });
 
             if (exitCode != 0)

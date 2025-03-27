@@ -48,6 +48,9 @@ Aspire.Azure.Messaging.WebPubSub:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Npgsql:
+- Everything from `Aspire.Npgsql`
+
 Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"
