@@ -15,10 +15,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OtlpConfigurationExtensions
 {
-    private const string DashboardOtlpGrpcUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
-    private const string AspireDashboardOtlpGrpcUrlVariableName = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
-    private const string DashboardOtlpHttpUrlVariableName = "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
-    private const string AspireDashboardOtlpHttpUrlVariableName = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
     /// <summary>
@@ -44,8 +40,8 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            var dashboardOtlpGrpcUrl = configuration.GetString(AspireDashboardOtlpGrpcUrlVariableName, DashboardOtlpGrpcUrlVariableName);
-            var dashboardOtlpHttpUrl = configuration.GetString(AspireDashboardOtlpHttpUrlVariableName, DashboardOtlpHttpUrlVariableName);
+            var dashboardOtlpGrpcUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
+            var dashboardOtlpHttpUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
 
             // The dashboard can support OTLP/gRPC and OTLP/HTTP endpoints at the same time, but it can
             // only tell resources about one of the endpoints via environment variables.

@@ -104,8 +104,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains("ASPNETCORE_URLS", s),
-            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s),
+            s => Assert.Contains(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, s));
     }
 
     [Fact]

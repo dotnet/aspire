@@ -194,12 +194,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private static void WaitForDebugger()
     {
-        if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER") == "true")
+        if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebugger) == "true")
         {
             var startedWaiting = DateTimeOffset.UtcNow;
             TimeSpan timeout = TimeSpan.FromSeconds(30);
 
-            if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER_TIMEOUT") is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
+            if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebuggerTimeout) is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
             {
                 timeout = TimeSpan.FromSeconds(timeoutSeconds);
             }

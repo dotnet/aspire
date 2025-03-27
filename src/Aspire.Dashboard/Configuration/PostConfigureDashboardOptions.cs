@@ -31,20 +31,37 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.Otlp.GrpcEndpointUrl = otlpGrpcUrl;
         }
+        else if (_configuration[DashboardConfigNames.Legacy.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } legacyOtlpGrpcUrl)
+        {
+            options.Otlp.GrpcEndpointUrl = legacyOtlpGrpcUrl;
+        }
+
         // Copy aliased config values to the strongly typed options.
         if (_configuration[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } otlpHttpUrl)
         {
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
         }
+        else if (_configuration[DashboardConfigNames.Legacy.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } legacyOtlpHttpUrl)
+        {
+            options.Otlp.HttpEndpointUrl = legacyOtlpHttpUrl;
+        }
+
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
         {
             options.Frontend.EndpointUrls = frontendUrls;
         }
+
         if (_configuration[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] is { Length: > 0 } resourceServiceUrl)
         {
             options.ResourceServiceClient.Url = resourceServiceUrl;
         }
-        if (_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
+        else if (_configuration[DashboardConfigNames.Legacy.ResourceServiceUrlName.ConfigKey] is { Length: > 0 } legacyResourceServiceUrl)
+        {
+            options.ResourceServiceClient.Url = legacyResourceServiceUrl;
+        }
+
+        if ((_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
+            || (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false))
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;

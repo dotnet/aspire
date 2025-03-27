@@ -3,6 +3,7 @@
 
 using System.Text.RegularExpressions;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting;
 using Xunit;
 
 namespace Aspire.Templates.Tests;
@@ -129,10 +130,10 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
         var res = await buildCmd.ExecuteAsync("run");
         Assert.True(res.ExitCode != 0, $"Expected the app run to fail");
-        Assert.Contains("setting must be an https address unless the 'ASPIRE_ALLOW_UNSECURED_TRANSPORT'", res.Output);
+        Assert.Contains($"setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}'", res.Output);
 
         // Run with the environment variable set
-        testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
+        testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
         await project.StartAppHostAsync();
 
         if (PlaywrightProvider.HasPlaywrightSupport)

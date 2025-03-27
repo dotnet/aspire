@@ -60,7 +60,7 @@ public class ProjectResourceTests
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
         // Explicitly specify development environment and other config so it is constant.
-        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"],
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:18889"],
             DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
@@ -175,7 +175,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"], DistributedApplicationOperation.Run);
+        var appBuilder = CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}={value}"], DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();

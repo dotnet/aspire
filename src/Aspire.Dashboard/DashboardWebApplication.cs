@@ -143,11 +143,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         }
+        else if (builder.Configuration[DashboardConfigNames.Legacy.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } legacyConfigFilePath)
+        {
+            builder.Configuration.AddJsonFile(legacyConfigFilePath, optional: false, reloadOnChange: true);
+        }
 
         // Allow for a user specified config directory on disk (e.g. for Docker secrets). Throw an error if the specified directory doesn't exist.
         if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } fileConfigDirectory)
         {
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
+        }
+        else if (builder.Configuration[DashboardConfigNames.Legacy.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } legacyFileConfigDirectory)
+        {
+            builder.Configuration.AddKeyPerFile(directoryPath: legacyFileConfigDirectory, optional: false, reloadOnChange: true);
         }
 
         var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
