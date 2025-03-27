@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\components\Aspire.Azure.Data.AppConfiguration\Aspire.Azure.Data.AppConfiguration.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Data.AppConfiguration" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

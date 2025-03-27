@@ -11,7 +11,8 @@ namespace Aspire.Azure.Data.AppConfiguration;
 public sealed class AzureDataAppConfigurationSettings
 {
     /// <summary>
-    /// A <see cref="Uri"/> to the App Configuration store on which the client operates.
+    /// A <see cref="Uri"/> to the App Config store on which the client operates. Appears as "Endpoint" in the Azure portal.
+    /// This is likely to be similar to "https://{store_name}.azconfig.io".
     /// </summary>
     public Uri? Endpoint { get; set; }
 
@@ -19,4 +20,20 @@ public sealed class AzureDataAppConfigurationSettings
     /// Gets or sets the credential used to authenticate to the Azure App Configuration.
     /// </summary>
     public TokenCredential? Credential { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the App Configuration health check is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableTracing { get; set; }
 }

@@ -1,4 +1,3 @@
-using Aspire.Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Microsoft.FeatureManagement;
 using WorkerService;
