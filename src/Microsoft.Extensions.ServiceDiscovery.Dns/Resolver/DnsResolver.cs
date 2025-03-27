@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -187,58 +188,156 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             // more info: https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2
             //
             // Most of the servers send the CNAME records in order so that we can sequentially scan the
-            // answers, but nothing prevents the records from being in arbitrary order. Therefore, when
-            // we encounter a CNAME record, we continue down the list and allow looping back to the beginning
-            // in case the CNAME chain is not in order.
-            //
+            // answers, but nothing prevents the records from being in arbitrary order. Attempt the linear
+            // scan first and fallback to a slower but more robust method if necessary.
+
+            bool success = true;
             string currentAlias = name;
-            int i = 0;
-            int endIndex = 0;
 
-            do
+            foreach (var answer in response.Answers)
             {
-                DnsResourceRecord answer = response.Answers[i];
 
-                if (answer.Name == currentAlias)
+                switch (answer.Type)
                 {
-                    if (answer.Type == QueryType.CNAME)
+                    case QueryType.CNAME:
+                        if (!TryReadTarget(answer, out string? target))
+                        {
+                            return (SendQueryError.MalformedResponse, []);
+                        }
+
+                        if (string.Equals(answer.Name, currentAlias, StringComparison.OrdinalIgnoreCase))
+                        {
+                            currentAlias = target;
+                            continue;
+                        }
+
+                        break;
+
+                    case var type when type == queryType:
+                        if (!TryReadAddress(answer, queryType, out IPAddress? address))
+                        {
+                            return (SendQueryError.MalformedResponse, []);
+                        }
+
+                        if (string.Equals(answer.Name, currentAlias, StringComparison.OrdinalIgnoreCase))
+                        {
+                            results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), address));
+                            continue;
+                        }
+
+                        break;
+                }
+
+                // unexpected name or record type, fall back to more robust path
+                results.Clear();
+                success = false;
+                break;
+            }
+
+            if (success)
+            {
+                return (SendQueryError.NoError, results.ToArray());
+            }
+
+            // more expensive path for uncommon (but valid) cases where CNAME records are out of order. Use of Dictionary
+            // allows us to stay within O(n) complexity for the number of answers, but we will use more memory.
+            Dictionary<string, string> aliasMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, List<AddressResult>> aRecordMap = new Dictionary<string, List<AddressResult>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var answer in response.Answers)
+            {
+                if (answer.Type == QueryType.CNAME)
+                {
+                    // map the alias to the target name
+                    if (!TryReadTarget(answer, out string? target))
                     {
-                        // Although RFC does not necessarily allow pointer segments in CNAME domain names, some servers do use them
-                        // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
-                        // backed by the array containing the full response.
-
-                        var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
-                        Debug.Assert(success, "Failed to get array segment");
-                        if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out int bytesRead) || bytesRead != answer.Data.Length)
-                        {
-                            return (SendQueryError.MalformedResponse, []);
-                        }
-
-                        // We need to start over. start with following answers and allow looping back
-                        endIndex = i;
-
-                        if (string.Equals(currentAlias, name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            // CNAME records looped back to original question dns name (=> malformed response). Stop processing.
-                            return (SendQueryError.MalformedResponse, []);
-                        }
+                        return (SendQueryError.MalformedResponse, []);
                     }
-                    else if (answer.Type == queryType)
-                    {
-                        if (answer.Data.Length != IPv4Length && answer.Data.Length != IPv6Length)
-                        {
-                            return (SendQueryError.MalformedResponse, []);
-                        }
 
-                        results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
+                    if (!aliasMap.TryAdd(answer.Name, target))
+                    {
+                        // Duplicate CNAME record
+                        return (SendQueryError.MalformedResponse, []);
                     }
                 }
 
-                i = (i + 1) % response.Answers.Count;
-            }
-            while (i != endIndex);
+                if (answer.Type == queryType)
+                {
+                    if (!TryReadAddress(answer, queryType, out IPAddress? address))
+                    {
+                        return (SendQueryError.MalformedResponse, []);
+                    }
 
-            return (SendQueryError.NoError, results.ToArray());
+                    if (!aRecordMap.TryGetValue(answer.Name, out List<AddressResult>? addressList))
+                    {
+                        addressList = new List<AddressResult>();
+                        aRecordMap.Add(answer.Name, addressList);
+                    }
+
+                    addressList.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), address));
+                }
+            }
+
+            // follow the CNAME chain, limit the maximum number of iterations to avoid infinite loops.
+            int i = 0;
+            currentAlias = name;
+            while (aliasMap.TryGetValue(currentAlias, out string? nextAlias))
+            {
+                if (i >= aliasMap.Count)
+                {
+                    // circular CNAME chain
+                    return (SendQueryError.MalformedResponse, []);
+                }
+
+                i++;
+
+                if (aRecordMap.ContainsKey(currentAlias))
+                {
+                    // both CNAME record and A/AAAA records exist for the current alias
+                    return (SendQueryError.MalformedResponse, []);
+                }
+
+                currentAlias = nextAlias;
+            }
+
+            // Now we have the final target name, check if we have any A/AAAA records for it.
+            aRecordMap.TryGetValue(currentAlias, out List<AddressResult>? finalAddressList);
+            return (SendQueryError.NoError, finalAddressList?.ToArray() ?? []);
+
+            static bool TryReadTarget(in DnsResourceRecord record, [NotNullWhen(true)] out string? target)
+            {
+                Debug.Assert(record.Type == QueryType.CNAME, "Only CNAME records should be processed here.");
+
+                target = null;
+
+                // some servers use domain name compression even inside CNAME records. In order to decode those
+                // correctly, we need to pass the entire message to TryReadQName. The Data span inside the record
+                // should be backed by the array containing the entire DNS message.
+                var gotArray = MemoryMarshal.TryGetArray(record.Data, out ArraySegment<byte> segment);
+                Debug.Assert(gotArray, "Failed to get array segment");
+
+                bool result = DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out string? targetName, out int bytesRead) && bytesRead == record.Data.Length;
+                if (result)
+                {
+                    target = targetName;
+                }
+
+                return result;
+            }
+
+            static bool TryReadAddress(in DnsResourceRecord record, QueryType type, [NotNullWhen(true)] out IPAddress? target)
+            {
+                Debug.Assert(record.Type is QueryType.A or QueryType.AAAA, "Only CNAME records should be processed here.");
+
+                target = null;
+                if (record.Type == QueryType.A && record.Data.Length != IPv4Length ||
+                    record.Type == QueryType.AAAA && record.Data.Length != IPv6Length)
+                {
+                    return false;
+                }
+
+                target = new IPAddress(record.Data.Span);
+                return true;
+            }
         }
     }
 
