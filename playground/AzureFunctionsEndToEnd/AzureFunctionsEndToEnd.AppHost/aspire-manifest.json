@@ -64,7 +64,7 @@
         "AzureWebJobsStorage__tableServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
         "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
-        "Aspire__Azure__Storage__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
+        "Aspire__Azure__Data__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
         "myhub__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
