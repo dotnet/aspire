@@ -33,8 +33,19 @@ internal static class IConfigurationExtensions
     
     public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey)
     {
-        var value = configuration[primaryKey] ?? configuration[secondaryKey];
-        return value;
+        var primaryValue = configuration.GetValue(typeof(string), primaryKey, null);
+        if (primaryValue is not null)
+        {
+            return (string)primaryValue;
+        }
+
+        var secondaryValue = configuration.GetValue(typeof(string), secondaryKey, null);
+        if (secondaryValue is not null)
+        {
+            return (string)secondaryValue;
+        }
+
+        return null;
     }
 
     /// <summary>

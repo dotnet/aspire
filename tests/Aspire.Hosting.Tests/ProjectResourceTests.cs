@@ -56,11 +56,13 @@ public class ProjectResourceTests
         }
     }
 
-    [Fact]
-    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Explicitly specify development environment and other config so it is constant.
-        var appBuilder = CreateBuilder(args: ["--environment", "Development", $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:18889"],
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", $"{dashboardOtlpGrpcEndpointUrlKey}=http://localhost:18889"],
             DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);

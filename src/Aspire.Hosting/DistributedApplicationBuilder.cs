@@ -293,10 +293,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
 
                     // Determine the resource service API key.
-                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey] is not { Length: > 0 } apiKey)
+                    var apiKey = _innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey];
+                    if (apiKey is not { Length: > 0 })
                     {
-                        // No API key was specified in configuration, so generate one.
-                        apiKey = TokenGenerator.GenerateToken();
+                        apiKey = _innerBuilder.Configuration[KnownConfigNames.Legacy.DashboardResourceServiceClientApiKey];
+                        if (apiKey is not { Length: > 0 })
+                        {
+                            // No API key was specified in configuration, so generate one.
+                            apiKey = TokenGenerator.GenerateToken();
+                        }
                     }
 
                     _innerBuilder.Configuration.AddInMemoryCollection(
@@ -442,7 +447,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private static bool IsDashboardUnsecured(IConfiguration configuration)
     {
-        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
+        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
