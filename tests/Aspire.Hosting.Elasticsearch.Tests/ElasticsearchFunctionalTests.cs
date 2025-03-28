@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Elastic.Clients.Elasticsearch;
@@ -10,7 +10,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Elasticsearch.Tests;
 
@@ -42,6 +41,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(elasticsearch.Resource.Name, cts.Token);
+
         var hb = Host.CreateApplicationBuilder();
 
         hb.Configuration[$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -66,6 +68,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7276")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -101,7 +104,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(cts.Token);
+
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(elasticsearch1.Resource.Name, cts.Token);
 
                 try
                 {
@@ -121,6 +126,17 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
                                 await CreateTestData(elasticsearchClient, testOutputHelper, token);
                             }, cts.Token);
+
+                        await app.StopAsync();
+
+                        // Wait for the container to be stopped and to release the volume files before continuing
+                        await pipeline.ExecuteAsync(
+                            async token =>
+                            {
+                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+                                Assert.False(getResponse.IsSuccess());
+                            }, cts.Token);
                     }
                 }
                 finally
@@ -131,8 +147,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
             var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);
 
             if (useVolume)
@@ -147,6 +162,8 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(elasticsearch2.Resource.Name, cts.Token);
 
                 try
                 {
@@ -171,6 +188,16 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 Assert.Equal(s_person.Id, getResponse.Source?.Id);
                             }, cts.Token);
 
+                        await app.StopAsync();
+
+                        // Wait for the container to be stopped and to release the volume files before continuing
+                        await pipeline.ExecuteAsync(
+                            async token =>
+                            {
+                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+                                Assert.False(getResponse.IsSuccess());
+                            }, cts.Token);
                     }
                 }
                 finally
@@ -219,24 +246,22 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddElasticsearch("resource")
                               .WithHealthCheck("blocking_check");
 
-        var dependentResource = builder.AddElasticsearch("dependentresource")
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
 
         using var app = builder.Build();
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy), cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 

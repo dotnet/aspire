@@ -170,6 +170,8 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment(context =>
          {
+             Assert.NotNull(context.Resource);
+
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
@@ -257,6 +259,35 @@ public class ResourceExtensionsTests
                 Assert.Equal("{ElasticPassword.value}", env.Value);
                 Assert.False(string.IsNullOrEmpty(env.Value));
             });
+    }
+
+    [Fact]
+    public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var surrogate = builder.AddResource(new ConnectionStringParameterResource("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
+        var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
+        var nonSecretParameter = builder.AddResource(new ParameterResource("NonSecretParameter", _ => "NonSecretParameter"));
+
+        var containerArgs = await builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+            .WithArgs(surrogate)
+            .WithArgs(secretParameter)
+            .WithArgs(nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], containerArgs);
+
+        // Executables can also have arguments passed in AddExecutable
+        var executableArgs = await builder.AddExecutable(
+                "ping",
+                "ping",
+                string.Empty,
+                surrogate,
+                secretParameter,
+                nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
     }
 
     private sealed class ParentResource(string name) : Resource(name)

@@ -3,13 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
-using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
-using Azure.Provisioning.Redis;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Primitives;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Redis;
+using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
+using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
 namespace Aspire.Hosting;
 
@@ -25,18 +24,18 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: false);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: false);
 
     [Obsolete]
     private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -59,7 +58,6 @@ public static class AzureRedisExtensions
 
         var resource = new AzureRedisResource(builder.Resource, configureInfrastructure);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                     .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                      .WithManifestPublishingCallback(resource.WriteToManifest);
 
         if (useProvisioner)
@@ -85,9 +83,7 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.PublishAsAzureRedisInternal(useProvisioner: true);
-    }
+        => PublishAsAzureRedisInternal(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure Cache for Redis resource to the application model.
@@ -99,8 +95,8 @@ public static class AzureRedisExtensions
     /// By default, the Azure Cache for Redis resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
-    /// 
-    /// You can use the <see cref="WithAccessKeyAuthentication"/> method to configure the resource to use access key authentication.
+    ///
+    /// You can use the <see cref="WithAccessKeyAuthentication(IResourceBuilder{AzureRedisCacheResource}, IResourceBuilder{IKeyVaultResource})"/> method to configure the resource to use access key authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
@@ -119,39 +115,14 @@ public static class AzureRedisExtensions
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
-        {
-            var redis = CreateRedisResource(infrastructure);
-
-            redis.RedisConfiguration = new RedisCommonConfiguration()
-            {
-                IsAadEnabled = "true"
-            };
-            redis.IsAccessKeyAuthenticationDisabled = true;
-
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
-            {
-                Parent = redis,
-                AccessPolicyName = "Data Contributor",
-                ObjectId = principalIdParameter,
-                ObjectIdAlias = principalNameParameter
-            });
-
-            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
-            {
-                Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
-            });
-        };
-
-        var resource = new AzureRedisCacheResource(name, configureInfrastructure);
+        var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
         return builder.AddResource(resource)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -179,6 +150,8 @@ public static class AzureRedisExtensions
         this IResourceBuilder<AzureRedisCacheResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -215,50 +188,51 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(
-        this IResourceBuilder<AzureRedisCacheResource> builder)
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+                                           .WithParentRelationship(builder.Resource);
 
-        return builder
-           .RemoveActiveDirectoryParameters()
-           .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-           .ConfigureInfrastructure(infrastructure =>
-           {
-               RemoveActiveDirectoryAuthResources(infrastructure);
-
-               var redis = infrastructure.GetProvisionableResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.BicepIdentifier == builder.Resource.GetBicepIdentifier())
-                   ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
-
-               var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
-               infrastructure.Add(kvNameParam);
-
-               var keyVault = KeyVaultService.FromExisting("keyVault");
-               keyVault.Name = kvNameParam;
-               infrastructure.Add(keyVault);
-
-               redis.RedisConfiguration.IsAadEnabled.ClearValue();
-               redis.IsAccessKeyAuthenticationDisabled.ClearValue();
-
-               var secret = new KeyVaultSecret("connectionString")
-               {
-                   Parent = keyVault,
-                   Name = "connectionString",
-                   Properties = new SecretProperties
-                   {
-                       Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
-                   }
-               };
-               infrastructure.Add(secret);
-           });
+        return builder.WithAccessKeyAuthentication(kv);
     }
 
-    private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure Infrastructure)
+    /// <summary>
+    /// Configures the resource to use access key authentication for Azure Cache for Redis.
+    /// </summary>
+    /// <param name="builder">The Azure Cache for Redis resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IKeyVaultResource> keyVaultBuilder)
     {
-        var redisCache = new CdkRedisResource(Infrastructure.AspireResource.GetBicepIdentifier())
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keyVaultBuilder);
+
+        var azureResource = builder.Resource;
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{azureResource.Name}");
+        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
+
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
+
+        return builder;
+    }
+
+    private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure infrastructure)
+    {
+        return AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+        (identifier, name) =>
+        {
+            var resource = CdkRedisResource.FromExisting(identifier);
+            resource.Name = name;
+            return resource;
+        },
+        (infrastructure) => new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Sku = new RedisSku()
             {
@@ -268,40 +242,65 @@ public static class AzureRedisExtensions
             },
             EnableNonSslPort = false,
             MinimumTlsVersion = RedisTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", Infrastructure.AspireResource.Name } }
-        };
-        Infrastructure.Add(redisCache);
-
-        return redisCache;
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+        });
     }
 
-    private static IResourceBuilder<AzureRedisCacheResource> RemoveActiveDirectoryParameters(
-        this IResourceBuilder<AzureRedisCacheResource> builder)
+    private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
-        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalId);
-        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalName);
-        return builder;
+        var redis = CreateRedisResource(infrastructure);
+
+        var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
+        if (redisResource.UseAccessKeyAuthentication)
+        {
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
+            infrastructure.Add(kvNameParam);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            infrastructure.Add(keyVault);
+
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = $"connectionstrings--{redisResource.Name}",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
+                }
+            };
+            infrastructure.Add(secret);
+        }
+        else
+        {
+            if (!redis.IsExistingResource)
+            {
+                redis.RedisConfiguration = new RedisCommonConfiguration()
+                {
+                    IsAadEnabled = "true"
+                };
+                redis.IsAccessKeyAuthenticationDisabled = true;
+            }
+
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
+            });
+        }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
     }
 
-    private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure infrastructure)
+    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)
     {
-        var resourcesToRemove = new List<Provisionable>();
-        foreach (var resource in infrastructure.GetProvisionableResources())
+        infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
         {
-            if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.BicepIdentifier == $"{infrastructure.AspireResource.GetBicepIdentifier()}_contributor")
-            {
-                resourcesToRemove.Add(resource);
-            }
-            else if (resource is ProvisioningOutput output && output.BicepIdentifier == "connectionString")
-            {
-                resourcesToRemove.Add(resource);
-            }
-        }
-
-        foreach (var resourceToRemove in resourcesToRemove)
-        {
-            infrastructure.Remove(resourceToRemove);
-        }
+            Name = BicepFunction.CreateGuid(redis.Id, principalId, "Data Contributor"),
+            Parent = redis,
+            AccessPolicyName = "Data Contributor",
+            ObjectId = principalId,
+            ObjectIdAlias = principalName
+        });
     }
 }

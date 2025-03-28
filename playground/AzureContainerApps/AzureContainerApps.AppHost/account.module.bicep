@@ -3,10 +3,6 @@ param location string = resourceGroup().location
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
-}
-
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('account-${uniqueString(resourceGroup().id)}', 44)
   location: location
@@ -21,6 +17,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       defaultConsistencyLevel: 'Session'
     }
     databaseAccountOfferType: 'Standard'
+    disableLocalAuth: false
   }
   kind: 'GlobalDocumentDB'
   tags: {
@@ -39,10 +36,24 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   parent: account
 }
 
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+}
+
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'connectionString'
+  name: 'connectionstrings--account'
   properties: {
     value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey}'
   }
   parent: keyVault
 }
+
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  name: 'connectionstrings--db'
+  properties: {
+    value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey};Database=db'
+  }
+  parent: keyVault
+}
+
+output name string = account.name

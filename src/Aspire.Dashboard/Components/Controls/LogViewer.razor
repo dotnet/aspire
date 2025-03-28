@@ -19,7 +19,7 @@
                                 @{
                                     var hasPrefix = false;
                                 }
-                                @if (context.Timestamp is { } timestamp)
+                                @if (ShowTimestamp && context.Timestamp is { } timestamp)
                                 {
                                     hasPrefix = true;
                                     <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>

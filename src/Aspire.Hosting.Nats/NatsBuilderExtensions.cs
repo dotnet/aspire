@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Nats;
-using Aspire.Hosting.Utils;
 using Aspire.NATS.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -36,6 +35,9 @@ public static class NatsBuilderExtensions
     /// <summary>
     /// Adds a NATS server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="NatsContainerImageTags.Tag"/> tag of the <inheritdoc cref="NatsContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for NATS server.</param>
@@ -47,7 +49,7 @@ public static class NatsBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
@@ -110,6 +112,8 @@ public static class NatsBuilderExtensions
     [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the srcMountPath parameter and WithDataBindMount extension instead if you want to keep data locally.")]
     public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder, string? srcMountPath = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var args = new List<string> { "-js" };
         if (srcMountPath != null)
         {
@@ -159,7 +163,7 @@ public static class NatsBuilderExtensions
     public static IResourceBuilder<NatsServerResource> WithDataBindMount(this IResourceBuilder<NatsServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/var/lib/nats", isReadOnly)
             .WithArgs("-sd", "/var/lib/nats");

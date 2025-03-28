@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
@@ -42,7 +43,11 @@ public class DistributedApplicationBuilderTests
         Assert.Empty(appModel.Resources);
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        Assert.Single(lifecycles); // This may change as the builder changes.
+        Assert.Collection(
+            lifecycles,
+            s => Assert.IsType<DashboardLifecycleHook>(s),
+            s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
+        );
 
         var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Null(options.Value.Publisher);
@@ -107,10 +112,12 @@ public class DistributedApplicationBuilderTests
         Assert.False(string.IsNullOrEmpty(config["AppHost:ResourceService:ApiKey"]));
     }
 
-    [Fact]
-    public void ResourceServiceConfig_Unsecured()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardUnsecuredAllowAnonymous)]
+    [InlineData(KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous)]
+    public void ResourceServiceConfig_Unsecured(string dashboardUnsecuredAllowAnonymousKey)
     {
-        var appBuilder = DistributedApplication.CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}=true"]);
+        var appBuilder = DistributedApplication.CreateBuilder(args: [$"{dashboardUnsecuredAllowAnonymousKey}=true"]);
         using var app = appBuilder.Build();
 
         var config = app.Services.GetRequiredService<IConfiguration>();

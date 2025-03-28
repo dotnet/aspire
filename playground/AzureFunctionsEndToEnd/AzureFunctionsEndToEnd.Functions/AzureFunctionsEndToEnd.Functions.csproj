@@ -14,6 +14,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDb" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
@@ -35,15 +36,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
-  <!-- HACK: Simulate running the Azure Functions project via `dotnet run` by spawning the host via a run command. -->
-  <PropertyGroup>
-    <RunCommand>func</RunCommand>
-    <RunArguments>start --csharp --verbose</RunArguments>
-  </PropertyGroup>
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
   </ItemGroup>
+
 </Project>

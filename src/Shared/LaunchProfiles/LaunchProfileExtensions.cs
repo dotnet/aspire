@@ -36,6 +36,17 @@ internal static class LaunchProfileExtensions
             return null;
         }
 
+        var launchProfile = projectResource.GetLaunchProfile(launchProfileName, throwIfNotFound);
+        if (launchProfile == null)
+        {
+            return null;
+        }
+
+        return new NamedLaunchProfile(launchProfileName, launchProfile);
+    }
+
+    internal static LaunchProfile? GetLaunchProfile(this ProjectResource projectResource, string launchProfileName, bool throwIfNotFound = false)
+    {
         var profiles = projectResource.GetLaunchSettings()?.Profiles;
         if (profiles is null)
         {
@@ -49,7 +60,7 @@ internal static class LaunchProfileExtensions
             throw new DistributedApplicationException(message);
         }
 
-        return launchProfile is not null ? new (launchProfileName, launchProfile) : default;
+        return launchProfile;
     }
 
     private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata, string resourceName)

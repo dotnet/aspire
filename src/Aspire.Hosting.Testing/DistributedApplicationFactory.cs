@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Testing;
 
@@ -20,10 +21,13 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
+    private readonly string[] _args = ThrowIfNullOrContainsIsNullOrEmpty(args);
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplication> _appTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly CancellationTokenSource _disposingCts = new();
+    private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly object _lockObj = new();
     private bool _entryPointStarted;
     private IHostApplicationLifetime? _hostApplicationLifetime;
@@ -41,8 +45,10 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// </summary>
     internal async Task<DistributedApplicationBuilder> ResolveBuilderAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposingCts.Token);
         EnsureEntryPointStarted();
-        return await _builderTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return await _builderTcs.Task.WaitAsync(linkedCts.Token).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -50,8 +56,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// </summary>
     internal async Task<DistributedApplication> ResolveApplicationAsync(CancellationToken cancellationToken = default)
     {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposingCts.Token);
         EnsureEntryPointStarted();
-        return await _appTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return await _appTcs.Task.WaitAsync(linkedCts.Token).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -61,8 +68,10 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <returns>A <see cref="Task"/> representing the completion of the operation.</returns>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposingCts.Token);
         EnsureEntryPointStarted();
-        await _startedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _startedTcs.Task.WaitAsync(linkedCts.Token).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -71,6 +80,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public HttpClient CreateHttpClient(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().CreateHttpClient(resourceName, endpointName);
     }
 
@@ -82,6 +94,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public ValueTask<string?> GetConnectionString(string resourceName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetConnectionStringAsync(resourceName);
     }
 
@@ -95,6 +110,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public Uri GetEndpoint(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetEndpoint(resourceName, endpointName);
     }
 
@@ -131,53 +149,179 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     {
     }
 
+    private static string[] ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        foreach (var arg in args)
+        {
+            if (string.IsNullOrEmpty(arg))
+            {
+                var values = string.Join(", ", args);
+                if (arg is null)
+                {
+                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
+            }
+        }
+        return args;
+    }
+
     private void OnBuiltCore(DistributedApplication application)
     {
+        _shutdownTimeout = application.Services.GetService<IOptions<HostOptions>>()?.Value.ShutdownTimeout ?? _shutdownTimeout;
         _appTcs.TrySetResult(application);
         OnBuilt(application);
     }
 
-    private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
+    private static void PreConfigureBuilderOptions(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        string[] args,
+        Assembly entryPointAssembly)
     {
         hostBuilderOptions.Args = hostBuilderOptions.Args switch
         {
             { } existing => [.. existing, .. args],
             null => args
         };
+        applicationOptions.Args = hostBuilderOptions.Args;
 
-        applicationOptions.Args = applicationOptions.Args switch
-        {
-            { } existing => [.. existing, .. args],
-            null => args
-        };
-
-        hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
-        var cfg = hostBuilderOptions.Configuration ??= new();
-        var additionalConfig = new Dictionary<string, string?>
+        applicationOptions.EnableResourceLogging = true;
+        var existingConfig = new ConfigurationManager();
+        existingConfig.AddCommandLine(applicationOptions.Args ?? []);
+        if (hostBuilderOptions.Configuration is not null)
         {
-            ["DcpPublisher:RandomizePorts"] = "true",
-            ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
-            ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        };
+            existingConfig.AddConfiguration(hostBuilderOptions.Configuration);
+        }
 
-        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
-        if (!string.IsNullOrEmpty(appHostProjectPath))
+        var additionalConfig = new Dictionary<string, string?>();
+        SetDefault("DcpPublisher:ContainerRuntimeInitializationTimeout", "00:00:30");
+        SetDefault("DcpPublisher:RandomizePorts", "true");
+        SetDefault("DcpPublisher:WaitForResourceCleanup", "true");
+
+        // Make sure we have a dashboard URL and OTLP endpoint URL.
+        SetDefault(KnownConfigNames.AspNetCoreUrls, "http://localhost:8080");
+        SetDefaultFallback(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, "http://localhost:4317");
+
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
         {
             hostBuilderOptions.ContentRootPath = appHostProjectPath;
         }
 
-        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
-        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        hostBuilderOptions.Configuration ??= new();
+        hostBuilderOptions.Configuration.AddInMemoryCollection(additionalConfig);
+
+        void SetDefault(string key, string? value)
         {
-            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+            if (existingConfig[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
         }
 
-        cfg.AddInMemoryCollection(additionalConfig);
+        void SetDefaultFallback(string primaryKey, string secondaryKey, string? value)
+        {
+            if (existingConfig[primaryKey] is null && existingConfig[secondaryKey] is null)
+            {
+                additionalConfig[primaryKey] = value;
+            }
+        }
+    }
 
-        OnBuilderCreating(applicationOptions, hostBuilderOptions);
+    internal static void ConfigureBuilder(
+        string[] args,
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        Assembly entryPointAssembly,
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+    {
+        PreConfigureBuilderOptions(applicationOptions, hostBuilderOptions, args, entryPointAssembly);
+        configureBuilder(applicationOptions, hostBuilderOptions);
+        PostConfigureBuilderOptions(hostBuilderOptions, entryPointAssembly);
+    }
+
+    private void OnBuilderCreatingCore(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions)
+    {
+        ConfigureBuilder(_args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
+    }
+
+    private static void PostConfigureBuilderOptions(
+        HostApplicationBuilderSettings hostBuilderOptions,
+        Assembly entryPointAssembly)
+    {
+        var existingConfig = new ConfigurationManager();
+        existingConfig.AddCommandLine(hostBuilderOptions.Args ?? []);
+        if (hostBuilderOptions.Configuration is not null)
+        {
+            existingConfig.AddConfiguration(hostBuilderOptions.Configuration);
+        }
+
+        var additionalConfig = new Dictionary<string, string?>();
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
+
+        // Populate the launch profile name.
+        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
+        var launchProfileName = existingConfig["DOTNET_LAUNCH_PROFILE"];
+
+        // Load the launch profile and populate configuration with environment variables.
+        if (appHostLaunchSettings is not null)
+        {
+            var launchProfiles = appHostLaunchSettings.Profiles;
+            LaunchProfile? launchProfile;
+            if (string.IsNullOrEmpty(launchProfileName))
+            {
+                // If a launch profile was not specified, select the first launch profile.
+                var firstLaunchProfile = launchProfiles.FirstOrDefault();
+                launchProfile = firstLaunchProfile.Value;
+                SetDefault("DOTNET_LAUNCH_PROFILE", firstLaunchProfile.Key);
+            }
+            else
+            {
+                if (!launchProfiles.TryGetValue(launchProfileName, out launchProfile))
+                {
+                    throw new InvalidOperationException($"The configured launch profile, '{launchProfileName}', was not found in the launch settings file.");
+                }
+            }
+
+            // Populate config from env vars.
+            if (launchProfile?.EnvironmentVariables is { Count: > 0 } envVars)
+            {
+                foreach (var (key, value) in envVars)
+                {
+                    SetDefault(key, value);
+
+                    // See https://github.com/dotnet/runtime/blob/8edaf7460777e791b6279b395a68a77533db2d20/src/libraries/Microsoft.Extensions.Hosting/src/HostApplicationBuilder.cs#L96
+                    if (key.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SetDefault(key["DOTNET_".Length..], value);
+                    }
+
+                    // See https://github.com/dotnet/aspnetcore/blob/4ce2db7b8d85c07cad2c59242edc19af6a91b0d7/src/DefaultBuilder/src/WebApplicationBuilder.cs#L38
+                    if (key.StartsWith("ASPNETCORE_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SetDefault(key["ASPNETCORE_".Length..], value);
+                    }
+                }
+            }
+        }
+
+        hostBuilderOptions.Configuration ??= new();
+        hostBuilderOptions.Configuration.AddInMemoryCollection(additionalConfig);
+
+        void SetDefault(string key, string? value)
+        {
+            if (existingConfig[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
+        }
     }
 
     private static string? ResolveProjectPath(Assembly? assembly)
@@ -226,15 +370,13 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
     {
+        var services = applicationBuilder.Services;
+        services.AddHttpClient();
         OnBuilderCreated(applicationBuilder);
     }
 
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
-        var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
-        services.AddHttpClient();
-
         InterceptHostCreation(applicationBuilder);
 
         _builderTcs.TrySetResult(applicationBuilder);
@@ -282,7 +424,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         try
         {
             using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-            var app = await factory(args ?? [], cts.Token).ConfigureAwait(false);
+            var app = await factory(_args, cts.Token).ConfigureAwait(false);
             _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
                 ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
             OnBuiltCore(app);
@@ -346,26 +488,23 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
     private void OnDisposed()
     {
+        _disposingCts.Cancel();
         _builderTcs.TrySetCanceled();
         _startedTcs.TrySetCanceled();
     }
 
     /// <inheritdoc/>
-    public virtual void Dispose()
-    {
-        OnDisposed();
-        if (_hostApplicationLifetime is null || _appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
-        {
-            return;
-        }
-
-        _hostApplicationLifetime?.StopApplication();
-        appTask.GetAwaiter().GetResult()?.Dispose();
-    }
+    public virtual void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
     /// <inheritdoc/>
     public virtual async ValueTask DisposeAsync()
     {
+        if (_disposingCts.IsCancellationRequested)
+        {
+            // Dispose already called.
+            return;
+        }
+
         OnDisposed();
         if (_appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
@@ -378,11 +517,37 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             static state => (state as IHostApplicationLifetime)?.StopApplication(),
             _hostApplicationLifetime);
 
-        await _exitTcs.Task.ConfigureAwait(false);
-
-        if (appTask.GetAwaiter().GetResult() is { } appDisposable)
+        using var shutdownTimeoutCts = new CancellationTokenSource(_shutdownTimeout);
+        try
         {
-            await appDisposable.DisposeAsync().ConfigureAwait(false);
+            await _exitTcs.Task.WaitAsync(shutdownTimeoutCts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore errors thrown from the app host thread.
+            // These should be caught and handled within the app host.
+        }
+
+        // We need to dispose so that the ResourceNotificationService will propagate cancellation.
+        if (appTask.GetAwaiter().GetResult() is { } app)
+        {
+            try
+            {
+                await app.StopAsync().WaitAsync(shutdownTimeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_disposingCts.IsCancellationRequested)
+            {
+                // Ignore during disposal.
+            }
+
+            try
+            {
+                await app.DisposeAsync().AsTask().WaitAsync(shutdownTimeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_disposingCts.IsCancellationRequested)
+            {
+                // Ignore during disposal.
+            }
         }
     }
 
@@ -435,7 +600,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             _disposing = true;
             if (innerHost is IAsyncDisposable asyncDisposable)
             {
-                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                await asyncDisposable.DisposeAsync().AsTask().WaitAsync(appFactory._disposingCts.Token).ConfigureAwait(false);
             }
             else
             {
@@ -447,7 +612,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         {
             try
             {
-                await innerHost.StartAsync(cancellationToken).ConfigureAwait(false);
+                using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, appFactory._disposingCts.Token);
+                await innerHost.StartAsync(linkedToken.Token).ConfigureAwait(false);
                 appFactory._startedTcs.TrySetResult();
             }
             catch (Exception exception)
@@ -457,6 +623,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken = default) => innerHost.StopAsync(cancellationToken);
+        public async Task StopAsync(CancellationToken cancellationToken = default)
+        {
+            // The cancellation token is passed as-is here to give the host a chance to stop gracefully.
+            // Internally, in the host itself, the value of HostOptions.ShutdownTimeout limits how long the host has to stop gracefully.
+            await innerHost.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }

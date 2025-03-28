@@ -16,7 +16,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
 [UseCulture("en-US")]
-public class PlotlyChartTests : TestContext
+public class PlotlyChartTests : DashboardTestContext
 {
     private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container"></div>""";
 
@@ -106,7 +106,7 @@ public class PlotlyChartTests : TestContext
                 Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
                 {
                     Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
-                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
+                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0], ignoreWhiteSpaceDifferences: true);
                 });
             });
     }

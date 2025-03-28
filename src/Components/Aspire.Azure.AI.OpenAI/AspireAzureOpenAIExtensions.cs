@@ -33,6 +33,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, AzureOpenAIClientOptions}"/>.</param>
+    /// <returns>An <see cref="AspireAzureOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static AspireAzureOpenAIClientBuilder AddAzureOpenAIClient(
         this IHostApplicationBuilder builder,
@@ -40,12 +41,15 @@ public static class AspireAzureOpenAIExtensions
         Action<AzureOpenAISettings>? configureSettings = null,
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
-        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        var settings = new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddSingleton(typeof(OpenAIClient), static provider => provider.GetRequiredService<AzureOpenAIClient>());
 
-        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null);
+        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null, disableTracing: settings.DisableTracing);
     }
 
     /// <summary>
@@ -57,6 +61,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <returns>An <see cref="AspireAzureOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI:{name}" section.</remarks>
     public static AspireAzureOpenAIClientBuilder AddKeyedAzureOpenAIClient(
         this IHostApplicationBuilder builder,
@@ -64,14 +69,15 @@ public static class AspireAzureOpenAIExtensions
         Action<AzureOpenAISettings>? configureSettings = null,
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        var settings = new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
 
-        return new AspireAzureOpenAIClientBuilder(builder, name, name);
+        return new AspireAzureOpenAIClientBuilder(builder, name, name, settings.DisableTracing);
     }
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>

@@ -4,16 +4,18 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureSqlExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzureSqlServer(bool publishMode)
+    // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task AddAzureSqlServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
@@ -22,7 +24,20 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         sql.AddDatabase("db1");
         sql.AddDatabase("db2", "db2Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppsInfrastructure();
+
+            // on ACA infrastructure, if there are no references to the resource,
+            // then there won't be any roles created. So add a reference here.
+            builder.AddContainer("api", "myimage")
+                .WithReference(sql);
+        }
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource, skipPreparer: true);
 
         var principalTypeParam = "";
         if (!publishMode)
@@ -125,6 +140,8 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
+
+            output name string = sql.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

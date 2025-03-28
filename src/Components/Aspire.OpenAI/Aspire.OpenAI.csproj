@@ -6,12 +6,8 @@
     <PackageTags>$(ComponentCommonPackageTags) ai openai</PackageTags>
     <Description>A client for OpenAI that integrates with Aspire, including metrics and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>70</MinCodeCoverage>
+    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>

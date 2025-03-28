@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -55,6 +57,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, null, null, connectionName: name, serviceKey: name);
     }
 
@@ -62,6 +65,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, configureSettings, null, connectionName: name, serviceKey: name);
     }
 
@@ -69,6 +73,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, null, Wrap(configureBuilder), connectionName: name, serviceKey: name);
     }
 
@@ -76,6 +81,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, null, configureBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -83,6 +89,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, configureSettings, Wrap(configureBuilder), connectionName: name, serviceKey: name);
     }
 
@@ -97,6 +104,7 @@ public static class AspireKafkaProducerExtensions
     public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaProducerInternal<TKey, TValue>(builder, configureSettings, configureBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -108,26 +116,49 @@ public static class AspireKafkaProducerExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = BuildProducerSettings(builder, configureSettings, connectionName);
 
         if (serviceKey is null)
         {
-            builder.Services.AddSingleton<ProducerConnectionFactory<TKey, TValue>>(sp => CreateProducerConnectionFactory<TKey, TValue>(sp, configureBuilder, settings));
+            builder.Services.AddSingleton<InstrumentedProducerBuilder<TKey, TValue>>(sp => CreateProducerBuilder(sp, configureBuilder, settings));
+            builder.Services.AddSingleton<ProducerConnectionFactory<TKey, TValue>>(sp => CreateProducerConnectionFactory<TKey, TValue>(sp, settings));
             builder.Services.AddSingleton<IProducer<TKey, TValue>>(sp => sp.GetRequiredService<ProducerConnectionFactory<TKey, TValue>>().Create());
         }
         else
         {
-            builder.Services.AddKeyedSingleton<ProducerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerConnectionFactory<TKey, TValue>(sp, configureBuilder, settings));
+            builder.Services.AddKeyedSingleton<InstrumentedProducerBuilder<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerBuilder(sp, configureBuilder, settings));
+            builder.Services.AddKeyedSingleton<ProducerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerConnectionFactory<TKey, TValue>(sp, settings, key as string));
             builder.Services.AddKeyedSingleton<IProducer<TKey, TValue>>(serviceKey, (sp, key) => sp.GetRequiredKeyedService<ProducerConnectionFactory<TKey, TValue>>(key).Create());
         }
 
         if (!settings.DisableMetrics)
         {
-            builder.Services.TryAddSingleton<MetricsChannel>();
-            builder.Services.AddHostedService<MetricsService>();
-            builder.Services.TryAddSingleton<ConfluentKafkaMetrics>();
-            builder.Services.AddOpenTelemetry().WithMetrics(metricBuilderProvider => metricBuilderProvider.AddMeter(ConfluentKafkaCommon.MeterName));
+            if (ConfluentKafkaCommon.IsAspire8ConfluentKafkaMetricsEnabled)
+            {
+                builder.Services.TryAddSingleton<MetricsChannel>();
+                builder.Services.AddHostedService<MetricsService>();
+                builder.Services.TryAddSingleton<ConfluentKafkaMetrics>();
+            }
+
+            builder.Services.AddOpenTelemetry().WithMetrics(metricBuilderProvider =>
+            {
+                if (ConfluentKafkaCommon.IsAspire8ConfluentKafkaMetricsEnabled)
+                {
+                    metricBuilderProvider.AddMeter(ConfluentKafkaCommon.MeterName);
+                }
+
+                metricBuilderProvider.AddKafkaProducerInstrumentation<TKey, TValue>(name: serviceKey);
+            });
+        }
+
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+            {
+                tracing.AddKafkaProducerInstrumentation<TKey, TValue>(name: serviceKey);
+            });
         }
 
         if (!settings.DisableHealthChecks)
@@ -158,14 +189,20 @@ public static class AspireKafkaProducerExtensions
         }
     }
 
-    private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
-        => new(CreateProducerBuilder(serviceProvider, configureBuilder, settings), settings.Config);
+    private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(
+        IServiceProvider serviceProvider, KafkaProducerSettings settings, string? key = null)
+    {
+        return key is null
+            ? new(serviceProvider.GetRequiredService<InstrumentedProducerBuilder<TKey, TValue>>(), settings.Config)
+            : new(serviceProvider.GetRequiredKeyedService<InstrumentedProducerBuilder<TKey, TValue>>(key),
+                settings.Config);
+    }
 
-    private static ProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
+    private static InstrumentedProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
     {
         settings.Validate();
 
-        ProducerBuilder<TKey, TValue> builder = new(settings.Config);
+        InstrumentedProducerBuilder<TKey, TValue> builder = new(settings.Config);
         ILogger logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(ConfluentKafkaCommon.LogCategoryName);
         configureBuilder?.Invoke(serviceProvider, builder);
 
@@ -181,7 +218,7 @@ public static class AspireKafkaProducerExtensions
             logger.LogWarning("LogHandler is already set. Skipping... No logs will be written.");
         }
 
-        if (!settings.DisableMetrics)
+        if (!settings.DisableMetrics && ConfluentKafkaCommon.IsAspire8ConfluentKafkaMetricsEnabled)
         {
             MetricsChannel channel = serviceProvider.GetRequiredService<MetricsChannel>();
             void OnStatistics(IProducer<TKey, TValue> _, string json)
@@ -194,7 +231,8 @@ public static class AspireKafkaProducerExtensions
                 // StatisticsHandler is called on the producer poll thread, we need to offload the processing
                 // to avoid slowing the producer down.
                 channel.Writer.TryWrite(json);
-            };
+            }
+            ;
 
             try
             {

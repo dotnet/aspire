@@ -1,12 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
-
-param principalType string
-
-param principalName string
-
 resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: take('pgsql2-${uniqueString(resourceGroup().id)}', 63)
   location: location
@@ -51,17 +45,6 @@ resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-0
   parent: pgsql2
 }
 
-resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-  name: principalId
-  properties: {
-    principalName: principalName
-    principalType: principalType
-  }
-  parent: pgsql2
-  dependsOn: [
-    pgsql2
-    postgreSqlFirewallRule_AllowAllAzureIps
-  ]
-}
+output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName}'
 
-output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'
+output name string = pgsql2.name

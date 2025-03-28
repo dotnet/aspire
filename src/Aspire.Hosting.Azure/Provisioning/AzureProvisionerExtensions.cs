@@ -5,8 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -22,6 +20,7 @@ public static class AzureProvisionerExtensions
     /// </summary>
     public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
     {
+        builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
         builder.Services.TryAddLifecycleHook<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
@@ -41,15 +40,6 @@ public static class AzureProvisionerExtensions
     {
         // This lets us avoid using open generics in the caller, we can use keyed lookup instead
         builder.Services.AddKeyedSingleton<IAzureResourceProvisioner, TProvisioner>(typeof(TResource));
-        return builder;
-    }
-
-    internal static IDistributedApplicationBuilder AddResourceEnumerator<TResource>(this IDistributedApplicationBuilder builder,
-        Func<ResourceGroupResource, IAsyncEnumerable<TResource>> getResources,
-        Func<TResource, IDictionary<string, string>> getTags)
-        where TResource : ArmResource
-    {
-        builder.Services.AddSingleton<IAzureResourceEnumerator>(new AzureResourceEnumerator<TResource>(getResources, getTags));
         return builder;
     }
 }

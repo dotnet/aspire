@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
@@ -8,17 +8,16 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire testing</PackageTags>
     <Description>Testing support for the .NET Aspire application model.</Description>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>4</MinCodeCoverage>
+    <IsAspireHost>false</IsAspireHost>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
+    <Compile Include="$(SharedDir)\KnownConfigNames.cs" Link="KnownConfigNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 

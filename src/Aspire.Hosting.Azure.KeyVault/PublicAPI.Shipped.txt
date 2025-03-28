@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.Azure.AzureKeyVaultResource
-Aspire.Hosting.Azure.AzureKeyVaultResource.AzureKeyVaultResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureKeyVaultResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.Azure.AzureKeyVaultResource.VaultUri.get -> Aspire.Hosting.Azure.BicepOutputReference!
-Aspire.Hosting.AzureKeyVaultResourceExtensions
-static Aspire.Hosting.AzureKeyVaultResourceExtensions.AddAzureKeyVault(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureKeyVaultResource!>!
-static Aspire.Hosting.AzureKeyVaultResourceExtensions.AddAzureKeyVault(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureKeyVaultResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.KeyVaults.KeyVault!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureKeyVaultResource!>!

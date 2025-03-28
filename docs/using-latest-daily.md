@@ -1,6 +1,6 @@
 # Set up your machine to use the latest Aspire builds
 
-These instructions will get you set up with the latest build of Aspire. If you just want the last release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.10](https://visualstudio.microsoft.com/vs/) or later for the tooling.
+These instructions will get you set up with the latest build of Aspire. If you just want the last preview release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.12](https://visualstudio.microsoft.com/vs/preview/) or later for the tooling.
 
 ## Prepare the machine
 
@@ -42,7 +42,7 @@ dotnet new install Aspire.ProjectTemplates::*-* --force
 ```
 
 > [!TIP]
-> If you want to use the latest build from the `release/9.0-rc1` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force`
+> Release branches are a little different. For example, for the latest build from `release/X.X` branch change the above to be `Aspire.ProjectTemplates::X.X.*-*`. For example, if you want to use the latest build from the `release/9.2` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.2.*-* --force`
 
 <!-- break between blocks -->
 

@@ -23,11 +23,11 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
     public void Configure(DashboardOptions options)
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
-        options.DashboardUrl = configuration["ASPNETCORE_URLS"];
+        options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
         options.DashboardToken = configuration["AppHost:BrowserToken"];
 
-        options.OtlpGrpcEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
-        options.OtlpHttpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"];
+        options.OtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
+        options.OtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
@@ -42,12 +42,12 @@ internal class ValidateDashboardOptions : IValidateOptions<DashboardOptions>
 
         if (string.IsNullOrEmpty(options.DashboardUrl))
         {
-            builder.AddError("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
+            builder.AddError($"Failed to configure dashboard resource because {KnownConfigNames.AspNetCoreUrls} environment variable was not set.");
         }
 
         if (string.IsNullOrEmpty(options.OtlpGrpcEndpointUrl) && string.IsNullOrEmpty(options.OtlpHttpEndpointUrl))
         {
-            builder.AddError("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL environment variables are not set. At least one OTLP endpoint must be provided.");
+            builder.AddError($"Failed to configure dashboard resource because {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} and {KnownConfigNames.DashboardOtlpHttpEndpointUrl} environment variables are not set. At least one OTLP endpoint must be provided.");
         }
 
         return builder.Build();

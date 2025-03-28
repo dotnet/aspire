@@ -18,7 +18,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
@@ -105,8 +104,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains("ASPNETCORE_URLS", s),
-            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s),
+            s => Assert.Contains(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, s));
     }
 
     [Fact]
@@ -125,8 +124,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             s => Assert.Contains("Dashboard:Otlp:AllowedCertificates:0:Thumbprint", s));
     }
 
-    [Fact]
-    public async Task Configuration_ConfigFilePathDoesntExist_Error()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_ConfigFilePathDoesntExist_Error(string dashboardConfigFilePathNameKey)
     {
         // Arrange & Act
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -135,7 +136,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 });
         }).DefaultTimeout();
 
@@ -143,8 +144,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(configFilePath, ex.Message);
     }
 
-    [Fact]
-    public async Task Configuration_FileConfigDirectoryDoesExist_Success()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardFileConfigDirectory)]
+    [InlineData(KnownConfigNames.Legacy.DashboardFileConfigDirectory)]
+    public async Task Configuration_FileConfigDirectoryDoesExist_Success(string dashboardFileConfigDirectoryNameKey)
     {
         // Arrange
         const string frontendBrowserToken = "SomeSecretContent";
@@ -153,7 +156,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         try
         {
             var config = new ConfigurationManager()
-                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .AddInMemoryCollection(new Dictionary<string, string?> { [dashboardFileConfigDirectoryNameKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
 
@@ -501,8 +504,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
     }
 
-    [Fact]
-    public async Task Configuration_Logging_FileConfig_OverrideDefaults()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_Logging_FileConfig_OverrideDefaults(string dashboardConfigFilePathNameKey)
     {
         // Arrange
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -526,7 +531,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 },
                 clearLogFilterRules: false);
 
@@ -711,6 +716,23 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Collection(app.ValidationFailures,
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.UIDisableResourceGraphName.ConfigKey] = value?.ToString().ToLower();
+            });
+
+        // Assert
+        Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.UI.DisableResourceGraph);
     }
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)

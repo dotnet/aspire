@@ -19,6 +19,7 @@ using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -97,12 +98,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IServiceProvider Services { get; }
 
-    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-    internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-    };
-
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
@@ -144,13 +139,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #endif
 
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } configFilePath)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardConfigFilePathName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardConfigFilePathName.ConfigKey, fallbackOnEmpty: true) is { } configFilePath)
         {
             builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         }
 
         // Allow for a user specified config directory on disk (e.g. for Docker secrets). Throw an error if the specified directory doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } fileConfigDirectory)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardFileConfigDirectoryName.ConfigKey, fallbackOnEmpty: true) is { } fileConfigDirectory)
         {
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
@@ -233,6 +230,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Data from the server.
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
         builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
+        builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -253,6 +251,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ThemeManager>();
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
+        builder.Services.AddScoped<ConsoleLogsManager>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
 
         // Time zone is set by the browser.
@@ -278,16 +277,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         Services = _app.Services;
         _logger = GetLogger();
 
-        var supportedCultures = GetSupportedCultures();
+        var supportedCultureNames = GlobalizationHelpers.ExpandedLocalizedCultures
+            .SelectMany(kvp => kvp.Value)
+            .Select(c => c.Name)
+            .ToArray();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedCultures)
-            .AddSupportedUICultures(supportedCultures));
+            .AddSupportedCultures(supportedCultureNames)
+            .AddSupportedUICultures(supportedCultureNames));
 
         WriteVersion(_logger);
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
+            EndpointInfo? frontendEndpointInfo = null;
             if (_frontendEndPointAccessor.Count > 0)
             {
                 if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
@@ -305,17 +308,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     });
                 }
 
-                var frontendEndpointInfo = _frontendEndPointAccessor[0]();
+                frontendEndpointInfo = _frontendEndPointAccessor[0]();
                 _logger.LogInformation("Now listening on: {DashboardUri}", frontendEndpointInfo.GetResolvedAddress());
-
-                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
-                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-                {
-                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
-                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
-                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
-                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
-                }
             }
 
             if (_otlpServiceGrpcEndPointAccessor != null)
@@ -332,6 +326,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
             {
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
+            }
+
+            // Log frontend login URL last at startup so it's easy to find in the logs.
+            if (frontendEndpointInfo != null)
+            {
+                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+                {
+                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
+                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
+                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
+
+                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
+                }
             }
         });
 
@@ -410,40 +418,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcTraceService>();
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
-        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-        {
-            _app.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
-            {
-                return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
-            });
-
-#if DEBUG
-            // Available in local debug for testing.
-            _app.MapGet("/api/signout", async (HttpContext httpContext) =>
-            {
-                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
-                    httpContext,
-                    CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
-            });
-#endif
-        }
-        else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
-        {
-            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
-        }
-    }
-
-    internal static string[] GetSupportedCultures()
-    {
-        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
-            .Select(culture => culture.Name)
-            .ToList();
-
-        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-        supportedCultures.Add("zh-CN");
-        return supportedCultures.ToArray();
+        _app.MapDashboardApi(dashboardOptions);
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
@@ -507,7 +482,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         if (!hasSingleEndpoint)
         {
-            // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
+            // Translate high-level config settings such as ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
             if (otlpGrpcAddress != null)
             {

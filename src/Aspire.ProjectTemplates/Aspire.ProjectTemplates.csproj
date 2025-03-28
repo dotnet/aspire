@@ -18,10 +18,6 @@
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>100</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <None Include="templates\**\*" />
   </ItemGroup>
@@ -57,7 +53,13 @@
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
                                                  .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
-                                                 .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
+                                                 .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_LTS_VERSION!!', '$(OpenTelemetryLTSVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_HOSTING_VERSION!!', '$(OpenTelemetryInstrumentationExtensionsHostingVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!', '$(OpenTelemetryInstrumentationAspNetCoreVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_HTTP_VERSION!!', '$(OpenTelemetryInstrumentationHttpVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!', '$(OpenTelemetryInstrumentationRuntimeVersion)') )"
                       Overwrite="true" />
   </Target>
 

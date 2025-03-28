@@ -52,7 +52,16 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "Microsoft.Extensions.Http.Resilience",
-                    "version": "8.9.1"
+                    "version": "8.2.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "Microsoft.Extensions.Http.Resilience",
+                    "version": "9.1.0"
                 }
             }
         },
@@ -70,7 +79,25 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "MSTest",
-                    "version": "3.5.2"
+                    "version": "3.4.3"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "MSTest",
+                    "version": "3.6.1"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "MSTest",
+                    "version": "3.6.4"
                 }
             }
         },
@@ -88,7 +115,16 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "NUnit",
-                    "version": "4.2.1"
+                    "version": "4.1.0"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "NUnit",
+                    "version": "4.2.2"
                 }
             }
         },
@@ -116,6 +152,15 @@
                 "nuget": {
                     "name": "xunit",
                     "version": "2.9.0"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "xunit",
+                    "version": "2.9.2"
                 }
             }
         },

@@ -13,6 +13,7 @@ using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
 using static Aspire.Dashboard.Components.Pages.Metrics;
@@ -21,7 +22,7 @@ using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class MetricsTests : TestContext
+public partial class MetricsTests : DashboardTestContext
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -119,6 +120,102 @@ public partial class MetricsTests : TestContext
         Assert.Equal(MetricViewKind.Table.ToString(), query["view"]);
     }
 
+    [Fact]
+    public void MetricsTree_MetricsAdded_TreeUpdated()
+    {
+        // Arrange
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter1"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument1-1", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act 1
+        // Initial page load
+        var cut = RenderComponent<Metrics>(builder =>
+        {
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+            builder.Add(m => m.ApplicationName, "TestApp");
+        });
+
+        // Assert 2
+        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 1);
+
+        cut.WaitForAssertion(() =>
+        {
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree1 = cut.FindComponent<FluentTreeView>();
+            var items1 = tree1.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
+
+        // Act 2
+        // New instruments added
+        telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter1"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument1-2", startTime: s_testTime.AddMinutes(1))
+                        }
+                    },
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter2"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument2-1", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert 2
+        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
+
+        cut.WaitForAssertion(() =>
+        {
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree2 = cut.FindComponent<FluentTreeView>();
+            var items2 = tree2.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
+    }
+
     private void ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)
     {
         // Arrange
@@ -191,7 +288,7 @@ public partial class MetricsTests : TestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TestConstants.WaitTimeout);
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.MeterName);

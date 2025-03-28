@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.Azure.AzureSearchResource
-Aspire.Hosting.Azure.AzureSearchResource.AzureSearchResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureSearchResource.ConnectionString.get -> Aspire.Hosting.Azure.BicepOutputReference!
-Aspire.Hosting.Azure.AzureSearchResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.AzureSearchExtensions
-static Aspire.Hosting.AzureSearchExtensions.AddAzureSearch(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSearchResource!>!
-static Aspire.Hosting.AzureSearchExtensions.AddAzureSearch(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSearchResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.Search.SearchService!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSearchResource!>!

@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
+    <Description>A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+
+    <!-- Keep the same assembly name as the main library. -->
+    <AssemblyName>Aspire.RabbitMQ.Client</AssemblyName>
+    <!-- PackageId defaults to AssemblyName, so need to reset it. -->
+    <PackageId>$(MSBuildProjectName)</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.RabbitMQ.Client\AspireRabbitMQExtensions.cs" />
+    <Compile Include="..\Aspire.RabbitMQ.Client\RabbitMQClientSettings.cs" />
+    <Compile Include="..\Aspire.RabbitMQ.Client\RabbitMQEventSourceLogForwarder.cs" />
+    <None Include="..\Aspire.RabbitMQ.Client\README.md" Pack="true" PackagePath="\" />
+    
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Polly.Core" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.1.2" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.v7.Tests" />
+  </ItemGroup>
+
+</Project>

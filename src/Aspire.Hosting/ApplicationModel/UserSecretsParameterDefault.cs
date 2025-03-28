@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Reflection;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -24,7 +23,7 @@ internal sealed class UserSecretsParameterDefault(Assembly appHostAssembly, stri
     {
         var value = parameterDefault.GetDefaultValue();
         var configurationKey = $"Parameters:{parameterName}";
-        if (!TrySetUserSecret(appHostAssembly, configurationKey, value))
+        if (!SecretsStore.TrySetUserSecret(appHostAssembly, configurationKey, value))
         {
             // This is a best-effort operation, so we don't throw if it fails. Common reason for failure is that the user secrets ID is not set
             // in the application's assembly. Note there's no ILogger available this early in the application lifecycle.
@@ -35,22 +34,4 @@ internal sealed class UserSecretsParameterDefault(Assembly appHostAssembly, stri
 
     /// <inheritdoc/>
     public override void WriteToManifest(ManifestPublishingContext context) => parameterDefault.WriteToManifest(context);
-
-    private static bool TrySetUserSecret(Assembly assembly, string name, string value)
-    {
-        if (assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
-        {
-            // Save the value to the secret store
-            try
-            {
-                var secretsStore = new SecretsStore(userSecretsId);
-                secretsStore.Set(name, value);
-                secretsStore.Save();
-                return true;
-            }
-            catch (Exception) { }
-        }
-
-        return false;
-    }
 }

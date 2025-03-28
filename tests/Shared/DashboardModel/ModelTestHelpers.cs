@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -20,7 +19,8 @@ public static class ModelTestHelpers
         string? resourceType = null,
         string? stateStyle = null,
         HealthStatus? reportHealthStatus = null,
-        bool createNullHealthReport = false)
+        bool createNullHealthReport = false,
+        ImmutableArray<CommandViewModel>? commands = null)
     {
         return new ResourceViewModel
         {
@@ -34,12 +34,13 @@ public static class ModelTestHelpers
             Environment = environment ?? [],
             Urls = urls ?? [],
             Volumes = [],
-            Properties = properties?.ToFrozenDictionary() ?? FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
+            Properties = properties?.ToImmutableDictionary() ?? ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             State = state?.ToString(),
             KnownState = state,
             StateStyle = stateStyle,
             HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
-            Commands = []
+            Commands = commands ?? [],
+            Relationships = [],
         };
     }
 }

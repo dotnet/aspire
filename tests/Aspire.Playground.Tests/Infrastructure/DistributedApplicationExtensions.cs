@@ -85,9 +85,8 @@ public static partial class DistributedApplicationExtensions
     public static Task WaitForResource(this DistributedApplication app, string resourceName, string? targetState = null, CancellationToken cancellationToken = default)
     {
         targetState ??= KnownResourceStates.Running;
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        return resourceNotificationService.WaitForResourceAsync(resourceName, targetState, cancellationToken);
+        return app.ResourceNotifications.WaitForResourceAsync(resourceName, targetState, cancellationToken);
     }
 
     /// <summary>
@@ -100,9 +99,8 @@ public static partial class DistributedApplicationExtensions
     {
         targetStates ??= [KnownResourceStates.Running, KnownResourceStates.Hidden];
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        return Task.WhenAll(applicationModel.Resources.Select(r => resourceNotificationService.WaitForResourceAsync(r.Name, targetStates, cancellationToken)));
+        return Task.WhenAll(applicationModel.Resources.Select(r => app.ResourceNotifications.WaitForResourceAsync(r.Name, targetStates, cancellationToken)));
     }
 
     /// <summary>
@@ -146,9 +144,7 @@ public static partial class DistributedApplicationExtensions
                     // Container resources tend to write to stderr for various reasons so only assert projects and executables
                     (ProjectResource or ExecutableResource)
                     // Node resources tend to have npm modules that write to stderr so ignore them
-                    and not NodeAppResource
-                // Dapr resources write to stderr about deprecated --components-path flag
-                && !resource.Name.EndsWith("-dapr-cli");
+                    and not NodeAppResource;
         }
 
         static void AssertDoesNotContain(IReadOnlyList<FakeLogRecord> logs, Func<FakeLogRecord, bool> predicate)

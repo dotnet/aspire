@@ -1,22 +1,33 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Columns> Loc
 @inject IStringLocalizer<Resources> ResourcesLoc
 
 <GridValue Value="@Value"
-           ValueToCopy="@ValueToCopy"
-           ValueToVisualize="@ValueToCopy"
+           ValueToVisualize="@ValueToVisualize"
            ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
            EnableHighlighting="true"
            HighlightText="@FilterText"
            PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
            ToolTip="@Tooltip"
-           StopClickPropagation="true">
+           StopClickPropagation="true"
+           ContainsSecret="@(ContentAfterValue?.Any(v => !v.IsShown) is true)">
     <ContentAfterValue>
         @if (ContentAfterValue is not null)
         {
-            <span class="subtext">&nbsp;@ContentAfterValue</span>
+            foreach (var launchArgument in ContentAfterValue)
+            {
+                if (launchArgument.IsShown)
+                {
+                    <span class="subtext">&nbsp;@launchArgument.Value</span>
+                }
+                else
+                {
+                    <span class="subtext">&nbsp;@DashboardUIHelpers.GetMaskingText(length: 6).MarkupString</span>
+                }
+            }
         }
     </ContentAfterValue>
 </GridValue>
@@ -29,10 +40,10 @@
     public required string Value { get; set; }
 
     [Parameter]
-    public required string? ContentAfterValue { get; set; }
+    public required List<LaunchArgument>? ContentAfterValue { get; set; }
 
     [Parameter, EditorRequired]
-    public required string ValueToCopy { get; set; }
+    public required string ValueToVisualize { get; set; }
 
     [Parameter, EditorRequired]
     public required string Tooltip { get; set; }

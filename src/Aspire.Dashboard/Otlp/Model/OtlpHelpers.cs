@@ -89,11 +89,19 @@ public static class OtlpHelpers
 
     public static string ToHexString(this ByteString bytes)
     {
+        ArgumentNullException.ThrowIfNull(bytes);
+
         return ToHexString(bytes.Memory);
     }
 
-    public static string GetString(this AnyValue value) =>
-        value.ValueCase switch
+    public static string GetString(this AnyValue? value)
+    {
+        if (value == null)
+        {
+            return string.Empty;
+        }
+
+        return value.ValueCase switch
         {
             AnyValue.ValueOneofCase.StringValue => value.StringValue,
             AnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
@@ -105,6 +113,7 @@ public static class OtlpHelpers
             AnyValue.ValueOneofCase.None => string.Empty,
             _ => value.ToString(),
         };
+    }
 
     private static JsonNode? ConvertAnyValue(AnyValue value)
     {
@@ -392,18 +401,14 @@ public static class OtlpHelpers
         return sb.ToString();
     }
 
-    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int? count)
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count, bool isFull)
     {
-        return GetItems<T, T>(results, startIndex, count, null);
+        return GetItems<T, T>(results, startIndex, count, isFull, null);
     }
 
-    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int? count, Func<TSource, TResult>? select)
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, bool isFull, Func<TSource, TResult>? select)
     {
-        var query = results.Skip(startIndex);
-        if (count != null)
-        {
-            query = query.Take(count.Value);
-        }
+        var query = results.Skip(startIndex).Take(count);
         List<TResult> items;
         if (select != null)
         {
@@ -418,7 +423,8 @@ public static class OtlpHelpers
         return new PagedResult<TResult>
         {
             Items = items,
-            TotalItemCount = totalItemCount
+            TotalItemCount = totalItemCount,
+            IsFull = isFull
         };
     }
 }

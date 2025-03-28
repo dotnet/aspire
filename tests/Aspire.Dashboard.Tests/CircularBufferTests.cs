@@ -10,6 +10,51 @@ public class CircularBufferTests
     private static CircularBuffer<string> CreateBuffer(int capacity) => new(capacity);
 
     [Fact]
+    public void LargeData_AddWhenFull_KeepOrder()
+    {
+        // The data here was reproduced from this issue: https://github.com/dotnet/aspire/issues/7854
+        var values = new long[10_000];
+        for (var i = 0; i < values.Length; i++)
+        {
+            var index = (521 + i) % values.Length;
+            values[index] = i * 2;
+        }
+
+        var buffer = new CircularBuffer<long>(values.ToList(), 10_000, 521, 521);
+
+        AssertOrder(buffer);
+
+        var newValue = 18973;
+
+        for (var i = buffer.Count - 1; i >= 0; i--)
+        {
+            var currentTrace = buffer[i];
+            if (newValue > currentTrace)
+            {
+                buffer.Insert(i + 1, newValue);
+                break;
+            }
+        }
+
+        AssertOrder(buffer);
+
+        static void AssertOrder(CircularBuffer<long> buffer)
+        {
+            long current = default;
+            for (var i = 0; i < buffer.Count; i++)
+            {
+                var value = buffer[i];
+                if (value < current)
+                {
+                    throw new InvalidOperationException($"Traces not in order at index {i}. {value} shouldn't be smaller than {current}.");
+                }
+
+                current = value;
+            }
+        }
+    }
+
+    [Fact]
     public void AddUntilFull()
     {
         var b = CreateBuffer(5);
@@ -621,5 +666,28 @@ public class CircularBufferTests
             i => Assert.Equal("10", i),
             i => Assert.Equal("11", i),
             i => Assert.Equal("12", i));
+    }
+
+    [Fact]
+    public void Clear_EmptiesBuffer_ResetsIndex()
+    {
+        var b = CreateBuffer(5);
+
+        b.Insert(0, "0");
+        b.Insert(0, "1");
+        b.Insert(0, "2");
+
+        b.Clear();
+
+        Assert.Empty(b);
+
+        b.Insert(0, "0");
+        b.Insert(0, "1");
+        b.Insert(0, "2");
+
+        Assert.Collection(b,
+            i => Assert.Equal("2", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("0", i));
     }
 }

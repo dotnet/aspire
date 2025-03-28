@@ -9,8 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
 using Azure.Core;
-using Azure.ResourceManager.KeyVault;
-using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
@@ -96,7 +94,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -107,21 +105,29 @@ internal sealed class BicepProvisioner(
 
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
+        var resourceGroup = context.ResourceGroup;
+        var resourceLogger = loggerService.GetLogger(resource);
+
+        if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) &&
+            existingResource.ResourceGroup is { } existingResourceGroup)
+        {
+            var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
+                ? parameterResource.Value
+                : (string)existingResourceGroup;
+            resourceGroup = await context.Subscription.GetResourceGroupAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
+        }
+
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
             State = new("Starting", KnownResourceStateStyles.Info),
-            Properties = [
+            Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
-                new("azure.resource.group", context.ResourceGroup.Id.Name),
+                new("azure.resource.group", resourceGroup.Id.Name),
                 new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
-            ]
+            ])
         }).ConfigureAwait(false);
-
-        var resourceLogger = loggerService.GetLogger(resource);
-
-        PopulateWellKnownParameters(resource, context);
 
         if (FindFullPathFromPath("az") is not { } azPath)
         {
@@ -129,65 +135,11 @@ internal sealed class BicepProvisioner(
         }
 
         var template = resource.GetBicepTemplateFile();
-
         var path = template.Path;
 
-        KeyVaultResource? keyVault = null;
-
-        if (resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName))
-        {
-            // This could be done as a bicep template that imports the other bicep template but this is
-            // quick and dirty for now
-            var keyVaults = context.ResourceGroup.GetKeyVaults();
-
-            // Check to see if there's a key vault for this resource already
-            await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
-            {
-                if (kv.Data.Tags.TryGetValue("aspire-secret-store", out var secretStore) && secretStore == resource.Name)
-                {
-                    resourceLogger.LogInformation("Found key vault {vaultName} for resource {resource} in {location}...", kv.Data.Name, resource.Name, context.Location);
-
-                    keyVault = kv;
-                    break;
-                }
-            }
-
-            if (keyVault is null)
-            {
-                await notificationService.PublishUpdateAsync(resource, state => state with
-                {
-                    State = new("Provisioning Keyvault", KnownResourceStateStyles.Info)
-
-                }).ConfigureAwait(false);
-
-                // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
-                // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
-                var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
-
-                resourceLogger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
-
-                var properties = new KeyVaultProperties(context.Subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
-                {
-                    EnabledForTemplateDeployment = true,
-                    EnableRbacAuthorization = true
-                };
-                var kvParameters = new KeyVaultCreateOrUpdateContent(context.Location, properties);
-                kvParameters.Tags.Add("aspire-secret-store", resource.Name);
-
-                var kvOperation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, kvParameters, cancellationToken).ConfigureAwait(false);
-                keyVault = kvOperation.Value;
-
-                resourceLogger.LogInformation("Key vault {vaultName} created.", keyVault.Data.Name);
-
-                // Key Vault Administrator
-                // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
-                var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
-
-                await DoRoleAssignmentAsync(context.ArmClient, keyVault.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
-            }
-
-            resource.Parameters[AzureBicepResource.KnownParameters.KeyVaultName] = keyVault.Data.Name;
-        }
+        // GetBicepTemplateFile may have added new well-known parameters, so we need
+        // to populate them only after calling GetBicepTemplateFile.
+        PopulateWellKnownParameters(resource, context);
 
         // Use the azure CLI to run the bicep compiler to transpile the bicep file to a ARM JSON file
         var armTemplateContents = new StringBuilder();
@@ -212,13 +164,15 @@ internal sealed class BicepProvisioner(
             throw new InvalidOperationException();
         }
 
-        var deployments = context.ResourceGroup.GetArmDeployments();
+        var deployments = resourceGroup.GetArmDeployments();
 
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var scope = new JsonObject();
+        await SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
 
@@ -240,7 +194,7 @@ internal sealed class BicepProvisioner(
         cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
-        var url = GetDeploymentUrl(context, resource.Name);
+        var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
 
         resourceLogger.LogInformation("Deployment started: {Url}", url);
 
@@ -257,7 +211,7 @@ internal sealed class BicepProvisioner(
         await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -269,7 +223,7 @@ internal sealed class BicepProvisioner(
         }
         else
         {
-            throw new InvalidOperationException($"Deployment of {resource.Name} to {context.ResourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -299,8 +253,14 @@ internal sealed class BicepProvisioner(
             resourceConfig["Outputs"] = outputObj.ToJsonString();
         }
 
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
+        }
+
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -313,24 +273,17 @@ internal sealed class BicepProvisioner(
         }
 
         // Populate secret outputs from key vault (if any)
-        if (keyVault is not null)
+        if (resource is IKeyVaultResource kvr)
         {
-            var configOutputs = resourceConfig.Prop("SecretOutputs");
+            var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
 
-            var client = new SecretClient(keyVault.Data.Properties.VaultUri, context.Credential);
-
-            await foreach (var item in keyVault.GetKeyVaultSecrets().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            // Set the client for resolving secrets at runtime
+            var client = new SecretClient(new(vaultUri), context.Credential);
+            kvr.SecretResolver = async (secretName, ct) =>
             {
-                var response = await client.GetSecretAsync(item.Data.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
-                var secret = response.Value;
-                resource.SecretOutputs[item.Data.Name] = secret.Value;
-            }
-
-            foreach (var item in resource.SecretOutputs)
-            {
-                // Save them to configuration
-                configOutputs[item.Key] = resource.SecretOutputs[item.Key];
-            }
+                var secret = await client.GetSecretAsync(secretName, cancellationToken: ct).ConfigureAwait(false);
+                return secret.Value.Value;
+            };
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -342,7 +295,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };
@@ -419,12 +372,16 @@ internal sealed class BicepProvisioner(
         return null;
     }
 
-    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope)
     {
         // TODO: PERF Inefficient
 
         // Combine the parameter values with the bicep template to create a unique value
         var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+        if (scope is not null)
+        {
+            input += scope.ToJsonString();
+        }
 
         // Hash the contents
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
@@ -444,6 +401,9 @@ internal sealed class BicepProvisioner(
         try
         {
             var parameters = JsonNode.Parse(jsonString)?.AsObject();
+            var scope = section["Scope"] is string scopeString
+                ? JsonNode.Parse(scopeString)?.AsObject()
+                : null;
 
             if (parameters is null)
             {
@@ -454,9 +414,13 @@ internal sealed class BicepProvisioner(
             // This is important because the provisioner will fill in the known values and
             // generated values would change every time, so they can't be part of the checksum.
             await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (scope is not null)
+            {
+                await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
+            }
 
             // Get the checksum of the new values
-            return GetChecksum(resource, parameters);
+            return GetChecksum(resource, parameters, scope);
         }
         catch
         {
@@ -509,6 +473,27 @@ internal sealed class BicepProvisioner(
         }
     }
 
+    internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
+    {
+        // Resolve the scope from the AzureBicepResource if it has already been set
+        // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
+        var targetScope = resource.Scope;
+        if (targetScope is null
+            && resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource)
+            && existingResource.ResourceGroup is { } existingResourceGroup)
+        {
+            targetScope = new AzureBicepResourceScope(existingResourceGroup);
+        }
+
+        scope["resourceGroup"] = targetScope?.ResourceGroup switch
+        {
+            string s => s,
+            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            null => null,
+            _ => throw new NotSupportedException($"The scope value type {targetScope.ResourceGroup.GetType()} is not supported.")
+        };
+    }
+
     private static bool IsParameterWithGeneratedValue(object? value)
     {
         return value is ParameterResource { Default: not null };
@@ -516,12 +501,12 @@ internal sealed class BicepProvisioner(
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
 
-    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, string deploymentName)
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
     {
         var prefix = PortalDeploymentOverviewUrl;
 
         var subId = provisioningContext.Subscription.Data.Id.ToString();
-        var rgName = provisioningContext.ResourceGroup.Data.Name;
+        var rgName = resourceGroup.Data.Name;
         var subAndRg = $"{subId}/resourceGroups/{rgName}";
 
         var deployId = deploymentName;

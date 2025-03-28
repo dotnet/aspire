@@ -1,9 +1,0 @@
-<Project>
-
-  <ItemGroup Condition="'$(UsePublicApiAnalyzers)' == 'true' AND '$(DotNetBuildFromSource)' != 'true' AND '$(DotNetBuildSourceOnly)' != 'true'">
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" ExcludeAssets="Compile" PrivateAssets="All" />
-    <AdditionalFiles Include="$(ProjectDir)PublicAPI.Shipped.txt" />
-    <AdditionalFiles Include="$(ProjectDir)PublicAPI.Unshipped.txt" />
-  </ItemGroup>
-
-</Project>

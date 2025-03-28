@@ -76,7 +76,8 @@
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
                               IsValueSortable="false"
-                              HighlightText="@_filter">
+                              HighlightText="@_filter"
+                              Multiline="true">
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
@@ -96,10 +97,15 @@
                         @FilteredSpanLinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                ResizableColumns="true"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanLinks"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
@@ -116,10 +122,15 @@
                         @FilteredSpanBacklinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                ResizableColumns="true"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanBacklinks"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">

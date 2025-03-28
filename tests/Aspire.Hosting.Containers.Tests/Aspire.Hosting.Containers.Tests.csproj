@@ -6,15 +6,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Polly.Core" />
-  </ItemGroup>
-
-    <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
   </ItemGroup>
 </Project>

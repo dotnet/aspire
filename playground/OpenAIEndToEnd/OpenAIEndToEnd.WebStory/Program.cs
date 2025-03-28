@@ -9,13 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureOpenAIClient("openaiA").AddChatClient();
+// Instead of passing this manually, it can also be read from the connection string
+var openAiDeploymentName = builder.Configuration["OpenAI:DeploymentName"];
 
-// Examples using multiple OpenAI resources and multiple models
-
-//builder.AddKeyedAzureOpenAIClient("openaiB")
-//    .AddKeyedChatClient("modelB1")
-//    .AddKeyedChatClient("modelB2");
+builder.AddAzureOpenAIClient("openai").AddChatClient(openAiDeploymentName);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
