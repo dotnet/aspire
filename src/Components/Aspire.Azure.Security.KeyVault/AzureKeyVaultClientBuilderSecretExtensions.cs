@@ -19,11 +19,11 @@ namespace Aspire.Azure.Security.KeyVault;
 public static class AzureKeyVaultClientBuilderSecretExtensions
 {
     /// <summary>
-    /// 
+    /// Registers a <see cref="SecretClient"/> as a singleton into the services provided by the <paramref name="builder"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="configureClientBuilder"></param>
-    /// <returns></returns>
+    /// <param name="builder">Used to register AzureKeyVault clients.</param>
+    /// <param name="configureClientBuilder">Optional configuration for the <see cref="SecretClient"/>.</param>
+    /// <returns>A <see cref="AzureKeyVaultClientBuilder"/> to configure further clients.</returns>
     public static AzureKeyVaultClientBuilder AddSecretClient(
         this AzureKeyVaultClientBuilder builder,
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
@@ -32,12 +32,13 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     }
 
     /// <summary>
-    /// 
+    /// Registers a keyed <see cref="SecretClient"/> as a singleton into the services provided by the <paramref name="builder"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="serviceKey"></param>
-    /// <param name="configureClientBuilder"></param>
-    /// <returns></returns>
+    /// <param name="builder">Used to register AzureKeyVault clients.</param>
+    /// <param name="serviceKey">The name to call the <see cref="SecretClient"/> singleton service.</param>
+    /// <param name="configureClientBuilder">Optional configuration for the <see cref="SecretClient"/>.</param>
+    /// <returns>A <see cref="AzureKeyVaultClientBuilder"/> to configure further clients.</returns>
+    /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="serviceKey"/> is null or empty.</exception>
     public static AzureKeyVaultClientBuilder AddKeyedSecretClient(
     this AzureKeyVaultClientBuilder builder,
     string serviceKey,
@@ -46,6 +47,26 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 
         return builder.InnerAddSecretClient(configureClientBuilder, serviceKey);
+    }
+
+    /// <summary>
+    /// Implements the creation of a <see cref="SecretClient"/> as an <see cref="AzureComponent{TSettings, TClient, TClientOptions}"/>
+    /// </summary>
+    /// <param name="builder">Used to register AzureKeyVault clients.</param>
+    /// <param name="serviceKey">The name to call the <see cref="SecretClient"/> singleton service.</param>
+    /// <param name="configureClientBuilder">Optional configuration for the <see cref="SecretClient"/>.</param>
+    /// <returns>A <see cref="AzureKeyVaultClientBuilder"/> to configure further clients.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static AzureKeyVaultClientBuilder InnerAddSecretClient(
+        this AzureKeyVaultClientBuilder builder,
+        Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null,
+        string? serviceKey = null)
+    {
+        new KeyVaultSecretsComponent()
+            .AddClient(builder.HostBuilder, builder.DefaultConfigSectionName, builder.ConfigureSettings,
+                       configureClientBuilder, builder.ConnectionName, serviceKey);
+
+        return builder;
     }
 
     /// <summary>
@@ -101,25 +122,8 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     }
 
     /// <summary>
-    /// 
+    /// Representation of an <see cref="AzureComponent{TSettings, TClient, TClientOptions}"/>, configured as a <see cref="SecretClient"/>
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="configureClientBuilder"></param>
-    /// <param name="serviceKey"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    private static AzureKeyVaultClientBuilder InnerAddSecretClient(
-        this AzureKeyVaultClientBuilder builder,
-        Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null,
-        string? serviceKey = null)
-    {
-        new KeyVaultSecretsComponent()
-            .AddClient(builder.HostBuilder, builder.DefaultConfigSectionName, builder.ConfigureSettings,
-                       configureClientBuilder, builder.ConnectionName, serviceKey);
-
-        return builder;
-    }
-
     private sealed class KeyVaultSecretsComponent : AbstractKeyVaultComponent<SecretClient, SecretClientOptions>
     {
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
