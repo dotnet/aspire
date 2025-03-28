@@ -293,16 +293,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
 
                     // Determine the resource service API key.
-                    var apiKey = _innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey];
-                    if (apiKey is not { Length: > 0 })
-                    {
-                        apiKey = _innerBuilder.Configuration[KnownConfigNames.Legacy.DashboardResourceServiceClientApiKey];
-                        if (apiKey is not { Length: > 0 })
-                        {
-                            // No API key was specified in configuration, so generate one.
-                            apiKey = TokenGenerator.GenerateToken();
-                        }
-                    }
+                    var apiKey = _innerBuilder.Configuration.GetString(KnownConfigNames.DashboardResourceServiceClientApiKey,
+                                                                       KnownConfigNames.Legacy.DashboardResourceServiceClientApiKey, fallbackOnEmpty: true);
+
+                    // If no API key was specified in configuration, generate one.
+                    apiKey ??= TokenGenerator.GenerateToken();
 
                     _innerBuilder.Configuration.AddInMemoryCollection(
                         new Dictionary<string, string?>
