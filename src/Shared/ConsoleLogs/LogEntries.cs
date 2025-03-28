@@ -15,6 +15,7 @@ public sealed class LogEntries(int maximumEntryCount)
 internal sealed class LogEntries(int maximumEntryCount)
 #endif
 {
+    private readonly List<LogEntry> _pauseEntries = [];
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
     private int? _earliestTimestampIndex;
@@ -23,12 +24,15 @@ internal sealed class LogEntries(int maximumEntryCount)
     // This becomes important when the total number of log entries exceeds the limit and is truncated.
     public int? BaseLineNumber { get; set; }
 
+    public IList<LogEntry> GetPauseEntries() => _pauseEntries;
+
     public IList<LogEntry> GetEntries() => _logEntries;
 
     public int EntriesCount => _logEntries.Count;
 
     public void Clear()
     {
+        _pauseEntries.Clear();
         _logEntries.Clear();
         BaseLineNumber = null;
     }
@@ -134,6 +138,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         {
             if (logEntry.Type is LogEntryType.Pause)
             {
+                _pauseEntries.Add(logEntry);
                 _logEntries.Insert(index, logEntry);
                 return;
             }
@@ -158,9 +163,15 @@ internal sealed class LogEntries(int maximumEntryCount)
                     }
                 }
 
-                previousLineNumber ??= BaseLineNumber;
-                Debug.Assert(previousLineNumber is not null);
-                logEntry.LineNumber = previousLineNumber.Value + 1;
+                if (previousLineNumber is not null)
+                {
+                    logEntry.LineNumber = previousLineNumber.Value + pause.FilteredCount + 1;
+                }
+                else
+                {
+                    Debug.Assert(BaseLineNumber is not null);
+                    logEntry.LineNumber = BaseLineNumber.Value + pause.FilteredCount;
+                }
             }
             else
             {

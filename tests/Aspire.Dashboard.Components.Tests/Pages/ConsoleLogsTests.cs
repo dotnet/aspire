@@ -387,14 +387,18 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
+
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(3, pauseContent, IsErrorMessage: false)]);
+
         cut.WaitForAssertion(() => Assert.Equal(
-            pauseConsoleLogLine.TextContent,
             string.Format(
                 loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
                 FormatHelpers.FormatTimeWithOptionalDate(timeProvider,
                     cut.Instance._logEntries.GetEntries().Last().Pause!.StartTime, MillisecondsDisplay.Truncated),
-                1)));
+                3),
+            pauseConsoleLogLine.TextContent));
 
         // Resume and write a new log, check that
         // - the pause line has been replaced with pause details
@@ -404,7 +408,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
 
         var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
-        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, resumeContent, IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
 
         cut.WaitForAssertion(() =>
         {
@@ -413,12 +417,12 @@ public partial class ConsoleLogsTests : DashboardTestContext
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);
             Assert.Equal(
-                pauseConsoleLogLine.TextContent,
                 string.Format(
                     loc[Resources.ConsoleLogs.ConsoleLogsPauseDetails],
                     FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
                     FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.EndTime.Value, MillisecondsDisplay.Truncated),
-                    1));
+                    3),
+                pauseConsoleLogLine.TextContent);
         });
 
         cut.WaitForAssertion(() =>
@@ -430,7 +434,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
             }
             var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries().Where(e => e.RawContent == resumeContent));
             // We discarded one log while paused, so the new log should be line 3, skipping one
-            Assert.Equal(2, newLog.LineNumber);
+            Assert.Equal(4, newLog.LineNumber);
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
         });
     }

@@ -449,9 +449,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
-                if (PauseManager.ConsoleLogsPaused)
+                foreach (var priorPause in PauseManager.ConsoleLogPauseIntervals)
                 {
-                    _logEntries.InsertSorted(LogEntry.CreatePause(DateTime.UtcNow));
+                    _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
                 }
 
                 // Console logs are filtered in the UI by the timestamp of the log entry.
@@ -490,16 +490,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             continue;
                         }
 
-                        if (logEntry.Timestamp is not null && PauseManager.ConsoleLogsPaused)
+                        if (logEntry.Timestamp is not null && _logEntries.GetPauseEntries().Select(e => e.Pause).Cast<LogPauseViewModel>().FirstOrDefault(pause => pause.Contains(logEntry.Timestamp.Value)) is { } pause)
                         {
-                            var currentPause = _logEntries.GetEntries().Last().Pause;
-                            Debug.Assert(currentPause is not null);
-
-                            if (logEntry.Timestamp >= currentPause.StartTime)
-                            {
-                                currentPause.FilteredCount += 1;
-                                continue;
-                            }
+                            pause.FilteredCount += 1;
+                            continue;
                         }
 
                         _logEntries.InsertSorted(logEntry);
@@ -625,9 +619,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private void OnPausedChanged(bool isPaused)
     {
-        PauseManager.SetConsoleLogsPaused(isPaused);
-
         var timestamp = DateTime.UtcNow;
+        PauseManager.SetConsoleLogsPaused(isPaused, timestamp);
+
         if (PageViewModel.SelectedResource != null)
         {
             if (isPaused)

@@ -12,4 +12,6 @@ internal sealed class LogPauseViewModel
     public required DateTime StartTime { get; init; }
     public DateTime? EndTime { get; set; }
     public int FilteredCount { get; set; }
+
+    public bool Contains(DateTime timestamp) => timestamp >= StartTime && (EndTime is null || timestamp < EndTime);
 }
