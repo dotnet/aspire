@@ -131,6 +131,6 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("RabbitMQ connects to localhost by default if the connection information isn't available.");
+        Assert.Skip("RabbitMQ connects to localhost by default if the connection information isn't available.");
     }
 }
