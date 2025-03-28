@@ -1,0 +1,16 @@
+<Project>
+  <ItemGroup>
+    <PackageVersion Include="xunit.v3" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.v3.core" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.analyzers" Version="$(XunitAnalyzersVersion)" />
+    <PackageVersion Include="xunit.v3.assert" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioVersion)" />
+    <PackageVersion Include="xunit.v3.runner.console" Version="$(XunitV3Version)" />
+
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.core" />
+    <PackageReference Include="xunit.analyzers" />
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

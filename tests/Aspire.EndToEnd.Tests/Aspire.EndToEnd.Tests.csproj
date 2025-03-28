@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit.Abstractions" />
+    <Using Include="Xunit.v3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
