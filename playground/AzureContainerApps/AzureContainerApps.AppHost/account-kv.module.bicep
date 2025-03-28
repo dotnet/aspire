@@ -20,5 +20,3 @@ resource account_kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
 output vaultUri string = account_kv.properties.vaultUri
 
 output name string = account_kv.name
-
-output id string = account_kv.id

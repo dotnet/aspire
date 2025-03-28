@@ -21,11 +21,6 @@ public interface IKeyVaultResource : IResource, IAzureResource
     BicepOutputReference NameOutputReference { get; }
 
     /// <summary>
-    /// the output reference that represents the resource id for the Azure Key Vault resource.
-    /// </summary>
-    BicepOutputReference IdOutputReference { get; }
-
-    /// <summary>
     /// Gets or sets the secret resolver function used to resolve secrets at runtime.
     /// </summary>
     Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }

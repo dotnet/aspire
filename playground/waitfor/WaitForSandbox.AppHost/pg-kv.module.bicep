@@ -20,5 +20,3 @@ resource pg_kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
 output vaultUri string = pg_kv.properties.vaultUri
 
 output name string = pg_kv.name
-
-output id string = pg_kv.id

@@ -70,11 +70,6 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy)
-        {
-            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
-            color = Color.Warning;
-        }
         else if (!string.IsNullOrEmpty(resource.StateStyle))
         {
             (icon, color) = resource.StateStyle switch
@@ -85,6 +80,11 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 "info" => (new Icons.Filled.Size16.Info(), Color.Info),
                 _ => (new Icons.Filled.Size16.Circle(), Color.Neutral)
             };
+        }
+        else if (resource.HealthStatus is not HealthStatus.Healthy)
+        {
+            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
+            color = Color.Warning;
         }
         else
         {

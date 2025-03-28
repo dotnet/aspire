@@ -10,7 +10,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire")]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-starter")]
-    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
@@ -22,15 +22,6 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 
-        var templateHive = templates switch
-        {
-            TestTemplatesInstall.Net8 => TemplatesCustomHive.TemplatesHive,
-            TestTemplatesInstall.Net9 => TemplatesCustomHive.TemplatesHive,
-            TestTemplatesInstall.Net9AndNet8 => TemplatesCustomHive.TemplatesHive,
-            _ => throw new ArgumentOutOfRangeException(nameof(templates))
-        };
-
-        await templateHive.EnsureInstalledAsync(buildEnvToUse);
         try
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(
@@ -38,8 +29,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
                 templateName,
                 _testOutput,
                 buildEnvironment: buildEnvToUse,
-                targetFramework: tfm,
-                customHiveForTemplates: templateHive.CustomHiveDirectory);
+                targetFramework: tfm);
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");
 
