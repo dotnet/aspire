@@ -139,23 +139,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #endif
 
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } configFilePath)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardConfigFilePathName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardConfigFilePathName.ConfigKey, fallbackOnEmpty: true) is { } configFilePath)
         {
             builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         }
-        else if (builder.Configuration[DashboardConfigNames.Legacy.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } legacyConfigFilePath)
-        {
-            builder.Configuration.AddJsonFile(legacyConfigFilePath, optional: false, reloadOnChange: true);
-        }
 
         // Allow for a user specified config directory on disk (e.g. for Docker secrets). Throw an error if the specified directory doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } fileConfigDirectory)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardFileConfigDirectoryName.ConfigKey, fallbackOnEmpty: true) is { } fileConfigDirectory)
         {
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
-        }
-        else if (builder.Configuration[DashboardConfigNames.Legacy.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } legacyFileConfigDirectory)
-        {
-            builder.Configuration.AddKeyPerFile(directoryPath: legacyFileConfigDirectory, optional: false, reloadOnChange: true);
         }
 
         var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
