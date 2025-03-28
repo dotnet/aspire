@@ -34,7 +34,7 @@ internal static class IConfigurationExtensions
     public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey, bool fallbackOnEmpty = false)
     {
         var primaryValue = configuration.GetValue(typeof(string), primaryKey, null);
-        if (primaryValue is not null && !fallbackOnEmpty || primaryValue is string { Length: > 1 })
+        if (primaryValue is not null && !fallbackOnEmpty || primaryValue is string { Length: > 0 })
         {
             return (string)primaryValue;
         }
