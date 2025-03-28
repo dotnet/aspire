@@ -276,12 +276,14 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<AppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250));
 
         var backchannel = serviceProvider.GetRequiredService<AppHostBackchannel>();
         var connectionAttempts = 0;
 
         logger.LogDebug("Starting backchannel connection to AppHost at {SocketPath}", socketPath);
+
+        var startTime = DateTimeOffset.UtcNow;
 
         do
         {
@@ -302,8 +304,21 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             }
             catch (SocketException ex)
             {
-                // This is trace level diagnostics because its very noisy.
-                logger.LogTrace(ex, "Failed to connect to AppHost backchannel (attempt {Attempt})", connectionAttempts);
+                // If the process is taking a long time to open a back channel but
+                // it has not exited then it probably means that its a larger build
+                // (remember it has to build the apphost and its dependencies).
+                // In that case, after 30 seconds we just slow down the polling to
+                // once per second.
+                var waitingFor = DateTimeOffset.UtcNow - startTime;
+                if (waitingFor > TimeSpan.FromSeconds(10))
+                {
+                    logger.LogTrace(ex, "Slow polling for backchannel connection (attempt {Attempt})", connectionAttempts);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // We don't want to spam the logs with our early connection attempts.
+                }
             }
 
         } while (await timer.WaitForNextTickAsync(cancellationToken));
