@@ -45,9 +45,14 @@ public sealed class AzurePublisher(
     {
         var publisherOptions = options.Get(name);
 
+        var outputDirectory = new DirectoryInfo(publisherOptions.OutputPath!);
+        outputDirectory.Create();
+
         var context = new AzurePublishingContext(publisherOptions, ProvisioningOptions, logger);
 
-        context.WriteModel(model);
+        context.WriteModelAsync(model).ConfigureAwait(false);
+
+        context.SaveToDiskAsync(outputDirectory.FullName, context.Infra).ConfigureAwait(false);
 
         return Task.CompletedTask;
     }

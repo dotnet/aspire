@@ -34,7 +34,7 @@ internal sealed class AzurePublishingContext(
         TargetScope = DeploymentScope.Subscription
     };
 
-    internal void WriteModel(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
@@ -45,13 +45,16 @@ internal sealed class AzurePublishingContext(
             return;
         }
 
-        WriteAzureArtifactsOutput(model);
+        await WriteAzureArtifactsOutputAsync(model).ConfigureAwait(false);
     }
 
-    private void WriteAzureArtifactsOutput(DistributedApplicationModel model)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model)
     {
         var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
-        outputDirectory.Create();
+        if (!outputDirectory.Exists)
+        {
+            outputDirectory.Create();
+        }
 
         var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
         Infra.Add(environmentParam);
@@ -70,7 +73,6 @@ internal sealed class AzurePublishingContext(
             }
         };
 
-        // REVIEW: Do we want people to be able to change this
         var rg = new ResourceGroup("rg")
         {
             Name = BicepFunction.Interpolate($"rg-{environmentParam}"),
@@ -78,7 +80,6 @@ internal sealed class AzurePublishingContext(
             Tags = tags
         };
 
-        // Process the resources in the model and create a module for each one
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
         foreach (var resource in model.Resources.OfType<AzureBicepResource>())
@@ -101,8 +102,6 @@ internal sealed class AzurePublishingContext(
             moduleMap[resource] = module;
         }
 
-        // Resolve parameters *after* writing the modules to disk
-        // this is because some parameters are added in ConfigureInfrastructure callbacks
         var parameterMap = new Dictionary<ParameterResource, ProvisioningParameter>();
 
         foreach (var resource in model.Resources.OfType<AzureBicepResource>())
@@ -125,7 +124,6 @@ internal sealed class AzurePublishingContext(
                             pp.Value = p.Value;
                         }
 
-                        // Map the parameter to the Bicep parameter
                         parameterMap[p] = pp;
                     }
                 });
@@ -133,7 +131,7 @@ internal sealed class AzurePublishingContext(
         }
 
         static BicepValue<string> GetOutputs(ModuleImport module, string outputName) =>
-        new MemberExpression(new MemberExpression(new IdentifierExpression(module.BicepIdentifier), "outputs"), outputName);
+            new MemberExpression(new MemberExpression(new IdentifierExpression(module.BicepIdentifier), "outputs"), outputName);
 
         BicepFormatString EvalExpr(ReferenceExpression expr)
         {
@@ -174,7 +172,6 @@ internal sealed class AzurePublishingContext(
         {
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
-                // resourceGroup(rgName)
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
                 ParameterResource p => parameterMap[p],
                 _ => new IdentifierExpression(rg.BicepIdentifier)
@@ -186,11 +183,6 @@ internal sealed class AzurePublishingContext(
 
             foreach (var parameter in resource.Parameters)
             {
-                // TODO: There are a set of known parameter names that we may not be able to resolve.
-                // This is from earlier versions of aspire where infra was split across
-                // azd and aspire. Once the infra moves to aspire, we can throw for 
-                // unresolved "known parameters".
-
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);
@@ -205,7 +197,6 @@ internal sealed class AzurePublishingContext(
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
-        // Now find all resources that have deployment targets that are bicep modules
         foreach (var resource in model.Resources)
         {
             if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var targetAnnotation) &&
@@ -219,16 +210,12 @@ internal sealed class AzurePublishingContext(
 
                 File.Copy(file.Path, modulePath, true);
 
-                // TODO: Resolve parameters for the module and
-                // handle flowing outputs from other modules
-
                 foreach (var parameter in br.Parameters)
                 {
                     Visit(parameter.Value, v =>
                     {
                         if (v is BicepOutputReference bo)
                         {
-                            // Any bicep output reference needs to be propagated to the top level
                             outputs[bo.ValueExpression] = bo;
                         }
                     });
@@ -236,26 +223,19 @@ internal sealed class AzurePublishingContext(
             }
         }
 
-        // Add parameters to the infrastructure
         foreach (var (_, pp) in parameterMap)
         {
             Infra.Add(pp);
         }
 
-        // Add the parameters to the infrastructure
         Infra.Add(tags);
-
-        // Add the resource group to the infrastructure
         Infra.Add(rg);
 
-        // Add the modules to the infrastructure
         foreach (var (_, module) in moduleMap)
         {
-            // Add the module to the infrastructure
             Infra.Add(module);
         }
 
-        // Add the outputs to the infrastructure
         foreach (var (_, output) in outputs)
         {
             var module = moduleMap[output.Resource];
@@ -270,11 +250,11 @@ internal sealed class AzurePublishingContext(
             Infra.Add(bicepOutput);
         }
 
-        SaveToDisk(outputDirectory.FullName, Infra);
+        return Task.CompletedTask;
     }
 
     private static void Visit(object? value, Action<object> visitor) =>
-        Visit(value, visitor, []);
+        Visit(value, visitor, new HashSet<object>());
 
     private static void Visit(object? value, Action<object> visitor, HashSet<object> visited)
     {
@@ -294,7 +274,7 @@ internal sealed class AzurePublishingContext(
         }
     }
 
-    private void SaveToDisk(string outputDirectoryPath, Infrastructure infrastructure)
+    internal async Task SaveToDiskAsync(string outputDirectoryPath, Infrastructure infrastructure)
     {
         var plan = infrastructure.Build(ProvisioningOptions.ProvisioningBuildOptions);
         var compiledBicep = plan.Compile().First();
@@ -302,6 +282,6 @@ internal sealed class AzurePublishingContext(
         logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", infrastructure.BicepName, outputDirectoryPath);
 
         var bicepPath = Path.Combine(outputDirectoryPath, $"{infrastructure.BicepName}.bicep");
-        File.WriteAllText(bicepPath, compiledBicep.Value);
+        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }
