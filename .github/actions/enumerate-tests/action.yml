@@ -36,7 +36,7 @@ runs:
       shell: pwsh
       run: >
         dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
-        /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
+        /p:TestsListOutputPath=${{ github.workspace }}/TestsForGithubActions.list
         /p:ContinuousIntegrationBuild=true
 
     - name: Generate list of template tests
