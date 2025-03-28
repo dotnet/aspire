@@ -3,6 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzurePublisher("azurepublisher");
+
 var cache = builder.AddRedis("cache");
 
 var apiService = builder.AddProject<Projects.AzurePublisher_ApiService>("apiservice");
