@@ -112,11 +112,11 @@
                           "description": "Gets the client retry options."
                         }
                       },
-                      "description": "Options that allow you to configure the requests sent to App Configuration."
+                      "description": "Options that allow users to configure the requests sent to the App Configuration service."
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Key Vault health check is disabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the App Configuration health check is disabled or not.",
                       "default": false
                     },
                     "DisableTracing": {
@@ -127,7 +127,7 @@
                     "Endpoint": {
                       "type": "string",
                       "format": "uri",
-                      "description": "A 'System.Uri' to the App Config store on which the client operates. Appears as \"Endpoint\" in the Azure portal."
+                      "description": "A 'System.Uri' to the App Config store on which the client operates. Appears as \"Endpoint\" in the Azure portal. This is likely to be similar to \"https://{store_name}.azconfig.io\"."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure App Configuration."
