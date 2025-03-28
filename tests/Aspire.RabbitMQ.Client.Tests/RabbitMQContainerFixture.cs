@@ -15,7 +15,7 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
     public string GetConnectionString() => _container?.GetConnectionString() ??
         throw new InvalidOperationException("The test container was not initialized.");
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -23,7 +23,7 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_container is not null)
         {

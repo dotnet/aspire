@@ -4,7 +4,6 @@
 using Aspire.TestUtilities;
 using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;

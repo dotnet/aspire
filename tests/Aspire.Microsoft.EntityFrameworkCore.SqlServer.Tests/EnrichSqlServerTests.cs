@@ -3,7 +3,6 @@
 
 using Aspire.TestUtilities;
 using Aspire.Microsoft.Data.SqlClient.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;

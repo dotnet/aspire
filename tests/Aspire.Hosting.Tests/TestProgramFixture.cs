@@ -24,7 +24,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public abstract Task WaitReadyStateAsync(CancellationToken cancellationToken = default);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _testProgram = CreateTestProgram();
 
@@ -37,7 +37,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
         await WaitReadyStateAsync(cts.Token);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_app != null)
         {

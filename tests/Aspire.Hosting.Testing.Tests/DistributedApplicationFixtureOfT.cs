@@ -36,7 +36,7 @@ public class DistributedApplicationFixture<TEntryPoint> : DistributedApplication
 
     public DistributedApplication Application { get; private set; } = null!;
 
-    public async Task InitializeAsync() => await StartAsync();
+    public async ValueTask InitializeAsync() => await StartAsync();
 
-    async Task IAsyncLifetime.DisposeAsync() => await DisposeAsync();
+    async ValueTask IAsyncDisposable.DisposeAsync() => await DisposeAsync();
 }
