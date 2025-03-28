@@ -343,7 +343,11 @@ public partial class AspireProject : IAsyncDisposable
             .AddRetry(new()
             {
                 MaxRetryAttempts = 3,
-                ShouldHandle = new PredicateBuilder().Handle<PlaywrightException>(ex => ex.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.OrdinalIgnoreCase)),
+                ShouldHandle = new PredicateBuilder().Handle<PlaywrightException>(ex =>
+                {
+                    return ex.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.OrdinalIgnoreCase) ||
+                            ex.Message.Contains("net::ERR_SOCKET_NOT_CONNECTED", StringComparison.OrdinalIgnoreCase);
+                }),
                 OnRetry = (args) =>
                 {
                     _testOutput.WriteLine($"Reloading dashboard page due to {args.Outcome.Exception?.Message}");
