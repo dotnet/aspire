@@ -21,14 +21,19 @@ internal sealed class LogEntry
     public DateTime? Timestamp { get; private set; }
     public LogEntryType Type { get; private set; } = LogEntryType.Default;
     public int LineNumber { get; set; }
+    public LogPauseViewModel? Pause { get; private set; }
 
-    public static LogEntry CreatePause(DateTime? timestamp, int previousLineNumber)
+    public static LogEntry CreatePause(DateTime timestamp)
     {
         return new LogEntry
         {
             Timestamp = timestamp,
             Type = LogEntryType.Pause,
-            LineNumber = previousLineNumber
+            LineNumber = 0,
+            Pause = new LogPauseViewModel
+            {
+                StartTime = timestamp
+            }
         };
     }
 

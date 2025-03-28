@@ -261,6 +261,7 @@
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
     <Compile Include="..\Shared\KnownUrls.cs" Link="Utils\KnownUrls.cs" />
   </ItemGroup>

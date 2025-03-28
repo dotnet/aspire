@@ -37,13 +37,11 @@ internal sealed class LogEntries(int maximumEntryCount)
     /// Insert a log entry at the correct position in the list of log entries according to its timestamp.
     /// </summary>
     /// <param name="logLine"></param>
-    /// <param name="skipLineCount">How much to increment the line count by. This may be more than 0 if logs were
-    /// discarded during a pause</param>
-    public void InsertSorted(LogEntry logLine, int skipLineCount = 0)
+    public void InsertSorted(LogEntry logLine)
     {
         Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
 
-        InsertSortedCore(logLine, skipLineCount);
+        InsertSortedCore(logLine);
 
         // Verify log entry order is correct in debug builds.
         VerifyLogEntryOrder();
@@ -70,7 +68,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         }
     }
 
-    private void InsertSortedCore(LogEntry logEntry, int skipLineCount)
+    private void InsertSortedCore(LogEntry logEntry)
     {
         // If there is no timestamp or the entry is a pause then add to the end.
         if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
@@ -146,9 +144,27 @@ internal sealed class LogEntries(int maximumEntryCount)
                 Debug.Assert(BaseLineNumber != null, "Should be set before this method is run.");
                 logEntry.LineNumber = BaseLineNumber.Value;
             }
+            else if (_logEntries[index - 1].Pause is { } pause)
+            {
+                Debug.Assert(pause.EndTime is not null, "Pause should have ended before trying to insert another log.");
+
+                int? previousLineNumber = null;
+                for (var i = index - 1; i >= 0; i--)
+                {
+                    if (_logEntries[i] is { Type: not LogEntryType.Pause } entry)
+                    {
+                        previousLineNumber = entry.LineNumber;
+                        break;
+                    }
+                }
+
+                previousLineNumber ??= BaseLineNumber;
+                Debug.Assert(previousLineNumber is not null);
+                logEntry.LineNumber = previousLineNumber.Value + 1;
+            }
             else
             {
-                logEntry.LineNumber = _logEntries[index - 1].LineNumber + skipLineCount + 1;
+                logEntry.LineNumber = _logEntries[index - 1].LineNumber + 1;
             }
 
             if (_earliestTimestampIndex == null && logEntry.Timestamp != null)

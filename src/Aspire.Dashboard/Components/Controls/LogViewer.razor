@@ -14,27 +14,26 @@
         @if (LogEntries is { } logEntries)
         {
             <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
-                @if (context is { Type: LogEntryType.Pause, Timestamp: { } startTimestamp} && PauseManager.TryGetConsoleLogPause(startTimestamp, out var pause))
+                @if (context.Pause is { } pause)
                 {
                     // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
-                    var filteredLogCount = pause.GetFilteredLogCount(ApplicationName);
-                    if (filteredLogCount == 0 && pause.End is not null)
+                    if (pause is { FilteredCount: 0, EndTime: not null })
                     {
                         return;
                     }
 
-                    var text = pause.End is null
+                    var text = pause.EndTime is null
                         ? string.Format(
                             CultureInfo.CurrentCulture,
                             Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)],
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
-                            filteredLogCount)
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
+                            pause.FilteredCount)
                         : string.Format(
                             CultureInfo.CurrentCulture,
                             Loc[nameof(ConsoleLogs.ConsoleLogsPauseDetails)],
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTimestamp, MillisecondsDisplay.Truncated),
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.End.Value, MillisecondsDisplay.Truncated),
-                            filteredLogCount);
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
+                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.EndTime.Value, MillisecondsDisplay.Truncated),
+                            pause.FilteredCount);
 
                     <div class="log-line-row-container">
                         <div class="log-line-row console-line-row">

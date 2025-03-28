@@ -449,6 +449,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
+                if (PauseManager.ConsoleLogsPaused)
+                {
+                    _logEntries.InsertSorted(LogEntry.CreatePause(DateTime.UtcNow));
+                }
+
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 DateTime? timestampFilterDate;
 
@@ -466,12 +471,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
                 }
 
-                // Add entries for all previous pauses.
-                foreach (var pauseStart in PauseManager.ConsoleLogsPausedRanges.Keys)
-                {
-                    _logEntries.InsertSorted(LogEntry.CreatePause(pauseStart, previousLineNumber: 0));
-                }
-
                 var logParser = new LogParser();
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
@@ -483,10 +482,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     foreach (var (lineNumber, content, isErrorOutput) in batch)
                     {
                         // Set the base line number using the reported line number of the first log line.
-                        if (_logEntries.BaseLineNumber is null && !_logEntries.GetEntries().Any(e => e.Type is not LogEntryType.Pause))
-                        {
-                            _logEntries.BaseLineNumber = lineNumber;
-                        }
+                        _logEntries.BaseLineNumber ??= lineNumber;
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
                         if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
@@ -494,24 +490,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             continue;
                         }
 
-                        if (logEntry.Timestamp is not null && PauseManager.IsConsoleLogFiltered(logEntry, newConsoleLogsSubscription.Name))
+                        if (logEntry.Timestamp is not null && PauseManager.ConsoleLogsPaused)
                         {
-                            continue;
+                            var currentPause = _logEntries.GetEntries().Last().Pause;
+                            Debug.Assert(currentPause is not null);
+
+                            if (logEntry.Timestamp >= currentPause.StartTime)
+                            {
+                                currentPause.FilteredCount += 1;
+                                continue;
+                            }
                         }
 
-                        var previousEntry = _logEntries.GetEntries().LastOrDefault();
-
-                        // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
-                        // As we may have skipped some logs during a pause, we need to check how far to skip to keep the line count
-                        // accurate.
-                        if (previousEntry is { Type: LogEntryType.Pause, Timestamp: { } timestamp} && timestamp < logEntry.Timestamp && PauseManager.TryGetConsoleLogPause(timestamp, out var pause))
-                        {
-                            _logEntries.InsertSorted(logEntry, skipLineCount: pause.GetFilteredLogCount(newConsoleLogsSubscription.Name));
-                        }
-                        else
-                        {
-                            _logEntries.InsertSorted(logEntry);
-                        }
+                        _logEntries.InsertSorted(logEntry);
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -634,17 +625,22 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private void OnPausedChanged(bool isPaused)
     {
+        PauseManager.SetConsoleLogsPaused(isPaused);
+
         var timestamp = DateTime.UtcNow;
-
-        if (isPaused && PageViewModel.SelectedResource != null)
+        if (PageViewModel.SelectedResource != null)
         {
-            // Each pause has its own entry in the log entries and will be displayed
-            // unless it ended with 0 logs filtered out during
-            var previousEntry = _logEntries.GetEntries().LastOrDefault();
-            _logEntries.InsertSorted(LogEntry.CreatePause(timestamp, previousLineNumber: previousEntry?.LineNumber ?? 0));
+            if (isPaused)
+            {
+                _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+            }
+            else
+            {
+                var pause = _logEntries.GetEntries().Last().Pause;
+                Debug.Assert(pause is not null);
+                pause.EndTime = timestamp;
+            }
         }
-
-        PauseManager.SetConsoleLogsPaused(isPaused, timestamp);
     }
 
     public async ValueTask DisposeAsync()
