@@ -2,16 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Common;
+using Aspire.Azure.Security.KeyVault;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using HealthChecks.Azure.KeyVault.Secrets;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Azure.Security.KeyVault;
+namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// 
@@ -44,8 +46,6 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     string serviceKey,
     Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
-
         return builder.InnerAddSecretClient(configureClientBuilder, serviceKey);
     }
 
@@ -56,7 +56,6 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     /// <param name="serviceKey">The name to call the <see cref="SecretClient"/> singleton service.</param>
     /// <param name="configureClientBuilder">Optional configuration for the <see cref="SecretClient"/>.</param>
     /// <returns>A <see cref="AzureKeyVaultClientBuilder"/> to configure further clients.</returns>
-    /// <exception cref="NotImplementedException"></exception>
     private static AzureKeyVaultClientBuilder InnerAddSecretClient(
         this AzureKeyVaultClientBuilder builder,
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null,
@@ -122,14 +121,20 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     }
 
     /// <summary>
-    /// Representation of an <see cref="AzureComponent{TSettings, TClient, TClientOptions}"/>, configured as a <see cref="SecretClient"/>
+    /// Representation of an <see cref="AzureComponent{TSettings, TClient, TClientOptions}"/> configured as a <see cref="SecretClient"/>
     /// </summary>
     private sealed class KeyVaultSecretsComponent : AbstractKeyVaultComponent<SecretClient, SecretClientOptions>
     {
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
+            => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+
+        protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
+            => configuration.Bind(settings);
+
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
             => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretsHealthCheckOptions());
 
         internal override SecretClient CreateComponentClient(Uri vaultUri, SecretClientOptions options, TokenCredential cred)
-            => new SecretClient(vaultUri, cred, options);
+            => new(vaultUri, cred, options);
     }
 }

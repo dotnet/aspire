@@ -1,26 +1,38 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Hosting;
+using Aspire.Azure.Security.KeyVault;
 
-namespace Aspire.Azure.Security.KeyVault;
+namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// 
+/// A builder used for creating one or more Key Vault Clients, registered into the <paramref name="host"/>.
 /// </summary>
-/// <param name="host"></param>
-/// <param name="connectionName"></param>
-/// <param name="configureSettings"></param>
+/// <param name="host">The <see cref="IHostApplicationBuilder"/> to register the clients to as singletons.</param>
+/// <param name="connectionName">The name used to retrieve the VaultUri from ConnectionStrings in the configuration provider.</param>
+/// <param name="configureSettings">An optional configuration point for the overall <see cref="AzureSecurityKeyVaultSettings"/> applied to each Key Vault Client.</param>
 public class AzureKeyVaultClientBuilder(
     IHostApplicationBuilder host,
     string connectionName,
-    Action<AzureSecurityKeyVaultSettings>? configureSettings )
+    Action<AzureSecurityKeyVaultSettings>? configureSettings)
 {
+    /// <summary>
+    /// The default name of the configuration section for Key Vault.
+    /// </summary>
     internal string DefaultConfigSectionName { get; } = AzureKeyVaultComponentConstants.s_defaultConfigSectionName;
 
+    /// <summary>
+    /// The <see cref="IHostApplicationBuilder"/> to register Key Vault Clients into as singletons.
+    /// </summary>
     internal IHostApplicationBuilder HostBuilder { get; } = host;
 
+    /// <summary>
+    /// @The name used to retrieve the VaultUri from ConnectionStrings in the configuration provider.
+    /// </summary>
     internal string ConnectionName { get; } = connectionName;
 
+    /// <summary>
+    /// An optional configuration point for the overall <see cref="AzureSecurityKeyVaultSettings"/> applied to each Key Vault Client.
+    /// </summary>
     internal Action<AzureSecurityKeyVaultSettings>? ConfigureSettings { get; } = configureSettings;
 }

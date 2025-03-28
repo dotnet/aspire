@@ -6,7 +6,7 @@ using Aspire.Azure.Common;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Configuration;
+//using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Azure.Security.KeyVault;
 
@@ -35,16 +35,6 @@ internal abstract class AbstractKeyVaultComponent<TClient, [DynamicallyAccessedM
 
             return CreateComponentClient(settings.VaultUri, options, cred);
         });
-    }
-
-    protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TClient, TOptions> clientBuilder, IConfiguration configuration)
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
-            => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
-#pragma warning restore IDE0200
-
-    protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
-    {
-        configuration.Bind(settings);
     }
 
     protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)

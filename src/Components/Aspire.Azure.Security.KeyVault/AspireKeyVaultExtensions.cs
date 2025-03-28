@@ -4,7 +4,6 @@
 using Aspire.Azure.Security.KeyVault;
 using Azure.Core.Extensions;
 using Azure.Security.KeyVault.Secrets;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Extensions.Hosting;
@@ -32,6 +31,7 @@ public static class AspireKeyVaultExtensions
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         return new AzureKeyVaultClientBuilder(builder, connectionName, configureSettings)
                    .AddSecretClient(configureClientBuilder);
@@ -55,6 +55,7 @@ public static class AspireKeyVaultExtensions
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new AzureKeyVaultClientBuilder(builder, name, configureSettings)
                    .AddKeyedSecretClient(serviceKey: name, configureClientBuilder);
