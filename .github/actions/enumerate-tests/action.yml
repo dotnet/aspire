@@ -53,21 +53,21 @@ runs:
           -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
           -p:InstallBrowsersForPlaywright=false
 
-    - name: Generate tests matrix
-      id: generate_integrations_matrix
-      if: ${{ inputs.includeIntegrations }}
-      shell: pwsh
-      env:
-        CI: false
-      run: |
-        $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
-        $lines = Get-Content $filePath
-        $jsonObject = @{
-            "shortname" = $lines | Sort-Object
-        }
-        $jsonString = ConvertTo-Json $jsonObject -Compress
-        "integrations_tests_matrix=$jsonString"
-        "integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
+    #- name: Generate tests matrix
+      #id: generate_integrations_matrix
+      #if: ${{ inputs.includeIntegrations }}
+      #shell: pwsh
+      #env:
+        #CI: false
+      #run: |
+        #$filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
+        #$lines = Get-Content $filePath
+        #$jsonObject = @{
+            #"shortname" = $lines | Sort-Object
+        #}
+        #$jsonString = ConvertTo-Json $jsonObject -Compress
+        #"integrations_tests_matrix=$jsonString"
+        #"integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
     - name: Generate tests matrix
       id: generate_templates_matrix
