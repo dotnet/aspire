@@ -321,6 +321,8 @@ internal sealed class DockerComposePublishingContext(
                     await c.Callback(context).ConfigureAwait(false);
                 }
 
+                RemoveHttpsServiceDiscoveryVariables(context.EnvironmentVariables);
+
                 foreach (var kv in context.EnvironmentVariables)
                 {
                     var value = await ProcessValueAsync(kv.Value).ConfigureAwait(false);
@@ -329,6 +331,23 @@ internal sealed class DockerComposePublishingContext(
                 }
             }
         }
+
+        private static void RemoveHttpsServiceDiscoveryVariables(Dictionary<string, object> environmentVariables)
+        {
+            // HACK: At the moment Docker Compose doesn't do anything with setting up certificates so
+            //       we need to remove the https service discovery variables.
+
+            var keysToRemove = environmentVariables
+                .Where(kvp => kvp.Value is EndpointReference epRef && epRef.Scheme == "https" && kvp.Key.StartsWith("services__"))
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                environmentVariables.Remove(key);
+            }
+        }
+
         private void ProcessVolumes()
         {
             if (!resource.TryGetContainerMounts(out var mounts))
