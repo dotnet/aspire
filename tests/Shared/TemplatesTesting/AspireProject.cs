@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;

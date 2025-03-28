@@ -8,8 +8,8 @@ namespace Aspire.Templates.Tests;
 public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-starter")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-starter")]
     public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");

@@ -8,11 +8,11 @@ namespace Aspire.Templates.Tests;
 public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
     [Theory]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-servicedefaults")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-mstest")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-nunit")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-xunit")]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-apphost")]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-servicedefaults")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-mstest")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-nunit")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-xunit")]
     public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");

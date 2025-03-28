@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Playwright;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;

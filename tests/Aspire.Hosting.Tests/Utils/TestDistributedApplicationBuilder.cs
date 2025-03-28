@@ -6,6 +6,7 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Utils;
 
