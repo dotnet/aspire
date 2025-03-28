@@ -40,7 +40,7 @@ internal static class IConfigurationExtensions
         }
 
         var secondaryValue = configuration.GetValue(typeof(string), secondaryKey, null);
-        if (secondaryValue is not null && !fallbackOnEmpty || secondaryValue is string { Length: > 1 })
+        if (secondaryValue is not null && !fallbackOnEmpty || secondaryValue is string { Length: > 0 })
         {
             return (string)secondaryValue;
         }
