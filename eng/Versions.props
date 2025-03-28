@@ -30,7 +30,7 @@
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.12.9</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25164.2</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25164.2</MicrosoftDotNetXUnitExtensionsVersion>
+    <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25178.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
     <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25164.2</MicrosoftDotNetBuildTasksInstallersVersion>
     <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25164.2</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <!-- dotnet/extensions -->
