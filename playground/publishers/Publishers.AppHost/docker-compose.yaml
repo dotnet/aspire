@@ -67,7 +67,6 @@ services:
       P2: "${PARAM2}"
       P3: "${PARAM3}"
       services__api__http__0: "http://api:8005"
-      services__api__https__0: "https://api:8007"
     ports:
       - "8011:8010"
       - "8013:8012"
