@@ -28,7 +28,7 @@ jobs:
         id: generate_tests_matrix
         with:
           includeIntegrations: true
-          includeTemplates: true
+          #includeTemplates: true
 
   #setup_for_tests_win:
     #name: Setup for tests (Windows)
