@@ -6,6 +6,7 @@ using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SamplesIntegrationTests.Infrastructure;
+using Xunit;
 
 namespace SamplesIntegrationTests;
 
