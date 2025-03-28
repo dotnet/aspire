@@ -30,17 +30,17 @@ internal static class IConfigurationExtensions
         var value = configuration.GetBool(primaryKey) ?? configuration.GetBool(secondaryKey);
         return value;
     }
-    
-    public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey)
+
+    public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey, bool fallbackOnEmpty = false)
     {
         var primaryValue = configuration.GetValue(typeof(string), primaryKey, null);
-        if (primaryValue is not null)
+        if (primaryValue is not null && !fallbackOnEmpty || primaryValue is string { Length: > 1 })
         {
             return (string)primaryValue;
         }
 
         var secondaryValue = configuration.GetValue(typeof(string), secondaryKey, null);
-        if (secondaryValue is not null)
+        if (secondaryValue is not null && !fallbackOnEmpty || secondaryValue is string { Length: > 1 })
         {
             return (string)secondaryValue;
         }

@@ -27,23 +27,17 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         _logger.LogDebug($"PostConfigure {nameof(DashboardOptions)} with name '{name}'.");
 
         // Copy aliased config values to the strongly typed options.
-        if (_configuration[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } otlpGrpcUrl)
+        if (_configuration.GetString(DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.DashboardOtlpGrpcUrlName.ConfigKey, fallbackOnEmpty: true) is { } otlpGrpcUrl)
         {
             options.Otlp.GrpcEndpointUrl = otlpGrpcUrl;
         }
-        else if (_configuration[DashboardConfigNames.Legacy.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } legacyOtlpGrpcUrl)
-        {
-            options.Otlp.GrpcEndpointUrl = legacyOtlpGrpcUrl;
-        }
 
         // Copy aliased config values to the strongly typed options.
-        if (_configuration[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } otlpHttpUrl)
+        if (_configuration.GetString(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.DashboardOtlpHttpUrlName.ConfigKey, fallbackOnEmpty: true) is { } otlpHttpUrl)
         {
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
-        }
-        else if (_configuration[DashboardConfigNames.Legacy.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } legacyOtlpHttpUrl)
-        {
-            options.Otlp.HttpEndpointUrl = legacyOtlpHttpUrl;
         }
 
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
@@ -51,17 +45,14 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.EndpointUrls = frontendUrls;
         }
 
-        if (_configuration[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] is { Length: > 0 } resourceServiceUrl)
+        if (_configuration.GetString(DashboardConfigNames.ResourceServiceUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.ResourceServiceUrlName.ConfigKey, fallbackOnEmpty: true) is { } resourceServiceUrl)
         {
             options.ResourceServiceClient.Url = resourceServiceUrl;
         }
-        else if (_configuration[DashboardConfigNames.Legacy.ResourceServiceUrlName.ConfigKey] is { Length: > 0 } legacyResourceServiceUrl)
-        {
-            options.ResourceServiceClient.Url = legacyResourceServiceUrl;
-        }
 
-        if ((_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
-            || (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false))
+        if (_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey,
+                                   DashboardConfigNames.Legacy.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
@@ -71,6 +62,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.AuthMode ??= FrontendAuthMode.BrowserToken;
             options.Otlp.AuthMode ??= OtlpAuthMode.Unsecured;
         }
+
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
         {
             var token = TokenGenerator.GenerateToken();
