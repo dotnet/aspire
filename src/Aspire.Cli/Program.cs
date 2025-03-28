@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using StreamJsonRpc;
 
 namespace Aspire.Cli;
 
@@ -217,44 +218,60 @@ public class Program
 
                     var resourceStates = backchannel.GetResourceStatesAsync(ct);
 
-                    await foreach(var resourceState in resourceStates)
+                    try
                     {
-                        knownResources[resourceState.Resource] = resourceState;
-
-                        table.Rows.Clear();
-
-                        foreach (var knownResource in knownResources)
+                        await foreach(var resourceState in resourceStates)
                         {
-                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+                            knownResources[resourceState.Resource] = resourceState;
 
-                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+                            table.Rows.Clear();
 
-                            var stateRenderable = knownResource.Value.State switch {
-                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                            };
-
-                            IRenderable endpointsRenderable = new Text("None");
-                            if (knownResource.Value.Endpoints?.Length > 0)
+                            foreach (var knownResource in knownResources)
                             {
-                                endpointsRenderable = new Rows(
-                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                );
+                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+
+                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+
+                                var stateRenderable = knownResource.Value.State switch {
+                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                                };
+
+                                IRenderable endpointsRenderable = new Text("None");
+                                if (knownResource.Value.Endpoints?.Length > 0)
+                                {
+                                    endpointsRenderable = new Rows(
+                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                    );
+                                }
+
+                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
                             }
 
-                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+                            context.Refresh();
                         }
-
-                        context.Refresh();
                     }
-
+                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
+                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
+                        // that the apphost side of the RPC connection will be closed. Therefore if we get a 
+                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
+                        // asume that the apphost was shutdown and we can ignore it.
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the our side
+                        // of the backchannel side first and the connection is torn down on our-side
+                        // gracefully. We can ignore this exception as well.
+                    }
                 });
 
                 return await pendingRun;
