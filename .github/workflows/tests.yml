@@ -74,7 +74,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      extraTestArgs: "--filter Quarantined!=true"
+      extraTestArgs: "--filter \"(Quarantined!=true)\""
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -87,7 +87,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      extraTestArgs: "--filter Quarantined!=true"
+      extraTestArgs: "--filter \"(Quarantined!=true)\""
 
   templates_test_lin:
     name: Templates Linux
