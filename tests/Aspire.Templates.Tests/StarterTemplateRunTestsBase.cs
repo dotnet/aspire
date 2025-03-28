@@ -83,17 +83,17 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
 
     public static async Task CheckWebFrontendWorksAsync(IBrowserContext context, string url, ITestOutputHelper testOutput, string logPath, bool hasRedisCache = false)
     {
-        var page = await context.NewPageWithLoggingAsync(testOutput);
+        var pageWrapper = await context.NewPageWithLoggingAsync(testOutput);
 
         try
         {
             // Enabling routing disables the http cache
-            await page.RouteAsync("**", async route => await route.ContinueAsync());
-            await page.GotoAsync(url);
+            await pageWrapper.Page.RouteAsync("**", async route => await route.ContinueAsync());
+            await pageWrapper.Page.GotoAsync(url);
 
-            await page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Weather" }).ClickAsync();
+            await pageWrapper.Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Weather" }).ClickAsync();
 
-            var tableLoc = page.Locator("//table[//thead/tr/th/text()='Date']");
+            var tableLoc = pageWrapper.Page.Locator("//table[//thead/tr/th/text()='Date']");
             await Expect(tableLoc).ToBeVisibleAsync();
 
             if (hasRedisCache)
@@ -102,7 +102,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
                 var firstLoadText = string.Join(',', (await GetAndValidateCellTexts(tableLoc)).SelectMany(r => r));
                 await Task.Delay(10_000);
 
-                await page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load });
+                await pageWrapper.Page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load });
 
                 var secondLoadText = string.Join(',', (await GetAndValidateCellTexts(tableLoc)).SelectMany(r => r));
                 Assert.NotEqual(firstLoadText, secondLoadText);
@@ -112,7 +112,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
         {
             testOutput.WriteLine($"Error: {ex}");
             string screenshotPath = Path.Combine(logPath, "webfrontend-fail.png");
-            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            await pageWrapper.Page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
             throw;
         }
 

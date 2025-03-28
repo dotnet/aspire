@@ -317,7 +317,7 @@ public partial class AspireProject : IAsyncDisposable
         return res;
     }
 
-    public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
+    public async Task<WrapperForIPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
     {
         string dashboardUrlToUse;
         if (Environment.GetEnvironmentVariable("DASHBOARD_URL_FOR_TEST") is string dashboardUrlForTest)
@@ -337,10 +337,30 @@ public partial class AspireProject : IAsyncDisposable
         cts.CancelAfter(TimeSpan.FromSeconds(DashboardAvailabilityTimeoutSecs));
         await WaitForDashboardToBeAvailableAsync(dashboardUrlToUse, _testOutput, cts.Token).ConfigureAwait(false);
 
-        var dashboardPage = await context.NewPageWithLoggingAsync(_testOutput);
-        await dashboardPage.GotoAsync(dashboardUrlToUse);
+        var dashboardPageWrapper = await context.NewPageWithLoggingAsync(_testOutput);
+        var maxRetryAttempts = 3;
+        var numAttempts = 0;
+        while (true)
+        {
+            try
+            {
+                _testOutput.WriteLine($"[{numAttempts}] Opening dashboard page at {dashboardUrlToUse}");
+                await dashboardPageWrapper.GotoAsync(dashboardUrlToUse);
+                return dashboardPageWrapper;
+            }
+            catch (PlaywrightException ex) when (ex.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.OrdinalIgnoreCase))
+            {
+                numAttempts++;
+                if (numAttempts < maxRetryAttempts)
+                {
+                    _testOutput.WriteLine($"Error: net::ERR_NETWORK_CHANGED. Retrying...");
+                    await Task.Delay(1000);
+                    continue;
+                }
 
-        return dashboardPage;
+                throw new InvalidOperationException($"Failed to open dashboard page after {numAttempts} retries", ex);
+            }
+        }
     }
 
     public Task WaitForDashboardToBeAvailableAsync(CancellationToken cancellationToken = default)
