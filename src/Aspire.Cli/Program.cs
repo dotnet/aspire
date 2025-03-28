@@ -416,17 +416,10 @@ public class Program
                         backchannelCompletionSource,
                         ct);
 
-                    launchingAppHostTask.Value = 100;
-                    launchingAppHostTask.StopTask();
-
-                    var connectingBackchannelTask = context.AddTask("Opening backchannel");
-                    connectingBackchannelTask.IsIndeterminate();
-                    connectingBackchannelTask.StartTask();
-
                     using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
 
-                    connectingBackchannelTask.Value = 100;
-                    connectingBackchannelTask.StopTask();
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
 
                     var publishingActivities = backchannel.GetPublishingActivitiesAsync(ct);
 
