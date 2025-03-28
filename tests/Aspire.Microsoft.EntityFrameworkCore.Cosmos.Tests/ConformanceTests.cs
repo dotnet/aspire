@@ -96,7 +96,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         Assert.NotNull(dbContext);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void TracingEnablesTheRightActivitySource()
     {
         SkipIfCanNotConnectToServer();

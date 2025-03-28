@@ -45,7 +45,7 @@ public class EnrichCosmosDbTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]
