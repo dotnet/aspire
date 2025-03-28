@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Shared\KnownConfigNames.cs" Link="KnownConfigNames.cs" />
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />

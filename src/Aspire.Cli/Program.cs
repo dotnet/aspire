@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -151,13 +152,13 @@ public class Program
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
-            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
+            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
             
             var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
 
             if (waitForDebugger)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
@@ -338,7 +339,7 @@ public class Program
 
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
             var publisher = parseResult.GetValue<string>("--publisher");

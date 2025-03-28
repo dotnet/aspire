@@ -139,7 +139,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "publish", "--publisher", "manifest", "--output-path", "test-output-path"])
             .WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -169,7 +169,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "inspect"])
             .WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -199,7 +199,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "inspect", "--publisher", "manifest"])
             .WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {

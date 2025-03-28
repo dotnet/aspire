@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -184,14 +185,14 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         var socketPath = GetBackchannelSocketPath();
         if (backchannelCompletionSource is not null)
         {
-            startInfo.EnvironmentVariables["ASPIRE_BACKCHANNEL_PATH"] = socketPath;
+            startInfo.EnvironmentVariables[KnownConfigNames.UnixSocketPath] = socketPath;
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process
         // it should monitor in order to know when to stop the CLI. As long as the process still exists
         // the orphan detector will allow the CLI to keep running. If the environment variable does
         // not exist the orphan detector will exit.
-        startInfo.EnvironmentVariables["ASPIRE_CLI_PID"] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
+        startInfo.EnvironmentVariables[KnownConfigNames.CliProcessId] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
         var process = new Process { StartInfo = startInfo };
 
