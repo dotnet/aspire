@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Xunit.Sdk;
+using Microsoft.DotNet.XUnitExtensions;
 
 namespace Aspire.TestUtilities;
 
-[TraitDiscoverer("Aspire.TestUtilities.RequiresDockerDiscoverer", "Aspire.TestUtilities")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresDockerAttribute : Attribute, ITraitAttribute
 {
@@ -28,5 +27,15 @@ public class RequiresDockerAttribute : Attribute, ITraitAttribute
     public RequiresDockerAttribute(string? reason = null)
     {
         Reason = reason;
+    }
+
+    public IReadOnlyCollection<KeyValuePair<string, string>> GetTraits()
+    {
+        if (!IsSupported)
+        {
+            return [new KeyValuePair<string, string>(XunitConstants.Category, "failing")];
+        }
+
+        return [];
     }
 }
