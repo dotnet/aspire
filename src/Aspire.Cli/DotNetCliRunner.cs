@@ -29,6 +29,30 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             cancellationToken: cancellationToken);
     }
 
+    public async Task<int> CheckHttpCertificateAsync(CancellationToken cancellationToken)
+    {
+        string[] cliArgs = ["dev-certs", "https", "--check"];
+        return await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            backchannelCompletionSource: null,
+            streamsCallback: null,
+            cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> TrustHttpCertificateAsync(CancellationToken cancellationToken)
+    {
+        string[] cliArgs = ["dev-certs", "https", "--trust"];
+        return await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            backchannelCompletionSource: null,
+            streamsCallback: null,
+            cancellationToken: cancellationToken);
+    }
+
     public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken)
     {
         List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
