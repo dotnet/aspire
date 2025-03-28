@@ -29,29 +29,29 @@ runs:
         dotnet-version: |
           9.x
 
-    - name: Get list of integration tests
-      if: ${{ inputs.includeIntegrations }}
-      env:
-        CI: false
-      shell: pwsh
-      run: >
-        dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
-        /p:TestsListOutputPath=${{ github.workspace }}/TestsForGithubActions.list
-        /p:ContinuousIntegrationBuild=true
+    #- name: Get list of integration tests
+      #if: ${{ inputs.includeIntegrations }}
+      #env:
+        #CI: false
+      #shell: pwsh
+      #run: >
+        #dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+        #/p:TestsListOutputPath=${{ github.workspace }}/TestsForGithubActions.list
+        #/p:ContinuousIntegrationBuild=true
 
-    - name: Generate list of template tests
-      if: ${{ inputs.includeTemplates }}
-      env:
-        CI: false
-      shell: pwsh
-      run: >
-          dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-          "/t:Build;ExtractTestClassNames"
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
-          -p:ExtractTestClassNamesForHelix=true
-          -p:ArchiveTests=true
-          -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
-          -p:InstallBrowsersForPlaywright=false
+    #- name: Generate list of template tests
+      #if: ${{ inputs.includeTemplates }}
+      #env:
+        #CI: false
+      #shell: pwsh
+      #run: >
+          #dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
+          #"/t:Build;ExtractTestClassNames"
+          #/bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
+          #-p:ExtractTestClassNamesForHelix=true
+          #-p:ArchiveTests=true
+          #-p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
+          #-p:InstallBrowsersForPlaywright=false
 
     #- name: Generate tests matrix
       #id: generate_integrations_matrix
@@ -76,7 +76,7 @@ runs:
       env:
         CI: false
       run: |
-        $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
+        $inputFilePath = "${{ github.workspace }}/TestsForGithubActions.list
         $lines = Get-Content $inputFilePath
 
         $prefix = "Aspire.Templates.Tests."
