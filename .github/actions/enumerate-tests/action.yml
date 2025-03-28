@@ -76,7 +76,7 @@ runs:
       env:
         CI: false
       run: |
-        $inputFilePath = "${{ github.workspace }}/TestsForGithubActions.list
+        $inputFilePath = "${{ github.workspace }}/TestsForGithubActions.list"
         $lines = Get-Content $inputFilePath
 
         $prefix = "Aspire.Templates.Tests."
