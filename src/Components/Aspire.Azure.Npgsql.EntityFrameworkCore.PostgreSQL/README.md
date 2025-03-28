@@ -114,16 +114,16 @@ If the connection string contains a username and a password then the credential 
 
 ## AppHost extensions
 
-In your AppHost project, install the `Aspire.Hosting.PostgreSQL` library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the `Aspire.Hosting.Azure.PostgreSQL` library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.PostgreSQL
+dotnet add package Aspire.Hosting.Azure.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, register Azure Database for PostgreSQL instance and consume the connection using the following methods:
 
 ```csharp
-var postgresdb = builder.AddPostgres("pg").AddDatabase("postgresdb");
+var postgresdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("postgresdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
@@ -145,7 +145,7 @@ In that case you can configure the Username property in the connection string an
 
 ```csharp
 builder.Services.AddDbContextPool<MyDbContext>(options => options.UseNpgsql(newConnectionString));
-builder.EnrichNpgsqlDbContext<MyDbContext>();
+builder.EnrichAzureNpgsqlDbContext<MyDbContext>();
 ```
 
 ## Additional documentation
