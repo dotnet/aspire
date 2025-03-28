@@ -22,12 +22,10 @@ namespace Aspire.Hosting.Azure;
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 internal sealed class AzurePublishingContext(
     AzurePublisherOptions publisherOptions,
-    AzureProvisioningOptions provisioningOptions,
     ILogger logger)
 {
     private ILogger Logger => logger;
     private AzurePublisherOptions PublisherOptions => publisherOptions;
-    private AzureProvisioningOptions ProvisioningOptions => provisioningOptions;
 
     public Infrastructure Infra = new()
     {
@@ -272,16 +270,5 @@ internal sealed class AzurePublishingContext(
                 Visit(reference, visitor, visited);
             }
         }
-    }
-
-    internal async Task SaveToDiskAsync(string outputDirectoryPath, Infrastructure infrastructure)
-    {
-        var plan = infrastructure.Build(ProvisioningOptions.ProvisioningBuildOptions);
-        var compiledBicep = plan.Compile().First();
-
-        logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", infrastructure.BicepName, outputDirectoryPath);
-
-        var bicepPath = Path.Combine(outputDirectoryPath, $"{infrastructure.BicepName}.bicep");
-        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }

@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -48,12 +49,29 @@ public sealed class AzurePublisher(
         var outputDirectory = new DirectoryInfo(publisherOptions.OutputPath!);
         outputDirectory.Create();
 
-        var context = new AzurePublishingContext(publisherOptions, ProvisioningOptions, logger);
+        var context = new AzurePublishingContext(publisherOptions, logger);
 
         context.WriteModelAsync(model).ConfigureAwait(false);
 
-        context.SaveToDiskAsync(outputDirectory.FullName, context.Infra).ConfigureAwait(false);
+        SaveToDiskAsync(outputDirectory.FullName, context.Infra).ConfigureAwait(false);
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Saves the compiled Bicep template to disk.
+    /// </summary>
+    /// <param name="outputDirectoryPath">The path to the output directory where the Bicep template will be saved.</param>
+    /// <param name="infrastructure">The infrastructure object containing the compiled Bicep template.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
+    public async Task SaveToDiskAsync(string outputDirectoryPath, Infrastructure infrastructure)
+    {
+        var plan = infrastructure.Build(ProvisioningOptions.ProvisioningBuildOptions);
+        var compiledBicep = plan.Compile().First();
+
+        logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", infrastructure.BicepName, outputDirectoryPath);
+
+        var bicepPath = Path.Combine(outputDirectoryPath, $"{infrastructure.BicepName}.bicep");
+        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }
