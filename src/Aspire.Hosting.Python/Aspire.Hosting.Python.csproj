@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
+    <Compile Include="$(ComponentsDir)\Common\ArgumentExceptionExtensions.cs" Link="ArgumentExceptionExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

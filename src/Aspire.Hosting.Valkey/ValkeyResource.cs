@@ -20,6 +20,8 @@ public class ValkeyResource(string name) : ContainerResource(name), IResourceWit
     /// <param name="password">A parameter that contains the Valkey server password.</param>
     public ValkeyResource(string name, ParameterResource password) : this(name)
     {
+        ArgumentNullException.ThrowIfNull(password);
+
         PasswordParameter = password;
     }
 
