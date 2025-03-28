@@ -302,7 +302,7 @@ public class Program
 
             if (trustExitCode != 0)
             {
-                throw new InvalidOperationException("Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+                throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
             }
         }
     }
