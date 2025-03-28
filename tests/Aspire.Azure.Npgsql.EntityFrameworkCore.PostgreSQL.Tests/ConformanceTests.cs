@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Aspire.Npgsql.Tests;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -11,9 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
+public class ConformanceTests : ConformanceTests<TestDbContext, AzureNpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     // in the future it can become a static property that reads the value from Env Var
     private readonly PostgreSQLContainerFixture? _containerFixture;
@@ -22,9 +23,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
     protected override string ActivitySourceName => "Npgsql";
-
-    // Sub-classed in Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
-    protected override bool CheckOptionClassSealed => false;
 
     protected override string[] RequiredLogCategories => new string[]
     {
@@ -93,16 +91,16 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
             new("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", ConnectionString)
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>(key ?? "postgres", configure);
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureNpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
+        => builder.AddAzureNpgsqlDbContext<TestDbContext>(key ?? "postgres", configure);
 
-    protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureNpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
 
-    protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+    protected override void SetTracing(AzureNpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+    protected override void SetMetrics(AzureNpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableMetrics = !enabled;
 
     protected override void TriggerActivity(TestDbContext service)

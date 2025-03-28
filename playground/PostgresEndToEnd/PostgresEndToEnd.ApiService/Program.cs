@@ -2,17 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-var dsBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("db1"));
-dsBuilder.UseEntraAuthentication();
-
-builder.AddNpgsqlDbContext<MyDb1Context>("db1",
-    configureDbContextOptions: (options) => options.UseNpgsql(dsBuilder.Build()));
+builder.AddAzureNpgsqlDbContext<MyDb1Context>("db1");
 
 var app = builder.Build();
 
