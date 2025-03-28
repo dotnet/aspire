@@ -8,7 +8,6 @@ using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using HealthChecks.Azure.KeyVault.Secrets;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -121,48 +120,12 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
         return builder;
     }
 
-    private sealed class KeyVaultSecretsComponent : AzureComponent<AzureSecurityKeyVaultSettings, SecretClient, SecretClientOptions>
+    private sealed class KeyVaultSecretsComponent : AbstractKeyVaultComponent<SecretClient, SecretClientOptions>
     {
-        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient(
-            AzureClientFactoryBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings,
-            string connectionName, string configurationSectionName)
-        {
-            return azureFactoryBuilder.AddClient<SecretClient, SecretClientOptions>((options, cred, _) =>
-            {
-                if (settings.VaultUri is null)
-                {
-                    throw new InvalidOperationException($"VaultUri is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'VaultUri' key in the '{configurationSectionName}' configuration section.");
-                }
-
-                return new SecretClient(settings.VaultUri, cred, options);
-            });
-        }
-
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
             => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretsHealthCheckOptions());
 
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
-        {
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
-            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
-#pragma warning restore IDE0200
-        }
-
-        protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
-        {
-            configuration.Bind(settings);
-        }
-
-        protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
-            => !settings.DisableHealthChecks;
-
-        protected override TokenCredential? GetTokenCredential(AzureSecurityKeyVaultSettings settings)
-            => settings.Credential;
-
-        protected override bool GetMetricsEnabled(AzureSecurityKeyVaultSettings settings)
-            => false;
-
-        protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
-            => !settings.DisableTracing;
+        internal override SecretClient CreateComponentClient(Uri vaultUri, SecretClientOptions options, TokenCredential cred)
+            => new SecretClient(vaultUri, cred, options);
     }
 }
