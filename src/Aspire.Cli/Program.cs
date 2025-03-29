@@ -162,6 +162,16 @@ public class Program
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
+            try
+            {
+                await EnsureCertificatesTrustedAsync(runner, ct);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                return ExitCodeConstants.FailedToTrustCertificates;
+            }
+
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
 
             var watch = parseResult.GetValue<bool>("--watch");
@@ -284,6 +294,35 @@ public class Program
         });
 
         parentCommand.Subcommands.Add(command);
+    }
+
+    private static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
+    {
+        var checkExitCode = await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots3)
+            .SpinnerStyle(Style.Parse("purple"))
+            .StartAsync(
+                ":locked_with_key: Checking certificates...",
+                async (context) => {
+                    return await runner.CheckHttpCertificateAsync(cancellationToken);
+                });
+
+        if (checkExitCode != 0)
+        {
+            var trustExitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    ":locked_with_key: Trusting certificates...",
+                    async (context) => {
+                        return await runner.TrustHttpCertificateAsync(cancellationToken);
+                    });
+
+            if (trustExitCode != 0)
+            {
+                throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+            }
+        }
     }
 
     private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
@@ -617,10 +656,18 @@ public class Program
                 AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
-            else
+
+            try
             {
-                AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
+                await EnsureCertificatesTrustedAsync(cliRunner, ct);
             }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                return ExitCodeConstants.FailedToTrustCertificates;
+            }
+
+            AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
 
             return ExitCodeConstants.Success;
         });
