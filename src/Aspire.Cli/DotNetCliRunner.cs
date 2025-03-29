@@ -31,7 +31,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> CheckHttpCertificateAsync(CancellationToken cancellationToken)
     {
-        string[] cliArgs = ["dev-certs", "https", "--check"];
+        string[] cliArgs = ["dev-certs", "https", "--check", "--trust"];
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
