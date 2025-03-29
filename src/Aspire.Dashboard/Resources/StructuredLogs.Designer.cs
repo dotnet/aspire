@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Structured logs capture paused at {0}.
+        /// </summary>
+        public static string PauseInProgressText {
+            get {
+                return ResourceManager.GetString("PauseInProgressText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add filter.
         /// </summary>
         public static string StructuredLogsAddFilter {

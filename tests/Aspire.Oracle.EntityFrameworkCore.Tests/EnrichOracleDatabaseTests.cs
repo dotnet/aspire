@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
@@ -13,7 +13,6 @@ using OpenTelemetry.Trace;
 using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 

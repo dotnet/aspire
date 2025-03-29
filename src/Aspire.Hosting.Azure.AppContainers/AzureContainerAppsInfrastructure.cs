@@ -92,7 +92,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
 
             // Set the known parameters for the container app environment
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ContainerRegistryManagedIdentityId);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.PrincipalId);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
@@ -524,7 +524,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
                 {
-                    var context = new EnvironmentCallbackContext(executionContext, cancellationToken: cancellationToken);
+                    var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
 
                     foreach (var c in environmentCallbacks)
                     {

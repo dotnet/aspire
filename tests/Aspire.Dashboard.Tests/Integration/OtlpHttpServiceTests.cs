@@ -16,7 +16,6 @@ using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 

@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -24,7 +24,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
 
@@ -638,9 +637,9 @@ public class DistributedApplicationTests
         const string testName = "dashboard-auth-config";
         var browserToken = "ThisIsATestToken";
         var args = new string[] {
-            "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
-            $"DOTNET_DASHBOARD_FRONTEND_BROWSERTOKEN={browserToken}"
+            $"{KnownConfigNames.AspNetCoreUrls}=http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0",
+            $"{KnownConfigNames.DashboardFrontendBrowserToken}={browserToken}"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
@@ -678,9 +677,9 @@ public class DistributedApplicationTests
     {
         const string testName = "dashboard-allow-anonymous";
         var args = new string[] {
-            "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
-            "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
+            $"{KnownConfigNames.AspNetCoreUrls}=http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0",
+            $"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}=true"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 

@@ -20,9 +20,9 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
 
     public IManifestExpressionProvider ContainerRegistryManagedIdentityId => AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID;
 
-    public IManifestExpressionProvider ManagedIdentityId => ContainerRegistryManagedIdentityId;
-
     public IManifestExpressionProvider LogAnalyticsWorkspaceId => AzureContainerAppsEnvironment.AZURE_LOG_ANALYTICS_WORKSPACE_ID;
+
+    public IManifestExpressionProvider PrincipalId => AzureContainerAppsEnvironment.MANAGED_IDENTITY_PRINCIPAL_ID;
 
     public IManifestExpressionProvider PrincipalName => AzureContainerAppsEnvironment.MANAGED_IDENTITY_NAME;
 

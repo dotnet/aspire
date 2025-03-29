@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Tests.Utils;
 
 public static class ResourceNotificationServiceTestHelpers
 {
-    internal static ResourceNotificationService Create(ILogger<ResourceNotificationService>? logger = null, IHostApplicationLifetime? hostApplicationLifetime = null, ResourceLoggerService? resourceLoggerService = null)
+    public static ResourceNotificationService Create(ILogger<ResourceNotificationService>? logger = null, IHostApplicationLifetime? hostApplicationLifetime = null, ResourceLoggerService? resourceLoggerService = null)
     {
         return new ResourceNotificationService(
             logger ?? new NullLogger<ResourceNotificationService>(),

@@ -139,13 +139,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #endif
 
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } configFilePath)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardConfigFilePathName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardConfigFilePathName.ConfigKey, fallbackOnEmpty: true) is { } configFilePath)
         {
             builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         }
 
         // Allow for a user specified config directory on disk (e.g. for Docker secrets). Throw an error if the specified directory doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } fileConfigDirectory)
+        if (builder.Configuration.GetString(DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey,
+                                            DashboardConfigNames.Legacy.DashboardFileConfigDirectoryName.ConfigKey, fallbackOnEmpty: true) is { } fileConfigDirectory)
         {
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
@@ -229,6 +231,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
         builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
+
+        builder.Services.AddSingleton<PauseManager>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -480,7 +484,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         if (!hasSingleEndpoint)
         {
-            // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
+            // Translate high-level config settings such as ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
             if (otlpGrpcAddress != null)
             {

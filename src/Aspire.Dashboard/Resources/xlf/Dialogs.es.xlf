@@ -264,17 +264,17 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningAcknowledge">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">Mostrar valor</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="new">Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</target>
+        <target state="translated">Confirme que quiere mostrar el valor. En el futuro, al abrir el visualizador de texto se mostrarán automáticamente todos los valores</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">
         <source>Sensitive value hidden</source>
-        <target state="new">Sensitive value hidden</target>
+        <target state="translated">Valor confidencial oculto</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

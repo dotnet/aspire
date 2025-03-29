@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Xunit.Abstractions;
 
 namespace Aspire.Templates.Tests;
 

@@ -90,19 +90,6 @@ public static class AzureSignalRExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(service.CreateRoleAssignment(new SignalRBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
         };
 
         List<SignalRBuiltInRole> defaultRoles = [SignalRBuiltInRole.SignalRAppServer];

@@ -106,12 +106,12 @@ Pour plus d’informations, consultez https://aka.ms/dotnet/aspire/container-run
       </trans-unit>
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="UrlsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">Démarrage en cours...</target>
         <note />
       </trans-unit>
     </body>

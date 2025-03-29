@@ -170,6 +170,8 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment(context =>
          {
+             Assert.NotNull(context.Resource);
+
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 

@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;

@@ -33,6 +33,10 @@
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Xunit.Abstractions" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
     <None Include="..\testproject\**\*" Link="$(DeployOutsideOfRepoSupportFilesDir)%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

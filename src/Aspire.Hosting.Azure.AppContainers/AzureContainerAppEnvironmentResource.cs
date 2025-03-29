@@ -24,11 +24,6 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     public BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
-    /// Gets the managed identity ID associated with the Container App Environment.
-    /// </summary>
-    public BicepOutputReference ManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
-
-    /// <summary>
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
     public BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
@@ -49,6 +44,11 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     public BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
 
     /// <summary>
+    /// Gets the principal ID of the managed identity.
+    /// </summary>
+    public BicepOutputReference PrincipalId => new("MANAGED_IDENTITY_PRINCIPAL_ID", this);
+
+    /// <summary>
     /// Gets the name of the Container App Environment.
     /// </summary>
     public BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
@@ -64,6 +64,8 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerRegistryManagedIdentityId => ContainerRegistryManagedIdentityId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.LogAnalyticsWorkspaceId => LogAnalyticsWorkspaceId;
+
+    IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalId => PrincipalId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalName => PrincipalName;
 

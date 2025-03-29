@@ -69,7 +69,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogdbapp.bindings.http.targetPort}",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
-        "DatabaseResetKey": "6b85bcc5-617c-488b-b62f-f6134cf8a7d6"
+        "DatabaseResetKey": "9a5cbab2-b477-4a2f-9d2f-91080d988d75"
       },
       "bindings": {
         "http": {

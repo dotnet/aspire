@@ -11,10 +11,10 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Elasticsearch\ElasticsearchContainerImageTags.cs" />
     <None Include="$(RepoRoot)src\Components\Aspire.Elastic.Clients.Elasticsearch\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
-
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.Elasticsearch" />
   </ItemGroup>
 
