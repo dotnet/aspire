@@ -98,6 +98,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
+        if (_process!.HasExited)
+        {
+            yield break;
+        }
+
         var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting publishing activities.");
