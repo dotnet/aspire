@@ -37,7 +37,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
             // If the manifest path ends with .json we assume that the output path was specified
             // as a filename. If not, we assume that the output path was specified as a directory
             // and append aspire-manifest.json to the path. This is so that we retain backwards
-            // compatability with AZD, but also support manifest publishing via the Aspire CLI
+            // compatibility with AZD, but also support manifest publishing via the Aspire CLI
             // where the output path is a directory (since not all publishers use a manifest).
             _options.Value.OutputPath = Path.Combine(_options.Value.OutputPath, "aspire-manifest.json");
             var parentDirectory = Directory.GetParent(_options.Value.OutputPath);
