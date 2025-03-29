@@ -187,6 +187,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 {
                     SetSelectedResourceOption(selectedResource);
                 }
+                else
+                {
+                    var resourcesWithDisplayName = _resourceByName.Values.Where(r => string.Equals(ResourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
+                    if (resourcesWithDisplayName.Count == 1)
+                    {
+                        SetSelectedResourceOption(resourcesWithDisplayName.Single());
+                    }
+                }
             }
             else
             {
@@ -227,14 +235,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            Debug.Assert(_resources is not null);
-
-            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            PageViewModel.SelectedOption = GetSelectedOption();
             PageViewModel.SelectedResource = resource;
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
         }
+    }
+
+    private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
+    {
+        Debug.Assert(_resources is not null);
+        return _resources.SingleOrDefault(
+            option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping
+                      && (string.Equals(ResourceName, option.Id?.InstanceId, StringComparisons.ResourceName) || string.Equals(ResourceName, option.Name, StringComparisons.ResourceName)))
+            ?? _noSelection;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -687,10 +702,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (_resources is not null && ResourceName is not null)
         {
-            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Id?.InstanceId, StringComparisons.ResourceName)) ?? _noSelection;
-
-            viewModel.SelectedOption = selectedOption;
-            viewModel.SelectedResource = selectedOption.Id?.InstanceId is null ? null : _resourceByName[selectedOption.Id.InstanceId];
+            viewModel.SelectedOption = GetSelectedOption();
+            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
             viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
         else
@@ -710,6 +723,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
+        return new ConsoleLogsPageState(PageViewModel.SelectedOption.Id is not null ? PageViewModel.SelectedOption.Name : null);
     }
 }
