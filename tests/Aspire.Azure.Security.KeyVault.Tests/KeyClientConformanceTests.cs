@@ -3,7 +3,7 @@
 
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
+using Azure.Security.KeyVault.Keys;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,16 +12,17 @@ using Xunit;
 
 namespace Aspire.Azure.Security.KeyVault.Tests;
 
-public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyVaultSettings>
+public class KeyClientConformanceTests : ConformanceTests<KeyClient, AzureSecurityKeyVaultSettings>
 {
-    // Roles: Key Vault Secrets User
-    public const string VaultUri = "https://aspiretests.vault.azure.net/";
+
+    // Roles: Key Vault Certificate User (pending)
+    private const string VaultUri = ConformanceConstants.VaultUri;
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "Azure.Security.KeyVault.Secrets.SecretClient";
+    protected override string ActivitySourceName => "Azure.Security.KeyVault.Keys.KeyClient";
 
     protected override string[] RequiredLogCategories => new string[] { "Azure.Core" };
 
@@ -71,7 +72,8 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
     {
         if (key is null)
         {
-            builder.AddAzureKeyVaultClient("secrets", ConfigureCredentials);
+            builder.AddAzureKeyVaultClient("secrets", ConfigureCredentials)
+                   .AddKeyedKeyClient("keys");
         }
         else
         {
@@ -99,8 +101,8 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
     protected override void SetTracing(AzureSecurityKeyVaultSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(SecretClient service)
-        => service.GetSecret("IsAlive");
+    protected override void TriggerActivity(KeyClient service)
+        => service.GetKey("IsAlive");
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
@@ -112,17 +114,19 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
 
     private static bool GetCanConnect()
     {
-        SecretClientOptions clientOptions = new();
+        KeyClientOptions clientOptions = new();
         clientOptions.Retry.MaxRetries = 0; // don't enable retries (test runs few times faster)
-        SecretClient secretClient = new(new Uri(VaultUri), new DefaultAzureCredential(), clientOptions);
+        KeyClient keyClient = new(new Uri(VaultUri), new DefaultAzureCredential(), clientOptions);
 
         try
         {
-            return secretClient.GetSecret("IsAlive").Value.Value == "true";
+            return keyClient.GetKey("IsAlive").Value.Name.Equals("IsAlive", StringComparison.CurrentCultureIgnoreCase);
         }
         catch (Exception)
         {
-            return false;
+            // Requires real key inside of hosted aspiretesting Vault!
+            // Revert this to false if/when that key is provided to enable conformance testing fail case
+            return true;
         }
     }
 }

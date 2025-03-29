@@ -21,7 +21,7 @@ public class AspireKeyVaultExtensionsTests
     [InlineData(false)]
     public void VaultUriCanBeSetInCode(bool useKeyed)
     {
-        var vaultUri = new Uri(ConformanceTests.VaultUri);
+        var vaultUri = new Uri(ConformanceConstants.VaultUri);
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -54,8 +54,8 @@ public class AspireKeyVaultExtensionsTests
 
         var key = useKeyed ? "secrets" : null;
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Security:KeyVault", key, "VaultUri"), "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:secrets", ConformanceTests.VaultUri)
+            new KeyValuePair<string, string?>("Aspire:Azure:Security:KeyVault:{key}:VaultUri", "unused"),
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets", ConformanceConstants.VaultUri)
         ]);
 
         if (useKeyed)
@@ -72,7 +72,7 @@ public class AspireKeyVaultExtensionsTests
             host.Services.GetRequiredKeyedService<SecretClient>("secrets") :
             host.Services.GetRequiredService<SecretClient>();
 
-        Assert.Equal(new Uri(ConformanceTests.VaultUri), client.VaultUri);
+        Assert.Equal(new Uri(ConformanceConstants.VaultUri), client.VaultUri);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class AspireKeyVaultExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:secrets", ConformanceTests.VaultUri)
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets", ConformanceConstants.VaultUri)
         ]);
 
         builder.Configuration.AddAzureKeyVaultSecrets("secrets", configureClientOptions: o =>
@@ -179,7 +179,7 @@ public class AspireKeyVaultExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:secrets1", ConformanceTests.VaultUri),
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets1", ConformanceConstants.VaultUri),
             new KeyValuePair<string, string?>("ConnectionStrings:secrets2", "https://aspiretests2.vault.azure.net/"),
             new KeyValuePair<string, string?>("ConnectionStrings:secrets3", "https://aspiretests3.vault.azure.net/")
         ]);
@@ -212,7 +212,7 @@ public class AspireKeyVaultExtensionsTests
         var connectionName = "keyVaultMultipleClients";
 
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>($"ConnectionStrings:{connectionName}", ConformanceTests.VaultUri)
+            new KeyValuePair<string, string?>($"ConnectionStrings:{connectionName}", ConformanceConstants.VaultUri)
         ]);
 
         builder
@@ -226,7 +226,7 @@ public class AspireKeyVaultExtensionsTests
         var keyClient = host.Services.GetRequiredService<KeyClient>();
         var certClient = host.Services.GetRequiredService<CertificateClient>();
 
-        var vaultUri = new Uri(ConformanceTests.VaultUri);
+        var vaultUri = new Uri(ConformanceConstants.VaultUri);
 
         Assert.Equal(vaultUri, secretClient.VaultUri);
         Assert.Equal(vaultUri, keyClient.VaultUri);
