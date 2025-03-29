@@ -36,6 +36,7 @@ internal static class EntityFrameworkUtils
 
         return settings;
     }
+
     /// <summary>
     /// Ensures a <see cref="DbContext"/> is registered in DI.
     /// </summary>

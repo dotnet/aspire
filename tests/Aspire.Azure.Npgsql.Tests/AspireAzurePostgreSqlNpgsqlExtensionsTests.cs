@@ -109,6 +109,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
         Assert.NotNull(tokenCredential);
+        // Password is removed from the connection string for security reasons.
         Assert.Equal(ConnectionStringWithUsername, dataSource.ConnectionString);
         Assert.False(tokenCredential.IsGetTokenInvoked);
     }
@@ -139,6 +140,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
             host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
+        // Password is removed from the connection string for security reasons.
         Assert.Equal(ConnectionStringWithUsername, dataSource.ConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", dataSource.ConnectionString);

@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Aspire;
 using Aspire.Azure.Npgsql;
 using Aspire.Npgsql;
-using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -38,7 +37,7 @@ public static class AspireAzureNpgsqlExtensions
         {
             Debug.Assert(azureSettings != null);
 
-            ConfigureDataSourceBuilder(azureSettings, dataSourceBuilder);
+            dataSourceBuilder.ConfigureEntraIdAuthentication(azureSettings.Credential);
 
             configureDataSourceBuilder?.Invoke(dataSourceBuilder);
         });
@@ -67,7 +66,7 @@ public static class AspireAzureNpgsqlExtensions
         {
             Debug.Assert(azureSettings != null);
 
-            ConfigureDataSourceBuilder(azureSettings, dataSourceBuilder);
+            dataSourceBuilder.ConfigureEntraIdAuthentication(azureSettings.Credential);
 
             configureDataSourceBuilder?.Invoke(dataSourceBuilder);
         });
@@ -95,47 +94,5 @@ public static class AspireAzureNpgsqlExtensions
         destination.DisableHealthChecks = source.DisableHealthChecks;
         destination.DisableMetrics = source.DisableMetrics;
         destination.DisableTracing = source.DisableTracing;
-    }
-
-    private static void ConfigureDataSourceBuilder(AzureNpgsqlSettings settings, NpgsqlDataSourceBuilder dataSourceBuilder)
-    {
-        // The connection string requires the username to be provided. Since it will depend on the Managed Identity that is used
-        // we attempt to get the username from the access token.
-
-        var credential = settings.Credential ?? new DefaultAzureCredential();
-
-        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
-        {
-            // Ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
-            var token = credential.GetToken(ManagedIdentityTokenCredentialHelpers.ManagementTokenRequestContext, default);
-
-            if (ManagedIdentityTokenCredentialHelpers.TryGetUsernameFromToken(token.Token, out var username))
-            {
-                dataSourceBuilder.ConnectionStringBuilder.Username = username;
-            }
-            else
-            {
-                // Otherwise check using the PostgresSql scope
-                token = credential.GetToken(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default);
-
-                if (ManagedIdentityTokenCredentialHelpers.TryGetUsernameFromToken(token.Token, out username))
-                {
-                    dataSourceBuilder.ConnectionStringBuilder.Username = username;
-                }
-            }
-
-            // If we still don't have a username, we let Npgsql handle the error when trying to connect.
-            // The user will be hinted to provide a username by using the configureDataSourceBuilder callback.
-        }
-
-        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
-        {
-            // The token is not cached since it is refreshed for each new physical connection, or when it has expired.
-
-            dataSourceBuilder.UsePasswordProvider(
-                passwordProvider: _ => credential.GetToken(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default).Token,
-                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
-            );
-        }
     }
 }
