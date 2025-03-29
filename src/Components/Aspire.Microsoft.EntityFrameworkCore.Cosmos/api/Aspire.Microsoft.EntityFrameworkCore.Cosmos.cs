@@ -16,6 +16,8 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos
 
         public Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
 
+        public string? DatabaseName { get { throw null; } set { } }
+
         public bool DisableTracing { get { throw null; } set { } }
 
         public string? Region { get { throw null; } set { } }
@@ -28,6 +30,9 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireAzureEFCoreCosmosExtensions
     {
+        public static void AddCosmosDbContext<TContext>(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings>? configureSettings = null, System.Action<EntityFrameworkCore.DbContextOptionsBuilder>? configureDbContextOptions = null)
+            where TContext : EntityFrameworkCore.DbContext { }
+
         public static void AddCosmosDbContext<TContext>(this IHostApplicationBuilder builder, string connectionName, string databaseName, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings>? configureSettings = null, System.Action<EntityFrameworkCore.DbContextOptionsBuilder>? configureDbContextOptions = null)
             where TContext : EntityFrameworkCore.DbContext { }
 
