@@ -9,8 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
 using Azure.Core;
-using Azure.ResourceManager.KeyVault;
-using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
@@ -96,7 +94,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -142,63 +140,6 @@ internal sealed class BicepProvisioner(
         // GetBicepTemplateFile may have added new well-known parameters, so we need
         // to populate them only after calling GetBicepTemplateFile.
         PopulateWellKnownParameters(resource, context);
-
-        KeyVaultResource? keyVault = null;
-
-        if (resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName))
-        {
-            // This could be done as a bicep template that imports the other bicep template but this is
-            // quick and dirty for now
-            var keyVaults = resourceGroup.GetKeyVaults();
-
-            // Check to see if there's a key vault for this resource already
-            await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
-            {
-                if (kv.Data.Tags.TryGetValue("aspire-secret-store", out var secretStore) && secretStore == resource.Name)
-                {
-                    resourceLogger.LogInformation("Found key vault {vaultName} for resource {resource} in {location}...", kv.Data.Name, resource.Name, context.Location);
-
-                    keyVault = kv;
-                    break;
-                }
-            }
-
-            if (keyVault is null)
-            {
-                await notificationService.PublishUpdateAsync(resource, state => state with
-                {
-                    State = new("Provisioning Keyvault", KnownResourceStateStyles.Info)
-
-                }).ConfigureAwait(false);
-
-                // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
-                // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
-                var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
-
-                resourceLogger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
-
-                var properties = new KeyVaultProperties(context.Subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
-                {
-                    EnabledForTemplateDeployment = true,
-                    EnableRbacAuthorization = true
-                };
-                var kvParameters = new KeyVaultCreateOrUpdateContent(context.Location, properties);
-                kvParameters.Tags.Add("aspire-secret-store", resource.Name);
-
-                var kvOperation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, kvParameters, cancellationToken).ConfigureAwait(false);
-                keyVault = kvOperation.Value;
-
-                resourceLogger.LogInformation("Key vault {vaultName} created.", keyVault.Data.Name);
-
-                // Key Vault Administrator
-                // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
-                var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
-
-                await DoRoleAssignmentAsync(context.ArmClient, keyVault.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
-            }
-
-            resource.Parameters[AzureBicepResource.KnownParameters.KeyVaultName] = keyVault.Data.Name;
-        }
 
         // Use the azure CLI to run the bicep compiler to transpile the bicep file to a ARM JSON file
         var armTemplateContents = new StringBuilder();
@@ -332,24 +273,17 @@ internal sealed class BicepProvisioner(
         }
 
         // Populate secret outputs from key vault (if any)
-        if (keyVault is not null)
+        if (resource is IKeyVaultResource kvr)
         {
-            var configOutputs = resourceConfig.Prop("SecretOutputs");
+            var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
 
-            var client = new SecretClient(keyVault.Data.Properties.VaultUri, context.Credential);
-
-            await foreach (var item in keyVault.GetKeyVaultSecrets().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            // Set the client for resolving secrets at runtime
+            var client = new SecretClient(new(vaultUri), context.Credential);
+            kvr.SecretResolver = async (secretName, ct) =>
             {
-                var response = await client.GetSecretAsync(item.Data.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
-                var secret = response.Value;
-                resource.SecretOutputs[item.Data.Name] = secret.Value;
-            }
-
-            foreach (var item in resource.SecretOutputs)
-            {
-                // Save them to configuration
-                configOutputs[item.Key] = resource.SecretOutputs[item.Key];
-            }
+                var secret = await client.GetSecretAsync(secretName, cancellationToken: ct).ConfigureAwait(false);
+                return secret.Value.Value;
+            };
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -361,7 +295,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = new("Running", KnownResourceStateStyles.Success),
+                State = new("Provisioned", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };

@@ -39,7 +39,7 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Topic.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(TopicName, null);
 
     /// <summary>
     /// ISO 8601 default message timespan to live value. This is the duration
@@ -67,7 +67,7 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
 
     // ensure Azure Functions projects can WithReference a ServiceBus topic
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+        => Parent.ApplyAzureFunctionsConfiguration(target, connectionName, TopicName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

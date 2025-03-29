@@ -8,11 +8,13 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using StreamJsonRpc;
 
 namespace Aspire.Cli;
 
@@ -77,7 +79,7 @@ public class Program
         rootCommand.Options.Add(waitForDebuggerOption);
 
         ConfigureRunCommand(rootCommand);
-        ConfigureBuildCommand(rootCommand);
+        ConfigurePublishCommand(rootCommand);
         ConfigureNewCommand(rootCommand);
         ConfigureAddCommand(rootCommand);
         return rootCommand;
@@ -151,13 +153,13 @@ public class Program
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
-            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
+            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
             
             var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
 
             if (waitForDebugger)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
@@ -217,44 +219,60 @@ public class Program
 
                     var resourceStates = backchannel.GetResourceStatesAsync(ct);
 
-                    await foreach(var resourceState in resourceStates)
+                    try
                     {
-                        knownResources[resourceState.Resource] = resourceState;
-
-                        table.Rows.Clear();
-
-                        foreach (var knownResource in knownResources)
+                        await foreach(var resourceState in resourceStates)
                         {
-                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+                            knownResources[resourceState.Resource] = resourceState;
 
-                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+                            table.Rows.Clear();
 
-                            var stateRenderable = knownResource.Value.State switch {
-                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                            };
-
-                            IRenderable endpointsRenderable = new Text("None");
-                            if (knownResource.Value.Endpoints?.Length > 0)
+                            foreach (var knownResource in knownResources)
                             {
-                                endpointsRenderable = new Rows(
-                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                );
+                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+
+                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+
+                                var stateRenderable = knownResource.Value.State switch {
+                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                                };
+
+                                IRenderable endpointsRenderable = new Text("None");
+                                if (knownResource.Value.Endpoints?.Length > 0)
+                                {
+                                    endpointsRenderable = new Rows(
+                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                    );
+                                }
+
+                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
                             }
 
-                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+                            context.Refresh();
                         }
-
-                        context.Refresh();
                     }
-
+                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
+                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
+                        // that the apphost side of the RPC connection will be closed. Therefore if we get a 
+                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
+                        // asume that the apphost was shutdown and we can ignore it.
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the our side
+                        // of the backchannel side first and the connection is torn down on our-side
+                        // gracefully. We can ignore this exception as well.
+                    }
                 });
 
                 return await pendingRun;
@@ -306,9 +324,9 @@ public class Program
         };
     }
 
-    private static void ConfigureBuildCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand)
     {
-        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
+        var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -338,7 +356,7 @@ public class Program
 
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
             var publisher = parseResult.GetValue<string>("--publisher");
@@ -392,19 +410,65 @@ public class Program
                 publisher = AnsiConsole.Prompt(publisherPrompt);
             }
 
-            var exitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
+
+            var exitCode = await AnsiConsole.Progress()
+                .AutoRefresh(true)
+                .Columns(
+                    new TaskDescriptionColumn() { Alignment = Justify.Left },
+                    new ProgressBarColumn() { Width = 10 },
+                    new ElapsedTimeColumn())
+                .StartAsync(async context => {
+
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+                    var launchingAppHostTask = context.AddTask("Launching apphost");
+                    launchingAppHostTask.IsIndeterminate();
+                    launchingAppHostTask.StartTask();
+
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
-                        null, // TODO: We will use a backchannel here soon but null for now.
+                        backchannelCompletionSource,
                         ct);
 
+                    using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
+
+                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(ct);
+
+                    var progressTasks = new Dictionary<string, ProgressTask>();
+
+                    await foreach (var publishingActivity in publishingActivities)
+                    {
+                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                        {
+                            progressTask = context.AddTask(publishingActivity.Id);
+                            progressTask.StartTask();
+                            progressTask.IsIndeterminate();
+                            progressTasks.Add(publishingActivity.Id, progressTask);
+                        }
+
+                        progressTask.Description = $"{publishingActivity.StatusText}";
+
+                        if (publishingActivity.IsComplete)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                        else if (publishingActivity.IsError)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                    }
+
                     return await pendingRun;
+
                 });
 
             if (exitCode != 0)
@@ -501,7 +565,7 @@ public class Program
             var templateVersion = parseResult.GetValue<string>("--version");
             var source = parseResult.GetValue<string?>("--source");
 
-            int templateInstallExitCode = await AnsiConsole.Status()
+            var templateInstallResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync(
@@ -510,11 +574,13 @@ public class Program
                         return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
                     });
 
-            if (templateInstallExitCode != 0)
+            if (templateInstallResult.ExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The template installation failed with exit code {templateInstallExitCode}. For more information run with --debug switch.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
+
+            AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
             var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
 
@@ -550,6 +616,10 @@ public class Program
             {
                 AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
             }
 
             return ExitCodeConstants.Success;
@@ -699,7 +769,16 @@ public class Program
                     }
                 );
 
-                return addPackageResult;
+                if (addPackageResult != 0)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                    return ExitCodeConstants.Success;
+                }
             }
             catch (Exception ex)
             {

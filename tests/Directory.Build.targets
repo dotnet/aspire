@@ -3,6 +3,10 @@
 
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
 
+  <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(ExcludeTestUtilities)' != 'true' ">
+    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
