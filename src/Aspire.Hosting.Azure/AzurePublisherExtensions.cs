@@ -16,7 +16,7 @@ public static class AzurePublisherExtensions
     /// <param name="builder">The <see cref="Aspire.Hosting.IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the publisher used when using the Aspire CLI.</param>
     /// <param name="configureOptions">Callback to configure Azure Container Apps publisher options.</param>
-    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static void AddAzurePublisher(this IDistributedApplicationBuilder builder, string name, Action<AzurePublisherOptions>? configureOptions = null)
     {
         builder.AddPublisher<AzurePublisher, AzurePublisherOptions>(name, configureOptions);
