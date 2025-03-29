@@ -655,7 +655,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var unhealthyEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Unhealthy).DefaultTimeout();
         Assert.Equal(HealthStatus.Unhealthy, unhealthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     private sealed class ParentResource(string name) : Resource(name)
