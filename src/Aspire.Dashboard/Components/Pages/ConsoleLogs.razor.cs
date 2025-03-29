@@ -121,7 +121,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
             _consoleLogFilters = ConsoleLogsManager.Filters;
-            _logEntries.Clear();
+            _logEntries.Clear(keepActivePauseEntries: true);
             await InvokeAsync(StateHasChanged);
         });
 
@@ -455,21 +455,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 }
 
                 // Console logs are filtered in the UI by the timestamp of the log entry.
-                DateTime? timestampFilterDate;
-
-                if (PageViewModel.SelectedOption.Id is not null &&
-                    _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                        PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
-                        out var filterResourceLogsDate))
-                {
-                    // There is a filter for this individual resource.
-                    timestampFilterDate = filterResourceLogsDate;
-                }
-                else
-                {
-                    // Fallback to the global filter (if any, it could be null).
-                    timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
-                }
+                var timestampFilterDate = GetFilteredDateFromRemove();
 
                 var logParser = new LogParser();
                 await foreach (var batch in subscription.ConfigureAwait(true))
@@ -485,14 +471,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         _logEntries.BaseLineNumber ??= lineNumber;
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
+
+                        // Check if log entry is not displayed because of remove.
                         if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
                         {
                             continue;
                         }
 
-                        if (logEntry.Timestamp is not null && _logEntries.GetPauseEntries().Select(e => e.Pause).Cast<LogPauseViewModel>().FirstOrDefault(pause => pause.Contains(logEntry.Timestamp.Value)) is { } pause)
+                        // Check if log entry is not displayed because of pause.
+                        if (_logEntries.ProcessPauseFilters(logEntry))
                         {
-                            pause.FilteredCount += 1;
                             continue;
                         }
 
@@ -517,6 +505,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         });
 
         newConsoleLogsSubscription.SubscriptionTask = consoleLogsTask;
+    }
+
+    private DateTime? GetFilteredDateFromRemove()
+    {
+        DateTime? timestampFilterDate;
+
+        if (PageViewModel.SelectedOption.Id is not null &&
+            _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
+                PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
+                out var filterResourceLogsDate))
+        {
+            // There is a filter for this individual resource.
+            timestampFilterDate = filterResourceLogsDate;
+        }
+        else
+        {
+            // Fallback to the global filter (if any, it could be null).
+            timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
+        }
+
+        return timestampFilterDate;
     }
 
     private async Task HandleSelectedOptionChangedAsync()

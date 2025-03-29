@@ -15,7 +15,7 @@ public sealed class LogEntries(int maximumEntryCount)
 internal sealed class LogEntries(int maximumEntryCount)
 #endif
 {
-    private readonly List<LogEntry> _pauseEntries = [];
+    private readonly List<LogPauseViewModel> _pauseViewModels = [];
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
     private int? _earliestTimestampIndex;
@@ -24,17 +24,55 @@ internal sealed class LogEntries(int maximumEntryCount)
     // This becomes important when the total number of log entries exceeds the limit and is truncated.
     public int? BaseLineNumber { get; set; }
 
-    public IList<LogEntry> GetPauseEntries() => _pauseEntries;
-
     public IList<LogEntry> GetEntries() => _logEntries;
 
     public int EntriesCount => _logEntries.Count;
 
-    public void Clear()
+    public void Clear(bool keepActivePauseEntries)
     {
-        _pauseEntries.Clear();
-        _logEntries.Clear();
+        if (keepActivePauseEntries)
+        {
+            // Don't remove pause VMs or their entries that are still active.
+            _pauseViewModels.RemoveAll(pause => pause.EndTime is not null);
+            foreach (var pauseVM in _pauseViewModels)
+            {
+                // Reset filtered count to zero because all the entries have been cleared.
+                pauseVM.FilteredCount = 0;
+            }
+
+            var pauseEntries = _logEntries.Where(e => e.Type == LogEntryType.Pause && _pauseViewModels.Contains(e.Pause!)).ToList();
+            _logEntries.Clear();
+            foreach (var pauseEntry in pauseEntries)
+            {
+                _logEntries.Add(pauseEntry);
+            }
+        }
+        else
+        {
+            _pauseViewModels.Clear();
+            _logEntries.Clear();
+        }
+
         BaseLineNumber = null;
+    }
+
+    public bool ProcessPauseFilters(LogEntry logEntry)
+    {
+        if (logEntry.Timestamp is null)
+        {
+            return false;
+        }
+
+        foreach (var pauseVM in _pauseViewModels)
+        {
+            if (pauseVM.Contains(logEntry.Timestamp.Value))
+            {
+                pauseVM.FilteredCount += 1;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -138,7 +176,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         {
             if (logEntry.Type is LogEntryType.Pause)
             {
-                _pauseEntries.Add(logEntry);
+                _pauseViewModels.Add(logEntry.Pause!);
                 _logEntries.Insert(index, logEntry);
                 return;
             }
