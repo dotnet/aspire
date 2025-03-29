@@ -157,4 +157,7 @@
     <value>A maximum of {0} traces are stored. Old traces are automatically removed.</value>
     <comment>{0} is the max count</comment>
   </data>
+  <data name="PauseInProgressText" xml:space="preserve">
+    <value>Traces capture paused at {0}</value>
+  </data>
 </root>

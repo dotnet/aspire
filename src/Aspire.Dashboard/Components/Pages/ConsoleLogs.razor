@@ -27,24 +27,30 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
-            @foreach (var command in _highlightedCommands)
+            @if (_highlightedCommands.Count > 0)
             {
-                <FluentButton Appearance="Appearance.Lightweight"
-                              Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
-                              Disabled="@(command.State == CommandViewModelState.Disabled)"
-                              OnClick="@(() => ExecuteResourceCommandAsync(command))"
-                              Class="highlighted-command">
-                    @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
-                    {
-                        <FluentIcon Value="@icon" Width="16px" />
-                    }
-                    else
-                    {
-                        @command.DisplayName
-                    }
-                </FluentButton>
+                <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
+
+                @foreach (var command in _highlightedCommands)
+                {
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                                  Disabled="@(command.State == CommandViewModelState.Disabled)"
+                                  OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                                  Class="highlighted-command">
+                        @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
+                        {
+                            <FluentIcon Value="@icon" Width="16px" />
+                        }
+                        else
+                        {
+                            @command.DisplayName
+                        }
+                    </FluentButton>
+                }
             }
 
             @if (_resourceMenuItems.Count > 0)
@@ -82,7 +88,11 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" ShowTimestamp="@_showTimestamp" IsTimestampUtc="@_isTimestampUtc" />
+            <LogViewer
+                LogEntries="@_logEntries"
+                ShowTimestamp="@_showTimestamp"
+                IsTimestampUtc="@_isTimestampUtc"
+                ApplicationName="@PageViewModel.SelectedResource?.Name"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

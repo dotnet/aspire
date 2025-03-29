@@ -62,6 +62,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 

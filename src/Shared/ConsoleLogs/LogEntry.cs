@@ -21,6 +21,22 @@ internal sealed class LogEntry
     public DateTime? Timestamp { get; private set; }
     public LogEntryType Type { get; private set; } = LogEntryType.Default;
     public int LineNumber { get; set; }
+    public LogPauseViewModel? Pause { get; private set; }
+
+    public static LogEntry CreatePause(DateTime startTimestamp, DateTime? endTimestamp = null)
+    {
+        return new LogEntry
+        {
+            Timestamp = startTimestamp,
+            Type = LogEntryType.Pause,
+            LineNumber = 0,
+            Pause = new LogPauseViewModel
+            {
+                StartTime = startTimestamp,
+                EndTime = endTimestamp
+            }
+        };
+    }
 
     public static LogEntry Create(DateTime? timestamp, string logMessage, bool isErrorMessage)
     {
@@ -46,5 +62,6 @@ internal enum LogEntryType
 #endif
 {
     Default,
-    Error
+    Error,
+    Pause
 }
