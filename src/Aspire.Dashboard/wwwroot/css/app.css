@@ -804,3 +804,9 @@ fluent-tooltip[anchor="dialog_close"] > div {
     font-weight: 600;
     padding: 0 4px 0 0;
 }
+
+.resource-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
+}
+
