@@ -167,7 +167,7 @@ internal sealed class DcpHost
         var dcpExePath = _dcpOptions.CliPath;
         if (!File.Exists(dcpExePath))
         {
-            throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
+            throw new FileNotFoundException($"The Developer Control Plane is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
         }
 
         var arguments = $"start-apiserver --monitor {Environment.ProcessId} --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"";
