@@ -10,10 +10,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure OpenAI resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
-public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+/// <param name="configureInfrastructure">Configures the underlying Azure resource using the CDK.</param>
+public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
+    IResourceWithConnectionString,
+    IResourceWithEnvironment
 {
     private readonly List<AzureOpenAIDeployment> _deployments = [];
 
@@ -35,7 +36,11 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// </summary>
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
-    internal void AddDeployment(AzureOpenAIDeployment deployment)
+    /// <summary>
+    /// Adds an <see cref="AzureOpenAIDeployment"/> instance to the list of deployments.
+    /// </summary>
+    /// <param name="deployment">The <see cref="AzureOpenAIDeployment"/> instance to add.</param>
+    public void AddDeployment(AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(deployment);
 
