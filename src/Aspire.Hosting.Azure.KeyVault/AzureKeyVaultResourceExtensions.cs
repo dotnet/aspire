@@ -29,6 +29,28 @@ public static class AzureKeyVaultResourceExtensions
     /// </remarks>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        var rb = builder.CreateAzureKeyVaultResourceBuilder(name);
+
+        builder.AddResource(rb.Resource);
+
+        return rb;
+    }
+
+    /// <summary>
+    /// Creates an Azure Key Vault resource but does not add it to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// By default references to the Azure Key Vault resource will be assigned the following roles:
+    /// 
+    /// - <see cref="KeyVaultBuiltInRole.KeyVaultAdministrator"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureKeyVaultResource}, KeyVaultBuiltInRole[])"/>.
+    /// </remarks>
+    public static IResourceBuilder<AzureKeyVaultResource> CreateAzureKeyVaultResourceBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
@@ -82,7 +104,7 @@ public static class AzureKeyVaultResourceExtensions
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
+        return builder.CreateResourceBuilder(resource)
             .WithDefaultRoleAssignments(KeyVaultBuiltInRole.GetBuiltInRoleName,
                 KeyVaultBuiltInRole.KeyVaultAdministrator);
     }
