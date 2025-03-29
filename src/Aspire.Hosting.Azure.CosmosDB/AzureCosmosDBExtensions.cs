@@ -339,13 +339,7 @@ public static class AzureCosmosExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.Resource.IsEmulator)
-        {
-            // Don't add the automatic key vault when using the emulator.
-            return builder;
-        }
-
-        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+        var kv = builder.ApplicationBuilder.CreateAzureKeyVaultResourceBuilder($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 
         return builder.WithAccessKeyAuthentication(kv);

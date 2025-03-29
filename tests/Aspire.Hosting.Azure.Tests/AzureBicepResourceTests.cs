@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -278,14 +279,22 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
         db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
-        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kv = model.Resources.OfType<AzureKeyVaultResource>().Single();
+
+        Assert.Equal(kvName, kv.Name);
 
         var secrets = new Dictionary<string, string>
         {
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (secretRef, _) =>
+        kv.SecretResolver = (secretRef, _) =>
         {
             if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
@@ -3143,6 +3152,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ToString());
         Assert.Equal(expectedBicep, bicep);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class ProjectA : IProjectMetadata
     {
