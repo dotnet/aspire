@@ -18,8 +18,6 @@
 
     <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnGithubActions>
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnHelix>
-    <!-- this is for pipeline tests -->
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +25,8 @@
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build"
+          Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
@@ -79,4 +78,5 @@
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />
+  <Import Project="$(RepositoryEngineeringDir)Testing.targets" />
 </Project>
