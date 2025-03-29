@@ -775,7 +775,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                                     break;
 
                                 default:
-                                    throw new ArgumentException($"Invalid parameter count or not supported claim action type: {ops[0]} with {ops.Length - 1} parameters");
+                                    throw new ArgumentException($"Invalid parameter count or not supported claim action type: {ops[0]} with {ops.Length - 1} parameters {action}");
                             }
                         }
                     }
