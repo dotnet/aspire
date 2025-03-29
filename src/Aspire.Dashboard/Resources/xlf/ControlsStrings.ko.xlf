@@ -579,7 +579,7 @@
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="needs-review-translation">합계: &lt;strong&gt;{0}개 검색 결과를 찾음&lt;/strong&gt;</target>
+        <target state="new">Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
