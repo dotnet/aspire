@@ -15,7 +15,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
     public string GetConnectionString() => $"Endpoint={Container?.GetEndpoint().AbsoluteUri};Key=root:Milvus" ??
         throw new InvalidOperationException("The test container was not initialized.");
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -26,7 +26,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Container is not null)
         {

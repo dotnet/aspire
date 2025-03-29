@@ -47,6 +47,8 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
+    env:
+      DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -251,6 +253,7 @@ jobs:
           --results-directory testresults
           --no-restore
           --no-build
+          -bl:${{ github.workspace }}/testresults/test.binlog
           ${{ inputs.extraTestArgs }}
           --
           RunConfiguration.CollectSourceInformation=true

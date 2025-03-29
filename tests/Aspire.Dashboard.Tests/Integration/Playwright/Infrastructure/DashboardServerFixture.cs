@@ -34,7 +34,7 @@ public class DashboardServerFixture : IAsyncLifetime
         };
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await PlaywrightFixture.InitializeAsync();
 
@@ -64,7 +64,7 @@ public class DashboardServerFixture : IAsyncLifetime
         await DashboardApp.StartAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await DashboardApp.DisposeAsync();
         await PlaywrightFixture.DisposeAsync();

@@ -4,6 +4,7 @@
 using Xunit;
 using Aspire.TestProject;
 using Aspire.Templates.Tests;
+using Xunit.Sdk;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -56,7 +57,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
@@ -106,7 +107,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         return Project.DumpComponentLogsAsync(component, testOutputArg);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_project is not null)
         {

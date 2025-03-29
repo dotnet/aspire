@@ -8,7 +8,6 @@ using Aspire.TestUtilities;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Timeout;
 using SamplesIntegrationTests;
@@ -269,7 +268,7 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new SkipTestException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
+            Assert.Skip($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
