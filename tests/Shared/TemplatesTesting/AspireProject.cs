@@ -26,7 +26,7 @@ public partial class AspireProject : IAsyncDisposable
     public string RootDir { get; init; }
     public string LogPath { get; init; }
     public TestTargetFramework TargetFramework { get; init; }
-    public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
+    public string AppHostProjectDirectory { get; set; }
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public string? DashboardUrl { get; private set; }
@@ -45,6 +45,7 @@ public partial class AspireProject : IAsyncDisposable
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
         TargetFramework = tfm ?? BuildEnvironment.DefaultTargetFramework;
+        AppHostProjectDirectory = Path.Combine(RootDir, $"{Id}.AppHost");
     }
 
     protected void InitPaths()
@@ -61,7 +62,10 @@ public partial class AspireProject : IAsyncDisposable
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
+    }
 
+    private static void GenerateNuGetConfig(string dir, TestTargetFramework tfm)
+    {
         string srcNuGetConfigPath = GetNuGetConfigPathFor(tfm);
         string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
         File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
@@ -74,14 +78,29 @@ public partial class AspireProject : IAsyncDisposable
         BuildEnvironment buildEnvironment,
         string extraArgs = "",
         TestTargetFramework? targetFramework = default,
-        bool addEndpointsHook = true)
+        bool addEndpointsHook = true,
+        string? overrideRootDir = null)
     {
-        string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        string rootDir;
+        string projectDir;
+        if (overrideRootDir is not null)
+        {
+            // This is case when we have multiple projects in a top level directory
+            // thus the *project* directory differs from the *root* directory
+            rootDir = overrideRootDir;
+            projectDir = Path.Combine(rootDir, id);
+        }
+        else
+        {
+            rootDir = projectDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        }
+
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
         Directory.CreateDirectory(logPath);
 
         var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
-        InitProjectDir(rootDir, tfmToUse);
+        InitProjectDir(projectDir, tfmToUse);
+        GenerateNuGetConfig(rootDir, tfmToUse);
 
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
@@ -91,7 +110,7 @@ public partial class AspireProject : IAsyncDisposable
             useDefaultArgs: true,
             buildEnv: buildEnvironment);
 
-        cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+        cmd.WithWorkingDirectory(Path.GetDirectoryName(projectDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));
 
         var tfmToUseString = tfmToUse.ToTFMString();
@@ -105,7 +124,7 @@ public partial class AspireProject : IAsyncDisposable
             throw new ToolCommandException($"`dotnet new {cmdString}` . Output: {res.Output}", res);
         }
 
-        foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
+        foreach (var csprojPath in Directory.EnumerateFiles(projectDir, "*.csproj", SearchOption.AllDirectories))
         {
             var csprojContent = File.ReadAllText(csprojPath);
             var matches = TargetFrameworkPropertyRegex().Matches(csprojContent);
@@ -124,7 +143,7 @@ public partial class AspireProject : IAsyncDisposable
             }
         }
 
-        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment, tfm: tfmToUse);
+        var project = new AspireProject(id, projectDir, testOutput, buildEnvironment, tfm: tfmToUse);
         if (addEndpointsHook)
         {
             File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
