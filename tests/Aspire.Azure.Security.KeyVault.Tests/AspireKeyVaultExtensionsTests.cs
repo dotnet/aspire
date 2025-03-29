@@ -4,6 +4,8 @@
 using System.Globalization;
 using System.Text;
 using Azure.Core;
+using Azure.Security.KeyVault.Certificates;
+using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -200,5 +202,73 @@ public class AspireKeyVaultExtensionsTests
         //Assert.Equal(new Uri(ConformanceTests.VaultUri), client1.VaultUri);
         Assert.Equal(new Uri("https://aspiretests2.vault.azure.net/"), client2.VaultUri);
         Assert.Equal(new Uri("https://aspiretests3.vault.azure.net/"), client3.VaultUri);
+    }
+
+    [Fact]
+    public void CanUseBuilderToAddMultipleClients()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "keyVaultMultipleClients";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>($"ConnectionStrings:{connectionName}", ConformanceTests.VaultUri)
+        ]);
+
+        builder
+            .AddAzureKeyVaultClient(connectionName)
+            .AddKeyClient()
+            .AddCertificateClient();
+
+        using var host = builder.Build();
+
+        var secretClient = host.Services.GetRequiredService<SecretClient>();
+        var keyClient = host.Services.GetRequiredService<KeyClient>();
+        var certClient = host.Services.GetRequiredService<CertificateClient>();
+
+        var vaultUri = new Uri(ConformanceTests.VaultUri);
+
+        Assert.Equal(vaultUri, secretClient.VaultUri);
+        Assert.Equal(vaultUri, keyClient.VaultUri);
+        Assert.Equal(vaultUri, certClient.VaultUri);
+    }
+
+    [Fact]
+    public void CanUseBuilderToAddMultipleKeyedClients()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var secretClientName = "secret-client";
+        var secretClientUri = "https://aspiretests1.vault.azure.net/";
+
+        var keyClientName = "key-client";
+        var keyClientUri = "https://aspiretests2.vault.azure.net/";
+
+        var certClientName = "cert-client";
+        var certClientUri = "https://aspiretests3.vault.azure.net/";
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>($"ConnectionStrings:{secretClientName}", secretClientUri),
+            new KeyValuePair<string, string?>($"ConnectionStrings:{keyClientName}", keyClientUri),
+            new KeyValuePair<string, string?>($"ConnectionStrings:{certClientName}", certClientUri)
+        ]);
+
+        builder
+            .AddKeyedAzureKeyVaultClient(secretClientName)
+            .AddKeyedKeyClient(keyClientName)
+            .AddKeyedCertificateClient(certClientName);
+
+        using var host = builder.Build();
+
+        var secretClient = host.Services.GetRequiredKeyedService<SecretClient>(secretClientName);
+        var keyClient = host.Services.GetRequiredKeyedService<KeyClient>(keyClientName);
+        var certClient = host.Services.GetRequiredKeyedService<CertificateClient>(certClientName);
+
+        Assert.NotEqual(secretClient.VaultUri, keyClient.VaultUri);
+        Assert.NotEqual(keyClient.VaultUri, certClient.VaultUri);
+
+        Assert.Equal(secretClient.VaultUri, new Uri(secretClientUri));
+        Assert.Equal(keyClient.VaultUri, new Uri(keyClientUri));
+        Assert.Equal(certClient.VaultUri, new Uri(certClientUri));
     }
 }

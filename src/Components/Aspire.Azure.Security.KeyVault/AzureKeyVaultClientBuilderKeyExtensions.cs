@@ -52,6 +52,9 @@ public static class AzureKeyVaultClientBuilderKeyExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 
+        // Overwrite previous builder.ConnectionName to KeyedKeyClient builder.ConnectionName
+        builder.ConnectionName = serviceKey;
+
         return builder.InnerAddKeyClient(configureClientBuilder, serviceKey);
     }
 

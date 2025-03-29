@@ -27,9 +27,10 @@ public class AzureKeyVaultClientBuilder(
     internal IHostApplicationBuilder HostBuilder { get; } = host;
 
     /// <summary>
-    /// @The name used to retrieve the VaultUri from ConnectionStrings in the configuration provider.
+    /// <para>The name used to retrieve the VaultUri from ConnectionStrings in the configuration provider.</para>
+    /// <para>Setting the value after the initial creation allows for keyed clients of different types to have separate ConnectionStrings configuration names.</para>
     /// </summary>
-    internal string ConnectionName { get; } = connectionName;
+    internal string ConnectionName { get; set; } = connectionName;
 
     /// <summary>
     /// An optional configuration point for the overall <see cref="AzureSecurityKeyVaultSettings"/> applied to each Key Vault Client.
