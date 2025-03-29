@@ -764,12 +764,6 @@ fluent-tooltip[anchor="dialog_close"] > div {
     word-break: keep-all;
 }
 
-.data-paused-text {
-    font-weight: 500;
-    color: var(--error);
-    margin-left: 30px;
-}
-
 .block-warning {
     font-family: var(--body-font);
     border: 1px solid var(--messagebar-warning-border-color);
