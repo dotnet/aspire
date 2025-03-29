@@ -7,12 +7,12 @@ using Aspire;
 using Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL;
 using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 
 #if NET9_0_OR_GREATER
 using Microsoft.Extensions.DependencyInjection;
 #else
-using Npgsql;
 #endif
 
 namespace Microsoft.Extensions.Hosting;
@@ -128,18 +128,11 @@ public static partial class AspireAzureEFPostgreSqlExtensions
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
-#if NET9_0_OR_GREATER
-        dbContextOptionsBuilder.UseNpgsql(connectionString, options =>
-        {
-            options.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.ConfigureEntraIdAuthentication(settings.Credential));
-        });
-#else
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 
         if (dataSourceBuilder.ConfigureEntraIdAuthentication(settings.Credential))
         {
             dbContextOptionsBuilder.UseNpgsql(dataSourceBuilder.Build());
         }
-#endif
     }
 }

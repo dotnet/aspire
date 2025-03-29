@@ -15,7 +15,6 @@ namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 public class TokenCredentialTests
 {
     private const string ConnectionString = "Host=localhost;Database=test";
-    private const string ConnectionStringWithUsername = "Host=localhost;Database=test;Username=admin";
     private const string ConnectionStringWithUsernameAndPassword = "Host=localhost;Database=test;Username=admin;Password=p@ssw0rd1";
 
     internal static void ConfigureDbContextOptionsBuilderForTesting(DbContextOptionsBuilder builder)
@@ -112,8 +111,7 @@ public class TokenCredentialTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.NotNull(fakeCred);
-        // Password is removed from the connection string for security reasons.
-        Assert.Equal(ConnectionStringWithUsername, context.Database.GetDbConnection().ConnectionString);
+        Assert.Equal(ConnectionStringWithUsernameAndPassword, context.Database.GetDbConnection().ConnectionString);
         Assert.False(fakeCred.IsGetTokenInvoked);
     }
 
