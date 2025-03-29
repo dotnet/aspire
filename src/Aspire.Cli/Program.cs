@@ -418,7 +418,7 @@ public class Program
                             backchannelCompletionSource,
                             ct).ConfigureAwait(false);
 
-                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                         var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
 
                         return publishers;
@@ -473,7 +473,7 @@ public class Program
                         backchannelCompletionSource,
                         ct);
 
-                    using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
 
                     launchingAppHostTask.Value = 100;
                     launchingAppHostTask.StopTask();
