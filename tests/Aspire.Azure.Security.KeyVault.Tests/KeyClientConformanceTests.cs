@@ -73,11 +73,12 @@ public class KeyClientConformanceTests : ConformanceTests<KeyClient, AzureSecuri
         if (key is null)
         {
             builder.AddAzureKeyVaultClient("secrets", ConfigureCredentials)
-                   .AddKeyedKeyClient("keys");
+                   .AddKeyClient();
         }
         else
         {
-            builder.AddKeyedAzureKeyVaultClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureKeyVaultClient(key, ConfigureCredentials)
+                   .AddKeyedKeyClient(key);
         }
 
         void ConfigureCredentials(AzureSecurityKeyVaultSettings settings)
@@ -124,9 +125,7 @@ public class KeyClientConformanceTests : ConformanceTests<KeyClient, AzureSecuri
         }
         catch (Exception)
         {
-            // Requires real key inside of hosted aspiretesting Vault!
-            // Revert this to false if/when that key is provided to enable conformance testing fail case
-            return true;
+            return false;
         }
     }
 }

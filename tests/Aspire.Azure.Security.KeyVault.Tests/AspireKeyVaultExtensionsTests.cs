@@ -271,4 +271,60 @@ public class AspireKeyVaultExtensionsTests
         Assert.Equal(keyClient.VaultUri, new Uri(keyClientUri));
         Assert.Equal(certClient.VaultUri, new Uri(certClientUri));
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddingUnnamedKeyedSecretClientShouldThrow(bool isNull)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddKeyedAzureKeyVaultClient(name);
+
+        var exception = isNull
+                    ? Assert.Throws<ArgumentNullException>(action)
+                    : Assert.Throws<ArgumentException>(action);
+
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddingUnnamedKeyedKeyClientShouldThrow(bool isNull)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddKeyedAzureKeyVaultClient("secrets")
+                                   .AddKeyedCertificateClient(name);
+
+        var exception = isNull
+                    ? Assert.Throws<ArgumentNullException>(action)
+                    : Assert.Throws<ArgumentException>(action);
+
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddingUnnamedKeyedCertificateClientShouldThrow(bool isNull)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddKeyedAzureKeyVaultClient("secrets")
+                                   .AddKeyedCertificateClient(name);
+
+        var exception = isNull
+                    ? Assert.Throws<ArgumentNullException>(action)
+                    : Assert.Throws<ArgumentException>(action);
+
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
 }

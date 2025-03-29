@@ -4,7 +4,6 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
 using Azure.Security.KeyVault.Certificates;
-using Azure.Security.KeyVault.Keys;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +20,7 @@ public class CertificateClientConformanceTests : ConformanceTests<CertificateCli
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "Azure.Security.KeyVault.Keys.KeyClient";
+    protected override string ActivitySourceName => "Azure.Security.KeyVault.Certificates.CertificateClient";
 
     protected override string[] RequiredLogCategories => new string[] { "Azure.Core" };
 
@@ -72,11 +71,12 @@ public class CertificateClientConformanceTests : ConformanceTests<CertificateCli
         if (key is null)
         {
             builder.AddAzureKeyVaultClient("secrets", ConfigureCredentials)
-                   .AddKeyedKeyClient("keys");
+                   .AddCertificateClient();
         }
         else
         {
-            builder.AddKeyedAzureKeyVaultClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureKeyVaultClient(key, ConfigureCredentials)
+                   .AddKeyedCertificateClient(key);
         }
 
         void ConfigureCredentials(AzureSecurityKeyVaultSettings settings)
@@ -123,9 +123,7 @@ public class CertificateClientConformanceTests : ConformanceTests<CertificateCli
         }
         catch (Exception)
         {
-            // Requires real key inside of hosted aspiretesting Vault!
-            // Revert this to false if/when that key is provided to enable conformance testing fail case
-            return true;
+            return false;
         }
     }
 }

@@ -38,23 +38,23 @@ public static class AzureKeyVaultClientBuilderCertificateExtensions
     /// Registers a keyed <see cref="CertificateClient"/> as a singleton into the services provided by the <paramref name="builder"/>
     /// </summary>
     /// <param name="builder">The <see cref="AzureKeyVaultClientBuilder"/> being used to register Key Vault Clients.</param>
-    /// <param name="serviceKey">The name to call the <see cref="CertificateClient"/> singleton service.</param>
+    /// <param name="name">The name to call the <see cref="CertificateClient"/> singleton service.</param>
     /// <param name="configureClientBuilder">Optional configuration for the <see cref="CertificateClient"/></param>
     /// <returns>A <see cref="AzureKeyVaultClientBuilder"/> to configure further clients.</returns>
     /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if the mandatory <paramref name="serviceKey"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if the mandatory <paramref name="name"/> is null or empty.</exception>
     public static AzureKeyVaultClientBuilder AddKeyedCertificateClient(
     this AzureKeyVaultClientBuilder builder,
-    string serviceKey,
+    string name,
     Action<IAzureClientBuilder<CertificateClient, CertificateClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Overwrite previous builder.ConnectionName to KeyedCertificateClient builder.ConnectionName
-        builder.ConnectionName = serviceKey;
+        builder.ConnectionName = name;
 
-        return builder.InnerAddCertificateClient(configureClientBuilder, serviceKey);
+        return builder.InnerAddCertificateClient(configureClientBuilder, name);
     }
 
     /// <summary>
