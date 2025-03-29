@@ -13,6 +13,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> AddDeployment(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> builder, ApplicationModel.AzureOpenAIDeployment deployment) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> target, params global::Azure.Provisioning.CognitiveServices.CognitiveServicesBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -42,5 +45,7 @@ namespace Aspire.Hosting.ApplicationModel
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public System.Collections.Generic.IReadOnlyList<AzureOpenAIDeployment> Deployments { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }
