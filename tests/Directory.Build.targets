@@ -20,7 +20,6 @@
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnHelix>
     <!-- this is for pipeline tests -->
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
-    <OutputType Condition="'$(IsTestUtilityProject)' != 'true'">Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
