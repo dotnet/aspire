@@ -28,7 +28,7 @@ internal sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVa
     {
         if (azureKeyVaultResource.SecretResolver is { } secretResolver)
         {
-            return await secretResolver(secretName, cancellationToken).ConfigureAwait(false);
+            return await secretResolver(this, cancellationToken).ConfigureAwait(false);
         }
 
         throw new InvalidOperationException($"Secret '{secretName}' not found in Key Vault '{azureKeyVaultResource.Name}'.");

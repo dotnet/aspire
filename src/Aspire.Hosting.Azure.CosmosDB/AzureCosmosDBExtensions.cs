@@ -339,7 +339,7 @@ public static class AzureCosmosExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+        var kv = builder.ApplicationBuilder.CreateAzureKeyVaultResourceBuilder($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 
         return builder.WithAccessKeyAuthentication(kv);
