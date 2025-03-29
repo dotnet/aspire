@@ -29,6 +29,7 @@ public class AzureKeyVaultClientBuilder(
     /// <summary>
     /// <para>The name used to retrieve the VaultUri from ConnectionStrings in the configuration provider.</para>
     /// <para>Setting the value after the initial creation allows for keyed clients of different types to have separate ConnectionStrings configuration names.</para>
+    /// <para>For example: ConnectionStrings.MyKeyedSecretClient in previous builder stage will become ConnectionStrings.MyKeyedKeyClient.</para>
     /// </summary>
     internal string ConnectionName { get; set; } = connectionName;
 
