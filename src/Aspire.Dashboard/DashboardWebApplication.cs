@@ -735,6 +735,50 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
+
+                    // Configure additional ClaimActions
+                    var claimActionsMap = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
+                    if (!string.IsNullOrEmpty(claimActionsMap))
+                    {
+                        var actions = claimActionsMap.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        foreach (var action in actions)
+                        {
+                            var ops = action.Split(':');
+                            switch (ops[0], ops.Length)
+                            {
+                                case ("Delete", _):
+                                    foreach (var item in ops.Skip(1))
+                                    {
+                                        options.ClaimActions.DeleteClaim(item);
+                                    }
+                                    break;
+
+                                case ("MapUniqueJsonKey", 3):
+                                    options.ClaimActions.MapUniqueJsonKey(ops[1], ops[2]);
+                                    break;
+                                case ("MapUniqueJsonKey", > 3):
+                                    options.ClaimActions.MapUniqueJsonKey(ops[1], ops[2], ops[3]);
+                                    break;
+
+                                case ("MapJsonKey", 3):
+                                    options.ClaimActions.MapJsonKey(ops[1], ops[2]);
+                                    break;
+                                case ("MapJsonKey", > 3):
+                                    options.ClaimActions.MapJsonKey(ops[1], ops[2], ops[3]);
+                                    break;
+
+                                case ("MapJsonSubKey", 4):
+                                    options.ClaimActions.MapJsonSubKey(ops[1], ops[2], ops[3]);
+                                    break;
+                                case ("MapJsonSubKey", > 4):
+                                    options.ClaimActions.MapJsonSubKey(ops[1], ops[2], ops[3], ops[4]);
+                                    break;
+
+                                default:
+                                    throw new ArgumentException("Invalid parameter count or not supported claim action type");
+                            }
+                        }
+                    }
                 });
                 break;
             case FrontendAuthMode.BrowserToken:
