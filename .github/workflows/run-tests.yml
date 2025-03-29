@@ -251,6 +251,7 @@ jobs:
           --results-directory testresults
           --no-restore
           --no-build
+          -bl:${{ github.workspace }}/testresults/test.binlog
           ${{ inputs.extraTestArgs }}
           --
           RunConfiguration.CollectSourceInformation=true
