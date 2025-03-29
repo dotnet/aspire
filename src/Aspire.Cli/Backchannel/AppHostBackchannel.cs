@@ -9,7 +9,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IDisposable
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target)
 {
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
     private Process? _process;
@@ -112,18 +112,6 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         await foreach (var state in resourceStates.WithCancellation(cancellationToken))
         {
             yield return state;
-        }
-    }
-
-    public void Dispose()
-    {
-        try
-        {
-            _process?.Kill();
-        }
-        catch (Exception ex)
-        {
-            logger.LogTrace(ex, "Process kill failed. This may be expected if the process has already exited.");
         }
     }
 }
