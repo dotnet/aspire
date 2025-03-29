@@ -266,7 +266,7 @@ public partial class TemplateTestsBase
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
                 // Check 'Source' column
-                var sourceCell = cellLocs[4];
+                var sourceCell = cellLocs[3];
                 // Since this will be the entire command, we can just confirm that the path of the executable contains
                 // the expected source (executable/project)
                 Assert.Contains(expectedRow.SourceContains, await sourceCell.InnerTextAsync());
