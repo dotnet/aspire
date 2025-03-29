@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
     <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
