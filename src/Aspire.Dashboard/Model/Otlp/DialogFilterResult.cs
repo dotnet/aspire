@@ -8,4 +8,6 @@ public class FilterDialogResult
     public TelemetryFilter? Filter { get; set; }
     public bool Delete { get; set; }
     public bool Add { get; set; }
+    public bool Disable { get; set; }
+    public bool Enable { get; set; }
 }

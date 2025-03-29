@@ -76,12 +76,25 @@ internal sealed class AzureProvisioner(
 
             // We basically want child resources to be moved into the same state as their parent resources whenever
             // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
-            var childResources = _parentChildLookup[resource.Resource];
-            foreach (var child in childResources)
+
+            var childResources = _parentChildLookup[resource.Resource].ToList();
+
+            for (var i = 0; i < childResources.Count; i++)
             {
+                var child = childResources[i];
+
+                // Add any level of children
+                foreach (var grandChild in _parentChildLookup[child])
+                {
+                    if (!childResources.Contains(grandChild))
+                    {
+                        childResources.Add(grandChild);
+                    }
+                }
+
                 await notificationService.PublishUpdateAsync(child, s =>
                 {
-                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, resource.Resource.Name) };
+                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, child.Parent.Name) };
                     return stateFactory(s);
                 }).ConfigureAwait(false);
             }

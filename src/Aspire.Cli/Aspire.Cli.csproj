@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnablePackageValidation>false</EnablePackageValidation>
+    <!-- This package needs to remain as preview. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>

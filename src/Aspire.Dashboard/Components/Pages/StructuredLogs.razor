@@ -38,6 +38,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreStructuredLogsPaused(out _)" IsPausedChanged="@PauseManager.SetStructuredLogsPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearStructureLogs" />
 
@@ -76,7 +77,7 @@
             else
             {
                 <div slot="end">
-                    <FluentCounterBadge HorizontalPosition="70" Count="@(ViewModel.Filters.Count)" Appearance="Appearance.Accent">
+                    <FluentCounterBadge HorizontalPosition="70" Count="@(ViewModel.Filters.GetEnabledFilters().Count())" Appearance="Appearance.Accent">
                         <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
                     </FluentCounterBadge>
                 </div>
@@ -184,9 +185,11 @@
                 </Details>
             </SummaryDetailsView>
         </MainSection>
-
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
+            <TotalItemsFooter
+                @ref="_totalItemsFooter"
+                TotalItemCount="@_totalItemsCount"
+                PauseText="@PauseText" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>
