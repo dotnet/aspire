@@ -93,6 +93,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private Task? _resourceSubscriptionTask;
     private ConsoleLogsSubscription? _consoleLogsSubscription;
     internal LogEntries _logEntries = null!;
+    private readonly object _updateLogsLock = new object();
 
     // UI
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
@@ -120,8 +121,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
-            _consoleLogFilters = ConsoleLogsManager.Filters;
-            _logEntries.Clear(keepActivePauseEntries: true);
+            lock (_updateLogsLock)
+            {
+                _consoleLogFilters = ConsoleLogsManager.Filters;
+                _logEntries.Clear(keepActivePauseEntries: true);
+            }
+
             await InvokeAsync(StateHasChanged);
         });
 
@@ -449,9 +454,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
-                foreach (var priorPause in PauseManager.ConsoleLogPauseIntervals)
+                lock (_updateLogsLock)
                 {
-                    _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
+                    foreach (var priorPause in PauseManager.ConsoleLogPauseIntervals)
+                    {
+                        _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
+                    }
                 }
 
                 // Console logs are filtered in the UI by the timestamp of the log entry.
@@ -465,26 +473,29 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         continue;
                     }
 
-                    foreach (var (lineNumber, content, isErrorOutput) in batch)
+                    lock (_updateLogsLock)
                     {
-                        // Set the base line number using the reported line number of the first log line.
-                        _logEntries.BaseLineNumber ??= lineNumber;
-
-                        var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-
-                        // Check if log entry is not displayed because of remove.
-                        if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
+                        foreach (var (lineNumber, content, isErrorOutput) in batch)
                         {
-                            continue;
-                        }
+                            // Set the base line number using the reported line number of the first log line.
+                            _logEntries.BaseLineNumber ??= lineNumber;
 
-                        // Check if log entry is not displayed because of pause.
-                        if (_logEntries.ProcessPauseFilters(logEntry))
-                        {
-                            continue;
-                        }
+                            var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
 
-                        _logEntries.InsertSorted(logEntry);
+                            // Check if log entry is not displayed because of remove.
+                            if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
+                            {
+                                continue;
+                            }
+
+                            // Check if log entry is not displayed because of pause.
+                            if (_logEntries.ProcessPauseFilters(logEntry))
+                            {
+                                continue;
+                            }
+
+                            _logEntries.InsertSorted(logEntry);
+                        }
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -633,15 +644,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         if (PageViewModel.SelectedResource != null)
         {
-            if (isPaused)
+            lock (_updateLogsLock)
             {
-                _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
-            }
-            else
-            {
-                var pause = _logEntries.GetEntries().Last().Pause;
-                Debug.Assert(pause is not null);
-                pause.EndTime = timestamp;
+                if (isPaused)
+                {
+                    _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+                }
+                else
+                {
+                    var pause = _logEntries.GetEntries().Last().Pause;
+                    Debug.Assert(pause is not null);
+                    pause.EndTime = timestamp;
+                }
             }
         }
     }
