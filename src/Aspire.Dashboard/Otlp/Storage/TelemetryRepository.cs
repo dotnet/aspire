@@ -11,6 +11,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -416,7 +417,7 @@ public sealed class TelemetryRepository
                 results = results.Where(l => MatchApplications(l.ApplicationView.ApplicationKey, applications));
             }
 
-            foreach (var filter in context.Filters.Where(filter => filter.Enabled))
+            foreach (var filter in context.Filters.GetEnabledFilters())
             {
                 results = filter.Apply(results);
             }
@@ -517,7 +518,7 @@ public sealed class TelemetryRepository
                 results = results.Where(t => t.FullName.Contains(context.FilterText, StringComparison.OrdinalIgnoreCase));
             }
 
-            var filters = context.Filters.Where(filter => filter.Enabled).ToList();
+            var filters = context.Filters.GetEnabledFilters().ToList();
 
             if (filters.Count > 0)
             {

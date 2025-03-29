@@ -8,6 +8,8 @@ namespace Aspire.Dashboard.Extensions;
 
 public static class TelemetryFilterFormatter
 {
+    private const string DisabledText = "disabled";
+
     private static string SerializeFilterToString(TelemetryFilter filter)
     {
         var condition = filter.Condition switch
@@ -26,7 +28,7 @@ public static class TelemetryFilterFormatter
         var filterString = $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
         if (!filter.Enabled)
         {
-            filterString += ":disabled";
+            filterString += $":{DisabledText}";
         }
 
         return filterString;
@@ -67,7 +69,7 @@ public static class TelemetryFilterFormatter
 
         var value = Unescape(parts[2]);
 
-        var enabled = parts is not [_, _, _, "disabled"];
+        var enabled = parts is not [_, _, _, DisabledText];
 
         return new TelemetryFilter
         {

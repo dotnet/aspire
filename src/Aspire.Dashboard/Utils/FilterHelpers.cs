@@ -7,12 +7,17 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Resources;
 using Microsoft.Extensions.Localization;
-using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Utils;
 
 public static class FilterHelpers
 {
+    public static IEnumerable<TelemetryFilter> GetEnabledFilters(this IEnumerable<TelemetryFilter> filters)
+    {
+        return filters.Where(filter => filter.Enabled);
+    }
+
     public static List<MenuButtonItem> GetFilterMenuItems<TView, TR>(
         this IPageWithSessionAndUrlState<TView, TR> page,
         IReadOnlyList<TelemetryFilter> filters,
@@ -30,7 +35,7 @@ public static class FilterHelpers
             {
                 OnClick = () => openFilterAsync(filter),
                 Text = filter.GetDisplayText(filterLoc),
-                Icon = filter.Enabled ? new Size16.CheckmarkCircle() : new Size16.Pause(),
+                Icon = filter.Enabled ? new Icons.Regular.Size16.Play() : new Icons.Regular.Size16.Pause(),
                 Class = "filter-menu-item",
             });
         }
@@ -40,12 +45,12 @@ public static class FilterHelpers
             IsDivider = true
         });
 
-        if (filters.Any(filter => filter.Enabled))
+        if (filters.GetEnabledFilters().Any())
         {
             filterMenuItems.Add(new MenuButtonItem
             {
                 Text = dialogsLoc[nameof(Dialogs.FilterDialogDisableAll)],
-                Icon = new Size16.Pause(),
+                Icon = new Icons.Regular.Size16.Pause(),
                 OnClick = async () =>
                 {
                     foreach (var filter in filters)
@@ -62,7 +67,7 @@ public static class FilterHelpers
             filterMenuItems.Add(new MenuButtonItem
             {
                 Text = dialogsLoc[nameof(Dialogs.FilterDialogEnableAll)],
-                Icon = new Size16.CheckmarkCircle(),
+                Icon = new Icons.Regular.Size16.Play(),
                 OnClick = async () =>
                 {
                     foreach (var filter in filters)
@@ -78,7 +83,7 @@ public static class FilterHelpers
         filterMenuItems.Add(new MenuButtonItem
         {
             Text = dialogsLoc[nameof(Dialogs.SettingsRemoveAllButtonText)],
-            Icon = new Size16.Delete(),
+            Icon = new Icons.Regular.Size16.Delete(),
             OnClick = async () =>
             {
                 clearFilters();
