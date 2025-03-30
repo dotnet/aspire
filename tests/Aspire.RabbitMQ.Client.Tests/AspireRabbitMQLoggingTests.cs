@@ -50,7 +50,7 @@ public class AspireRabbitMQLoggingTests
         logger.LoggedMessage = () =>
         {
             // wait for at least 2 logs to be written
-            if (logger.Logs.Count >= 2)
+            if (logger.Logs.Count == 2)
             {
                 tsc.SetResult();
             }
