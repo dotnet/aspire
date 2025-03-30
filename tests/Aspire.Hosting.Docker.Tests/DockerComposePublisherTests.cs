@@ -41,6 +41,11 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithReference(cs)
                          .WithArgs("--cs", cs.Resource);
 
+        var redis = builder.AddContainer("cache", "redis")
+                           .WithEntrypoint("/bin/sh")
+                           .WithArgs("-c", "hello $MSG")
+                           .WithEnvironment("MSG", "world");
+
         builder.AddProject(
             "project1",
             "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
@@ -90,6 +95,17 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   - "8001:8000"
                 networks:
                   - "aspire"
+              cache:
+                image: "redis:latest"
+                command:
+                  - "-c"
+                  - "hello $$MSG"
+                entrypoint:
+                  - "/bin/sh"
+                environment:
+                  MSG: "world"
+                networks:
+                  - "aspire"
               project1:
                 image: "${PROJECT1_IMAGE}"
                 environment:
@@ -98,7 +114,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
                   services__myapp__http__0: "http://myapp:8000"
                 networks:
-                - "aspire"
+                  - "aspire"
             networks:
               aspire:
                 driver: "bridge"
