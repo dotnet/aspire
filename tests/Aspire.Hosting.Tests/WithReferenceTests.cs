@@ -338,8 +338,6 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
-
-        
     }
 
     [Fact]
