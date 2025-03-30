@@ -3,10 +3,6 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Docker;
-using Aspire.Hosting.Kubernetes;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("env");

@@ -3,7 +3,9 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-namespace Aspire.Hosting.Kubernetes;
+using Aspire.Hosting.Kubernetes;
+
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions for adding a Kubernetes publisher to the application model.
