@@ -49,12 +49,13 @@ public class ExecutableResourceTests
             );
 
         var manifest = await ManifestUtils.GetManifest(exe2.Resource).DefaultTimeout();
-
+        // Note: resource working directory is <repo-root>\tests\Aspire.Hosting.Tests
+        // Manifest directory is <repo-root>\artifacts\bin\Aspire.Hosting.Tests\Debug\net8.0
         var expectedManifest =
         """
         {
           "type": "executable.v0",
-          "workingDirectory": ".",
+          "workingDirectory": "../../../../../tests/Aspire.Hosting.Tests",
           "command": "python",
           "args": [
             "app.py",
