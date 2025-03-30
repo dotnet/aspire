@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Globalization;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -173,12 +174,29 @@ internal sealed class DockerComposePublishingContext(
 
     private sealed class ComposeServiceContext(IResource resource, DockerComposePublishingContext composePublishingContext)
     {
+        /// <summary>
+        /// Most common shell executables used as container entrypoints in Linux containers.
+        /// These are used to identify when a container's entrypoint is a shell that will execute commands.
+        /// </summary>
+        private static readonly HashSet<string> s_shellExecutables = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "/bin/sh",
+            "/bin/bash",
+            "/sh",
+            "/bash",
+            "sh",
+            "bash",
+            "/usr/bin/sh",
+            "/usr/bin/bash"
+        };
+
         private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress);
 
         private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
         private List<string> Commands { get; } = [];
         public List<Volume> Volumes { get; } = [];
+        public bool IsShellExec { get; private set; }
 
         public async Task<Service> BuildComposeServiceAsync(CancellationToken cancellationToken)
         {
@@ -525,6 +543,11 @@ internal sealed class DockerComposePublishingContext(
             if (resource is ContainerResource { Entrypoint: { } entrypoint })
             {
                 composeService.Entrypoint.Add(entrypoint);
+
+                if (s_shellExecutables.Contains(entrypoint))
+                {
+                    IsShellExec = true;
+                }
             }
         }
 
@@ -540,7 +563,22 @@ internal sealed class DockerComposePublishingContext(
 
             if (Commands.Count > 0)
             {
-                composeService.Command.AddRange(Commands);
+                if (IsShellExec)
+                {
+                    var sb = new StringBuilder();
+                    foreach (var command in Commands)
+                    {
+                        // Escape any environment variables expressions in the command
+                        // to prevent them from being interpreted by the docker compose CLI
+                        EnvVarEscaper.EscapeUnescapedEnvVars(command, sb);
+                        composeService.Command.Add(sb.ToString());
+                        sb.Clear();
+                    }
+                }
+                else
+                {
+                    composeService.Command.AddRange(Commands);
+                }
             }
         }
     }
