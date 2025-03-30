@@ -247,6 +247,7 @@ jobs:
           -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
           "--blame"
           --blame-hang-timeout ${{ inputs.testHangTimeout }}
+          --diag "${{ github.workspace }}/testresults/vstest-diagnostics/logs.txt"
           --blame-crash
           --results-directory testresults
           --no-restore

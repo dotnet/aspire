@@ -45,9 +45,12 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
         }
         else
         {
-            Debug.Assert(
-                (eventData.EventId == 1 && eventData.EventName == "Info") ||
-                (eventData.EventId == 2 && eventData.EventName == "Warn"));
+            var isValid = (eventData.EventId == 1 && eventData.EventName == "Info") || (eventData.EventId == 2 && eventData.EventName == "Warn");
+            Debug.Assert(isValid);
+            if (!isValid)
+            {
+                throw new InvalidOperationException("Debug.Assert was masked!");
+            }
 
             _logger.Log(level, eventId, eventData.Payload?[0]?.ToString() ?? "<empty>");
         }
