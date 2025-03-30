@@ -583,17 +583,6 @@ public class Program
         command.Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.DefaultValueFactory = (result) => 
-        {
-            if (result.GetValue<bool>("--prerelease"))
-            {
-                return "*-*";
-            }
-            else
-            {
-                return VersionHelper.GetDefaultTemplateVersion();
-            }
-        };
         command.Options.Add(templateVersionOption);
 
         command.SetAction(async (parseResult, ct) => {
@@ -602,6 +591,22 @@ public class Program
             _ = app.RunAsync(ct);
 
             var templateVersion = parseResult.GetValue<string>("--version");
+            var prerelease = parseResult.GetValue<bool>("--prerelease");
+
+            if (templateVersion is not null && prerelease)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --version and --prerelease options are mutually exclusive.[/]");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            else if (prerelease)
+            {
+                templateVersion = "*-*";
+            }
+            else if (templateVersion is null)
+            {
+                templateVersion = VersionHelper.GetDefaultTemplateVersion();
+            }
+
             var source = parseResult.GetValue<string?>("--source");
 
             var templateInstallResult = await AnsiConsole.Status()
