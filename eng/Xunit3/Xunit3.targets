@@ -13,4 +13,6 @@
     <PackageReference Include="xunit.v3.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
+
+  <Import Project="..\tools\VSTest.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 </Project>
