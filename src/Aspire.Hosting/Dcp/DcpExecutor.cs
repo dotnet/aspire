@@ -148,7 +148,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         _shutdownCancellation.Cancel();
-        var tasks = new List<Task>();
+        var tasks = new List<Task>() { StopKubernetesService() };
         if (_resourceWatchTask is { } resourceTask)
         {
             tasks.Add(resourceTask);
@@ -156,10 +156,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         foreach (var (_, (cancellation, logTask)) in _logStreams)
         {
-            cancellation.Cancel();
+            cancellationToken.Register(cancellation.Cancel);
             tasks.Add(logTask);
         }
-
         try
         {
             await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -173,28 +172,31 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             _logger.LogDebug(ex, "One or more monitoring tasks terminated with an error.");
         }
 
-        try
+        async Task StopKubernetesService()
         {
-            if (_options.Value.WaitForResourceCleanup)
+            try
             {
-                await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
-            }
+                if (_options.Value.WaitForResourceCleanup)
+                {
+                    await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+                }
 
-            // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
-            // (if not done already) when the app host process exits.
-            // This is just a perf optimization, so we do not care that much if this call fails.
-            // There is not much difference for single app run, but for tests that tend to launch multiple instances
-            // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
-            // See https://github.com/dotnet/aspire/issues/6561 for more info.
-            await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore.
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
+                // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
+                // (if not done already) when the app host process exits.
+                // This is just a perf optimization, so we do not care that much if this call fails.
+                // There is not much difference for single app run, but for tests that tend to launch multiple instances
+                // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
+                // See https://github.com/dotnet/aspire/issues/6561 for more info.
+                await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
+            }
         }
     }
 
@@ -343,7 +345,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // Stop the log stream for the resource
                     if (_logStreams.TryRemove(resource.Metadata.Name, out var logStream))
                     {
-                        logStream.Cancellation.Cancel();
+                        logStream.Cancellation.CancelAfter(s_disposeTimeout);
                     }
 
                     // TODO: Handle resource deletion

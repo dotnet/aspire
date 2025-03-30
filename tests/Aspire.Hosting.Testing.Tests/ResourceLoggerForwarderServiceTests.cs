@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -122,6 +123,64 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
             log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("4: 2000-12-29T20:59:59.0000000Z Test warning message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
             log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("5: 2000-12-29T20:59:59.0000000Z Test error message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
             log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: 2000-12-29T20:59:59.0000000Z Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task FinalContainerLogsAreCaptured()
+    {
+        var builder = DistributedApplicationTestingBuilder.Create();
+        builder.Services.AddLogging(logging => logging
+               .SetMinimumLevel(LogLevel.Debug)
+               .AddFakeLogging()
+               .AddXunit(output));
+
+        var container = builder.AddContainer("shortlived", "mcr.microsoft.com/dotnet/runtime")
+           .WithEntrypoint("sh")
+           .WithArgs("-c", "echo \"So Long, Partner\"");
+
+        FakeLogCollector? logCollector = null;
+        await using (var app = await builder.BuildAsync())
+        {
+            logCollector = app.Services.GetFakeLogCollector();
+
+            await app.StartAsync();
+            await app.ResourceNotifications.WaitForResourceAsync(container.Resource.Name, KnownResourceStates.Exited)
+                .WaitAsync(TimeSpan.FromSeconds(10));
+        }
+
+        var resourceLogs = logCollector.GetSnapshot().Where(x => x.Category == $"{builder.Environment.ApplicationName}.Resources.{container.Resource.Name}");
+        var finalLog = resourceLogs.Last();
+
+        Assert.EndsWith("So Long, Partner", finalLog.Message);
+    }
+
+    [Fact]
+    public async Task FinalExecutableLogsAreCaptured()
+    {
+        var builder = DistributedApplicationTestingBuilder.Create();
+        builder.Services.AddLogging(logging => logging
+               .SetMinimumLevel(LogLevel.Debug)
+               .AddFakeLogging()
+               .AddXunit(output));
+
+        var executable = builder.AddExecutable("shortlived", "pwsh", ".")
+           .WithArgs("-Command", "Write-Host \"Where We're Going, We Don't Need Roads\"");
+
+        FakeLogCollector? logCollector = null;
+        await using (var app = await builder.BuildAsync())
+        {
+            logCollector = app.Services.GetFakeLogCollector();
+
+            await app.StartAsync();
+            await app.WaitForHealthyAsync(executable)
+                .WaitAsync(TimeSpan.FromSeconds(10));
+        }
+
+        var resourceLogs = logCollector.GetSnapshot().Where(x => x.Category == $"{builder.Environment.ApplicationName}.Resources.{executable.Resource.Name}");
+        var finalLog = resourceLogs.Last();
+
+        Assert.EndsWith("Where We're Going, We Don't Need Roads", finalLog.Message);
     }
 
     private static ResourceNotificationService CreateResourceNotificationService(TestHostApplicationLifetime hostApplicationLifetime, ResourceLoggerService resourceLoggerService)
