@@ -39,6 +39,7 @@ public static class ConnectionStringBuilderExtensions
     {
         var cs = new ConnectionStringResource(name, connectionStringExpression);
         return builder.AddResource(cs)
+                      .WithResourceRelationship(connectionStringExpression)
                       .WithInitialState(new CustomResourceSnapshot
                       {
                           ResourceType = "ConnectionString",

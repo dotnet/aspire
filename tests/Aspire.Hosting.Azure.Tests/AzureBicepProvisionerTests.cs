@@ -70,6 +70,26 @@ public class AzureBicepProvisionerTests
         Assert.Equal("paramValue", parameters["param"]?["value"]?.ToString());
         Assert.Equal("paramValue/1", parameters["expr"]?["value"]?.ToString());
         Assert.Equal("http://localhost:1023", parameters["endpoint"]?["value"]?.ToString());
+
+        // We don't yet process relationships set via the callbacks
+        // so we don't see the testResource2 nor exe1
+        Assert.True(bicep0.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships.DistinctBy(r => (r.Resource, r.Type)),
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(connectionStringResource.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(param.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(container.Resource, r.Resource);
+            });
     }
 
     [Fact]
