@@ -297,6 +297,11 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
                 await ProcessArgumentsAsync(executionContext, cancellationToken).ConfigureAwait(false);
+
+                // Write a fake parameter for the container app environment
+                // so azd knows the Dashboard URL - see https://github.com/dotnet/aspire/issues/8449.
+                // This is temporary until a real fix can be made in azd.
+                AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
             }
 
             private void ProcessEndpoints()
