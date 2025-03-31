@@ -330,7 +330,7 @@ public class Program
 
     private static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
     {
-        using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Internal);
+        using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 
         var checkExitCode = await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
@@ -435,14 +435,16 @@ public class Program
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishers = await AnsiConsole.Status()
+            var publishersResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
+                .StartAsync<(int ExitCode, string[]? Publishers)>(
                     publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
                     async context => {
 
-                        using var getPublishersActivity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action-GetPublishers", ActivityKind.Client);
+                        using var getPublishersActivity = s_activitySource.StartActivity(
+                            $"{nameof(ConfigurePublishCommand)}-Action-GetPublishers",
+                            ActivityKind.Client);
 
                         var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
                         var pendingInspectRun = runner.RunAsync(
@@ -456,13 +458,21 @@ public class Program
 
                         var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                         var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+                        
+                        await backchannel.RequestStopAsync(ct).ConfigureAwait(false);
+                        var exitCode = await pendingInspectRun;
 
-                        getPublishersActivity?.Stop();
-
-                        return publishers;
+                        return (exitCode, publishers);
 
                     }).ConfigureAwait(false);
 
+            if (publishersResult.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            var publishers = publishersResult.Publishers;
             if (publishers is null || publishers.Length == 0)
             {
                 AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
@@ -497,7 +507,9 @@ public class Program
                     new ElapsedTimeColumn())
                 .StartAsync(async context => {
 
-                    using var generateArtifactsActivity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action-GenerateArtifacts", ActivityKind.Client);
+                    using var generateArtifactsActivity = s_activitySource.StartActivity(
+                        $"{nameof(ConfigurePublishCommand)}-Action-GenerateArtifacts",
+                        ActivityKind.Internal);
                     
                     var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
 
@@ -546,8 +558,6 @@ public class Program
                             progressTask.StopTask();
                         }
                     }
-
-                    generateArtifactsActivity?.Stop();
 
                     return await pendingRun;
 
@@ -896,7 +906,7 @@ public class Program
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
         
-        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Client);
+        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Internal);
         var exitCode = await config.InvokeAsync(args);
 
         await app.StopAsync().ConfigureAwait(false);

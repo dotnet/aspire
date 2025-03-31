@@ -9,6 +9,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -19,7 +20,9 @@ internal class AppHostRpcTarget(
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
     IDistributedApplicationEventing eventing,
-    PublishingActivityProgressReporter activityReporter) 
+    PublishingActivityProgressReporter activityReporter,
+    IHostApplicationLifetime lifetime
+    ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
@@ -72,6 +75,13 @@ internal class AppHostRpcTarget(
                 endpointUris
                 );
         }
+    }
+
+    public Task RequestStopAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        lifetime.StopApplication();
+        return Task.CompletedTask;
     }
 
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)

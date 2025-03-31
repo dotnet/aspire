@@ -31,6 +31,24 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return responseTimestamp;
     }
 
+    public async Task RequestStopAsync(CancellationToken cancellationToken)
+    {
+        // This RPC call is required to allow the CLI to trigger a clean shutdown
+        // of the AppHost process. The AppHost process will then trigger the shutdown
+        // which will allow the CLI to await the pending run.
+
+        using var activity = _activitySource.StartActivity(nameof(RequestStopAsync), ActivityKind.Client);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting stop");
+
+        await rpc.InvokeWithCancellationAsync(
+            "RequestStopAsync",
+            Array.Empty<object>(),
+            cancellationToken);
+    }
+
     public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity(nameof(GetDashboardUrlsAsync), ActivityKind.Client);
