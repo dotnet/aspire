@@ -83,7 +83,7 @@ public class ConformanceTests : ConformanceTests<ConfigurationClient, AzureDataA
         => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(ConfigurationClient service)
-        => service.GetConfigurationSettingAsync("*", null);
+        => service.GetConfigurationSetting("*", null);
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
