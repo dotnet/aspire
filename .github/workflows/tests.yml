@@ -177,6 +177,9 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: check dir
+        run: find ${{ github.workspace }}/testresults -type f
+
       - name: Generate summary
-        run: python ${{ github.workspace }}/gen-test-report.py --gha_dir ${{ github.workspace}}/testresults
+        run: python ${{ github.workspace }}/gen-test-report.py --gha_dir ${{ github.workspace }}/testresults
 
