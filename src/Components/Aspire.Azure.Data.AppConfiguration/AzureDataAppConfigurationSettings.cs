@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Azure.Core;
 
 namespace Aspire.Azure.Data.AppConfiguration;
@@ -8,7 +9,7 @@ namespace Aspire.Azure.Data.AppConfiguration;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure App Configuration.
 /// </summary>
-public sealed class AzureDataAppConfigurationSettings
+public sealed class AzureDataAppConfigurationSettings : IConnectionStringSettings
 {
     /// <summary>
     /// A <see cref="Uri"/> to the App Config store on which the client operates. Appears as "Endpoint" in the Azure portal.
@@ -36,4 +37,13 @@ public sealed class AzureDataAppConfigurationSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
+
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
+    {
+        if (!string.IsNullOrEmpty(connectionString) &&
+            Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            Endpoint = uri;
+        }
+    }
 }

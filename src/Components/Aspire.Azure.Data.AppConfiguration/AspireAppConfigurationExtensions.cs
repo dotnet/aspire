@@ -8,6 +8,7 @@ using Azure.Identity;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Aspire.Azure.Common;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -80,15 +81,14 @@ public static class AspireAppConfigurationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
+        var configSection = configuration.GetSection(DefaultConfigSectionName);
+
         var settings = new AzureDataAppConfigurationSettings();
+        configSection.Bind(settings);
 
         if (configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            if (!string.IsNullOrEmpty(connectionString) &&
-                Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-            {
-                settings.Endpoint = uri;
-            }
+            ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
         }
 
         configureSettings?.Invoke(settings);
