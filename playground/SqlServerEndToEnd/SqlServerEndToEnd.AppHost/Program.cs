@@ -4,10 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var sql1 = builder.AddAzureSqlServer("sql1")
-                  .RunAsContainer(configureOptions: c =>
-                  {
-                      c.Port = 1433;
-                  });
+                  .RunAsContainer();
 
 var db1 = sql1.AddDatabase("db1");
 
