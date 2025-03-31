@@ -151,20 +151,20 @@ jobs:
         with:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
-          path: testresults/ubuntu-latest
+          path: ${{ github.workspace }}/testresults/ubuntu-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: logs-*-windows-latest
           merge-multiple: true
-          path: testresults/windows-latest
+          path: ${{ github.workspace }}/testresults/windows-latest
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: All-TestResults
-          path: testresults/**/*.trx
+          path: ${{ github.workspace }}/testresults/**/*.trx
 
       # return success if zero result-failed-* files are found
       - name: Compute result
@@ -179,7 +179,6 @@ jobs:
 
       - name: check dir
         run: find ${{ github.workspace }}/testresults -type f
-
       - name: Generate summary
-        run: python ${{ github.workspace }}/gen-test-report.py --gha_dir ${{ github.workspace }}/testresults
+        run: python ${{ github.workspace }}/gen-test-report.py --gha_dir ${{ github.workspace}}/testresults
 
