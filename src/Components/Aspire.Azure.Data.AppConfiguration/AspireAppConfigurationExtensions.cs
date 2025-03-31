@@ -64,29 +64,29 @@ public static class AspireAppConfigurationExtensions
     }
 
     /// <summary>
-    /// Adds the Azure App Configuration to be configuration values in the <paramref name="configuration"/>.
+    /// Adds the Azure App Configuration to be configuration values in the <paramref name="configurationManager"/>.
     /// </summary>
-    /// <param name="configuration">The <see cref="IConfigurationManager"/> to add the secrets to.</param>
+    /// <param name="configurationManager">The <see cref="IConfigurationManager"/> to add the secrets to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataAppConfigurationSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="AzureAppConfigurationOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:AppConfiguration" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureDataAppConfigurationSettings.Endpoint"/> is not provided.</exception>
     public static IConfigurationBuilder AddAzureAppConfiguration(
-        this IConfigurationManager configuration,
+        this IConfigurationManager configurationManager,
         string connectionName,
         Action<AzureDataAppConfigurationSettings>? configureSettings = null,
         Action<AzureAppConfigurationOptions>? configureOptions = null)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(configurationManager);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        var configSection = configuration.GetSection(DefaultConfigSectionName);
+        var configSection = configurationManager.GetSection(DefaultConfigSectionName);
 
         var settings = new AzureDataAppConfigurationSettings();
         configSection.Bind(settings);
 
-        if (configuration.GetConnectionString(connectionName) is string connectionString)
+        if (configurationManager.GetConnectionString(connectionName) is string connectionString)
         {
             ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
         }
@@ -98,7 +98,7 @@ public static class AspireAppConfigurationExtensions
             throw new InvalidOperationException($"Endpoint is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'Endpoint' key in the '{DefaultConfigSectionName}' configuration section.");
         }
 
-        return configuration.AddAzureAppConfiguration(options =>
+        return configurationManager.AddAzureAppConfiguration(options =>
         {
             options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
             configureOptions?.Invoke(options);

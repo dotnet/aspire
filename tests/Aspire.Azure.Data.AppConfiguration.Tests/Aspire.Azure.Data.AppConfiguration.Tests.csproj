@@ -9,6 +9,8 @@
 
     <ProjectReference Include="..\..\src\Components\Aspire.Azure.Data.AppConfiguration\Aspire.Azure.Data.AppConfiguration.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+    <Compile Include="..\Aspire.Azure.Security.KeyVault.Tests\MockTransport.cs" />
   </ItemGroup>
 
 </Project>
