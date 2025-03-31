@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
         <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="new">&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</target>
+        <target state="translated">&lt;Capture de journal suspendue à {0}, {1} journal(aux) est(sont) filtré(s)&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">
