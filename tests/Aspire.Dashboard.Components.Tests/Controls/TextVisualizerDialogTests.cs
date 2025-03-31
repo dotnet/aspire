@@ -167,13 +167,13 @@ public class TextVisualizerDialogTests : DashboardTestContext
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty, ContainsSecret: true), []);
         cut.WaitForAssertion(() => Assert.True(cut.HasComponent<TextVisualizerDialog>()));
 
-        Assert.True(cut.HasComponent<FluentMessageBar>());
+        Assert.Single(cut.FindAll(".block-warning"));
         Assert.False(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
 
         cut.Find(".text-visualizer-unmask-content").Click();
 
         cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowContainsSecretsWarning));
-        Assert.False(cut.HasComponent<FluentMessageBar>());
+        Assert.Empty(cut.FindAll(".block-warning"));
         Assert.True(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
         Assert.True(setShownDialog);
     }
