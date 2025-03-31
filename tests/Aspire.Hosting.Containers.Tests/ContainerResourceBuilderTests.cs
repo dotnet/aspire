@@ -104,6 +104,130 @@ public class ContainerResourceBuilderTests
         Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
     }
 
+    [Theory]
+    [InlineData("redis", "redis", "latest", null)]
+    [InlineData("redis:latest", "redis", "latest", null)]
+    [InlineData("registry.io/library/rabbitmq", "registry.io/library/rabbitmq", "latest", null)]
+    [InlineData("postgres:tag", "postgres", "tag", null)]
+    [InlineData("kafka@sha256:01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab", "kafka", null, "01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab")]
+    [InlineData("registry.io/image:tag", "registry.io/image", "tag", null)]
+    [InlineData("host.com/path/to/image@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "host.com/path/to/image", null, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("another.org/path/to/another/image:tag@sha256:9999999999999999999999999999999999999999999999999999999999999999", "another.org/path/to/another/image", null, "9999999999999999999999999999999999999999999999999999999999999999")]
+    public void WithImageMutatesContainerImageAnnotation(string reference, string expectedImage, string? expectedTag, string? expectedSha256)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        container.WithImage(reference);
+
+        AssertImageComponents(container, null, expectedImage, expectedTag, expectedSha256);
+    }
+
+    [Fact]
+    public void WithImageThrowsWithConflictingTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        Assert.Throws<InvalidOperationException>(() => container.WithImage("image:tag", "anothertag"));
+    }
+
+    [Fact]
+    public void WithImageThrowsWithConflictingTagAndDigest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => container.WithImage("image@sha246:abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", "tag"));
+    }
+
+    [Fact]
+    public void WithImageOverridesExistingImageAndTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImage("yet-another-image:new-tag");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, null, "yet-another-image", "new-tag", null);
+    }
+
+    [Fact]
+    public void WithImageOverridesExistingImageAndSha()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImage("yet-another-image@sha256:421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, null, "yet-another-image", null, "421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87");
+    }
+
+    [Fact]
+    public void WithImageWithoutRegistryShouldKeepExistingRegistryButOverwriteTagWithLatest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImageRegistry("foobar.io")
+            .WithImage("different-image");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, "foobar.io", "different-image", "latest", null);
+    }
+
+    [Fact]
+    public void WithImageWithoutTagShouldReplaceExistingTagWithLatest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "redis-stack", "original-tag")
+            .WithImage("redis-stack");
+
+        AssertImageComponents(redis, null, "redis-stack", "latest", null);
+    }
+
+    [Fact]
+    public void WithImageOverwritesSha256WithLatestTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "image")
+            .WithImageSHA256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+            .WithImage("redis-stack");
+
+        AssertImageComponents(redis, null, "redis-stack", "latest", null);
+    }
+
+    [Fact]
+    public void WithImagePullPolicyMutatesImagePullPolicyOfLastAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "image")
+            .WithImagePullPolicy(ImagePullPolicy.Missing)
+            .WithImagePullPolicy(ImagePullPolicy.Always);
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImagePullPolicyAnnotation>().Single();
+
+        Assert.Equal(ImagePullPolicy.Always, annotation.ImagePullPolicy);
+    }
+
+    private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
+        where T: IResource
+    {
+        var containerImage = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(expectedRegistry, containerImage.Registry);
+            Assert.Equal(expectedImage, containerImage.Image);
+            Assert.Equal(expectedTag, containerImage.Tag);
+            Assert.Equal(expectedSha256, containerImage.SHA256);
+        });
+    }
+
     private sealed class TestContainerResource(string name) : ContainerResource(name)
     {
     }

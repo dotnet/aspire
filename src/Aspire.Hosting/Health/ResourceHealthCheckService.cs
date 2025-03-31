@@ -13,24 +13,74 @@ namespace Aspire.Hosting.Health;
 
 internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing, TimeProvider timeProvider) : BackgroundService
 {
-    private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
+    private readonly Dictionary<string, ResourceMonitorState> _resourceMonitoringStates = new();
+
+    // Internal for testing.
+    internal TimeSpan HealthyHealthCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
+    internal TimeSpan NonHealthyHealthCheckStepInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var resourcesStartedMonitoring = new HashSet<string>();
-
         try
         {
             var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
 
+            // Watch for resource notifications and start and stop health monitoring based on the state of the resource.
             await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
             {
-                _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
+                var resourceName = resourceEvent.Resource.Name;
+                ResourceMonitorState? state;
 
-                if (!resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                lock (_resourceMonitoringStates)
                 {
-                    _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
-                    resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
+                    if (_resourceMonitoringStates.TryGetValue(resourceName, out state))
+                    {
+                        state.SetLatestEvent(resourceEvent);
+                    }
+                }
+
+                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                {
+                    if (state == null)
+                    {
+                        // The resource has entered a running state so it's time to start monitoring it's health.
+                        state = new ResourceMonitorState(logger, resourceEvent, stoppingToken);
+
+                        lock (_resourceMonitoringStates)
+                        {
+                            _resourceMonitoringStates[resourceName] = state;
+                        }
+
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await MonitorResourceHealthAsync(state).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Ignore error if resource monitoring was cancelled.
+                                if (state.CancellationToken.IsCancellationRequested)
+                                {
+                                    return;
+                                }
+
+                                logger.LogError(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
+                            }
+                        }, state.CancellationToken);
+                    }
+                }
+                else if (KnownResourceStates.TerminalStates.Contains(resourceEvent.Snapshot.State?.Text))
+                {
+                    if (state != null)
+                    {
+                        // The resource is in a terminal state, so we can stop monitoring it.
+                        state.StopResourceMonitor();
+                        lock (_resourceMonitoringStates)
+                        {
+                            _resourceMonitoringStates.Remove(resourceName);
+                        }
+                    }
                 }
             }
         }
@@ -40,10 +90,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         }
     }
 
-    private async Task MonitorResourceHealthAsync(ResourceEvent initialEvent, CancellationToken cancellationToken)
+    // Internal for testing.
+    internal ResourceMonitorState? GetResourceMonitorState(string resourceName)
     {
-        var resource = initialEvent.Resource;
-        var resourceReadyEventFired = false;
+        lock (_resourceMonitoringStates)
+        {
+            _resourceMonitoringStates.TryGetValue(resourceName, out var state);
+            return state;
+        }
+    }
+
+    private async Task MonitorResourceHealthAsync(ResourceMonitorState state)
+    {
+        var cancellationToken = state.CancellationToken;
+        var resource = state.LatestEvent.Resource;
 
         if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
@@ -52,82 +112,83 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
-            var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-            await eventing.PublishAsync(
-                resourceReadyEvent,
-                EventDispatchBehavior.NonBlockingSequential,
-                cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Resource '{Resource}' has no health checks to monitor.", resource.Name);
+            FireResourceReadyEvent(resource, cancellationToken);
+
             return;
         }
 
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
+        logger.LogDebug("Resource '{Resource}' health checks to monitor: {HeathCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
 
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), timeProvider);
+        var lastHealthCheckTimestamp = 0L;
+        var lastDelayInterrupted = false;
+        var resourceReadyEventFired = false;
+        var nonHealthyReportCount = 0;
+        ResourceEvent? currentEvent = null;
 
-        do
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var report = await healthCheckService.CheckHealthAsync(
-                    r => registrationKeysToCheck.Contains(r.Name),
-                    cancellationToken
-                    ).ConfigureAwait(false);
-
-                if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy)
+                // If the delay was interrupted after less than a second then delay again.
+                // This prevents health checks from being called too frequently.
+                if (lastDelayInterrupted && TimeSpan.FromSeconds(1) - timeProvider.GetElapsedTime(lastHealthCheckTimestamp) is { Ticks: > 0 } delay)
                 {
-                    resourceReadyEventFired = true;
-                    var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-                    await eventing.PublishAsync(
-                        resourceReadyEvent,
-                        EventDispatchBehavior.NonBlockingSequential,
-                        cancellationToken).ConfigureAwait(false);
+                    await state.DelayAsync(currentEvent: null, delay, cancellationToken).ConfigureAwait(false);
+                    continue;
                 }
 
-                var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
-                if (latestEvent is not null
-                    && !latestEvent.Snapshot.HealthReports.Any(r => r.Status is null) // don't count events before we have health reports
-                    && latestEvent.Snapshot.HealthStatus == report.Status)
+                HealthReport report;
+                try
                 {
-                    await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
+                    report = await healthCheckService.CheckHealthAsync(
+                        r => registrationKeysToCheck.Contains(r.Name),
+                        cancellationToken
+                        ).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // It's possible for CheckHealthAsync to throw if there is an error creating the IHealthCheck instance.
+                    // In this case we don't get an error report so we have to build one. We don't know exactly which registration failed
+                    // so set them all to unhealthy with the thrown error as the reason.
+                    // This situation won't be common, but we need to handle it to prevent the monitoring loop from never informing the user.
+                    report = new HealthReport(registrationKeysToCheck.ToDictionary(k => k, k => new HealthReportEntry(HealthStatus.Unhealthy, "Error calling HealthCheckService.", TimeSpan.Zero, ex, data: null)), TimeSpan.Zero);
+                }
 
-                    // If none of the health report statuses have changed, we should not update the resource health reports.
-                    if (!ContainsAnyHealthReportChange(report, latestEvent.Snapshot.HealthReports))
+                logger.LogTrace("Health report status for '{Resource}' is {HealthReportStatus}.", resource.Name, report.Status);
+
+                if (report.Status == HealthStatus.Healthy)
+                {
+                    if (!resourceReadyEventFired)
                     {
-                        continue;
+                        resourceReadyEventFired = true;
+                        FireResourceReadyEvent(resource, cancellationToken);
                     }
+                    nonHealthyReportCount = 0;
+                }
+                else
+                {
+                    nonHealthyReportCount++;
+                }
 
-                    static bool ContainsAnyHealthReportChange(HealthReport report, ImmutableArray<HealthReportSnapshot> latestHealthReportSnapshots)
+                currentEvent = state.LatestEvent;
+
+                if (ContainsAnyHealthReportChange(report, currentEvent.Snapshot.HealthReports))
+                {
+                    logger.LogTrace("Health reports for '{Resource}' have changed. Publishing updated reports.", resource.Name);
+
+                    await resourceNotificationService.PublishUpdateAsync(resource, s =>
                     {
-                        var healthCheckNameToStatus = latestHealthReportSnapshots.ToDictionary(p => p.Name);
-                        foreach (var (key, value) in report.Entries)
+                        var healthReports = MergeHealthReports(s.HealthReports, report);
+
+                        return s with
                         {
-                            if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
-                            {
-                                return true;
-                            }
-
-                            if (checkReportSnapshot.Status != value.Status
-                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.Description, value.Description)
-                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString()))
-                            {
-                                return true;
-                            }
-                        }
-
-                        return false;
-                    }
+                            // HealthStatus is automatically re-computed after health reports change.
+                            HealthReports = healthReports
+                        };
+                    }).ConfigureAwait(false);
                 }
-
-                await resourceNotificationService.PublishUpdateAsync(resource, s =>
-                {
-                    var healthReports = MergeHealthReports(s.HealthReports, report);
-
-                    return s with
-                    {
-                        // HealthStatus is automatically re-computed after health reports change.
-                        HealthReports = healthReports
-                    };
-                }).ConfigureAwait(false);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -140,49 +201,187 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     resource.Name
                     );
             }
-        } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
 
-        async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
+            lastHealthCheckTimestamp = timeProvider.GetTimestamp();
+
+            // Long delay if the resource is healthy.
+            // Non-heathy delay increases with each consecutive non-healthy report.
+            var delayInterval = nonHealthyReportCount == 0
+                ? HealthyHealthCheckInterval
+                : NonHealthyHealthCheckStepInterval * Math.Min(5, nonHealthyReportCount);
+
+            logger.LogTrace("Resource '{Resource}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
+
+            lastDelayInterrupted = await state.DelayAsync(currentEvent, delayInterval, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static bool ContainsAnyHealthReportChange(HealthReport report, ImmutableArray<HealthReportSnapshot> latestHealthReportSnapshots)
+    {
+        var healthCheckNameToStatus = latestHealthReportSnapshots.ToDictionary(p => p.Name);
+        foreach (var (key, value) in report.Entries)
         {
-            var releaseAfter = timeProvider.GetUtcNow().AddSeconds(30);
-
-            // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
-            // healthy then we stop slowing down the monitoring loop.
-            while (timeProvider.GetUtcNow() < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
+            if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
             {
-                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+
+            if (checkReportSnapshot.Status != value.Status
+                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.Description, value.Description)
+                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString()))
+            {
+                return true;
             }
         }
 
-        ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+        return false;
+    }
+
+    private void FireResourceReadyEvent(IResource resource, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Resource '{Resource}' is ready.", resource.Name);
+
+        // We don't want to block the monitoring loop while we fire the event.
+        _ = Task.Run(async () =>
         {
-            var builder = healthReports.ToBuilder();
+            var resourceReadyEvent = new ResourceReadyEvent(resource, services);
 
-            foreach (var (key, entry) in report.Entries)
+            logger.LogDebug("Publishing ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+            // Execute the publish and store the task so that waiters can await it and observe the result.
+            var task = eventing.PublishAsync(resourceReadyEvent, cancellationToken);
+
+            logger.LogDebug("Waiting for ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+            // Suppress exceptions, we just want to make sure that the event is completed.
+            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+            logger.LogDebug("ResourceReadyEvent for '{Resource}' completed.", resource.Name);
+
+            logger.LogDebug("Publishing the result of ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+            await resourceNotificationService.PublishUpdateAsync(resource, s => s with
             {
-                var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+                ResourceReadyEvent = new(task)
+            })
+            .ConfigureAwait(false);
+        },
+        cancellationToken);
+    }
 
-                var found = false;
-                for (var i = 0; i < builder.Count; i++)
-                {
-                    var existing = builder[i];
-                    if (existing.Name == key)
-                    {
-                        // Replace the existing entry.
-                        builder[i] = snapshot;
-                        found = true;
-                        break;
-                    }
-                }
+    private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+    {
+        var builder = healthReports.ToBuilder();
 
-                if (!found)
+        foreach (var (key, entry) in report.Entries)
+        {
+            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+
+            var found = false;
+            for (var i = 0; i < builder.Count; i++)
+            {
+                var existing = builder[i];
+                if (existing.Name == key)
                 {
-                    // Add a new entry.
-                    builder.Add(snapshot);
+                    // Replace the existing entry.
+                    builder[i] = snapshot;
+                    found = true;
+                    break;
                 }
             }
 
-            return builder.ToImmutable();
+            if (!found)
+            {
+                // Add a new entry.
+                builder.Add(snapshot);
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    internal class ResourceMonitorState
+    {
+        private readonly ILogger _logger;
+        private readonly CancellationTokenSource _cts;
+        private readonly object _lock = new object();
+        private readonly string _resourceName;
+        private TaskCompletionSource? _delayInterruptTcs;
+
+        public ResourceMonitorState(ILogger logger, ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
+        {
+            _logger = logger;
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
+            _resourceName = initialEvent.Resource.Name;
+            LatestEvent = initialEvent;
+
+            _logger.LogDebug("Starting health monitoring for resource '{Resource}'.", _resourceName);
+        }
+
+        // Used to cancel and exit the monitoring loop for a resource.
+        public CancellationToken CancellationToken => _cts.Token;
+
+        public ResourceEvent LatestEvent { get; private set; }
+
+        public void StopResourceMonitor()
+        {
+            _logger.LogDebug("Stopping health monitoring for resource '{Resource}'.", _resourceName);
+            _cts.Cancel();
+        }
+
+        public void SetLatestEvent(ResourceEvent resourceEvent)
+        {
+            // Set the latest event to the monitor. The monitor delay may be interrupted if necessary.
+            // A lock protects against a race between starting a delay and setting the latest event.
+            lock (_lock)
+            {
+                var shouldInterrupt = ShouldInterrupt(resourceEvent, LatestEvent);
+                LatestEvent = resourceEvent;
+
+                if (shouldInterrupt)
+                {
+                    _delayInterruptTcs?.TrySetResult();
+                }
+            }
+        }
+
+        internal async Task<bool> DelayAsync(ResourceEvent? currentEvent, TimeSpan delay, CancellationToken cancellationToken)
+        {
+            Task delayInterruptedTask;
+            lock (_lock)
+            {
+                // The event might have changed before delay was called. Interrupt immediately if required.
+                if (currentEvent != null && ShouldInterrupt(currentEvent, LatestEvent))
+                {
+                    _logger.LogTrace("Health monitoring delay interrupted for resource '{Resource}'.", _resourceName);
+                    return true;
+                }
+                _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                delayInterruptedTask = _delayInterruptTcs.Task;
+            }
+
+            // Don't throw to avoid writing the thrown exception to the debug console.
+            // See https://github.com/dotnet/aspire/issues/7486
+            await delayInterruptedTask.WaitAsync(delay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            var delayInterrupted = delayInterruptedTask.IsCompletedSuccessfully == true;
+
+            return delayInterrupted;
+        }
+
+        private static bool ShouldInterrupt(ResourceEvent currentEvent, ResourceEvent previousEvent)
+        {
+            // Interrupt if a newer snapshot is available and the state has changed.
+            // This is to ensure that health checks are immediately re-evaluated when the state changes.
+            if (currentEvent.Snapshot.Version <= previousEvent.Snapshot.Version)
+            {
+                return false;
+            }
+            if (currentEvent.Snapshot.State?.Text == previousEvent.Snapshot.State?.Text)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

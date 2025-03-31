@@ -5,12 +5,13 @@ namespace Aspire.Hosting.Keycloak;
 
 internal static class KeycloakContainerImageTags
 {
-    /// <summary>quay.io</summary>
+    /// <remarks>quay.io</remarks>
     public const string Registry = "quay.io";
 
-    /// <summary>keycloak/keycloak</summary>
+    /// <remarks>keycloak/keycloak</remarks>
     public const string Image = "keycloak/keycloak";
 
-    /// <summary>26.0</summary>
-    public const string Tag = "26.0";
+    /// <remarks>26.1</remarks>
+    public const string Tag = "26.1";
 }
+

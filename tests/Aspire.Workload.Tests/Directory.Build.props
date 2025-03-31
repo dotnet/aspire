@@ -1,8 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <!-- This triggers the import of targets needed for workload testing -->
-    <IsWorkloadTestProject>true</IsWorkloadTestProject>
-  </PropertyGroup>
-
-  <Import Project="..\Directory.Build.props" />
-</Project>

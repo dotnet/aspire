@@ -11,6 +11,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -32,6 +33,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private string _filter = string.Empty;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -60,7 +62,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "90px", MobileWidth: null)
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
         ];
 
         foreach (var resolver in OutgoingPeerResolvers)
@@ -78,9 +80,20 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+        var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            {
+                visibleViewModels.Add(viewModel);
+                foreach (var descendent in matchedDescendents)
+                {
+                    visibleViewModels.Add(descendent);
+                }
+            }
+        }
 
-        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        var page = visibleViewModels.AsEnumerable();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -90,8 +103,19 @@ public partial class TraceDetail : ComponentBase, IDisposable
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
             Items = page.ToList(),
-            TotalItemCount = visibleSpanWaterfallViewModels.Count
+            TotalItemCount = visibleViewModels.Count
         });
+    }
+
+    private string? GetPageTitle()
+    {
+        if (_trace is null)
+        {
+            return null;
+        }
+
+        var headerSpan = _trace.RootOrFirstSpan;
+        return $"{GetResourceName(headerSpan.Source)}: {headerSpan.Name}";
     }
 
     private static Icon GetSpanIcon(OtlpSpan span)
@@ -154,7 +178,14 @@ public partial class TraceDetail : ComponentBase, IDisposable
 
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
-        return;
+    }
+
+    private async Task HandleAfterFilterBindAsync()
+    {
+        SelectedSpan = null;
+        await InvokeAsync(StateHasChanged);
+
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private void UpdateSubscription()

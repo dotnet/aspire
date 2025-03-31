@@ -8,12 +8,12 @@
     <NoWarn>$(NoWarn);SYSLIB1100</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>90</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.ConfluentKafka\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.ConfluentKafka" />
   </ItemGroup>
 
   <ItemGroup>

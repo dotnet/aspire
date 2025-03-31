@@ -143,9 +143,19 @@ public partial class FilterDialog
         Dialog!.CancelAsync();
     }
 
+    private void Enable()
+    {
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Enable = true }));
+    }
+
+    private void Disable()
+    {
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Disable = true }));
+    }
+
     private void Delete()
     {
-        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = Content.Filter, Delete = true }));
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Delete = true }));
     }
 
     private void Apply()

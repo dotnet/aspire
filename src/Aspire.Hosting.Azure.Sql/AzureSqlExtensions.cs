@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting;
@@ -17,6 +18,8 @@ public static class AzureSqlExtensions
     [Obsolete]
     private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -51,9 +54,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: false);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: false);
 
     /// <summary>
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
@@ -62,9 +63,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: true);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure SQL Database (server) resource to the application model.
@@ -74,6 +73,9 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
     public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -84,7 +86,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
     }
@@ -99,7 +101,7 @@ public static class AzureSqlExtensions
     public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -148,6 +150,8 @@ public static class AzureSqlExtensions
     /// </example>
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -195,27 +199,40 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalNameParameter);
+        var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
-        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+        var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+        (identifier, name) =>
         {
-            Administrators = new ServerExternalAdministrator()
+            var resource = SqlServer.FromExisting(identifier);
+            resource.Name = name;
+            return resource;
+        },
+        (infrastructure) =>
+        {
+            // Creating a new SqlServer instance requires an administrator,
+            // so we need to create one here using the empty PrincipalId/PrincipalName
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalNameParameter);
+
+            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                AdministratorType = SqlAdministratorType.ActiveDirectory,
-                IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = principalIdParameter,
-                Login = principalNameParameter,
-                TenantId = BicepFunction.GetSubscription().TenantId
-            },
-            Version = "12.0",
-            PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-            MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(sqlServer);
+                Administrators = new ServerExternalAdministrator()
+                {
+                    AdministratorType = SqlAdministratorType.ActiveDirectory,
+                    IsAzureADOnlyAuthenticationEnabled = true,
+                    Sid = principalIdParameter,
+                    Login = principalNameParameter,
+                    TenantId = BicepFunction.GetSubscription().TenantId
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+        });
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {
@@ -227,11 +244,15 @@ public static class AzureSqlExtensions
 
         if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // When in run mode we inject the users identity and we need to specify
-            // the principalType.
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            sqlServer.Administrators.PrincipalType = principalTypeParameter;
+            // Avoid mutating properties on existing resources.
+            if (!sqlServer.IsExistingResource)
+            {
+                // When in run mode we inject the users identity and we need to specify
+                // the principalType.
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
+                sqlServer.Administrators.PrincipalType = principalTypeParameter;
+            }
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
@@ -255,5 +276,96 @@ public static class AzureSqlExtensions
         }
 
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+    }
+
+    internal static SqlServerAzureADAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, SqlServer sqlServer, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    {
+        var admin = new SqlServerAzureADAdministratorWorkaround($"{sqlServer.BicepIdentifier}_admin")
+        {
+            ParentOverride = sqlServer,
+            LoginOverride = principalName,
+            SidOverride = principalId
+        };
+        infra.Add(admin);
+        return admin;
+    }
+
+    /// <remarks>
+    /// Workaround for issue using SqlServerAzureADAdministrator.
+    /// See https://github.com/Azure/azure-sdk-for-net/issues/48364 for more information.
+    /// </remarks>
+    private sealed class SqlServerAzureADAdministratorWorkaround(string bicepIdentifier) : SqlServerAzureADAdministrator(bicepIdentifier)
+    {
+        private BicepValue<string>? _name;
+        private BicepValue<string>? _login;
+        private BicepValue<Guid>? _sid;
+        private ResourceReference<SqlServer>? _parent;
+
+        /// <summary>
+        /// Login name of the server administrator.
+        /// </summary>
+        public BicepValue<string> LoginOverride
+        {
+            get
+            {
+                Initialize();
+                return _login!;
+            }
+            set
+            {
+                Initialize();
+                _login!.Assign(value);
+            }
+        }
+
+        /// <summary>
+        /// SID (object ID) of the server administrator.
+        /// </summary>
+        public BicepValue<Guid> SidOverride
+        {
+            get
+            {
+                Initialize();
+                return _sid!;
+            }
+            set
+            {
+                Initialize();
+                _sid!.Assign(value);
+            }
+        }
+
+        /// <summary>
+        /// Parent resource of the server administrator.
+        /// </summary>
+        public SqlServer? ParentOverride
+        {
+            get
+            {
+                Initialize();
+                return _parent!.Value;
+            }
+            set
+            {
+                Initialize();
+                _parent!.Value = value;
+            }
+        }
+
+        private static BicepValue<string> GetNameDefaultValue()
+        {
+            return new StringLiteralExpression("ActiveDirectory");
+        }
+
+        protected override void DefineProvisionableProperties()
+        {
+            _name = DefineProperty("Name", ["name"], defaultValue: GetNameDefaultValue());
+            _login = DefineProperty<string>("Login", ["properties", "login"]);
+            _sid = DefineProperty<Guid>("Sid", ["properties", "sid"]);
+            _parent = DefineResource<SqlServer>("Parent", ["parent"], isOutput: false, isRequired: true);
+        }
     }
 }

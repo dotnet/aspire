@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,8 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected bool TracingIsSupported => CheckIfImplemented(SetTracing);
 
+    protected virtual bool CheckOptionClassSealed => true;
+
     /// <summary>
     /// Calls the actual Component
     /// </summary>
@@ -91,6 +94,11 @@ public abstract class ConformanceTests<TService, TOptions>
         if (typeof(TOptions) == typeof(object))
         {
             throw new SkipTestException("Not implemented yet");
+        }
+
+        if (!CheckOptionClassSealed)
+        {
+            throw new SkipTestException("Opt-out of test");
         }
 
         Assert.True(typeof(TOptions).IsSealed);

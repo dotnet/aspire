@@ -17,9 +17,9 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
     where TClient : class
     where TClientOptions : class
 {
-    protected virtual string[] ActivitySourceNames => new[] { $"{typeof(TClient).Namespace}.*" };
+    protected virtual string[] ActivitySourceNames => [$"{typeof(TClient).Namespace}.*"];
 
-    protected virtual string[] MetricSourceNames => new[] { $"{typeof(TClient).Namespace}.*" };
+    protected virtual string[] MetricSourceNames => [$"{typeof(TClient).Namespace}.*"];
 
     // There would be no need for Get* methods if TSettings had a common base type or if it was implementing a shared interface.
     // TSettings is a public type and we don't have a shared package yet, but we may reconsider the approach in near future.
@@ -49,8 +49,6 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         string connectionName,
         string? serviceKey)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 
         var settings = new TSettings();

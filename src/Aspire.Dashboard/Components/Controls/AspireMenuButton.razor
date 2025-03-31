@@ -13,15 +13,19 @@
     };
 }
 
-<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes">
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
     @if (string.IsNullOrWhiteSpace(Text))
     {
-        <FluentIcon Value="@_icon" />
+        <FluentIcon Value="@_icon" Color="@IconColor" />
     }
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Slot="end" />
+
+        @if (!HideIcon)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+        }
     }
 </FluentButton>
 
@@ -36,10 +40,10 @@
         {
             var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
             {
-                { "title", item.Tooltip ?? string.Empty }
+                { "title", item.Tooltip ?? item.Text ?? string.Empty }
             };
 
-            <FluentMenuItem OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+            <FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
                 @item.Text
                 @if (item.Icon != null)
                 {

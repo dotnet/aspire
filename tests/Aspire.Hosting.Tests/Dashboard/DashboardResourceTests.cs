@@ -12,15 +12,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
 public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact]
-    public async Task DashboardIsAutomaticallyAddedAsHiddenResource()
+    [Theory]
+    [InlineData(KnownConfigNames.ShowDashboardResources)]
+    [InlineData(KnownConfigNames.Legacy.ShowDashboardResources)]
+    public async Task DashboardIsAutomaticallyAddedAsHiddenResource(string showDashboardResourcesKey)
     {
         using var builder = TestDistributedApplicationBuilder.Create(
             options => options.DisableDashboard = false,
@@ -29,7 +30,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         // Ensure any ambient configuration doesn't impact this test.
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES"] = null
+            [showDashboardResourcesKey] = null
         });
 
         var dashboardPath = Path.GetFullPath("dashboard");
@@ -75,8 +76,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         );
     }
 
-    [Fact]
-    public async Task DashboardDoesNotAddResource_ConfiguresExistingDashboard()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardDoesNotAddResource_ConfiguresExistingDashboard(string dashboardOtlpGrpcEndpointUrlKey)
     {
         using var builder = TestDistributedApplicationBuilder.Create(
             options => options.DisableDashboard = false,
@@ -89,7 +92,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
         var container = builder.AddContainer(KnownResourceNames.AspireDashboard, "my-image");
@@ -114,17 +117,17 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             },
             e =>
             {
-                Assert.Equal("ASPNETCORE_URLS", e.Key);
+                Assert.Equal(KnownConfigNames.AspNetCoreUrls, e.Key);
                 Assert.Equal("http://localhost", e.Value);
             },
             e =>
             {
-                Assert.Equal("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", e.Key);
+                Assert.Equal(KnownConfigNames.ResourceServiceEndpointUrl, e.Key);
                 Assert.Equal("http://localhost:5000", e.Value);
             },
             e =>
             {
-                Assert.Equal("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", e.Key);
+                Assert.Equal(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, e.Key);
                 Assert.Equal("http://localhost", e.Value);
             },
             e =>
@@ -180,8 +183,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal([dashboardPath], args);
     }
 
-    [Fact]
-    public async Task DashboardAuthConfigured_EnvVarsPresent()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardAuthConfigured_EnvVarsPresent(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -194,8 +199,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost",
             ["AppHost:BrowserToken"] = "TestBrowserToken!",
             ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
         });
@@ -217,8 +222,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("TestOtlpApiKey!", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName).Value);
     }
 
-    [Fact]
-    public async Task DashboardAuthRemoved_EnvVarsUnsecured()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardAuthRemoved_EnvVarsUnsecured(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -231,8 +238,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
         using var app = builder.Build();
@@ -249,8 +256,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
     }
 
-    [Fact]
-    public async Task DashboardResourceServiceUriIsSet()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardResourceServiceUriIsSet(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -263,8 +272,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
         using var app = builder.Build();
@@ -281,9 +290,9 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData("*")]
-    [InlineData(null)]
-    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet(string? explicitCorsAllowedOrigins)
+    [InlineData("*", KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.DashboardCorsAllowedOrigins)]
+    [InlineData(null, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)]
+    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet(string? explicitCorsAllowedOrigins, string otlpHttpEndpointUrlKey, string corsAllowedOriginsKey)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -298,9 +307,9 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = "http://localhost",
-            ["DOTNET_DASHBOARD_CORS_ALLOWED_ORIGINS"] = explicitCorsAllowedOrigins
+            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [otlpHttpEndpointUrlKey] = "http://localhost",
+            [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
         });
 
         using var app = builder.Build();
@@ -324,9 +333,9 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData("*")]
-    [InlineData(null)]
-    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet(string? explicitCorsAllowedOrigins)
+    [InlineData("*", KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.DashboardCorsAllowedOrigins)]
+    [InlineData(null, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)]
+    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet(string? explicitCorsAllowedOrigins, string otlpGrpcEndpointUrlKey, string corsAllowedOriginsKey)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -341,9 +350,9 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
-            ["DOTNET_DASHBOARD_CORS_ALLOWED_ORIGINS"] = explicitCorsAllowedOrigins
+            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [otlpGrpcEndpointUrlKey] = "http://localhost",
+            [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
         });
 
         using var app = builder.Build();

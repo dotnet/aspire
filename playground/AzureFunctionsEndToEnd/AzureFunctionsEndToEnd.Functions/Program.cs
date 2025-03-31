@@ -6,8 +6,8 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
-builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+builder.AddAzureEventHubProducerClient("myhub");
+#if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
 #endif
 

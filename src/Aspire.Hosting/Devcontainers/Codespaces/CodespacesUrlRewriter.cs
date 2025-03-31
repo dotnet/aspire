@@ -9,14 +9,14 @@ internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
 {
     public string RewriteUrl(string url)
     {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
         if (!options.Value.IsCodespace)
         {
             return url;
         }
 
-        return RewriteUrl(new Uri(url, UriKind.Absolute));
+        return RewriteUrl(new Uri(url));
     }
 
     public string RewriteUrl(Uri uri)
@@ -26,7 +26,7 @@ internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
             return uri.ToString();
         }
 
-        var codespacesUrl = $"{uri.Scheme}://{options.Value.CodespaceName}-{uri.Port}.{options.Value.PortForwardingDomain}{uri.AbsolutePath}";
+        var codespacesUrl = $"{uri.Scheme}://{options.Value.CodespaceName}-{uri.Port}.{options.Value.PortForwardingDomain}{uri.AbsolutePath}{uri.Query}";
         return codespacesUrl;
     }
 }

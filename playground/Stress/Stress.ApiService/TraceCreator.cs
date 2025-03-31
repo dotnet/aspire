@@ -32,7 +32,7 @@ public class TraceCreator
         return activity;
     }
 
-    public async Task CreateTraceAsync(int count, bool createChildren, string? rootName = null)
+    public async Task CreateTraceAsync(string traceName, int count, bool createChildren, string? rootName = null)
     {
         var activityStack = new Stack<Activity>();
 
@@ -43,7 +43,7 @@ public class TraceCreator
                 await Task.Delay(Random.Shared.Next(10, 50));
             }
 
-            var name = $"Span-{i}";
+            var name = $"{traceName}-Span-{i}";
             using var activity = s_activitySource.StartActivity(rootName ?? name, ActivityKind.Client);
             if (activity == null)
             {
@@ -96,7 +96,7 @@ public class TraceCreator
         for (var i = 0; i < eventCount; i++)
         {
             var activityTags = new ActivityTagsCollection();
-            var tagsCount = Random.Shared.Next(0, 3);
+            var tagsCount = Random.Shared.Next(0, 5);
             for (var j = 0; j < tagsCount; j++)
             {
                 activityTags.Add($"key-{j}", "Value!");

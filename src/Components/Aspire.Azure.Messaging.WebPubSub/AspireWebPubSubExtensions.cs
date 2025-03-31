@@ -36,6 +36,9 @@ public static class AspireWebPubSubExtensions
         Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
         Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -56,6 +59,7 @@ public static class AspireWebPubSubExtensions
         Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
         Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 
@@ -68,6 +72,29 @@ public static class AspireWebPubSubExtensions
             }
         };
         new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureWithServiceKeyAsDefaultHubName, configureClientBuilder, connectionName: connectionName, serviceKey: serviceKey);
+    }
+
+    /// <summary>
+    /// Registers <see cref="WebPubSubServiceClient"/> as a singleton for given <paramref name="connectionName"/> in the services provided by the <paramref name="builder"/>. This
+    /// overload does not require a service key and uses the connection name as the service key
+    /// to support scenarios where multiple Hubs are referenced in the same application.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">The name of the component to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingWebPubSubSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{WebPubSubServiceClient, WebPubSubServiceClientOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire.Azure.Messaging.WebPubSub:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingWebPubSubSettings.ConnectionString"/> nor <see cref="AzureMessagingWebPubSubSettings.Endpoint"/> is provided.</exception>
+    public static void AddKeyedAzureWebPubSubServiceClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: connectionName, serviceKey: connectionName);
     }
 
     private sealed class WebPubSubComponent : AzureComponent<AzureMessagingWebPubSubSettings, WebPubSubServiceClient, WebPubSubServiceClientOptions>

@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using System.Text;
-using Xunit.Abstractions;
 
 namespace Microsoft.Extensions.Logging.Testing;
 

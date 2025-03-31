@@ -6,7 +6,7 @@
 @inject IStringLocalizer<Dialogs> Loc
 
 <FluentDialogBody>
-    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="8">
+    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="12">
         <div>
             <FluentRadioGroup TValue="string"
                               Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
@@ -23,14 +23,27 @@
             <FluentSelect
                 TOption="CultureInfo"
                 Immediate="true"
+                Position="SelectPosition.Below"
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
                 OptionText="@(c => c.NativeName.Humanize())"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
-                Style="margin-bottom: 2px;"/>
+                Class="language-select"/>
 
             <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogLanguagePageReloads)]</p>
+        </div>
+
+        <div>
+            <span class="setting-title">@Loc[nameof(Dialogs.SettingsDialogDashboardLogsAndTelemetry)]</span>
+            <div>
+                <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
+                              OnClick="ClearAllSignals"
+                              Title="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]"
+                              aria-label="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]">
+                    @Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]
+                </FluentButton>
+            </div>
         </div>
 
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>

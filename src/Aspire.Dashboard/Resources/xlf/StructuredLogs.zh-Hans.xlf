@@ -17,6 +17,11 @@
         <target state="translated">已超出结构化日志限制</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">结构化日志捕获已在 {0} 暂停</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">添加筛选器</target>

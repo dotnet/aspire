@@ -3,21 +3,20 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Tests.Utils;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
     public async Task WithDockerfileTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "WithDockerfile.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -34,8 +33,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "KafkaBasic.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -61,8 +59,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -114,7 +111,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS // https://github.com/dotnet/aspire/issues/7066
         // Assert that ServiceBus triggers work correctly
         await apiServiceClient.GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,

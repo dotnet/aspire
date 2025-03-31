@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
@@ -129,6 +129,12 @@
   <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
     <value>Apply filter</value>
   </data>
+  <data name="FilterDialogEnableFilterButtonText" xml:space="preserve">
+    <value>Enable filter</value>
+  </data>
+  <data name="FilterDialogDisableFilterButtonText" xml:space="preserve">
+    <value>Disable filter</value>
+  </data>
   <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
     <value>Remove filter</value>
   </data>
@@ -211,7 +217,7 @@
   <data name="HelpDialogKeyboardShortcutsTitle" xml:space="preserve">
     <value>Keyboard Shortcuts</value>
   </data>
-  <data name="ExemplarsDialogCloseButtonText" xml:space="preserve">
+  <data name="DialogCloseButtonText" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="ExemplarsDialogTitle" xml:space="preserve">
@@ -253,5 +259,34 @@
   </data>
   <data name="OpenInTextVisualizer" xml:space="preserve">
     <value>Open in text visualizer</value>
+  </data>
+  <data name="FieldRequired" xml:space="preserve">
+    <value>A value is required.</value>
+    <comment>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</comment>
+  </data>
+  <data name="FieldTooLong" xml:space="preserve">
+    <value>A maximum length of {1} characters is allowed.</value>
+    <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
+  </data>
+  <data name="SettingsDialogDashboardLogsAndTelemetry" xml:space="preserve">
+    <value>Dashboard logs and telemetry</value>
+  </data>
+  <data name="SettingsRemoveAllButtonText" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
+    <value>Sensitive value hidden</value>
+  </data>
+  <data name="TextVisualizerSecretWarningDescription" xml:space="preserve">
+    <value>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</value>
+  </data>
+  <data name="TextVisualizerSecretWarningAcknowledge" xml:space="preserve">
+    <value>Show value</value>
+  </data>
+  <data name="FilterDialogDisableAll" xml:space="preserve">
+    <value>Disable all</value>
+  </data>
+  <data name="FilterDialogEnableAll" xml:space="preserve">
+    <value>Enable all</value>
   </data>
 </root>

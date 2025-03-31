@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -56,4 +59,14 @@ public sealed class CommandLineArgsCallbackContext(IList<object> args, Cancellat
     /// Gets the cancellation token associated with the callback context.
     /// </summary>
     public CancellationToken CancellationToken { get; } = cancellationToken;
+
+    /// <summary>
+    /// Gets or sets the execution context for the distributed application.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; init; } = new(DistributedApplicationOperation.Run);
+
+    /// <summary>
+    /// Gets or sets the logger for the distributed application.
+    /// </summary>
+    public ILogger Logger { get; init; } = NullLogger.Instance;
 }

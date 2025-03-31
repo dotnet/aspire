@@ -205,3 +205,84 @@ internal static class DistributedApplicationEntryPointInvoker
         }
     }
 }
+
+internal sealed class TestingBuilderFactory : IObserver<DiagnosticListener>, IObserver<KeyValuePair<string, object?>>, IDisposable
+{
+    private static readonly ThreadLocal<TestingBuilderFactory?> s_currentListener = new();
+    private readonly Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? _onConstructing;
+    private IDisposable? _hostingListener;
+
+    private TestingBuilderFactory(Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? onConstructing)
+    {
+        _onConstructing = onConstructing;
+    }
+
+    public static DistributedApplicationBuilder CreateBuilder(
+        string[] args,
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? onConstructing)
+    {
+        using var observer = new TestingBuilderFactory(onConstructing);
+        using var subscription = DiagnosticListener.AllListeners.Subscribe(observer);
+
+        try
+        {
+            s_currentListener.Value = observer;
+            return new DistributedApplicationBuilder(args);
+        }
+        finally
+        {
+            s_currentListener.Value = null;
+        }
+    }
+
+    void IObserver<DiagnosticListener>.OnCompleted()
+    {
+    }
+
+    void IObserver<DiagnosticListener>.OnError(Exception error)
+    {
+    }
+
+    void IObserver<DiagnosticListener>.OnNext(DiagnosticListener value)
+    {
+        if (s_currentListener.Value != this)
+        {
+            // Ignore events that aren't for this listener
+            return;
+        }
+
+        if (value.Name == "Aspire.Hosting")
+        {
+            _hostingListener = value.Subscribe(this);
+        }
+    }
+
+    void IObserver<KeyValuePair<string, object?>>.OnCompleted()
+    {
+        _hostingListener?.Dispose();
+    }
+
+    void IObserver<KeyValuePair<string, object?>>.OnError(Exception error)
+    {
+    }
+
+    void IObserver<KeyValuePair<string, object?>>.OnNext(KeyValuePair<string, object?> value)
+    {
+        if (s_currentListener.Value != this)
+        {
+            // Ignore events that aren't for this listener
+            return;
+        }
+
+        if (value.Key == "DistributedApplicationBuilderConstructing")
+        {
+            var (options, innerBuilderOptions) = ((DistributedApplicationOptions Options, HostApplicationBuilderSettings InnerBuilderOptions))value.Value!;
+            _onConstructing?.Invoke(options, innerBuilderOptions);
+        }
+    }
+
+    public void Dispose()
+    {
+        _hostingListener?.Dispose();
+    }
+}

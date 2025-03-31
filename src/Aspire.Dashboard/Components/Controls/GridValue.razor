@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
@@ -9,7 +10,7 @@
     @if (EnableMasking && IsMasked)
     {
         <span class="grid-value masked" id="@_cellTextId">
-            &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
+            @DashboardUIHelpers.GetMaskingText(length: 8).MarkupString
         </span>
     }
     else
@@ -22,7 +23,11 @@
             else
             {
                 @ContentBeforeValue
-                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                if (ValueTemplate is not null)
+                {
+                    @ValueTemplate(Value)
+                }
+                else if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
                 {
                     <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
                 }
@@ -31,7 +36,7 @@
                     @((MarkupString)_formattedValue)
                 }
                 @ContentAfterValue
-            }            
+            }
         </span>
     }
 

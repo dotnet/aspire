@@ -1,10 +1,19 @@
 <Project>
   <PropertyGroup>
     <DisablePackageBaselineValidation Condition="'$(DisablePackageBaselineValidation)' == '' And '$(SuppressFinalPackageVersion)' == 'true'">true</DisablePackageBaselineValidation>
+    <!-- If the project is packable, we generate its API surface in a separate file to be used by the API review process. -->
+    <GenAPITargetPath Condition="'$(IsPackable)' == 'true'">$(MSBuildProjectDirectory)/api/$(AssemblyName).cs</GenAPITargetPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="$(GenAPITargetPath)" />
+  </ItemGroup>
+
+  <Target Name="CreateGenAPITargetPathFolder" BeforeTargets="GenAPIGenerateReferenceAssemblySource">
+    <MakeDir Directories="$(MSBuildProjectDirectory)/api" Condition="!Exists('$(MSBuildProjectDirectory)/api')" />
+  </Target>
+
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
-  <Import Project="$(MSBuildThisFileDirectory)/../eng/ProjectStaging.targets" />
 
   <!-- Used by Aspire.Workload.Testing.targets -->
   <Target Name="GetPackageName" Returns="@(PackageName)">

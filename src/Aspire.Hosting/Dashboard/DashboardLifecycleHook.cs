@@ -140,7 +140,22 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource.Annotations.Remove(endpointAnnotation);
         }
 
-        var snapshot = new CustomResourceSnapshot()
+        if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
+        {
+            // We need to print out the url so that dotnet watch can launch the dashboard
+            // technically this is too early
+            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var firstDashboardUrl))
+            {
+                settingsWriter.AddPortForward(
+                                firstDashboardUrl.ToString(),
+                                firstDashboardUrl.Port,
+                                firstDashboardUrl.Scheme,
+                                $"aspire-dashboard-{firstDashboardUrl.Scheme}",
+                                openBrowser: true);
+            }
+        }
+
+        var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
             ResourceType = dashboardResource switch
@@ -150,7 +165,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true ? null : KnownResourceStates.Hidden
+            State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
+                ? null
+                : KnownResourceStates.Hidden
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
@@ -191,7 +208,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
 
                 // Use explicitly defined allowed origins if configured.
-                var allowedOrigins = configuration[KnownConfigNames.DashboardCorsAllowedOrigins];
+                var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
 
                 // If allowed origins are not configured then calculate allowed origins from endpoints.
                 if (string.IsNullOrEmpty(allowedOrigins))
@@ -245,8 +262,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // via the ILogger.
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
 
-            // We need to print out the url so that dotnet watch can launch the dashboard
-            // technically this is too early, but it's late ne
             if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
                 return;
@@ -254,15 +269,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             var dashboardUri = (new UriBuilder(firstDashboardUrl) { Path = options.DashboardUrlPathBase ?? "" }).Uri;
             var dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUri.ToString());
-
-            if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
-            {
-                await settingsWriter.SetPortAttributesAsync(
-                    firstDashboardUrl.Port,
-                    firstDashboardUrl.Scheme,
-                    "aspire-dashboard",
-                    context.CancellationToken).ConfigureAwait(false);
-            }
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 

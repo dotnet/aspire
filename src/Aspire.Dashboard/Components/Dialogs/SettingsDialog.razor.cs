@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -21,7 +22,16 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     protected override void OnInitialized()
     {
@@ -73,6 +83,13 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         NavigationManager.NavigateTo(
             DashboardUrls.SetLanguageUrl(_selectedUiCulture.Name, uri),
             forceLoad: true);
+    }
+
+    private async Task ClearAllSignals()
+    {
+        TelemetryRepository.ClearAllSignals();
+
+        await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
     }
 
     public void Dispose()

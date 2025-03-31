@@ -74,9 +74,8 @@ public class AddMySqlTests
     public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
         appBuilder.AddMySql("mysql", pass, 1234);
 
         using var app = appBuilder.Build();
@@ -246,28 +245,22 @@ public class AddMySqlTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
+        var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
+        Assert.Empty(container.Annotations.OfType<ContainerMountAnnotation>());
+
         Assert.Equal($"{mysql.Resource.Name}:{mysql.Resource.PrimaryEndpoint.TargetPort}", config["PMA_HOST"]);
         Assert.NotNull(config["PMA_USER"]);
         Assert.NotNull(config["PMA_PASSWORD"]);
     }
 
     [Fact]
-    public void WithPhpMyAdminAddsContainer()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddMySql("mySql").WithPhpMyAdmin();
-
-        var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
-        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
-
-        Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
-        Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
-    }
-
-    [Fact]
     public void WithPhpMyAdminProducesValidServerConfigFile()
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
+        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(c => c.WithHostPort(8081));
 
@@ -275,13 +268,13 @@ public class AddMySqlTests
         mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host3"));
 
-        var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
-        var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
-
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+
+        var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
+        var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         using var stream = File.OpenRead(volume.Source!);
         var fileContents = new StreamReader(stream).ReadToEnd();
@@ -293,6 +286,15 @@ public class AddMySqlTests
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);
         Assert.True(match2.Success);
+
+        try
+        {
+            Directory.Delete(tempStorePath, true);
+        }
+        catch
+        {
+            // Ignore.
+        }
     }
 
     [Fact]

@@ -8,31 +8,35 @@ namespace Aspire.Dashboard.Utils;
 
 internal static class DashboardUrls
 {
+    public const string ResourcesBasePath = "";
     public const string ConsoleLogBasePath = "consolelogs/";
     public const string MetricsBasePath = "metrics/";
     public const string StructuredLogsBasePath = "structuredlogs/";
     public const string TracesBasePath = "traces/";
 
-    public static string ResourcesUrl(string? resource = null)
+    public static string ResourcesUrl(string? resource = null, string? view = null)
     {
+        var url = ResourcesBasePath;
+
         if (resource != null)
         {
-            return QueryHelpers.AddQueryString("", "resource", resource);
+            url = QueryHelpers.AddQueryString("", "resource", resource);
         }
 
-        return "";
+        if (view != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "view", view);
+        }
+
+        return url;
     }
 
-    public static string ConsoleLogsUrl(string? resource = null, bool? hideTimestamp = null)
+    public static string ConsoleLogsUrl(string? resource = null)
     {
         var url = ConsoleLogBasePath;
         if (resource != null)
         {
             url += $"resource/{Uri.EscapeDataString(resource)}";
-        }
-        if (hideTimestamp ?? false)
-        {
-            url = QueryHelpers.AddQueryString(url, "hideTimestamp", "true");
         }
 
         return url;

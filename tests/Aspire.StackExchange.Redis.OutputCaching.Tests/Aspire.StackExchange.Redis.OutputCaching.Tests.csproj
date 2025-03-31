@@ -6,10 +6,14 @@
 
   <ItemGroup>
     <None Include="$(RepoRoot)src\Components\Aspire.StackExchange.Redis.OutputCaching\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.OutputCaching\Aspire.StackExchange.Redis.OutputCaching.csproj" />
-
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     <ProjectReference Include="..\Aspire.StackExchange.Redis.Tests\Aspire.StackExchange.Redis.Tests.csproj" />
   </ItemGroup>
 

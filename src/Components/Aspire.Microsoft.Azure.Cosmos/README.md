@@ -120,7 +120,7 @@ Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and cons
 
 ```csharp
 var cosmosdb = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb")
+    ? builder.AddAzureCosmosDB("cdb").AddCosmosDatabase("cosmosdb")
     : builder.AddConnectionString("cosmosdb");
 
 var myService = builder.AddProject<Projects.MyService>()

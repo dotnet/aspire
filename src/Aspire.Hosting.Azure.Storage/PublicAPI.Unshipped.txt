@@ -1,4 +1,0 @@
-#nullable enable
-*REMOVED*static Aspire.Hosting.AzureStorageExtensions.AddAzureStorage(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureStorageResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.Storage.StorageAccount!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureStorageResource!>!
-*REMOVED*Aspire.Hosting.Azure.AzureStorageResource.AzureStorageResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureStorageResource.AzureStorageResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void

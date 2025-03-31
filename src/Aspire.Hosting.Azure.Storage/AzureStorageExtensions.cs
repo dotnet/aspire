@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -18,39 +17,59 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureStorageExtensions
 {
+    private const string SkipApiVersionCheckArgument = "--skipApiVersionCheck";
+
     /// <summary>
     /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
+    /// <remarks>
+    /// By default references to the Azure Storage resource will be assigned the following roles:
+    /// 
+    /// - <see cref="StorageBuiltInRole.StorageBlobDataContributor"/>
+    /// - <see cref="StorageBuiltInRole.StorageTableDataContributor"/>
+    /// - <see cref="StorageBuiltInRole.StorageQueueDataContributor"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureStorageResource}, StorageBuiltInRole[])"/>.
+    /// </remarks>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = StorageKind.StorageV2,
-                AccessTier = StorageAccountAccessTier.Hot,
-                Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-                NetworkRuleSet = new StorageAccountNetworkRuleSet()
+            var storageAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-                    // the AzureServices firewall policy works. This means that we need this Azure Storage
-                    // account to have its default action set to Allow.
-                    DefaultAction = StorageNetworkDefaultAction.Allow
+                    var resource = StorageAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-                // with the pending deprecation of TLS 1.0 and 1.1.
-                MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-                // Disable shared key access to the storage account as managed identity is configured
-                // to access the storage account by default.
-                AllowSharedKeyAccess = false,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(storageAccount);
+                (infrastructure) => new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Kind = StorageKind.StorageV2,
+                    AccessTier = StorageAccountAccessTier.Hot,
+                    Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                    NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                    {
+                        // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+                        // the AzureServices firewall policy works. This means that we need this Azure Storage
+                        // account to have its default action set to Allow.
+                        DefaultAction = StorageNetworkDefaultAction.Allow
+                    },
+                    // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+                    // with the pending deprecation of TLS 1.0 and 1.1.
+                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
+                    // Disable shared key access to the storage account as managed identity is configured
+                    // to access the storage account by default.
+                    AllowSharedKeyAccess = false,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             var blobs = new BlobService("blobs")
             {
@@ -58,23 +77,20 @@ public static class AzureStorageExtensions
             };
             infrastructure.Add(blobs);
 
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, principalTypeParameter, principalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, principalTypeParameter, principalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, principalTypeParameter, principalIdParameter));
-
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
+
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+            .WithDefaultRoleAssignments(StorageBuiltInRole.GetBuiltInRoleName,
+                StorageBuiltInRole.StorageBlobDataContributor,
+                StorageBuiltInRole.StorageTableDataContributor,
+                StorageBuiltInRole.StorageQueueDataContributor);
     }
 
     /// <summary>
@@ -88,6 +104,8 @@ public static class AzureStorageExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -126,12 +144,15 @@ public static class AzureStorageExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureStorageEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
+        // They need to be repeated in order to be able to add --skipApiVersionCheck
+
+        var surrogate = new AzureStorageEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder
+            .CreateResourceBuilder(surrogate)
+            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument);
+
+        configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
 
@@ -156,7 +177,11 @@ public static class AzureStorageExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null, bool isReadOnly = false)
-        => builder.WithBindMount(path ?? $".azurite/{builder.Resource.Name}", "/data", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithBindMount(path ?? $".azurite/{builder.Resource.Name}", "/data", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a named volume for the data folder to an Azure Storage emulator resource.
@@ -166,7 +191,11 @@ public static class AzureStorageExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithDataVolume(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
+    }
 
     /// <summary>
     /// Modifies the host port that the storage emulator listens on for blob requests.
@@ -176,6 +205,8 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("blob", endpoint =>
         {
             endpoint.Port = port;
@@ -190,6 +221,8 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("queue", endpoint =>
         {
             endpoint.Port = port;
@@ -201,12 +234,38 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("table", endpoint =>
         {
             endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Ensures the emulator checks that the requested API version is valid.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="enable">Whether to enable API version check or not. Default is <lang>true</lang>.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithApiVersionCheck(this IResourceBuilder<AzureStorageEmulatorResource> builder, bool enable = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder
+            .WithArgs(context =>
+        {
+            context.Args.Remove(SkipApiVersionCheckArgument);
+
+            if (enable)
+            {
+                context.Args.Add(SkipApiVersionCheckArgument);
+            }
+
+            return Task.CompletedTask;
         });
     }
 
@@ -218,6 +277,9 @@ public static class AzureStorageExtensions
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var resource = new AzureBlobStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
     }
@@ -230,6 +292,9 @@ public static class AzureStorageExtensions
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var resource = new AzureTableStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
     }
@@ -242,7 +307,40 @@ public static class AzureStorageExtensions
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Storage account. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Storage account.</param>
+    /// <param name="roles">The built-in storage roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <example>
+    /// Assigns the StorageBlobDataContributor role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var storage = builder.AddAzureStorage("storage");
+    /// var blobs = storage.AddBlobs("blobs");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
+    ///   .WithReference(blobs);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureStorageResource> target,
+        params StorageBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

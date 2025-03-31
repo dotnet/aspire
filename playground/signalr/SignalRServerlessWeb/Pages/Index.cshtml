@@ -1,0 +1,20 @@
+﻿@page
+<h1>Azure SignalR Serverless Sample</h1>
+<div id="connected"></div>
+<div id="messages"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+<script>
+    let messages = document.querySelector('#messages');
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+      connection.on('newMessage', (message) => {
+        document.getElementById("messages").innerHTML = message;
+      });
+      connection.start()
+        .then(() => {
+            console.log('connected!');
+        })
+        .catch(console.error);
+</script>

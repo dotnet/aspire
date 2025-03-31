@@ -19,7 +19,7 @@ public static class AspireEventHubsExtensions
     private const string DefaultConfigSectionName = "Aspire:Azure:Messaging:EventHubs:";
 
     /// <summary>
-    /// Registers <see cref="EventProcessorClient"/> as a singleton in the services provided by the<paramref name="builder"/>.
+    /// Registers <see cref="EventProcessorClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -33,6 +33,9 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsProcessorSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new EventProcessorClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventProcessorClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
@@ -53,6 +56,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsProcessorSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new EventProcessorClientComponent()
@@ -75,6 +79,9 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsPartitionReceiverSettings>? configureSettings = null,
         Action<IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new PartitionReceiverClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(PartitionReceiver),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
@@ -95,6 +102,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsPartitionReceiverSettings>? configureSettings = null,
         Action<IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new PartitionReceiverClientComponent()
@@ -117,6 +125,9 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsProducerSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventHubProducerClient, EventHubProducerClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new EventHubProducerClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventHubProducerClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
@@ -137,6 +148,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsProducerSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventHubProducerClient, EventHubProducerClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new EventHubProducerClientComponent()
@@ -160,6 +172,9 @@ public static class AspireEventHubsExtensions
         Action<IAzureClientBuilder<EventHubBufferedProducerClient, EventHubBufferedProducerClientOptions>>?
             configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new EventHubBufferedProducerClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient), configureSettings,
                 configureClientBuilder, connectionName, serviceKey: null);
@@ -181,6 +196,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsBufferedProducerSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventHubBufferedProducerClient, EventHubBufferedProducerClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new EventHubBufferedProducerClientComponent()
@@ -203,6 +219,9 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsConsumerSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new EventHubConsumerClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventHubConsumerClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
@@ -224,6 +243,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsConsumerSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new EventHubConsumerClientComponent()

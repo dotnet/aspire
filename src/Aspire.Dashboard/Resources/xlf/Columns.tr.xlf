@@ -2,16 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
-        <source>Endpoints</source>
-        <target state="translated">Uç noktalar</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="EndpointsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Başlatılıyor...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
         <target state="translated">Bu kapsayıcı kalıcıdır ve uygulama ana bilgisayarı kapatıldığında durdurulamaz.</target>
@@ -112,6 +102,16 @@ Daha fazla bilgi için bkz. https://aka.ms/dotnet/aspire/container-runtime-unhea
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
         <target state="translated">1 hata günlüğü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UrlsColumnDisplayOverflowTitle">
+        <source>URLs</source>
+        <target state="translated">URL’ler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UrlsColumnDisplayPlaceholder">
+        <source>Starting...</source>
+        <target state="translated">Başlatılıyor...</target>
         <note />
       </trans-unit>
     </body>

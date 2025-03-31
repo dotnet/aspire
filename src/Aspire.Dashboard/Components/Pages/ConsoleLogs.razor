@@ -5,7 +5,12 @@
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout AddNewlineOnToolbar="true"
@@ -22,21 +27,30 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
-            @foreach (var command in _highlightedCommands)
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
+
+            @if (_highlightedCommands.Count > 0)
             {
-                <FluentButton Appearance="Appearance.Lightweight"
-                              Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
-                              Disabled="@(command.State == CommandViewModelState.Disabled)"
-                              OnClick="@(() => ExecuteResourceCommandAsync(command))">
-                    @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
-                    {
-                        <FluentIcon Value="@icon" Width="16px" />
-                    }
-                    else
-                    {
-                        @command.DisplayName
-                    }
-                </FluentButton>
+                <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
+
+                @foreach (var command in _highlightedCommands)
+                {
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                                  Disabled="@(command.State == CommandViewModelState.Disabled)"
+                                  OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                                  Class="highlighted-command">
+                        @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
+                        {
+                            <FluentIcon Value="@icon" Width="16px" />
+                        }
+                        else
+                        {
+                            @command.DisplayName
+                        }
+                    </FluentButton>
+                }
             }
 
             @if (_resourceMenuItems.Count > 0)
@@ -54,7 +68,7 @@
             }
 
             <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.Settings())"
+                              Icon="@(new Icons.Regular.Size20.Options())"
                               Items="@_logsMenuItems"
                               Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
                               slot="end" />
@@ -74,7 +88,11 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" HideTimestamp="@PageViewModel.HideTimestamp" />
+            <LogViewer
+                LogEntries="@_logEntries"
+                ShowTimestamp="@_showTimestamp"
+                IsTimestampUtc="@_isTimestampUtc"
+                ApplicationName="@PageViewModel.SelectedResource?.Name"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

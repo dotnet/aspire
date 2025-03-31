@@ -27,27 +27,37 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         _logger.LogDebug($"PostConfigure {nameof(DashboardOptions)} with name '{name}'.");
 
         // Copy aliased config values to the strongly typed options.
-        if (_configuration[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } otlpGrpcUrl)
+        if (_configuration.GetString(DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.DashboardOtlpGrpcUrlName.ConfigKey, fallbackOnEmpty: true) is { } otlpGrpcUrl)
         {
             options.Otlp.GrpcEndpointUrl = otlpGrpcUrl;
         }
+
+        // Copy aliased config values to the strongly typed options.
         if (_configuration[DashboardConfigNames.DashboardPathBase.ConfigKey] is { Length: > 0 } pathBase)
         {
             options.PathBase = pathBase;
         }
-        if (_configuration[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } otlpHttpUrl)
+        
+        if (_configuration.GetString(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.DashboardOtlpHttpUrlName.ConfigKey, fallbackOnEmpty: true) is { } otlpHttpUrl)
         {
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
         }
+
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
         {
             options.Frontend.EndpointUrls = frontendUrls;
         }
-        if (_configuration[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] is { Length: > 0 } resourceServiceUrl)
+
+        if (_configuration.GetString(DashboardConfigNames.ResourceServiceUrlName.ConfigKey,
+                                     DashboardConfigNames.Legacy.ResourceServiceUrlName.ConfigKey, fallbackOnEmpty: true) is { } resourceServiceUrl)
         {
             options.ResourceServiceClient.Url = resourceServiceUrl;
         }
-        if (_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
+
+        if (_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey,
+                                   DashboardConfigNames.Legacy.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
@@ -57,6 +67,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.AuthMode ??= FrontendAuthMode.BrowserToken;
             options.Otlp.AuthMode ??= OtlpAuthMode.Unsecured;
         }
+
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
         {
             var token = TokenGenerator.GenerateToken();

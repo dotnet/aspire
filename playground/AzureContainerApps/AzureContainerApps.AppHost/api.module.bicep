@@ -1,22 +1,29 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param api_identity_outputs_id string
+
+param api_identity_outputs_clientid string
+
 param api_containerport string
 
 param storage_outputs_blobendpoint string
 
-param account_secretoutputs string
+@secure()
+param cache_password_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param account_kv_outputs_name string
 
 @secure()
 param secretparam_value string
 
-param outputs_managed_identity_client_id string
+param api_identity_outputs_principalname string
 
-param outputs_azure_container_apps_environment_id string
+param infra_outputs_azure_container_apps_environment_id string
 
-param outputs_azure_container_registry_endpoint string
+param infra_outputs_azure_container_registry_endpoint string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
 
 param api_containerimage string
 
@@ -24,13 +31,13 @@ param certificateName string
 
 param customDomain string
 
-resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: account_secretoutputs
+resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: account_kv_outputs_name
 }
 
-resource account_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-  name: 'connectionString'
-  parent: account_secretoutputs_kv
+resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+  name: 'connectionstrings--account'
+  parent: account_kv_outputs_name_kv
 }
 
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
@@ -40,9 +47,13 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       secrets: [
         {
+          name: 'connectionstrings--cache'
+          value: 'cache:6379,password=${cache_password_value}'
+        }
+        {
           name: 'connectionstrings--account'
-          identity: outputs_azure_container_registry_managed_identity_id
-          keyVaultUrl: account_secretoutputs_kv_connectionString.properties.secretUri
+          identity: api_identity_outputs_id
+          keyVaultUrl: account_kv_outputs_name_kv_connectionstrings__account.properties.secretUri
         }
         {
           name: 'value'
@@ -58,18 +69,18 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           {
             name: customDomain
             bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
-            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+            certificateId: (certificateName != '') ? '${infra_outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
           }
         ]
       }
       registries: [
         {
-          server: outputs_azure_container_registry_endpoint
-          identity: outputs_azure_container_registry_managed_identity_id
+          server: infra_outputs_azure_container_registry_endpoint
+          identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: infra_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
@@ -102,7 +113,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__cache'
-              value: 'cache:6379'
+              secretRef: 'connectionstrings--cache'
             }
             {
               name: 'ConnectionStrings__account'
@@ -113,8 +124,12 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
               secretRef: 'value'
             }
             {
+              name: 'AZURE_PRINCIPAL_NAME'
+              value: api_identity_outputs_principalname
+            }
+            {
               name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
+              value: api_identity_outputs_clientid
             }
           ]
         }
@@ -127,7 +142,8 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${api_identity_outputs_id}': { }
+      '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }

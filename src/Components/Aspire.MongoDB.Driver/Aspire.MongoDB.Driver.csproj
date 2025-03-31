@@ -6,11 +6,9 @@
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>A generic MongoDB client that integrates with Aspire.</Description>
-    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>86</MinCodeCoverage>
+    <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <DefineConstants>$(DefineConstants);MONGODB_V2</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,14 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" />
-    <PackageReference Include="MongoDB.Driver" />
+    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" VersionOverride="[8.1.0,9.0.0)" />
+    <PackageReference Include="MongoDB.Driver" VersionOverride="[2.30.0,3.0.0)" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" />
+    <PackageReference Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" VersionOverride="[1.5.0,2.0.0)" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
-
 
 </Project>

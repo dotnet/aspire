@@ -5,12 +5,12 @@ namespace Aspire.Hosting.Azure.Storage;
 
 internal static class StorageEmulatorContainerImageTags
 {
-    /// <summary>mcr.microsoft.com</summary>
+    /// <remarks>mcr.microsoft.com</remarks>
     public const string Registry = "mcr.microsoft.com";
 
-    /// <summary>azure-storage/azurite</summary>
+    /// <remarks>azure-storage/azurite</remarks>
     public const string Image = "azure-storage/azurite";
 
-    /// <summary>3.33.0</summary>
-    public const string Tag = "3.33.0";
+    /// <remarks>3.34.0</remarks>
+    public const string Tag = "3.34.0";
 }

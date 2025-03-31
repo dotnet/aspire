@@ -37,7 +37,7 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
     }
 
     [Theory]
@@ -214,10 +214,10 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredKeyedService<IChatClient>("openai_chatclient") :
             host.Services.GetRequiredService<IChatClient>();
 
-        var completion = await client.CompleteAsync("Whatever");
-        Assert.Equal("Hello from middleware", completion.Message.Text);
+        var completion = await client.GetResponseAsync("Whatever");
+        Assert.Equal("Hello from middleware", completion.Text);
 
-        static Task<ChatCompletion> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
-            => Task.FromResult(new ChatCompletion(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
+        static Task<ChatResponse> TestMiddleware(IEnumerable<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
+            => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
     }
 }

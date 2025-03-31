@@ -98,9 +98,8 @@ public class AddPostgresTests
     public async Task AddPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
         appBuilder.AddPostgres("myPostgres", password: pass, port: 1234);
 
         using var app = appBuilder.Build();
@@ -189,9 +188,8 @@ public class AddPostgresTests
     public async Task AddDatabaseToPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
         appBuilder.AddPostgres("postgres", password: pass, port: 1234).AddDatabase("db");
 
         using var app = appBuilder.Build();
@@ -371,17 +369,21 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void WithPgAdminAddsContainer()
+    public async Task WithPgAdminAddsContainer()
     {
-
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
-        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
-        Assert.Equal("/pgadmin4/servers.json", volume.Target);
+        // The mount annotation is added in the AfterEndpointsAllocatedEvent.
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+
+        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var createFile = container.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
+
+        Assert.Equal("/pgadmin4", createFile.DestinationPath);
     }
 
     [Fact]
@@ -445,13 +447,17 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+        Assert.Single(builder.Resources.Where(r => r.Name.EndsWith("-pgadmin")));
     }
 
     [Fact]
     public async Task WithPostgresProducesValidServersJsonFile()
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
+        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+
         var username = builder.AddParameter("pg-user", "myuser");
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2", username).WithPgAdmin(pga => pga.WithHostPort(8081));
@@ -460,15 +466,26 @@ public class AddPostgresTests
         pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
-        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
-        var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
-
         using var app = builder.Build();
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        using var stream = File.OpenRead(volume.Source!);
-        var document = JsonDocument.Parse(stream);
+        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+
+        var createServers = pgadmin.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
+
+        Assert.Equal("/pgadmin4", createServers.DestinationPath);
+        Assert.Null(createServers.Umask);
+        Assert.Equal(0, createServers.DefaultOwner);
+        Assert.Equal(0, createServers.DefaultGroup);
+
+        var entries = await createServers.Callback(new() { Model = pgadmin, ServiceProvider = app.Services }, CancellationToken.None);
+
+        var serversFile = Assert.IsType<ContainerFile>(entries.First());
+        Assert.NotNull(serversFile.Contents);
+        Assert.Equal(UnixFileMode.None, serversFile.Mode);
+
+        var document = JsonDocument.Parse(serversFile.Contents!);
 
         var servers = document.RootElement.GetProperty("Servers");
 
@@ -491,12 +508,25 @@ public class AddPostgresTests
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
+
+        try
+        {
+            Directory.Delete(tempStorePath, true);
+        }
+        catch
+        {
+            // Ignore.
+        }
     }
 
     [Fact]
     public async Task WithPgwebProducesValidBookmarkFiles()
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
+        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2").WithPgWeb(pga => pga.WithHostPort(8081));
 
@@ -507,43 +537,52 @@ public class AddPostgresTests
         var db1 = pg1.AddDatabase("db1");
         var db2 = pg2.AddDatabase("db2");
 
-        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
-        var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
-
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var bookMarkFiles = Directory.GetFiles(volume.Source!).OrderBy(f => f).ToArray();
+        var pgweb = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
+        var createBookmarks = pgweb.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        Assert.Collection(bookMarkFiles,
-            filePath =>
+        Assert.Equal("/", createBookmarks.DestinationPath);
+        Assert.Null(createBookmarks.Umask);
+        Assert.Equal(0, createBookmarks.DefaultOwner);
+        Assert.Equal(0, createBookmarks.DefaultGroup);
+
+        var entries = await createBookmarks.Callback(new() { Model = pgweb, ServiceProvider = app.Services }, CancellationToken.None);
+
+        var pgWebDirectory = Assert.IsType<ContainerDirectory>(entries.First());
+        Assert.Equal(".pgweb", pgWebDirectory.Name);
+        Assert.Single(pgWebDirectory.Entries);
+
+        var bookmarksDirectory = Assert.IsType<ContainerDirectory>(pgWebDirectory.Entries.First());
+        Assert.Equal("bookmarks", bookmarksDirectory.Name);
+
+        Assert.Collection(bookmarksDirectory.Entries,
+            entry =>
             {
-                Assert.Equal(".toml", Path.GetExtension(filePath));
+                var file = Assert.IsType<ContainerFile>(entry);
+                Assert.Equal(".toml", Path.GetExtension(file.Name));
+                Assert.Equal(UnixFileMode.None, file.Mode);
+                Assert.Equal(CreatePgWebBookmarkfileContent(db1.Resource), file.Contents);
             },
-            filePath =>
+            entry =>
             {
-                Assert.Equal(".toml", Path.GetExtension(filePath));
+                var file = Assert.IsType<ContainerFile>(entry);
+                Assert.Equal(".toml", Path.GetExtension(file.Name));
+                Assert.Equal(UnixFileMode.None, file.Mode);
+                Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), file.Contents);
             });
 
-        var bookmarkFilesContent = new List<string>();
-
-        foreach (var filePath in bookMarkFiles)
+        try
         {
-            bookmarkFilesContent.Add(File.ReadAllText(filePath));
+            Directory.Delete(tempStorePath, true);
         }
-
-        Assert.NotEmpty(bookmarkFilesContent);
-        Assert.Collection(bookmarkFilesContent,
-            content =>
-            {
-                Assert.Equal(CreatePgWebBookmarkfileContent(db1.Resource), content);
-            },
-            content =>
-            {
-                Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), content);
-            });
+        catch
+        {
+            // Ignore.
+        }
     }
 
     [Fact]

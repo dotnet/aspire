@@ -3,6 +3,10 @@
 
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
 
+  <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(ExcludeTestUtilities)' != 'true' ">
+    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
@@ -12,8 +16,10 @@
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
-    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+    <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnGithubActions>
+    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnHelix>
+    <!-- this is for pipeline tests -->
+    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,12 +42,12 @@
   </Target>
 
   <!-- Used for running one helix job per test class -->
-  <Target Name="_ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
+  <Target Name="ExtractTestClassNames"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
-           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Workload.Tests" />
+           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Templates.Tests" />
 
     <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
@@ -66,5 +72,11 @@
                       Overwrite="true" />
   </Target>
 
-  <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
+    <ItemGroup>
+      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunTestsOnGithubActions)" />
+    </ItemGroup>
+  </Target>
+
+  <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />
 </Project>

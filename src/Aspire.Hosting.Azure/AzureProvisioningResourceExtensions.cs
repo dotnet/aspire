@@ -25,8 +25,7 @@ public static class AzureProvisioningResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureProvisioningResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -69,11 +68,37 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResourceBuilder.Resource.Name);
+        return parameterResourceBuilder.Resource.AsProvisioningParameter(infrastructure, parameterName);
+    }
 
-        infrastructure.AspireResource.Parameters[parameterName] = parameterResourceBuilder.Resource;
+    /// <summary>
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="parameterResource"/>.
+    /// </summary>
+    /// <param name="parameterResource">
+    /// The <see cref="ParameterResource"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
+    /// to get or create a corresponding <see cref="ProvisioningParameter"/>.
+    /// </param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <returns>
+    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
+    public static ProvisioningParameter AsProvisioningParameter(this ParameterResource parameterResource, AzureResourceInfrastructure infrastructure, string? parameterName = null)
+    {
+        ArgumentNullException.ThrowIfNull(parameterResource);
+        ArgumentNullException.ThrowIfNull(infrastructure);
 
-        return GetOrAddParameter(infrastructure, parameterName, parameterResourceBuilder.Resource.Secret);
+        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResource.Name);
+
+        infrastructure.AspireResource.Parameters[parameterName] = parameterResource;
+
+        return GetOrAddParameter(infrastructure, parameterName, parameterResource.Secret);
     }
 
     /// <summary>
@@ -98,7 +123,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(outputReference);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= outputReference.Name;
+        parameterName ??= GetNameFromValueExpression(outputReference);
 
         infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
@@ -171,6 +196,17 @@ public static class AzureProvisioningResourceExtensions
         }
 
         return parameter;
+    }
+
+    private static string GetNameFromValueExpression(IManifestExpressionProvider ep)
+    {
+        var parameterName = ep.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
+
+        if (parameterName[0] == '_')
+        {
+            parameterName = parameterName[1..];
+        }
+        return parameterName;
     }
 }
 

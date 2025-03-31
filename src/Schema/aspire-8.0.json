@@ -107,7 +107,14 @@
                 "description": "The entrypoint to use for the container image when executed."
               },
               "deployment": {
-                "$ref": "#/definitions/resource.azure.bicep.v0"
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/resource.azure.bicep.v0"
+                  },
+                  {
+                    "$ref": "#/definitions/resource.azure.bicep.v1"
+                  }
+                ]
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -170,7 +177,14 @@
                 "description": "The path to the project file. Relative paths are interpreted as being relative to the location of the manifest file."
               },
               "deployment": {
-                "$ref": "#/definitions/resource.azure.bicep.v0"
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/resource.azure.bicep.v0"
+                  },
+                  {
+                    "$ref": "#/definitions/resource.azure.bicep.v1"
+                  }
+                ]
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -379,6 +393,9 @@
             "$ref": "#/definitions/resource.azure.bicep.v0"
           },
           {
+            "$ref": "#/definitions/resource.azure.bicep.v1"
+          },
+          {
             "type": "object",
             "required": [ "type", "stack-name" ],
             "properties": {
@@ -449,6 +466,7 @@
                     "value.v0",
                     "executable.v0",
                     "azure.bicep.v0",
+                    "azure.bicep.v1",
                     "aws.cloudformation.template.v0",
                     "aws.cloudformation.stack.v0",
                     "dapr.component.v0",
@@ -470,7 +488,7 @@
   "definitions": {
     "resource.azure.bicep.v0": {
       "type": "object",
-      "default": "Represents a resource that is deployed using Azure Bicep.",
+      "description": "Represents a resource that is deployed using Azure Bicep.",
       "required": [ "path" ],
       "properties": {
         "type": {
@@ -498,6 +516,30 @@
         }
       },
       "additionalProperties": false
+    },
+    "resource.azure.bicep.v1": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/resource.azure.bicep.v0"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "azure.bicep.v1"
+            },
+            "scope": {
+              "type": "object",
+              "properties": {
+                "resourceGroup": {
+                  "type": "string",
+                  "description": "The name of the resource group to deploy the resource to."
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "connectionString": {
       "type": "string",

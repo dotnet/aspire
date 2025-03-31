@@ -15,8 +15,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OtlpConfigurationExtensions
 {
-    private const string DashboardOtlpGrpcUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
-    private const string DashboardOtlpHttpUrlVariableName = "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
     /// <summary>
@@ -42,8 +40,8 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            var dashboardOtlpGrpcUrl = configuration[DashboardOtlpGrpcUrlVariableName];
-            var dashboardOtlpHttpUrl = configuration[DashboardOtlpHttpUrlVariableName];
+            var dashboardOtlpGrpcUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
+            var dashboardOtlpHttpUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
 
             // The dashboard can support OTLP/gRPC and OTLP/HTTP endpoints at the same time, but it can
             // only tell resources about one of the endpoints via environment variables.
@@ -64,16 +62,8 @@ public static class OtlpConfigurationExtensions
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
-            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(context.CancellationToken).ConfigureAwait(false);
-            if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
-            {
-                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
-            }
-            else
-            {
-                // Versions prior to Aspire 8.1 do not OTEL service instance ID annotation for replicated Executables.
-                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
-            }
+            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
+            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
@@ -107,7 +97,7 @@ public static class OtlpConfigurationExtensions
 
     /// <summary>
     /// Injects the appropriate environment variables to allow the resource to enable sending telemetry to the dashboard.
-    /// 1. It sets the OTLP endpoint to the value of the DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable.
+    /// 1. It sets the OTLP endpoint to the value of the ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL environment variable.
     /// 2. It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.
     /// 3. It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
     /// </summary>

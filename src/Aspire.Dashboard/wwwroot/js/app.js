@@ -201,7 +201,7 @@ function isInputElement(element, isRoot, isShadowRoot) {
     return false;
 }
 
-window.registerGlobalKeydownListener = function(shortcutManager) {
+window.registerGlobalKeydownListener = function (shortcutManager) {
     function hasNoModifiers(keyboardEvent) {
         return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey && !keyboardEvent.shiftKey;
     }
@@ -272,24 +272,24 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
     return {
         keydownListener: keydownListener,
     }
-}
+};
 
 window.unregisterGlobalKeydownListener = function (obj) {
     window.document.removeEventListener('keydown', obj.keydownListener);
-}
+};
 
 window.getBrowserTimeZone = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
     return options.timeZone;
-}
+};
 
-window.focusElement = function(selector) {
+window.focusElement = function (selector) {
     const element = document.getElementById(selector);
     if (element) {
         element.focus();
     }
-}
+};
 
 window.getWindowDimensions = function() {
     return {
@@ -340,6 +340,13 @@ window.setCellTextClickHandler = function (id) {
     });
 };
 
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
+    }
+};
+
 // taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
 window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
@@ -351,4 +358,4 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.click();
     anchorElement.remove();
     URL.revokeObjectURL(url);
-}
+};

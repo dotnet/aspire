@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -16,7 +15,7 @@ namespace Aspire.Hosting.NodeJs.Tests;
 /// </summary>
 public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 {
-    private TestDistributedApplicationBuilder? _builder;
+    private IDistributedApplicationTestingBuilder? _builder;
     private DistributedApplication? _app;
     private string? _nodeAppPath;
 

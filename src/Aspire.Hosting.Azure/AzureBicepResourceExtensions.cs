@@ -26,8 +26,7 @@ public static class AzureBicepResourceExtensions
 
         var path = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, bicepFile));
         var resource = new AzureBicepResource(name, templateFile: path, templateString: null);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -42,8 +41,7 @@ public static class AzureBicepResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureBicepResource(name, templateFile: null, templateString: bicepContent);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -79,6 +77,8 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
+        builder.WithReferenceRelationship(bicepOutputReference.Resource);
+
         return builder.WithEnvironment(ctx =>
         {
             ctx.EnvironmentVariables[name] = bicepOutputReference;
@@ -207,6 +207,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -223,6 +226,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
@@ -239,6 +245,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -255,6 +264,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -271,6 +283,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }

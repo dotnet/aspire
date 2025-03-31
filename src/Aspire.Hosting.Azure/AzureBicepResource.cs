@@ -13,19 +13,29 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Bicep resource.
 /// </summary>
-/// <param name="name">Name of the resource. This will be the name of the deployment.</param>
-/// <param name="templateFile">The path to the bicep file.</param>
-/// <param name="templateString">A bicep snippet.</param>
-/// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
-public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) :
-    Resource(name),
-    IAzureResource
+public class AzureBicepResource : Resource, IAzureResource
 {
-    internal string? TemplateFile { get; } = templateFile;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AzureBicepResource"/> class.
+    /// </summary>
+    /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
+    /// <param name="templateFile">The path to the bicep file.</param>
+    /// <param name="templateString">A bicep snippet.</param>
+    /// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
+    public AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) : base(name)
+    {
+        TemplateFile = templateFile;
+        TemplateString = templateString;
+        TemplateResourceName = templateResourceName;
 
-    internal string? TemplateString { get; set; } = templateString;
+        Annotations.Add(new ManifestPublishingCallbackAnnotation(WriteToManifest));
+    }
 
-    internal string? TemplateResourceName { get; } = templateResourceName;
+    internal string? TemplateFile { get; }
+
+    internal string? TemplateString { get; set; }
+
+    internal string? TemplateResourceName { get; }
 
     /// <summary>
     /// Parameters that will be passed into the bicep template.
@@ -46,6 +56,16 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// The task completion source for the provisioning operation.
     /// </summary>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    /// <summary>
+    /// The scope of the resource that will be configured in the main Bicep file.
+    /// </summary>
+    /// <remarks>
+    /// The property is used to configure the Bicep scope that is emitted
+    /// in the module definition for a given resource. It is
+    /// only emitted for schema versions azure.bicep.v1.
+    /// </remarks>
+    public AzureBicepResourceScope? Scope { get; set; }
 
     /// <summary>
     /// For testing purposes only.
@@ -134,10 +154,17 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="context">The <see cref="ManifestPublishingContext"/>.</param>
     public virtual void WriteToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "azure.bicep.v0");
-
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
+
+        if (Scope is null)
+        {
+            context.Writer.WriteString("type", "azure.bicep.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.bicep.v1");
+        }
 
         // Write a connection string if it exists.
         context.WriteConnectionString(this);
@@ -174,6 +201,19 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             }
             context.Writer.WriteEndObject();
         }
+
+        if (Scope is not null)
+        {
+            context.Writer.WriteStartObject("scope");
+            var resourceGroup = Scope.ResourceGroup switch
+            {
+                IManifestExpressionProvider output => output.ValueExpression,
+                object obj => obj.ToString(),
+                null => ""
+            };
+            context.Writer.WriteString("resourceGroup", resourceGroup);
+            context.Writer.WriteEndObject();
+        }
     }
 
     /// <summary>
@@ -181,6 +221,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// </summary>
     public static class KnownParameters
     {
+        private const string UserPrincipalIdConst = "userPrincipalId";
         private const string PrincipalIdConst = "principalId";
         private const string PrincipalNameConst = "principalName";
         private const string PrincipalTypeConst = "principalType";
@@ -204,6 +245,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         public static readonly string PrincipalType = PrincipalTypeConst;
 
         /// <summary>
+        /// The principal id of the user doing the deployment.
+        /// </summary>
+        public static readonly string UserPrincipalId = UserPrincipalIdConst;
+
+        /// <summary>
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
         public static readonly string KeyVaultName = KeyVaultNameConst;
@@ -219,7 +265,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>
-            name is PrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+            name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
 
     }
 }

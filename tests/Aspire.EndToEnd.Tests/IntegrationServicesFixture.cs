@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
-using Xunit.Abstractions;
 using Aspire.TestProject;
-using Aspire.Workload.Tests;
+using Aspire.Templates.Tests;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -38,7 +37,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
+        BuildEnvironment = new(useSystemDotNet: true);
         if (TestsRunningOutsideOfRepo)
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";

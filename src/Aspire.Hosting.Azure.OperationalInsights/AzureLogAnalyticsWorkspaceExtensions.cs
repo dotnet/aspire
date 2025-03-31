@@ -21,19 +21,28 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureLogAnalyticsWorkspaceResource> AddAzureLogAnalyticsWorkspace(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new OperationalInsightsWorkspaceSku()
+            var workspace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    var resource = OperationalInsightsWorkspace.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Tags = { { "aspire-resource-name", name } }
-            };
-            infrastructure.Add(workspace);
+                (infrastructure) => new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new OperationalInsightsWorkspaceSku()
+                    {
+                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    },
+                    Tags = { { "aspire-resource-name", name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {
@@ -42,7 +51,6 @@ public static class AzureLogAnalyticsWorkspaceExtensions
         };
 
         var resource = new AzureLogAnalyticsWorkspaceResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }
