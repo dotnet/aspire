@@ -18,8 +18,8 @@ resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
 }
 
-resource gpt_4o 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'gpt-4o'
+resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  name: 'chat'
   properties: {
     model: {
       format: 'OpenAI'

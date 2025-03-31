@@ -74,6 +74,7 @@ public static class AzureOpenAIExtensions
 
             CognitiveServicesAccountDeployment? dependency = null;
 
+#pragma warning disable CS0618 // Type or member is obsolete
             foreach (var deployment in resource.Deployments)
             {
                 dependency = CreateDeployment(infrastructure, cogServicesAccount, ref dependency, deployment);
@@ -91,6 +92,7 @@ public static class AzureOpenAIExtensions
                         deployment.ModelVersion,
                         deployment.SkuName,
                         deployment.SkuCapacity));
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         };
 
@@ -100,7 +102,9 @@ public static class AzureOpenAIExtensions
                 CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor);
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     private static CognitiveServicesAccountDeployment CreateDeployment(AzureResourceInfrastructure infrastructure, CognitiveServicesAccount cogServicesAccount, ref CognitiveServicesAccountDeployment? dependency, AzureOpenAIDeployment deployment)
+#pragma warning restore CS0618 // Type or member is obsolete
     {
         var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
         {
@@ -142,6 +146,7 @@ public static class AzureOpenAIExtensions
     /// <param name="builder">The Azure OpenAI resource builder.</param>
     /// <param name="deployment">The deployment to add.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("AddDeployment taking an AzureOpenAIDeployment is deprecated. Please the AddDeployment overload that returns an AzureOpenAIDeploymentResource instead.")]
     public static IResourceBuilder<AzureOpenAIResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> builder, AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -171,6 +176,22 @@ public static class AzureOpenAIExtensions
         builder.Resource.AddDeployment(deployment);
 
         return builder.ApplicationBuilder.AddResource(deployment);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure OpenAI Deployment resource.
+    /// </summary>
+    /// <param name="builder">The Azure OpenAI Deployment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureOpenAIDeploymentResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIDeploymentResource> WithProperties(this IResourceBuilder<AzureOpenAIDeploymentResource> builder, Action<AzureOpenAIDeploymentResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
+        return builder;
     }
 
     /// <summary>

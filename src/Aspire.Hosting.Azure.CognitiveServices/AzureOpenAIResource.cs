@@ -16,6 +16,7 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     IResourceWithConnectionString,
     IResourceWithEnvironment
 {
+    [Obsolete("Use AzureOpenAIDeploymentResource instead.")]
     private readonly List<AzureOpenAIDeployment> _deployments = [];
     private readonly List<AzureOpenAIDeploymentResource> _deploymentResources = [];
 
@@ -38,15 +39,13 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
     internal IReadOnlyList<AzureOpenAIDeploymentResource> DeploymentResources => _deploymentResources;
 
-    /// <summary>
-    /// Adds an <see cref="AzureOpenAIDeployment"/> instance to the list of deployments.
-    /// </summary>
-    /// <param name="deployment">The <see cref="AzureOpenAIDeployment"/> instance to add.</param>
-    public void AddDeployment(AzureOpenAIDeployment deployment)
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
+    internal void AddDeployment(AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(deployment);
 

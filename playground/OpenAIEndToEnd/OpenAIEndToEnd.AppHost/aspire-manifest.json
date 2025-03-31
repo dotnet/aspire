@@ -8,7 +8,7 @@
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{openai.outputs.connectionString};Deployment=gpt-4o"
+      "connectionString": "{openai.outputs.connectionString};Deployment=chat"
     },
     "webstory": {
       "type": "project.v0",

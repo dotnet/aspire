@@ -36,7 +36,7 @@ public class AzureOpenAIDeploymentResource : Resource, IResourceWithParent<Azure
         ArgumentException.ThrowIfNullOrEmpty(modelVersion);
         ArgumentNullException.ThrowIfNull(parent);
 
-        _deploymentName = modelName;
+        _deploymentName = name;
         _modelName = modelName;
         _modelVersion = modelVersion;
         _skuName = DefaultSkuName;
@@ -47,7 +47,7 @@ public class AzureOpenAIDeploymentResource : Resource, IResourceWithParent<Azure
     /// Gets or sets the name of the deployment.
     /// </summary>
     /// <remarks>
-    /// This defaults to <see cref="ModelName"/>, but allows for a different deployment name in Azure.
+    /// This defaults to <see cref="Resource.Name"/>, but allows for a different deployment name in Azure.
     /// </remarks>
     public string DeploymentName
     {
