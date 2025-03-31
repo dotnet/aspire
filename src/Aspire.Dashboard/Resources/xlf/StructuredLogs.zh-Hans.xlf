@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="PauseInProgressText">
         <source>Structured logs capture paused at {0}</source>
-        <target state="new">Structured logs capture paused at {0}</target>
+        <target state="translated">结构化日志捕获已在 {0} 暂停</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
