@@ -52,7 +52,7 @@ public static class ResourceBuilderExtensions
 
         var expression = value.GetExpression();
 
-        builder.WithResourceRelationship(expression);
+        builder.WithReferenceRelationship(expression);
 
         return builder.WithEnvironment(context =>
         {
@@ -75,7 +75,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
 
-        builder.WithResourceRelationship(value);
+        builder.WithReferenceRelationship(value);
 
         return builder.WithEnvironment(context =>
         {
@@ -144,7 +144,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(endpointReference);
 
-        builder.WithResourceRelationship(endpointReference.Resource);
+        builder.WithReferenceRelationship(endpointReference.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -166,7 +166,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(parameter);
 
-        builder.WithResourceRelationship(parameter.Resource);
+        builder.WithReferenceRelationship(parameter.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -192,7 +192,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(envVarName);
         ArgumentNullException.ThrowIfNull(resource);
 
-        builder.WithResourceRelationship(resource.Resource);
+        builder.WithReferenceRelationship(resource.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -363,7 +363,7 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        builder.WithResourceRelationship(resource);
+        builder.WithReferenceRelationship(resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -469,7 +469,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
 
-        builder.WithResourceRelationship(resourceWithEndpoints);
+        builder.WithReferenceRelationship(resourceWithEndpoints);
     }
 
     /// <summary>
@@ -1679,7 +1679,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="resource">The resource that the relationship is to.</param>
     /// <returns>A resource builder.</returns>
-    public static IResourceBuilder<T> WithResourceRelationship<T>(
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource resource) where T : IResource
     {
@@ -1696,7 +1696,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="expression">The reference expression.</param>
     /// <returns>A resource builder.</returns>
-    public static IResourceBuilder<T> WithResourceRelationship<T>(
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         ReferenceExpression expression) where T : IResource
     {
@@ -1715,7 +1715,7 @@ public static class ResourceBuilderExtensions
 
         void AddReference(IResource resource)
         {
-            builder.WithResourceRelationship(resource);
+            builder.WithReferenceRelationship(resource);
         }
 
         void Walk(object value)
@@ -1755,7 +1755,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="resourceBuilder">The resource builder that the relationship is to.</param>
     /// <returns>A resource builder.</returns>
-    public static IResourceBuilder<T> WithResourceRelationship<T>(
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource> resourceBuilder) where T : IResource
     {

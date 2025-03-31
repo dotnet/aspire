@@ -77,7 +77,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
-        builder.WithResourceRelationship(bicepOutputReference.Resource);
+        builder.WithReferenceRelationship(bicepOutputReference.Resource);
 
         return builder.WithEnvironment(ctx =>
         {
@@ -208,7 +208,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value);
+        builder.WithReferenceRelationship(value);
 
         builder.Resource.Parameters[name] = value;
         return builder;
@@ -227,7 +227,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value.Resource);
+        builder.WithReferenceRelationship(value.Resource);
 
         builder.Resource.Parameters[name] = value.Resource;
         return builder;
@@ -246,7 +246,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value.Resource);
+        builder.WithReferenceRelationship(value.Resource);
 
         builder.Resource.Parameters[name] = value;
         return builder;
@@ -265,7 +265,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value);
+        builder.WithReferenceRelationship(value);
 
         builder.Resource.Parameters[name] = value;
         return builder;
@@ -284,7 +284,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value.Resource);
+        builder.WithReferenceRelationship(value.Resource);
 
         builder.Resource.Parameters[name] = value;
         return builder;
