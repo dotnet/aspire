@@ -74,41 +74,23 @@ public static class AzureOpenAIExtensions
 
             CognitiveServicesAccountDeployment? dependency = null;
 
-            var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
-                {
-                    Name = deployment.Name,
-                    Parent = cogServicesAccount,
-                    Properties = new CognitiveServicesAccountDeploymentProperties()
-                    {
-                        Model = new CognitiveServicesAccountDeploymentModel()
-                        {
-                            Name = deployment.ModelName,
-                            Version = deployment.ModelVersion,
-                            Format = "OpenAI"
-                        }
-                    },
-                    Sku = new CognitiveServicesSku()
-                    {
-                        Name = deployment.SkuName,
-                        Capacity = deployment.SkuCapacity
-                    }
-                };
-                infrastructure.Add(cdkDeployment);
-                cdkDeployments.Add(cdkDeployment);
+                dependency = CreateDeployment(infrastructure, cogServicesAccount, ref dependency, deployment);
+            }
 
-                // Subsequent deployments need an explicit dependency on the previous one
-                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
-                // which can't be defined with the CDK
-
-                if (dependency != null)
-                {
-                    cdkDeployment.DependsOn.Add(dependency);
-                }
-
-                dependency = cdkDeployment;
+            foreach (var deployment in resource.DeploymentResources)
+            {
+                dependency = CreateDeployment(
+                    infrastructure,
+                    cogServicesAccount,
+                    ref dependency,
+                    new AzureOpenAIDeployment(
+                        deployment.DeploymentName,
+                        deployment.ModelName,
+                        deployment.ModelVersion,
+                        deployment.SkuName,
+                        deployment.SkuCapacity));
             }
         };
 
@@ -116,6 +98,42 @@ public static class AzureOpenAIExtensions
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
                 CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor);
+    }
+
+    private static CognitiveServicesAccountDeployment CreateDeployment(AzureResourceInfrastructure infrastructure, CognitiveServicesAccount cogServicesAccount, ref CognitiveServicesAccountDeployment? dependency, AzureOpenAIDeployment deployment)
+    {
+        var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
+        {
+            Name = deployment.Name,
+            Parent = cogServicesAccount,
+            Properties = new CognitiveServicesAccountDeploymentProperties()
+            {
+                Model = new CognitiveServicesAccountDeploymentModel()
+                {
+                    Name = deployment.ModelName,
+                    Version = deployment.ModelVersion,
+                    Format = "OpenAI"
+                }
+            },
+            Sku = new CognitiveServicesSku()
+            {
+                Name = deployment.SkuName,
+                Capacity = deployment.SkuCapacity
+            }
+        };
+        infrastructure.Add(cdkDeployment);
+
+        // Subsequent deployments need an explicit dependency on the previous one
+        // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+        // which can't be defined with the CDK
+
+        if (dependency != null)
+        {
+            cdkDeployment.DependsOn.Add(dependency);
+        }
+
+        dependency = cdkDeployment;
+        return dependency;
     }
 
     /// <summary>
@@ -135,34 +153,24 @@ public static class AzureOpenAIExtensions
     }
 
     /// <summary>
-    /// Injects the environment variables from the source <see cref="AzureOpenAIResource" /> into the destination resource, using the source resource's name as the connection string name (if not overridden).
-    /// The format of the connection environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
-    /// Each deployment will be injected using the format "Aspire__Azure__AI__OpenAI__{sourceResourceName}__Models__{deploymentName}={modelName}".
+    /// Adds and returns an Azure OpenAI Deployment resource to the <see cref="AzureOpenAIResource"/> resource.
     /// </summary>
-    /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <param name="builder">The resource where connection string will be injected.</param>
-    /// <param name="source">The resource from which to extract the connection string.</param>
-    /// <param name="resourceName">An override of the source resource's name for the connection string. The resulting connection string will be "ConnectionStrings__connectionName" if this is not null.</param>
+    /// <param name="builder">The Azure OpenAI resource builder.</param>
+    /// <param name="name">The name of the Azure OpenAI Deployment resource.</param>
+    /// <param name="modelName">The name of the model to deploy.</param>
+    /// <param name="modelVersion">The version of the model to deploy.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<AzureOpenAIResource> source, string? resourceName = null)
-        where TDestination : IResourceWithEnvironment
+    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> builder, [ResourceName] string name, string modelName, string modelVersion)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(modelName);
+        ArgumentException.ThrowIfNullOrEmpty(modelVersion);
 
-        var resource = source.Resource;
-        resourceName ??= resource.Name;
+        var deployment = new AzureOpenAIDeploymentResource(name, modelName, modelVersion, builder.Resource);
+        builder.Resource.AddDeployment(deployment);
 
-        builder.WithReference((IResourceBuilder<IResourceWithConnectionString>)source, resourceName);
-
-        return builder.WithEnvironment(context =>
-        {
-            foreach (var deployment in resource.Deployments)
-            {
-                var variableName = $"ASPIRE__AZURE__AI__OPENAI__{resourceName}__MODELS__{deployment.Name}";
-                context.EnvironmentVariables[variableName] = deployment.ModelName;
-            }
-        });
+        return builder.ApplicationBuilder.AddResource(deployment);
     }
 
     /// <summary>

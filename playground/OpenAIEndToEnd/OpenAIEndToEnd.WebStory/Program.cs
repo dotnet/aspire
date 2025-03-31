@@ -1,31 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.AI.OpenAI;
-using Microsoft.Extensions.AI;
 using OpenAIEndToEnd.WebStory.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Instead of passing this manually, it can also be read from the connection string
-var openAiDeploymentName = builder.Configuration["OpenAI:DeploymentName"];
-
-builder.AddAzureOpenAIClient("openai").AddChatClient(openAiDeploymentName);
+builder.AddAzureOpenAIClient("chat")
+       .AddChatClient();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
-
-ArgumentNullException.ThrowIfNull(app.Services.GetService<AzureOpenAIClient>());
-ArgumentNullException.ThrowIfNull(app.Services.GetService<IChatClient>());
-
-//ArgumentNullException.ThrowIfNull(app.Services.GetKeyedService<AzureOpenAIClient>("openaiB"));
-//ArgumentNullException.ThrowIfNull(app.Services.GetKeyedService<IChatClient>("modelB1"));
-//ArgumentNullException.ThrowIfNull(app.Services.GetKeyedService<IChatClient>("modelB2"));
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

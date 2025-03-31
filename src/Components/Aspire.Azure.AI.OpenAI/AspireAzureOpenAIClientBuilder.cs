@@ -9,10 +9,6 @@ namespace Aspire.Azure.AI.OpenAI;
 
 /// <summary>
 /// A builder for configuring an <see cref="AzureOpenAIClient"/> service registration.
-/// </summary>
-public class AspireAzureOpenAIClientBuilder
-{
-    /// <summary>
 /// Constructs a new instance of <see cref="AspireAzureOpenAIClientBuilder"/>.
 /// </summary>
 /// <param name="hostBuilder">The <see cref="IHostApplicationBuilder"/> with which services are being registered.</param>

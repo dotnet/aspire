@@ -17,6 +17,7 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     IResourceWithEnvironment
 {
     private readonly List<AzureOpenAIDeployment> _deployments = [];
+    private readonly List<AzureOpenAIDeploymentResource> _deploymentResources = [];
 
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure OpenAI resource.
@@ -31,10 +32,15 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{ConnectionString}");
 
+    internal ReferenceExpression GetConnectionString(string deploymentName) =>
+        ReferenceExpression.Create($"{ConnectionString};Deployment={deploymentName}");
+
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
+
+    internal IReadOnlyList<AzureOpenAIDeploymentResource> DeploymentResources => _deploymentResources;
 
     /// <summary>
     /// Adds an <see cref="AzureOpenAIDeployment"/> instance to the list of deployments.
@@ -45,6 +51,11 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
         ArgumentNullException.ThrowIfNull(deployment);
 
         _deployments.Add(deployment);
+    }
+
+    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
+    {
+        _deploymentResources.Add(deployment);
     }
 
     /// <inheritdoc/>
