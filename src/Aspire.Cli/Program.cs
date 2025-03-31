@@ -27,36 +27,31 @@ public class Program
     {
         var builder = Host.CreateApplicationBuilder();
 
+        builder.Logging.ClearProviders();
+
+        // Always configure OpenTelemetry.
         builder.Logging.AddOpenTelemetry(logging => {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
             });
 
-        var otel = builder.Services.AddOpenTelemetry();
-        otel.WithTracing(tracing => {
-            tracing.AddSource(
-                nameof(Aspire.Cli.NuGetPackageCache),
-                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
-                nameof(Aspire.Cli.DotNetCliRunner),
-                nameof(Aspire.Cli.Program));
-            });
-
-        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (otlpEndpoint != null)
-        {
-            otel.UseOtlpExporter();
-        }
+        builder.Services.AddOpenTelemetry()
+                        .UseOtlpExporter()
+                        .WithTracing(tracing => {
+                            tracing.AddSource(
+                                nameof(Aspire.Cli.NuGetPackageCache),
+                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
+                                nameof(Aspire.Cli.DotNetCliRunner),
+                                nameof(Aspire.Cli.Program));
+                        });
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
+        
 
-        if (!debugMode)
-        {
-            // Suppress all logging and rely on AnsiConsole output.
-            builder.Logging.AddFilter((_) => false);
-        }
-        else
+        if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+            builder.Logging.AddConsole();
         }
 
         builder.Services.AddTransient<DotNetCliRunner>();
