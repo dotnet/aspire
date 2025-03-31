@@ -33,7 +33,7 @@
         </div>
 
         <div class="filter-input-container">
-            <FluentCombobox TOption="SelectViewModel<FieldValue>"
+            <FixedFluentCombobox TOption="SelectViewModel<FieldValue>"
                             @bind-Value="_formModel.Value"
                             @bind-Value:after="ValueChanged"
                             Items="@_filteredValues"
@@ -53,7 +53,7 @@
                     </FluentBadge>
                     <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
                 </OptionTemplate>
-            </FluentCombobox>
+            </FixedFluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />
         </div>
 
