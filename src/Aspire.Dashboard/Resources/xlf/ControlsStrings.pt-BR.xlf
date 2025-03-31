@@ -107,6 +107,11 @@
         <target state="translated">Remover para {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="new">Remove data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Detalhes</target>
@@ -119,7 +124,7 @@
       </trans-unit>
       <trans-unit id="EndpointNameColumnHeader">
         <source>Endpoint name</source>
-        <target state="new">Endpoint name</target>
+        <target state="translated">Nome do ponto de extremidade</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
@@ -249,7 +254,7 @@
       </trans-unit>
       <trans-unit id="LinkColumnHeader">
         <source>Link</source>
-        <target state="new">Link</target>
+        <target state="translated">Link</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +315,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Barra de ferramentas de página</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="new">Pause incoming data</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -374,7 +384,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsUrlsHeader">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
@@ -389,7 +399,7 @@
       </trans-unit>
       <trans-unit id="ResourceGraphNoEndpoints">
         <source>No endpoints</source>
-        <target state="new">No endpoints</target>
+        <target state="translated">Sem pontos de extremidade</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
@@ -400,6 +410,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Recurso</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="new">Resume incoming data</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +542,11 @@
         <target state="translated">Carimbo de data/hora</target>
         <note />
       </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="new">Capture paused</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Atributos</target>
@@ -558,8 +578,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">Total: &lt;strong&gt;{0} resultados encontrados&lt;/strong&gt;</target>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
+        <target state="new">Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

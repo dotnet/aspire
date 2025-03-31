@@ -76,12 +76,25 @@ internal sealed class AzureProvisioner(
 
             // We basically want child resources to be moved into the same state as their parent resources whenever
             // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
-            var childResources = _parentChildLookup[resource.Resource];
-            foreach (var child in childResources)
+
+            var childResources = _parentChildLookup[resource.Resource].ToList();
+
+            for (var i = 0; i < childResources.Count; i++)
             {
+                var child = childResources[i];
+
+                // Add any level of children
+                foreach (var grandChild in _parentChildLookup[child])
+                {
+                    if (!childResources.Contains(grandChild))
+                    {
+                        childResources.Add(grandChild);
+                    }
+                }
+
                 await notificationService.PublishUpdateAsync(child, s =>
                 {
-                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, resource.Resource.Name) };
+                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, child.Parent.Name) };
                     return stateFactory(s);
                 }).ConfigureAwait(false);
             }
@@ -94,11 +107,15 @@ internal sealed class AzureProvisioner(
             {
                 await resource.AzureResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                await UpdateStateAsync(resource, s => s with
+                var rolesFailed = await WaitForRoleAssignments(resource).ConfigureAwait(false);
+                if (!rolesFailed)
                 {
-                    State = new("Running", KnownResourceStateStyles.Success)
-                })
-                .ConfigureAwait(false);
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Running", KnownResourceStateStyles.Success)
+                    })
+                    .ConfigureAwait(false);
+                }
             }
             catch (MissingConfigurationException)
             {
@@ -116,6 +133,32 @@ internal sealed class AzureProvisioner(
                 })
                 .ConfigureAwait(false);
             }
+        }
+
+        async Task<bool> WaitForRoleAssignments((IResource Resource, IAzureResource AzureResource) resource)
+        {
+            var rolesFailed = false;
+            if (resource.AzureResource.TryGetAnnotationsOfType<RoleAssignmentResourceAnnotation>(out var roleAssignments))
+            {
+                try
+                {
+                    foreach (var roleAssignment in roleAssignments)
+                    {
+                        await roleAssignment.RolesResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+                    }
+                }
+                catch (Exception)
+                {
+                    rolesFailed = true;
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Failed to Provision Roles", KnownResourceStateStyles.Error)
+                    })
+                    .ConfigureAwait(false);
+                }
+            }
+
+            return rolesFailed;
         }
 
         // Mark all resources as starting

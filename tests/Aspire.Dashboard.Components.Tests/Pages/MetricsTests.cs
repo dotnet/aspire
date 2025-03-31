@@ -157,14 +157,18 @@ public partial class MetricsTests : DashboardTestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 1);
 
-        var tree1 = cut.FindComponent<FluentTreeView>();
-        var items1 = tree1.FindComponents<FluentTreeItem>();
-
-        foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+        cut.WaitForAssertion(() =>
         {
-            Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-            Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
-        }
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree1 = cut.FindComponent<FluentTreeView>();
+            var items1 = tree1.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
 
         // Act 2
         // New instruments added
@@ -198,14 +202,18 @@ public partial class MetricsTests : DashboardTestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        var tree2 = cut.FindComponent<FluentTreeView>();
-        var items2 = tree2.FindComponents<FluentTreeItem>();
-
-        foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+        cut.WaitForAssertion(() =>
         {
-            Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-            Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
-        }
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree2 = cut.FindComponent<FluentTreeView>();
+            var items2 = tree2.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
     }
 
     private void ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)

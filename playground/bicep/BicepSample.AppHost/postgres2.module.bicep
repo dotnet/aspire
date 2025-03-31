@@ -59,7 +59,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'connectionString'
+  name: 'connectionstrings--postgres2'
   properties: {
     value: 'Host=${postgres2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
   }
@@ -67,7 +67,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 }
 
 resource db2_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'db2-connectionString'
+  name: 'connectionstrings--db2'
   properties: {
     value: 'Host=${postgres2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db2'
   }

@@ -8,30 +8,50 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using StreamJsonRpc;
 
 namespace Aspire.Cli;
 
 public class Program
 {
-    private static IHost BuildApplication(ParseResult parseResult)
+    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Aspire.Cli.Program));
+
+    private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
 
-        var debugOption = parseResult.GetValue<bool>("--debug");
+        builder.Logging.ClearProviders();
 
-        if (!debugOption)
-        {
-            // Suppress all logging and rely on AnsiConsole output.
-            builder.Logging.AddFilter((_) => false);
-        }
-        else
+        // Always configure OpenTelemetry.
+        builder.Logging.AddOpenTelemetry(logging => {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+            });
+
+        builder.Services.AddOpenTelemetry()
+                        .UseOtlpExporter()
+                        .WithTracing(tracing => {
+                            tracing.AddSource(
+                                nameof(Aspire.Cli.NuGetPackageCache),
+                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
+                                nameof(Aspire.Cli.DotNetCliRunner),
+                                nameof(Aspire.Cli.Program));
+                        });
+
+        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
+        
+
+        if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+            builder.Logging.AddConsole();
         }
 
         builder.Services.AddTransient<DotNetCliRunner>();
@@ -42,7 +62,7 @@ public class Program
         return app;
     }
 
-    private static RootCommand GetRootCommand()
+    private static RootCommand GetRootCommand(IHost app)
     {
         var rootCommand = new RootCommand("Aspire CLI");
 
@@ -76,10 +96,10 @@ public class Program
 
         rootCommand.Options.Add(waitForDebuggerOption);
 
-        ConfigureRunCommand(rootCommand);
-        ConfigureBuildCommand(rootCommand);
-        ConfigureNewCommand(rootCommand);
-        ConfigureAddCommand(rootCommand);
+        ConfigureRunCommand(rootCommand, app);
+        ConfigurePublishCommand(rootCommand, app);
+        ConfigureNewCommand(rootCommand, app);
+        ConfigureAddCommand(rootCommand, app);
         return rootCommand;
     }
 
@@ -121,7 +141,7 @@ public class Program
         }
     }
 
-    private static void ConfigureRunCommand(Command parentCommand)
+    private static void ConfigureRunCommand(Command parentCommand, IHost app)
     {
         var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
 
@@ -133,8 +153,7 @@ public class Program
         command.Options.Add(watchOption);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureRunCommand)}-Action", ActivityKind.Internal);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
@@ -151,22 +170,40 @@ public class Program
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
-            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
+            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
             
             var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
 
             if (waitForDebugger)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
+            }
+
+            try
+            {
+                await EnsureCertificatesTrustedAsync(runner, ct);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                return ExitCodeConstants.FailedToTrustCertificates;
             }
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
 
             var watch = parseResult.GetValue<bool>("--watch");
 
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(":hammer_and_wrench:  Building apphost...", async context => {
+                    await runner.BuildAsync(effectiveAppHostProjectFile, ct).ConfigureAwait(false);
+                });
+
             var pendingRun = runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
+                true,
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
@@ -217,44 +254,60 @@ public class Program
 
                     var resourceStates = backchannel.GetResourceStatesAsync(ct);
 
-                    await foreach(var resourceState in resourceStates)
+                    try
                     {
-                        knownResources[resourceState.Resource] = resourceState;
-
-                        table.Rows.Clear();
-
-                        foreach (var knownResource in knownResources)
+                        await foreach(var resourceState in resourceStates)
                         {
-                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+                            knownResources[resourceState.Resource] = resourceState;
 
-                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+                            table.Rows.Clear();
 
-                            var stateRenderable = knownResource.Value.State switch {
-                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                            };
-
-                            IRenderable endpointsRenderable = new Text("None");
-                            if (knownResource.Value.Endpoints?.Length > 0)
+                            foreach (var knownResource in knownResources)
                             {
-                                endpointsRenderable = new Rows(
-                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                );
+                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+
+                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+
+                                var stateRenderable = knownResource.Value.State switch {
+                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                                };
+
+                                IRenderable endpointsRenderable = new Text("None");
+                                if (knownResource.Value.Endpoints?.Length > 0)
+                                {
+                                    endpointsRenderable = new Rows(
+                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                                    );
+                                }
+
+                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
                             }
 
-                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+                            context.Refresh();
                         }
-
-                        context.Refresh();
                     }
-
+                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
+                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
+                        // that the apphost side of the RPC connection will be closed. Therefore if we get a 
+                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
+                        // asume that the apphost was shutdown and we can ignore it.
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the our side
+                        // of the backchannel side first and the connection is torn down on our-side
+                        // gracefully. We can ignore this exception as well.
+                    }
                 });
 
                 return await pendingRun;
@@ -266,6 +319,37 @@ public class Program
         });
 
         parentCommand.Subcommands.Add(command);
+    }
+
+    private static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
+    {
+        using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
+
+        var checkExitCode = await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots3)
+            .SpinnerStyle(Style.Parse("purple"))
+            .StartAsync(
+                ":locked_with_key: Checking certificates...",
+                async (context) => {
+                    return await runner.CheckHttpCertificateAsync(cancellationToken);
+                });
+
+        if (checkExitCode != 0)
+        {
+            var trustExitCode = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(
+                    ":locked_with_key: Trusting certificates...",
+                    async (context) => {
+                        return await runner.TrustHttpCertificateAsync(cancellationToken);
+                    });
+
+            if (trustExitCode != 0)
+            {
+                throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+            }
+        }
     }
 
     private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
@@ -306,9 +390,9 @@ public class Program
         };
     }
 
-    private static void ConfigureBuildCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand, IHost app)
     {
-        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
+        var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Validators.Add(ValidateProjectOption);
@@ -322,8 +406,7 @@ public class Program
         command.Options.Add(outputPath);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action", ActivityKind.Internal);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
@@ -338,36 +421,51 @@ public class Program
 
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
             var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishers = await AnsiConsole.Status()
+            var publishersResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
+                .StartAsync<(int ExitCode, string[]? Publishers)>(
                     publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
                     async context => {
+
+                        using var getPublishersActivity = s_activitySource.StartActivity(
+                            $"{nameof(ConfigurePublishCommand)}-Action-GetPublishers",
+                            ActivityKind.Client);
 
                         var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
                         var pendingInspectRun = runner.RunAsync(
                             effectiveAppHostProjectFile,
+                            false,
                             false,
                             ["--operation", "inspect"],
                             null,
                             backchannelCompletionSource,
                             ct).ConfigureAwait(false);
 
-                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                         var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+                        
+                        await backchannel.RequestStopAsync(ct).ConfigureAwait(false);
+                        var exitCode = await pendingInspectRun;
 
-                        return publishers;
+                        return (exitCode, publishers);
 
                     }).ConfigureAwait(false);
 
+            if (publishersResult.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            var publishers = publishersResult.Publishers;
             if (publishers is null || publishers.Length == 0)
             {
                 AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
@@ -392,19 +490,70 @@ public class Program
                 publisher = AnsiConsole.Prompt(publisherPrompt);
             }
 
-            var exitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
+
+            var exitCode = await AnsiConsole.Progress()
+                .AutoRefresh(true)
+                .Columns(
+                    new TaskDescriptionColumn() { Alignment = Justify.Left },
+                    new ProgressBarColumn() { Width = 10 },
+                    new ElapsedTimeColumn())
+                .StartAsync(async context => {
+
+                    using var generateArtifactsActivity = s_activitySource.StartActivity(
+                        $"{nameof(ConfigurePublishCommand)}-Action-GenerateArtifacts",
+                        ActivityKind.Internal);
+                    
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+                    var launchingAppHostTask = context.AddTask("Launching apphost");
+                    launchingAppHostTask.IsIndeterminate();
+                    launchingAppHostTask.StartTask();
+
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
+                        true,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
-                        null, // TODO: We will use a backchannel here soon but null for now.
+                        backchannelCompletionSource,
                         ct);
 
+                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
+
+                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(ct);
+
+                    var progressTasks = new Dictionary<string, ProgressTask>();
+
+                    await foreach (var publishingActivity in publishingActivities)
+                    {
+                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                        {
+                            progressTask = context.AddTask(publishingActivity.Id);
+                            progressTask.StartTask();
+                            progressTask.IsIndeterminate();
+                            progressTasks.Add(publishingActivity.Id, progressTask);
+                        }
+
+                        progressTask.Description = $"{publishingActivity.StatusText}";
+
+                        if (publishingActivity.IsComplete)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                        else if (publishingActivity.IsError)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                    }
+
                     return await pendingRun;
+
                 });
 
             if (exitCode != 0)
@@ -459,7 +608,7 @@ public class Program
         }
     }
 
-    private static void ConfigureNewCommand(Command parentCommand)
+    private static void ConfigureNewCommand(Command parentCommand, IHost app)
     {
         var command = new Command("new", "Create a new Aspire sample project.");
         var templateArgument = new Argument<string>("template");
@@ -480,41 +629,48 @@ public class Program
         command.Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.DefaultValueFactory = (result) => 
-        {
-            if (result.GetValue<bool>("--prerelease"))
-            {
-                return "*-*";
-            }
-            else
-            {
-                return VersionHelper.GetDefaultTemplateVersion();
-            }
-        };
         command.Options.Add(templateVersionOption);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            _ = app.RunAsync(ct);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureNewCommand)}-Action", ActivityKind.Internal);
+
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
 
             var templateVersion = parseResult.GetValue<string>("--version");
+            var prerelease = parseResult.GetValue<bool>("--prerelease");
+
+            if (templateVersion is not null && prerelease)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --version and --prerelease options are mutually exclusive.[/]");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            else if (prerelease)
+            {
+                templateVersion = "*-*";
+            }
+            else if (templateVersion is null)
+            {
+                templateVersion = VersionHelper.GetDefaultTemplateVersion();
+            }
+
             var source = parseResult.GetValue<string?>("--source");
 
-            int templateInstallExitCode = await AnsiConsole.Status()
+            var templateInstallResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
                 .StartAsync(
                     ":ice:  Getting latest templates...",
                     async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
+                        return await runner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
                     });
 
-            if (templateInstallExitCode != 0)
+            if (templateInstallResult.ExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The template installation failed with exit code {templateInstallExitCode}. For more information run with --debug switch.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
+
+            AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
             var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
 
@@ -539,7 +695,7 @@ public class Program
                 .StartAsync(
                     ":rocket:  Creating new Aspire project...",
                     async context => {
-                        return await cliRunner.NewProjectAsync(
+                        return await runner.NewProjectAsync(
                     templateName,
                     name,
                     outputPath,
@@ -551,6 +707,18 @@ public class Program
                 AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
+
+            try
+            {
+                await EnsureCertificatesTrustedAsync(runner, ct);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                return ExitCodeConstants.FailedToTrustCertificates;
+            }
+
+            AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
 
             return ExitCodeConstants.Success;
         });
@@ -617,7 +785,7 @@ public class Program
         return (shortNameBuilder.ToString(), package);
     }
 
-    private static void ConfigureAddCommand(Command parentCommand)
+    private static void ConfigureAddCommand(Command parentCommand, IHost app)
     {
         var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
@@ -639,11 +807,10 @@ public class Program
         command.Options.Add(sourceOption);
 
         command.SetAction(async (parseResult, ct) => {
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureAddCommand)}-Action", ActivityKind.Internal);
 
             try
             {
-                var app = BuildApplication(parseResult);
-                
                 var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
 
                 var integrationName = parseResult.GetValue<string>("resource");
@@ -699,7 +866,16 @@ public class Program
                     }
                 );
 
-                return addPackageResult;
+                if (addPackageResult != 0)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                    return ExitCodeConstants.Success;
+                }
             }
             catch (Exception ex)
             {
@@ -711,12 +887,23 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    public static Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
-        var rootCommand = GetRootCommand();
+
+        using var app = BuildApplication(args);
+
+        await app.StartAsync().ConfigureAwait(false);
+
+        var rootCommand = GetRootCommand(app);
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        return config.InvokeAsync(args);
+        
+        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Internal);
+        var exitCode = await config.InvokeAsync(args);
+
+        await app.StopAsync().ConfigureAwait(false);
+
+        return exitCode;
     }
 }

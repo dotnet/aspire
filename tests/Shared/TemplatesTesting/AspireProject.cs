@@ -4,10 +4,9 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;
@@ -75,8 +74,7 @@ public partial class AspireProject : IAsyncDisposable
         BuildEnvironment buildEnvironment,
         string extraArgs = "",
         TestTargetFramework? targetFramework = default,
-        bool addEndpointsHook = true,
-        string? customHiveForTemplates = null)
+        bool addEndpointsHook = true)
     {
         string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
@@ -91,8 +89,7 @@ public partial class AspireProject : IAsyncDisposable
         using var cmd = new DotNetNewCommand(
             testOutput,
             useDefaultArgs: true,
-            buildEnv: buildEnvironment,
-            hiveDirectory: customHiveForTemplates);
+            buildEnv: buildEnvironment);
 
         cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));

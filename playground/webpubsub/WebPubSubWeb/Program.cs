@@ -2,8 +2,8 @@ using Azure.Messaging.WebPubSub;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddKeyedAzureWebPubSubServiceClient("wps1", Constants.ChatHubName);
-builder.AddKeyedAzureWebPubSubServiceClient("wps1", Constants.NotificationHubName);
+builder.AddKeyedAzureWebPubSubServiceClient(Constants.ChatHubName);
+builder.AddKeyedAzureWebPubSubServiceClient(Constants.NotificationHubName);
 
 // add a background service to periodically broadcast messages to the client
 builder.Services.AddHostedService<NotificationService>();
@@ -50,7 +50,8 @@ app.MapGet("/negotiate/notification", ([FromKeyedServices(Constants.Notification
 });
 
 // handle events for chat
-app.Map($"/eventhandler/{Constants.ChatHubName}", async ([FromKeyedServices(Constants.ChatHubName)] WebPubSubServiceClient service, HttpContext context, ILogger logger) => {
+app.Map($"/eventhandler/{Constants.ChatHubName}", async ([FromKeyedServices(Constants.ChatHubName)] WebPubSubServiceClient service, HttpContext context, ILogger logger) =>
+{
     context.Response.Headers["WebHook-Allowed-Origin"] = "*";
     if (context.Request.Method == "OPTIONS")
     {

@@ -159,7 +159,7 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            options.ContainerRuntime = configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
+            options.ContainerRuntime = configuration.GetString(KnownConfigNames.ContainerRuntime, KnownConfigNames.Legacy.ContainerRuntime);
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]))
@@ -175,7 +175,7 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            options.DependencyCheckTimeout = configuration.GetValue("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", options.DependencyCheckTimeout);
+            options.DependencyCheckTimeout = configuration.GetValue(KnownConfigNames.DependencyCheckTimeout, KnownConfigNames.Legacy.DependencyCheckTimeout, options.DependencyCheckTimeout);
         }
 
         options.KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryCount), options.KubernetesConfigReadRetryCount);
@@ -188,7 +188,7 @@ internal class ConfigureDefaultDcpOptions(
 
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
-        options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+        options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
     }
 

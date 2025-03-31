@@ -3,7 +3,7 @@
 
 using System.Text;
 using System.Text.RegularExpressions;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting;
 using Docker.DotNet.Models;
 using DotNet.Testcontainers.Builders;

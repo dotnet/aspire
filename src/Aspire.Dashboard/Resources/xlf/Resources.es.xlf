@@ -184,17 +184,22 @@
       </trans-unit>
       <trans-unit id="ResourcesGraphResetButton">
         <source>Reset</source>
-        <target state="new">Reset</target>
+        <target state="translated">Restablecer</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphZoomInButton">
         <source>Zoom in</source>
-        <target state="new">Zoom in</target>
+        <target state="translated">Acercar</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphZoomOutButton">
         <source>Zoom out</source>
-        <target state="new">Zoom out</target>
+        <target state="translated">Alejar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="new">Hide resource types</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
@@ -205,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Estado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="new">Show resource types</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -259,7 +269,7 @@
       </trans-unit>
       <trans-unit id="ResourcesUrlsColumnHeader">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">Direcciones URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

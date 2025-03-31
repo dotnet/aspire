@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -44,6 +45,13 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithReference(redis)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)
+       .WithEnvironment(context =>
+       {
+           if (context.Resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var identity))
+           {
+               context.EnvironmentVariables["AZURE_PRINCIPAL_NAME"] = identity.IdentityResource.PrincipalName;
+           }
+       })
        .PublishAsAzureContainerApp((module, app) =>
        {
            app.ConfigureCustomDomain(customDomain, certificateName);

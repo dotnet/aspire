@@ -106,12 +106,12 @@ Aby uzyskać więcej informacji, zobacz https://aka.ms/dotnet/aspire/container-r
       </trans-unit>
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">Adresy URL</target>
         <note />
       </trans-unit>
       <trans-unit id="UrlsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">Trwa uruchamianie...</target>
         <note />
       </trans-unit>
     </body>
