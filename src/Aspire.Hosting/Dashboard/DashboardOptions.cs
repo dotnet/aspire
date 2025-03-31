@@ -25,8 +25,7 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
         options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
-        TODO: Fix this
-        options.DashboardUrlPathBase = configuration["ASPIRE_DASHBOARD_PATHBASE"];
+        options.DashboardUrlPathBase = configuration[KnownConfigNames.DashboardPathBase];
         options.DashboardToken = configuration["AppHost:BrowserToken"];
 
         options.OtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
