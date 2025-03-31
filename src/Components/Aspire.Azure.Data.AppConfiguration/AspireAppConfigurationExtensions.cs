@@ -85,7 +85,7 @@ public static class AspireAppConfigurationExtensions
         if (configuration.GetConnectionString(connectionName) is string connectionString)
         {
             if (!string.IsNullOrEmpty(connectionString) &&
-            Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+                Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
                 settings.Endpoint = uri;
             }

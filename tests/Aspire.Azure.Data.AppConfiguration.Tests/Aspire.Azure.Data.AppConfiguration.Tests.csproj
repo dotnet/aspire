@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(RepoRoot)src\Components\Aspire.Azure.Data.AppConfiguration\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+
+    <ProjectReference Include="..\..\src\Components\Aspire.azure.Data.AppConfiguration\Aspire.Azure.Data.AppConfiguration.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+  </ItemGroup>
+
+</Project>
