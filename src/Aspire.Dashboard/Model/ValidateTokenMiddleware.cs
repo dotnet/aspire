@@ -26,7 +26,7 @@ internal sealed class ValidateTokenMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.Equals($"{DashboardUrls.BasePath}login", StringComparisons.UrlPath))
+        if (context.Request.Path.Equals("/login", StringComparisons.UrlPath))
         {
             if (_options.CurrentValue.Frontend.AuthMode != FrontendAuthMode.BrowserToken)
             {

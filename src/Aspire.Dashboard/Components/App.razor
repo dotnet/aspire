@@ -1,10 +1,13 @@
-﻿<!DOCTYPE html>
+﻿@using Aspire.Dashboard.Configuration
+@using Microsoft.Extensions.Options
+@inject IOptions<DashboardOptions> DashboardOptions
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
-    <base href="/" />
+    <base href="@pathBase" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" />
     <link rel="stylesheet" href="css/app.css" />
@@ -39,3 +42,15 @@
     <script src="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js" type="module"></script>
 </body>
 </html>
+
+@code {
+    private string pathBase = "/";
+
+    protected override void OnInitialized()
+    {
+        if (DashboardOptions.Value.PathBase is not null)
+        {
+            pathBase = DashboardOptions.Value.PathBase;
+        }
+    }
+}

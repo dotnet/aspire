@@ -11,6 +11,7 @@ internal class DashboardOptions
 {
     public string? DashboardPath { get; set; }
     public string? DashboardUrl { get; set; }
+    public string? DashboardUrlPathBase { get; set; }
     public string? DashboardToken { get; set; }
     public string? OtlpGrpcEndpointUrl { get; set; }
     public string? OtlpHttpEndpointUrl { get; set; }
@@ -24,6 +25,7 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
         options.DashboardUrl = configuration["ASPNETCORE_URLS"];
+        options.DashboardUrlPathBase = configuration["ASPIRE_DASHBOARD_PATHBASE"];
         options.DashboardToken = configuration["AppHost:BrowserToken"];
 
         options.OtlpGrpcEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];

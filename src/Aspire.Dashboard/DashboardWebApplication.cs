@@ -172,7 +172,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
         else
         {
-             DashboardUrls.SetBasePath(dashboardOptions.PathBase);
             _validationFailures = Array.Empty<string>();
         }
 
@@ -280,6 +279,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .Select(c => c.Name)
             .ToArray();
 
+        if (dashboardOptions.PathBase is not null)
+        {
+            _app.UsePathBase(dashboardOptions.PathBase);
+        }
+
         _app.UseRequestLocalization(new RequestLocalizationOptions()
             .AddSupportedCultures(supportedCultureNames)
             .AddSupportedUICultures(supportedCultureNames));
@@ -336,7 +340,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
                     var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
 
-                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true) + DashboardUrls.BasePath, options.Frontend.BrowserToken, isContainer);
+                    var dashboardUrl = frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true) + options.PathBase;
+                    LoggingHelpers.WriteDashboardUrl(_logger, dashboardUrl, options.Frontend.BrowserToken, isContainer);
                 }
             }
         });
@@ -370,7 +375,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())
         {
-            _app.UseExceptionHandler($"{DashboardUrls.BasePath}error");
+            _app.UseExceptionHandler("/error");
             if (isAllHttps)
             {
                 _app.UseHsts();
@@ -417,9 +422,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
         _app.MapDashboardApi(dashboardOptions);
-
-        _app.UsePathBase(dashboardOptions.PathBase);
-       
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

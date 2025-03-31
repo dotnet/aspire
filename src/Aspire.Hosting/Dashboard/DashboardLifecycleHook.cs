@@ -164,6 +164,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
             Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
 
+            var pathBase = options.DashboardUrlPathBase;
             var dashboardUrls = options.DashboardUrl;
             var otlpGrpcEndpointUrl = options.OtlpGrpcEndpointUrl;
             var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
@@ -176,6 +177,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
+            if (pathBase is not null)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DashboardPathBase.EnvVarName] = pathBase;
+            }
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
             if (otlpGrpcEndpointUrl != null)
             {
@@ -247,7 +252,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 return;
             }
 
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+            var dashboardUri = (new UriBuilder(firstDashboardUrl) { Path = options.DashboardUrlPathBase ?? "" }).Uri;
+            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUri.ToString());
 
             if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
             {

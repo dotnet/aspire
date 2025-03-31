@@ -12,6 +12,7 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DashboardConfigFilePathName = new("DOTNET_DASHBOARD_CONFIG_FILE_PATH");
     public static readonly ConfigName DashboardFileConfigDirectoryName = new("DOTNET_DASHBOARD_FILE_CONFIG_DIRECTORY");
     public static readonly ConfigName ResourceServiceUrlName = new("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL");
+    public static readonly ConfigName DashboardPathBase = new("ASPIRE_DASHBOARD_PATHBASE");
 
     public static readonly ConfigName DashboardOtlpAuthModeName = new("Dashboard:Otlp:AuthMode", "DASHBOARD__OTLP__AUTHMODE");
     public static readonly ConfigName DashboardOtlpPrimaryApiKeyName = new("Dashboard:Otlp:PrimaryApiKey", "DASHBOARD__OTLP__PRIMARYAPIKEY");

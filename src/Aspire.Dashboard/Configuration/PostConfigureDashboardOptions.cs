@@ -31,7 +31,10 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.Otlp.GrpcEndpointUrl = otlpGrpcUrl;
         }
-        // Copy aliased config values to the strongly typed options.
+        if (_configuration[DashboardConfigNames.DashboardPathBase.ConfigKey] is { Length: > 0 } pathBase)
+        {
+            options.PathBase = pathBase;
+        }
         if (_configuration[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } otlpHttpUrl)
         {
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
