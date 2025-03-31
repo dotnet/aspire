@@ -14,8 +14,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureOpenAIExtensions
 {
-    internal const string DefaultConfigSectionName = "Aspire:Azure:AI:OpenAI";
-
     /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
