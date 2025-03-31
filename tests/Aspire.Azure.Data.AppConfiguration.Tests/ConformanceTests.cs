@@ -49,8 +49,8 @@ public class ConformanceTests : ConformanceTests<ConfigurationClient, AzureDataA
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:Data:AppConfiguraton", key, "Endpoint"), Endpoint),
-            new(CreateConfigKey("Aspire:Azure:Data:AppConfiguraton", key, "ClientOptions:Retry:MaxRetries"), "0")
+            new(CreateConfigKey("Aspire:Azure:Data:AppConfiguration", key, "Endpoint"), Endpoint),
+            new(CreateConfigKey("Aspire:Azure:Data:AppConfiguration", key, "ClientOptions:Retry:MaxRetries"), "0")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureDataAppConfigurationSettings>? configure = null, string? key = null)

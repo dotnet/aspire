@@ -49,6 +49,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         string connectionName,
         string? serviceKey)
     {
+        var test = builder.Configuration;
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 
         var settings = new TSettings();
