@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <OutputType>Exe</OutputType>
     <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
   </PropertyGroup>
 

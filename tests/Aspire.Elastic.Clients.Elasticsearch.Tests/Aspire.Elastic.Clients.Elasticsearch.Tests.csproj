@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <OutputType>Exe</OutputType>
 
     <!-- Issue: https://github.com/dotnet/aspire/issues/5634 -->
     <SkipTests Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</SkipTests>

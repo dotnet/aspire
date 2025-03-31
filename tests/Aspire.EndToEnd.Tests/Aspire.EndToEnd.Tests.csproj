@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <OutputType>Exe</OutputType>
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
     <!-- no docker support on GHA/windows yet -->
