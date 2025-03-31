@@ -1711,30 +1711,40 @@ public static class ResourceBuilderExtensions
     private static void WalkAndLinkResourceReferences<T>(IResourceBuilder<T> builder, IEnumerable<object> values)
         where T : IResource
     {
-        foreach (var value in values)
+        var processed = new HashSet<object>();
+
+        void AddReference(IResource resource)
         {
+            builder.WithResourceRelationship(resource);
+        }
+
+        void Walk(object value)
+        {
+            if (!processed.Add(value))
+            {
+                return;
+            }
+
             if (value is IResource resource)
             {
-                builder.WithResourceRelationship(resource);
+                AddReference(resource);
             }
             else if (value is IResourceBuilder<IResource> resourceBuilder)
             {
-                builder.WithResourceRelationship(resourceBuilder);
+                AddReference(resourceBuilder.Resource);
             }
             else if (value is IValueWithReferences valueWithReferences)
             {
                 foreach (var reference in valueWithReferences.References)
                 {
-                    if (reference is IResource resourceReference)
-                    {
-                        builder.WithResourceRelationship(resourceReference);
-                    }
-                    else if (reference is IResourceBuilder<IResource> resourceBuilderReference)
-                    {
-                        builder.WithResourceRelationship(resourceBuilderReference);
-                    }
+                    Walk(reference);
                 }
             }
+        }
+
+        foreach (var value in values)
+        {
+            Walk(value);
         }
     }
 

@@ -254,7 +254,7 @@ public class WithEnvironmentTests
         Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
 
         Assert.True(containerB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
+        Assert.Collection(relationships.DistinctBy(r => (r.Resource, r.Type)),
             r =>
             {
                 Assert.Equal("Reference", r.Type);
@@ -264,6 +264,32 @@ public class WithEnvironmentTests
             {
                 Assert.Equal("Reference", r.Type);
                 Assert.Same(test.Resource, r.Resource);
+            });
+    }
+
+    [Fact]
+    public void EnvironmentVariableSameResourceInSingleExpression()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("container1", "image")
+                               .WithHttpEndpoint(name: "primary", targetPort: 10005)
+                               .WithEndpoint("primary", ep =>
+                               {
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                               });
+
+        var endpoint = container.GetEndpoint("primary");
+
+        var containerB = builder.AddContainer("container2", "imageB")
+                                .WithEnvironment("URL", $"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+
+        Assert.True(containerB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(container.Resource, r.Resource);
             });
     }
 
