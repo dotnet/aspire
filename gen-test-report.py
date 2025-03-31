@@ -27,6 +27,7 @@ class GHAReportGenerator:
     def process_results(self, base_dir, name_transformer):
         for root, _, files in os.walk(base_dir):
             for file in files:
+                print(f"Processing {file}")
                 if not file.endswith('.trx'):
                     print(f"Ignoring {file}")
                     continue
