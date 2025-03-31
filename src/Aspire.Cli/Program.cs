@@ -160,8 +160,6 @@ public class Program
         command.SetAction(async (parseResult, ct) => {
             using var activity = s_activitySource.StartActivity($"{nameof(ConfigureRunCommand)}-Action", ActivityKind.Internal);
 
-            _ = app.RunAsync(ct);
-
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
@@ -641,7 +639,7 @@ public class Program
         command.SetAction(async (parseResult, ct) => {
             using var activity = s_activitySource.StartActivity($"{nameof(ConfigureNewCommand)}-Action", ActivityKind.Internal);
 
-            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
+            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
 
             var templateVersion = parseResult.GetValue<string>("--version");
             var prerelease = parseResult.GetValue<bool>("--prerelease");
@@ -668,7 +666,7 @@ public class Program
                 .StartAsync(
                     ":ice:  Getting latest templates...",
                     async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
+                        return await runner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
                     });
 
             if (templateInstallResult.ExitCode != 0)
@@ -702,7 +700,7 @@ public class Program
                 .StartAsync(
                     ":rocket:  Creating new Aspire project...",
                     async context => {
-                        return await cliRunner.NewProjectAsync(
+                        return await runner.NewProjectAsync(
                     templateName,
                     name,
                     outputPath,
@@ -717,7 +715,7 @@ public class Program
 
             try
             {
-                await EnsureCertificatesTrustedAsync(cliRunner, ct);
+                await EnsureCertificatesTrustedAsync(runner, ct);
             }
             catch (Exception ex)
             {
