@@ -12,6 +12,7 @@ using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using StreamJsonRpc;
@@ -20,13 +21,35 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static IHost BuildApplication(ParseResult parseResult)
+    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Aspire.Cli.Program));
+
+    private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
 
-        var debugOption = parseResult.GetValue<bool>("--debug");
+        builder.Logging.AddOpenTelemetry(logging => {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+            });
 
-        if (!debugOption)
+        var otel = builder.Services.AddOpenTelemetry();
+        otel.WithTracing(tracing => {
+            tracing.AddSource(
+                nameof(Aspire.Cli.NuGetPackageCache),
+                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
+                nameof(Aspire.Cli.DotNetCliRunner),
+                nameof(Aspire.Cli.Program));
+            });
+
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (otlpEndpoint != null)
+        {
+            otel.UseOtlpExporter();
+        }
+
+        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
+
+        if (!debugMode)
         {
             // Suppress all logging and rely on AnsiConsole output.
             builder.Logging.AddFilter((_) => false);
@@ -44,7 +67,7 @@ public class Program
         return app;
     }
 
-    private static RootCommand GetRootCommand()
+    private static RootCommand GetRootCommand(IHost app)
     {
         var rootCommand = new RootCommand("Aspire CLI");
 
@@ -78,10 +101,10 @@ public class Program
 
         rootCommand.Options.Add(waitForDebuggerOption);
 
-        ConfigureRunCommand(rootCommand);
-        ConfigurePublishCommand(rootCommand);
-        ConfigureNewCommand(rootCommand);
-        ConfigureAddCommand(rootCommand);
+        ConfigureRunCommand(rootCommand, app);
+        ConfigurePublishCommand(rootCommand, app);
+        ConfigureNewCommand(rootCommand, app);
+        ConfigureAddCommand(rootCommand, app);
         return rootCommand;
     }
 
@@ -123,7 +146,7 @@ public class Program
         }
     }
 
-    private static void ConfigureRunCommand(Command parentCommand)
+    private static void ConfigureRunCommand(Command parentCommand, IHost app)
     {
         var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
 
@@ -135,7 +158,8 @@ public class Program
         command.Options.Add(watchOption);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureRunCommand)}-Action", ActivityKind.Internal);
+
             _ = app.RunAsync(ct);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
@@ -176,9 +200,17 @@ public class Program
 
             var watch = parseResult.GetValue<bool>("--watch");
 
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync(":hammer_and_wrench:  Building apphost...", async context => {
+                    await runner.BuildAsync(effectiveAppHostProjectFile, ct).ConfigureAwait(false);
+                });
+
             var pendingRun = runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
+                true,
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
@@ -298,6 +330,8 @@ public class Program
 
     private static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
     {
+        using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Internal);
+
         var checkExitCode = await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
@@ -363,7 +397,7 @@ public class Program
         };
     }
 
-    private static void ConfigurePublishCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand, IHost app)
     {
         var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
@@ -379,8 +413,7 @@ public class Program
         command.Options.Add(outputPath);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action", ActivityKind.Internal);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
@@ -409,9 +442,12 @@ public class Program
                     publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
                     async context => {
 
+                        using var getPublishersActivity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action-GetPublishers", ActivityKind.Client);
+
                         var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
                         var pendingInspectRun = runner.RunAsync(
                             effectiveAppHostProjectFile,
+                            false,
                             false,
                             ["--operation", "inspect"],
                             null,
@@ -420,6 +456,8 @@ public class Program
 
                         var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                         var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+
+                        getPublishersActivity?.Stop();
 
                         return publishers;
 
@@ -459,6 +497,8 @@ public class Program
                     new ElapsedTimeColumn())
                 .StartAsync(async context => {
 
+                    using var generateArtifactsActivity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action-GenerateArtifacts", ActivityKind.Client);
+                    
                     var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
 
                     var launchingAppHostTask = context.AddTask("Launching apphost");
@@ -468,6 +508,7 @@ public class Program
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
+                        true,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         backchannelCompletionSource,
@@ -505,6 +546,8 @@ public class Program
                             progressTask.StopTask();
                         }
                     }
+
+                    generateArtifactsActivity?.Stop();
 
                     return await pendingRun;
 
@@ -562,7 +605,7 @@ public class Program
         }
     }
 
-    private static void ConfigureNewCommand(Command parentCommand)
+    private static void ConfigureNewCommand(Command parentCommand, IHost app)
     {
         var command = new Command("new", "Create a new Aspire sample project.");
         var templateArgument = new Argument<string>("template");
@@ -586,9 +629,9 @@ public class Program
         command.Options.Add(templateVersionOption);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureNewCommand)}-Action", ActivityKind.Internal);
+
             var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            _ = app.RunAsync(ct);
 
             var templateVersion = parseResult.GetValue<string>("--version");
             var prerelease = parseResult.GetValue<bool>("--prerelease");
@@ -739,7 +782,7 @@ public class Program
         return (shortNameBuilder.ToString(), package);
     }
 
-    private static void ConfigureAddCommand(Command parentCommand)
+    private static void ConfigureAddCommand(Command parentCommand, IHost app)
     {
         var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
@@ -761,11 +804,10 @@ public class Program
         command.Options.Add(sourceOption);
 
         command.SetAction(async (parseResult, ct) => {
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureAddCommand)}-Action", ActivityKind.Internal);
 
             try
             {
-                var app = BuildApplication(parseResult);
-                
                 var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
 
                 var integrationName = parseResult.GetValue<string>("resource");
@@ -842,12 +884,23 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    public static Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
-        var rootCommand = GetRootCommand();
+
+        using var app = BuildApplication(args);
+
+        await app.StartAsync().ConfigureAwait(false);
+
+        var rootCommand = GetRootCommand(app);
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        return config.InvokeAsync(args);
+        
+        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Client);
+        var exitCode = await config.InvokeAsync(args);
+
+        await app.StopAsync().ConfigureAwait(false);
+
+        return exitCode;
     }
 }

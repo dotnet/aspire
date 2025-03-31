@@ -25,6 +25,8 @@
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="StreamJsonRpc" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
