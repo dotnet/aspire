@@ -170,3 +170,10 @@ jobs:
       - name: Compute result
         run: |
           [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Generate summary
+        run: python ${{ github.workspace }}/gen-test-report.py --gha_dir testresults
+
