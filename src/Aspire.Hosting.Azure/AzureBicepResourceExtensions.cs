@@ -265,7 +265,7 @@ public static class AzureBicepResourceExtensions
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
 
-        builder.WithResourceRelationship(value);
+        builder.WithReferenceRelationship(value);
 
         builder.Resource.Parameters[name] = value;
         return builder;
