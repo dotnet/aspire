@@ -40,7 +40,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]

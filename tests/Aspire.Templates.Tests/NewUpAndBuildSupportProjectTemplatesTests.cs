@@ -11,16 +11,14 @@ namespace Aspire.Templates.Tests;
 public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
     [Theory]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-apphost")]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-servicedefaults")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-mstest", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
-
-    // ActiveIssue: https://github.com/dotnet/aspire/issues/8393
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-servicedefaults")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-mstest", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-nunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-xunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-xunit", "--xunit-version v2"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-xunit", "--xunit-version v3"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: ["aspire-xunit", "--xunit-version v3mtp"])]
     public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{FixupSymbolName(templateName)}");
