@@ -1,4 +1,15 @@
 <Project>
+  <PropertyGroup>
+    <IncludeTestUtilities>true</IncludeTestUtilities>
+
+    <!-- By default any test can run on all test platforms -->
+    <RunsOnGithubActionsWindows>true</RunsOnGithubActionsWindows>
+    <RunsOnGithubActionsLinux>true</RunsOnGithubActionsLinux>
+    <RunsOnAzdo>true</RunsOnAzdo>
+    <RunsOnHelixWindows>true</RunsOnHelixWindows>
+    <RunsOnHelixLinux>true</RunsOnHelixLinux>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(UseVSTestRunner)' != 'true'">
     <_QuarantinedTestRunAdditionalArgs>-trait "quarantined=true"</_QuarantinedTestRunAdditionalArgs>
     <_NonQuarantinedTestRunAdditionalArgs>-notrait "quarantined=true"</_NonQuarantinedTestRunAdditionalArgs>

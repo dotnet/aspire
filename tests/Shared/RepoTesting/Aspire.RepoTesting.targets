@@ -93,7 +93,9 @@
     <PropertyForHelixRun Include="PackageVersion" />
   </ItemGroup>
 
-  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
+  <Target Name="_UpdateArchiveSourcePath"
+          BeforeTargets="ZipTestArchive"
+          Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
     <PropertyGroup>
       <TestsArchiveSourceDir>$(OutDir)$(DeployOutsideOfRepoSupportFilesRelativeDir)</TestsArchiveSourceDir>
     </PropertyGroup>
