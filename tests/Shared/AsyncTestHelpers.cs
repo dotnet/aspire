@@ -93,6 +93,11 @@ internal static class AsyncTestHelpers
 
     public static Task<T> DefaultTimeout<T>(this Task<T> task, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         return task.TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
     }
 
