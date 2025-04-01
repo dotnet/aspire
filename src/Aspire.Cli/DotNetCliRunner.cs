@@ -19,6 +19,64 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
+    public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+
+        string[] cliArgs = ["msbuild", "-getproperty:IsAspireHost,AspireHostingSDKVersion"];
+
+        string? stdout = null;
+        string? stderr = null;
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            workingDirectory: projectFile.Directory!,
+            backchannelCompletionSource: null,
+            streamsCallback: (_, output, error) => {
+                stdout = output.ReadToEnd();
+                stderr = error.ReadToEnd();
+            },
+            cancellationToken: cancellationToken);
+
+        if (exitCode == 0 && stdout is null)
+        {
+            throw new InvalidOperationException("Failed to read stdout from the process. This should never happen.");
+        }
+
+        if (exitCode == 0 && stdout is not null)
+        {
+            var json = JsonDocument.Parse(stdout);
+            var properties = json.RootElement.GetProperty("Properties");
+
+            if (!properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
+            {
+                return (exitCode, false, null);
+            }
+
+            if (isAspireHostElement.GetString() == "true")
+            {
+                if (properties.TryGetProperty("AspireHostingSDKVersion", out var aspireHostingSdkVersionElement))
+                {
+                    var aspireHostingSdkVersion = aspireHostingSdkVersionElement.GetString();
+                    return (exitCode, true, aspireHostingSdkVersion);
+                }
+                else
+                {
+                    return (exitCode, true, null);
+                }
+            }
+            else
+            {
+                return (exitCode, false, null);
+            }
+        }
+        else
+        {
+            return (exitCode, false, null);
+        }
+    }
+
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity(nameof(RunAsync), ActivityKind.Client);
@@ -93,11 +151,11 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
-            streamsCallback: (_, output, _) => {
+            streamsCallback: (_, output, error) => {
                 // We need to read the output of the streams
                 // here otherwise th process will never exit.
                 stdout = output.ReadToEnd();
-                stderr = output.ReadToEnd();
+                stderr = error.ReadToEnd();
             },
             cancellationToken: cancellationToken);
 

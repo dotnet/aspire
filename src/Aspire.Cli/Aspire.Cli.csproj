@@ -27,6 +27,7 @@
     <PackageReference Include="StreamJsonRpc" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="Semver" />
   </ItemGroup>
 
   <ItemGroup>
