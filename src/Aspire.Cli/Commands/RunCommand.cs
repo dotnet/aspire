@@ -17,7 +17,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
     private readonly DotNetCliRunner _runner;
 
-    public RunCommand(DotNetCliRunner runner) : base("run", "Run a .NET Aspire AppHost project in development mode.")
+    public RunCommand(DotNetCliRunner runner) : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
 
