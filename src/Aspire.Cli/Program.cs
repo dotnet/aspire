@@ -36,15 +36,22 @@ public class Program
             logging.IncludeScopes = true;
             });
 
-        builder.Services.AddOpenTelemetry()
-                        .UseOtlpExporter()
-                        .WithTracing(tracing => {
-                            tracing.AddSource(
-                                nameof(Aspire.Cli.NuGetPackageCache),
-                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
-                                nameof(Aspire.Cli.DotNetCliRunner),
-                                nameof(Aspire.Cli.Program));
-                        });
+        var otelBuilder = builder.Services.AddOpenTelemetry()
+                                          .WithTracing(tracing => {
+                                            tracing.AddSource(
+                                                nameof(Aspire.Cli.NuGetPackageCache),
+                                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
+                                                nameof(Aspire.Cli.DotNetCliRunner),
+                                                nameof(Aspire.Cli.Program));
+                                            });
+
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
+        {
+            // NOTE: If we always enable the OTEL exporter it dramatically
+            //       impacts the CLI in terms of exiting quickly because it
+            //       has to finish sending telemetry.
+            otelBuilder.UseOtlpExporter();
+        }
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 

@@ -13,6 +13,7 @@ public class MSBuildTests
     /// Tests that when an AppHost has a ProjectReference to a library project, a warning is emitted.
     /// </summary>
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8467")]
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
