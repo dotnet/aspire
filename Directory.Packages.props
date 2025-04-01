@@ -107,6 +107,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.3" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="StreamJsonRpc" Version="2.21.69" />
+    <PackageVersion Include="Semver" Version="3.0.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="$(OpenTelemetryLTSVersion)" />
