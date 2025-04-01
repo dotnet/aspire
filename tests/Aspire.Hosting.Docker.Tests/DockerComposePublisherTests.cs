@@ -113,7 +113,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   - "8001:8000"
                 depends_on:
                   cache:
-                    condition: "service_healthy"
+                    condition: "service_started"
                   something:
                     condition: "service_completed_successfully"
                 networks:
