@@ -292,7 +292,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         if (dashboardOptions.PathBase is not null)
         {
             _app.UsePathBase(dashboardOptions.PathBase);
-            _app.UsePathBaseRedirection();
+            if (_app.Environment.IsDevelopment())
+            {
+                // In development we want to ensure that requests outside of the path base return a 404 to mimic what would
+                // happen when the dashboard is being served from behind a reverse-proxy at a configured path. Note we still let
+                // ~/login requests through as that's what VS launches the browser to. In that case we redirect instead.
+                _app.UsePathBaseEnforcement();
+            }
         }
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
