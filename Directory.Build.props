@@ -33,6 +33,11 @@
 
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
     <WorkloadsPackageSource>$(ArtifactsShippingPackagesDir)</WorkloadsPackageSource>
+
+    <!-- xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken -->
+    <!-- xUnit2031: Do not use Where clause with Assert.Single -->
+    <!-- TODO: Re-enable and remove this. -->
+    <NoWarn>$(NoWarn);xUnit1051;xUnit2031</NoWarn>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->
