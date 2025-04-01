@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Publishing;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -18,7 +17,6 @@ namespace Aspire.Hosting.Docker.Tests;
 public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    [RequiresDocker]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
     {
         using var tempDir = new TempDirectory();
@@ -32,6 +30,13 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
         // Add a container to the application
+        var redis = builder.AddContainer("cache", "redis")
+                    .WithEntrypoint("/bin/sh")
+                    .WithArgs("-c", "hello $MSG")
+                    .WithEnvironment("MSG", "world");
+
+        var migration = builder.AddContainer("something", "dummy/migration:latest");
+
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
                          .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                          .WithHttpEndpoint(env: "PORT")
@@ -39,12 +44,10 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithEnvironment("param1", param1)
                          .WithEnvironment("param2", param2)
                          .WithReference(cs)
-                         .WithArgs("--cs", cs.Resource);
-
-        var redis = builder.AddContainer("cache", "redis")
-                           .WithEntrypoint("/bin/sh")
-                           .WithArgs("-c", "hello $MSG")
-                           .WithEnvironment("MSG", "world");
+                         .WithArgs("--cs", cs.Resource)
+                         .WaitFor(redis)
+                         .WaitForCompletion(migration)
+                         .WaitFor(param0);
 
         builder.AddProject(
             "project1",
@@ -61,7 +64,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
             builder.ExecutionContext,
-            app.Services.GetRequiredService<IResourceContainerImageBuilder>()
+            new MockImageBuilder()
             );
 
         // Act
@@ -79,6 +82,21 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.Equal(
             """
             services:
+              cache:
+                image: "redis:latest"
+                command:
+                  - "-c"
+                  - "hello $$MSG"
+                entrypoint:
+                  - "/bin/sh"
+                environment:
+                  MSG: "world"
+                networks:
+                  - "aspire"
+              something:
+                image: "dummy/migration:latest"
+                networks:
+                  - "aspire"
               myapp:
                 image: "mcr.microsoft.com/dotnet/aspnet:8.0"
                 command:
@@ -93,17 +111,11 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
                 ports:
                   - "8001:8000"
-                networks:
-                  - "aspire"
-              cache:
-                image: "redis:latest"
-                command:
-                  - "-c"
-                  - "hello $$MSG"
-                entrypoint:
-                  - "/bin/sh"
-                environment:
-                  MSG: "world"
+                depends_on:
+                  cache:
+                    condition: "service_healthy"
+                  something:
+                    condition: "service_completed_successfully"
                 networks:
                   - "aspire"
               project1:
@@ -118,7 +130,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             networks:
               aspire:
                 driver: "bridge"
-
+            
             """,
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
 
@@ -185,6 +197,14 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+
+    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    {
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+    }
 
     private sealed class OptionsMonitor(DockerComposePublisherOptions options) : IOptionsMonitor<DockerComposePublisherOptions>
     {
