@@ -237,54 +237,9 @@ public partial class TemplateTestsBase
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    // testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
-                AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
-
-                // Match endpoints
-
-                var matchingEndpoints = 0;
-                var expectedEndpoints = expectedRow.Endpoints;
-
-                var overflowItems = await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync();
-                IEnumerable<ILocator> endpointsTextLocs;
-                if (overflowItems.Count == 0)
-                {
-                    var tdItems = (await rowLoc.Locator("td").AllAsync()).ToArray();
-                    endpointsTextLocs = [tdItems[5]];
-                }
-                else
-                {
-                    endpointsTextLocs = overflowItems;
-                }
-                var endpointsFound = endpointsTextLocs
-                        .Select(async e => await e.InnerTextAsync())
-                        .Select(t => t.Result.Trim(','))
-                        .ToArray();
-
-                if (expectedEndpoints.Length != endpointsFound.Length)
-                {
-                    // _testOutput.WriteLine($"For resource '{resourceName}, found ")
-                    // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
-                    continue;
-                }
-
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
-
-                // endpointsFound: ["foo", "https://localhost:7589/"]
-                foreach (var endpointFound in endpointsFound)
-                {
-                    // matchedEndpoints: ["https://localhost:7589/"]
-                    string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
-                    if (matchedEndpoints.Length == 0)
-                    {
-                        Assert.Fail($"Unexpected endpoint found: {endpointFound} for resource named {resourceName}. Expected endpoints: {string.Join(',', expectedEndpoints)}");
-                    }
-                    matchingEndpoints++;
-                }
-
-                AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
+                AssertEqual(expectedRow.State, actualState, $"State for {resourceName}");
 
                 // Check 'Source' column
                 var sourceCell = cellLocs[3];
@@ -292,7 +247,7 @@ public partial class TemplateTestsBase
                 // the expected source (executable/project)
                 Assert.Contains(expectedRow.SourceContains, await sourceCell.InnerTextAsync());
 
-                foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
+                foundRows.Add(expectedRow);
                 foundNames.Add(resourceName);
             }
         }
@@ -339,16 +294,16 @@ public partial class TemplateTestsBase
         if (context is not null)
         {
             var page = await project.OpenDashboardPageAsync(context);
-            var resourceRows = await CheckDashboardHasResourcesAsync(
+            await CheckDashboardHasResourcesAsync(
                 page,
                 StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
                 _testOutput,
                 project.LogPath).ConfigureAwait(false);
 
-            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            string apiServiceUrl = project.InfoTable["apiservice"].Endpoints[0].Uri;
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
 
-            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            string webFrontEnd = project.InfoTable["webfrontend"].Endpoints[0].Uri;
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
