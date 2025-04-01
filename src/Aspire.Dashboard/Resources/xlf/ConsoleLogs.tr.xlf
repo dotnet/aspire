@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
         <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="new">&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</target>
+        <target state="translated">&lt;Günlük yakalama işlemi {0}’da duraklatıldı, {1} günlük filtrelendi&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">
         <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
-        <target state="new">&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</target>
+        <target state="translated">&lt;Günlük yakalama, {0} ile {1} arasında duraklatıldı, {2} günlük filtrelendi&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsResourceCommands">
