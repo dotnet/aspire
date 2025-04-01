@@ -375,7 +375,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         var dashboardCommandExecutor = Services.GetRequiredService<DashboardCommandExecutor>();
 
-        // Act 1
         var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
         {
             builder.Add(p => p.ResourceName, "test-resource");
@@ -386,7 +385,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
-        // Assert 1
         AngleSharp.Dom.IElement highlightedCommand = default!;
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
         cut.WaitForAssertion(() =>
@@ -395,8 +393,10 @@ public partial class ConsoleLogsTests : DashboardTestContext
             highlightedCommand = Assert.Single(highlightedCommands);
         });
 
+        // Act
         highlightedCommand.Click();
 
+        // Assert
         await AsyncTestHelpers.AssertIsTrueRetryAsync(() => dashboardCommandExecutor.IsExecuting("test-resource", "test-name"), "Command start executing");
 
         resourceCommandChannel.Writer.TryWrite(new ResourceCommandResponseViewModel
