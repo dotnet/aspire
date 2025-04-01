@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Playwright;
+using Xunit;
 
 // Used to wrap IPage and flag console errors and page errors
 public class WrapperForIPage
