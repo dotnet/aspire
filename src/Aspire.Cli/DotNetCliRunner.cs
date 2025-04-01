@@ -462,7 +462,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             env: null,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
-            streamsCallback: (_, _, _) => { },
+            streamsCallback: null,
             cancellationToken: cancellationToken);
 
         if (result != 0)

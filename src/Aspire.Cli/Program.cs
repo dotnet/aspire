@@ -792,29 +792,47 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
+    private static async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
     {
+        var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
+
         var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
             .Title("Select an integration to add:")
             .UseConverter(PackageNameWithFriendlyNameIfAvailable)
             .PageSize(10)
             .EnableSearch()
             .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(knownPackages);
+            .AddChoices(distinctPackages);
 
-        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
+        // If there is only one package, we can skip the prompt and just use it.
+        var selectedPackage = distinctPackages.Count() switch
+        {
+            1 => distinctPackages.First(),
+            > 1 => await AnsiConsole.PromptAsync(packagePrompt, cancellationToken),
+            _ => throw new InvalidOperationException("Unexpected number of packages found.")
+        };
 
-        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
-            .DefaultValue(selectedIntegration.Package.Version)
-            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
-            .ShowDefaultValue(true)
-            .DefaultValueStyle(Style.Parse("darkmagenta"));
+        var packageVersions = possiblePackages.Where(p => p.Package.Id == selectedPackage.Package.Id);
 
-        var version = AnsiConsole.Prompt(versionPrompt);
+        // If any of the package versions are an exact match for the preferred version
+        // then we can skip the version prompt and just use that version.
+        if (packageVersions.Any(p => p.Package.Version == preferredVersion))
+        {
+            var preferredVersionPackage = packageVersions.First(p => p.Package.Version == preferredVersion);
+            return preferredVersionPackage;
+        }
 
-        selectedIntegration.Package.Version = version;
+            // ... otherwise we had better prompt.
+        var versionPrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
+            .Title($"Select a version of {selectedPackage.Package.Id}:")
+            .UseConverter(p => p.Package.Version)
+            .EnableSearch()
+            .HighlightStyle(Style.Parse("darkmagenta"))
+            .AddChoices(packageVersions);
 
-        return selectedIntegration;
+        var version = await AnsiConsole.PromptAsync(versionPrompt, cancellationToken);
+
+        return version;
 
         static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
         {
@@ -898,24 +916,39 @@ public class Program
                     context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, source, ct)
                     );
 
+                var version = parseResult.GetValue<string?>("--version");
+
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
 
-                var selectedNuGetPackage = packagesWithShortName.FirstOrDefault(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+                if (!packagesWithShortName.Any())
+                {
+                    AnsiConsole.MarkupLine("[red bold]:thumbs_down: No packages found.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
 
-                if (selectedNuGetPackage == default)
+                var filteredPackagesWithShortName = packagesWithShortName.Where(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+
+                if (!filteredPackagesWithShortName.Any() && integrationName is not null)
                 {
-                    selectedNuGetPackage = GetPackageByInteractiveFlow(packagesWithShortName);
+                    // If we didn't get an exact match on the friendly name or the package ID
+                    // then try a contains search to created a broader filtered list.
+                    filteredPackagesWithShortName = packagesWithShortName.Where(
+                        p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                        || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                        );
                 }
-                else
-                {
-                    // If we find an exact match we will use it, but override the version
-                    // if the version option is specified.
-                    var version = parseResult.GetValue<string?>("--version");
-                    if (version is not null)
-                    {
-                        selectedNuGetPackage.Package.Version = version;
-                    }
-                }
+
+                // If we didn't match any, show a complete list. If we matched one, and its
+                // an exact match, then we still prompt, but it will only prompt for
+                // the version. If there is more than one match then we prompt.
+                var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
+                    0 => await GetPackageByInteractiveFlow(packagesWithShortName, null, ct),
+                    1 => filteredPackagesWithShortName.First().Package.Version == version
+                        ? filteredPackagesWithShortName.First()
+                        : await GetPackageByInteractiveFlow(filteredPackagesWithShortName, null, ct),
+                    > 1 => await GetPackageByInteractiveFlow(filteredPackagesWithShortName, version, ct),
+                    _ => throw new InvalidOperationException("Unexpected number of packages found.")
+                };
 
                 var addPackageResult = await AnsiConsole.Status().StartAsync(
                     "Adding Aspire integration...",
@@ -942,6 +975,11 @@ public class Program
                     AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
                     return ExitCodeConstants.Success;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                AnsiConsole.MarkupLine("[yellow bold]:stop_sign: Operation cancelled by user action.[/]");
+                return ExitCodeConstants.FailedToAddPackage;
             }
             catch (Exception ex)
             {
