@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -404,11 +406,11 @@ public class ResourceNotificationTests
     public async Task WaitForResourceHealthyAsyncShouldThrowsIfResourceNameDoesNotExist()
     {
         var resource = new CustomResource("resource1");
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddResource(resource);
-        var app = builder.Build();
+        using var app = builder.Build();
 
-        app.Run();
+        await app.StartAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -416,7 +418,40 @@ public class ResourceNotificationTests
             await rns.WaitForResourceHealthyAsync("notexist", default);
         }).DefaultTimeout();
 
-        Assert.Equal(new InvalidOperationException($"Resource with name notexist not found."), exception);
+        Assert.Equal($"Resource with name 'notexist' not found.", exception.Message);
+    }
+
+    [Fact]
+    public async Task WaitForResourceAsyncShouldThrowsIfResourceNameDoesNotExist()
+    {
+        var resource = new CustomResource("resource1");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddResource(resource);
+        using var app = builder.Build();
+
+        await app.StartAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var exception1 = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await rns.WaitForResourceAsync("notexist", "Healthy", default);
+        }).DefaultTimeout();
+
+        Assert.Equal($"Resource with name 'notexist' not found.", exception1.Message);
+
+        var exception2 = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await rns.WaitForResourceAsync("notexist", @event => @event.Snapshot.HealthStatus == HealthStatus.Healthy, default);
+        }).DefaultTimeout();
+
+        Assert.Equal($"Resource with name 'notexist' not found.", exception2.Message);
+
+        var exception3 = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await rns.WaitForResourceAsync("notexist", ["state1", "state2"], default);
+        }).DefaultTimeout();
+
+        Assert.Equal($"Resource with name 'notexist' not found.", exception3.Message);
     }
 
     private sealed class CustomResource(string name) : Resource(name),

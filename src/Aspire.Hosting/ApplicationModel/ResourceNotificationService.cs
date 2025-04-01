@@ -118,6 +118,18 @@ public class ResourceNotificationService : IDisposable
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
+        var appModel = _serviceProvider.GetService<DistributedApplicationModel>();
+
+        if (appModel is not null)
+        {
+            var resourceExist = appModel.Resources.Any(resource => resource.Name.Equals(resourceName, StringComparisons.ResourceName));
+
+            if (!resourceExist)
+            {
+                throw new InvalidOperationException($"Resource with name '{resourceName}' not found.");
+            }
+        }
+
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("Waiting for resource '{Name}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
@@ -415,12 +427,16 @@ public class ResourceNotificationService : IDisposable
 
     private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
-        var appModel = _serviceProvider.GetRequiredService<DistributedApplicationModel>();
-        var resourceExist = appModel.Resources.Any(resource => resource.Name.Equals(resourceName));
+        var appModel = _serviceProvider.GetService<DistributedApplicationModel>();
 
-        if (!resourceExist)
+        if (appModel is not null)
         {
-            throw new InvalidOperationException($"Resource with name {resourceName} not found.");
+            var resourceExist = appModel.Resources.Any(resource => resource.Name.Equals(resourceName, StringComparisons.ResourceName));
+
+            if (!resourceExist)
+            {
+                throw new InvalidOperationException($"Resource with name '{resourceName}' not found.");
+            }
         }
 
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
