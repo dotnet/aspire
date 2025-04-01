@@ -87,8 +87,6 @@
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="DefaultTargetFramework" />
-    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
     <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
     <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
     <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
