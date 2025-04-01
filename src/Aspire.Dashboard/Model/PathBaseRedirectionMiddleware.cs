@@ -7,6 +7,9 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model;
 
+// TODO: Change this to PathBaseEnforcementMiddleware and have it return NotFound if the PathBase is not correct
+//       and only add in the development environment. This will help us find issues with the dashboard when
+//       PathBase is set.
 internal sealed class PathBaseRedirectionMiddleware(RequestDelegate next, IOptionsMonitor<DashboardOptions> dashboardOptions, ILogger<PathBaseRedirectionMiddleware> logger)
 {
     public Task InvokeAsync(HttpContext context)
