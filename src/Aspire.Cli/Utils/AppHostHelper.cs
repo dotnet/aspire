@@ -23,7 +23,7 @@ internal static class AppHostHelper
 
             if (!appHostInformation.IsAspireHost)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire AppHost project.[/]");
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire app host project.[/]");
                 return (false, false);
             }
 
