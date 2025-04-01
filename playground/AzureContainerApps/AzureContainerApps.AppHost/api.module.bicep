@@ -19,6 +19,8 @@ param secretparam_value string
 
 param api_identity_outputs_principalname string
 
+param infra_outputs_azure_container_apps_environment_default_domain string
+
 param infra_outputs_azure_container_apps_environment_id string
 
 param infra_outputs_azure_container_registry_endpoint string
