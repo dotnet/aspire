@@ -30,7 +30,8 @@ public static class DashboardEndpointsBuilder
                 await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
                     httpContext,
                     CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
+                var pathBase = httpContext.Request.PathBase.HasValue ? httpContext.Request.PathBase.ToString() : "/";
+                httpContext.Response.Redirect(pathBase);
             });
 #endif
         }
