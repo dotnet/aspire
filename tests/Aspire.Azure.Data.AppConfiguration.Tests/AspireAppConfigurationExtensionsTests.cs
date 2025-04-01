@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Azure.Core;
 using Azure.Data.AppConfiguration;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +31,10 @@ public class AspireAppConfigurationExtensionsTests
         {
             builder.AddKeyedAzureAppConfigurationClient(
                 "appConfig",
-                settings => settings.Endpoint = endpoint,
+                settings => {
+                    settings.Endpoint = endpoint;
+                    settings.Credential = new EmptyTokenCredential();
+                },
                 clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
                 
         }
@@ -38,7 +42,10 @@ public class AspireAppConfigurationExtensionsTests
         {
             builder.AddAzureAppConfigurationClient(
                 "appConfig",
-                settings => settings.Endpoint = endpoint,
+                settings => {
+                    settings.Endpoint = endpoint;
+                    settings.Credential = new EmptyTokenCredential();
+                },
                 clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
         }
 
@@ -75,14 +82,16 @@ public class AspireAppConfigurationExtensionsTests
         {
             builder.AddKeyedAzureAppConfigurationClient(
             "appConfig",
-            configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
+            settings => settings.Credential = new EmptyTokenCredential(),
+            clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
 
         }
         else
         {
             builder.AddAzureAppConfigurationClient(
             "appConfig",
-            configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
+            settings => settings.Credential = new EmptyTokenCredential(),
+            clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
         }
 
         using var host = builder.Build();
@@ -125,6 +134,7 @@ public class AspireAppConfigurationExtensionsTests
 
         builder.Configuration.AddAzureAppConfiguration(
             "appConfig",
+            settings => settings.Credential = new EmptyTokenCredential(),
             configureOptions: options => options.ConfigureClientOptions(
                 clientOptions => clientOptions.Transport = mockTransport));
 
@@ -147,9 +157,9 @@ public class AspireAppConfigurationExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:appConfig3", "https://aspiretests3.vault.azconfig.io/")
         ]);
 
-        builder.AddAzureAppConfigurationClient("appConfig1", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
-        builder.AddKeyedAzureAppConfigurationClient("appConfig2", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
-        builder.AddKeyedAzureAppConfigurationClient("appConfig3", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
+        builder.AddAzureAppConfigurationClient("appConfig1", settings => settings.Credential = new EmptyTokenCredential(), clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
+        builder.AddKeyedAzureAppConfigurationClient("appConfig2", settings => settings.Credential = new EmptyTokenCredential(), clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
+        builder.AddKeyedAzureAppConfigurationClient("appConfig3", settings => settings.Credential = new EmptyTokenCredential(), clientBuilder => clientBuilder.ConfigureOptions(options => options.Transport = mockTransport));
 
         using var host = builder.Build();
 
@@ -182,5 +192,18 @@ public class AspireAppConfigurationExtensionsTests
         };
 
         return response;
+    }
+
+    internal sealed class EmptyTokenCredential : TokenCredential
+    {
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        {
+            return new AccessToken(string.Empty, DateTimeOffset.MaxValue);
+        }
+
+        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        {
+            return new ValueTask<AccessToken>(new AccessToken(string.Empty, DateTimeOffset.MaxValue));
+        }
     }
 }
