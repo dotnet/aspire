@@ -31,5 +31,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-api-diffs
           base: main
+          labels: |
+            NO-MERGE
           title: "[Automated] Update API Surface Area"
           body: "Auto-generated update to the API surface to compare current surface vs latest release. This should only be merged once this surface area ships in a new release."
