@@ -1,18 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+using Aspire.Npgsql.Tests;
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
-using Xunit;
-using Aspire.Npgsql.Tests;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using OpenTelemetry.Trace;
+using Xunit;
 
 namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
