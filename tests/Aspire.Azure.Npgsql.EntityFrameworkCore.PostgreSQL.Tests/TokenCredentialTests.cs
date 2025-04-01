@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
-using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+using Aspire.Azure.Npgsql.Tests;
+using Aspire.TestUtilities;
 using Azure.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,7 +29,7 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void ReadsUsernameFromToken(bool useEnrich)
     {
-        var connectionString = "Host=localhost;Database=test2;Persist Security Info=True";
+        var connectionString = "Host=localhost;Database=test2";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -60,7 +60,7 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void ReadsUsernameFromManagedIdentityToken(bool useEnrich)
     {
-        var connectionString = "Host=localhost;Database=test3;Persist Security Info=True";
+        var connectionString = "Host=localhost;Database=test3";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -92,7 +92,7 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void TokenCredentialIsIgnoredWhenUsernameAndPasswordAreSet(bool useEnrich)
     {
-        const string connectionString = "Host=localhost;Database=test;Persist Security Info=True;Username=admin;Password=p@ssw0rd1";
+        const string connectionString = "Host=localhost;Database=test;Username=admin;Password=p@ssw0rd1;Persist Security Info=True";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -124,7 +124,7 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void DoesNotThrowWhenTokenCredentialHasNoUsername(bool useEnrich)
     {
-        const string connectionString = "Host=localhost;Database=test4;Persist Security Info=True";
+        const string connectionString = "Host=localhost;Database=test4";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([

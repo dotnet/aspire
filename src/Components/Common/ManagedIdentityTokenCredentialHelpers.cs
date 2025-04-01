@@ -10,11 +10,11 @@ namespace Aspire;
 
 internal static class ManagedIdentityTokenCredentialHelpers
 {
-    public const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
-    public const string AzureManagementScope = "https://management.azure.com/.default";
+    private const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
+    private const string AzureManagementScope = "https://management.azure.com/.default";
 
-    public static readonly TokenRequestContext DatabaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
-    public static readonly TokenRequestContext ManagementTokenRequestContext = new([AzureManagementScope]);
+    private static readonly TokenRequestContext s_databaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
+    private static readonly TokenRequestContext s_managementTokenRequestContext = new([AzureManagementScope]);
 
     public static bool ConfigureEntraIdAuthentication(this NpgsqlDataSourceBuilder dataSourceBuilder, TokenCredential? credential)
     {
@@ -27,7 +27,7 @@ internal static class ManagedIdentityTokenCredentialHelpers
         if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
         {
             // Ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
-            var token = credential.GetToken(ManagementTokenRequestContext, default);
+            var token = credential.GetToken(s_managementTokenRequestContext, default);
 
             if (TryGetUsernameFromToken(token.Token, out var username))
             {
@@ -37,7 +37,7 @@ internal static class ManagedIdentityTokenCredentialHelpers
             else
             {
                 // Otherwise check using the PostgresSql scope
-                token = credential.GetToken(DatabaseForPostgresSqlTokenRequestContext, default);
+                token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
 
                 if (TryGetUsernameFromToken(token.Token, out username))
                 {
@@ -55,8 +55,8 @@ internal static class ManagedIdentityTokenCredentialHelpers
             // The token is not cached since it is refreshed for each new physical connection, or when it has expired.
 
             dataSourceBuilder.UsePasswordProvider(
-                passwordProvider: _ => credential.GetToken(DatabaseForPostgresSqlTokenRequestContext, default).Token,
-                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(DatabaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
+                passwordProvider: _ => credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default).Token,
+                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(s_databaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
             );
 
             configuredAuth = true;

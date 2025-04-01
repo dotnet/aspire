@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
@@ -7,7 +7,11 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="..\Aspire.Npgsql.Tests\PostgreSQLContainerFixture.cs" />
+    <Compile Include="..\Aspire.Azure.Npgsql.Tests\FakeTokenCredential.cs" />
     <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\WorkaroundToReadProtectedField.cs" />
+    <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\TestDbContext.cs" />
+    <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\CustomExecutionStrategy.cs" />
+    <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\CustomRetryExecutionStrategy.cs" />
 
     <None Include="$(RepoRoot)src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
