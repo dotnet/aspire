@@ -24,7 +24,7 @@ public sealed class BrowserThemeResolver(IJSRuntime jsRuntime) : IThemeResolver,
     {
         if (_jsModule == null)
         {
-            _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js").ConfigureAwait(false);
+            _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/app-theme.js").ConfigureAwait(false);
         }
 
         var currentThemeTask = _jsModule.InvokeAsync<string>("getCurrentTheme", cancellationToken);

@@ -311,7 +311,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.
             _graphInitialized = true;
 
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-resourcegraph.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/app-resourcegraph.js");
 
             _resourcesInteropReference = DotNetObjectReference.Create(new ResourcesInterop(this));
 

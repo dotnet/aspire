@@ -74,7 +74,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
         if (_jsModule is not null)
