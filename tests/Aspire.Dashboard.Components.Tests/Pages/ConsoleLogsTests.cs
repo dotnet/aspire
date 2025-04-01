@@ -345,6 +345,69 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task ExecuteCommand_DelayExecuting_IsExecutingReturnsTrueWhileRunning()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(
+            appName: "test-resource",
+            state: KnownResourceState.Running,
+            commands: [new CommandViewModel("test-name", CommandViewModelState.Enabled, "test-displayname", "test-displaydescription", confirmationMessage: "", parameter: null, isHighlighted: true, iconName: string.Empty, iconVariant: IconVariant.Regular)]);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var resourceCommandChannel = Channel.CreateUnbounded<ResourceCommandResponseViewModel>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            resourceCommandsChannel: resourceCommandChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var dashboardCommandExecutor = Services.GetRequiredService<DashboardCommandExecutor>();
+
+        // Act 1
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert 1
+        AngleSharp.Dom.IElement highlightedCommand = default!;
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForAssertion(() =>
+        {
+            var highlightedCommands = cut.FindAll(".highlighted-command");
+            highlightedCommand = Assert.Single(highlightedCommands);
+        });
+
+        highlightedCommand.Click();
+
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => dashboardCommandExecutor.IsExecuting("test-resource", "test-name"), "Command start executing");
+
+        resourceCommandChannel.Writer.TryWrite(new ResourceCommandResponseViewModel
+        {
+            Kind = ResourceCommandResponseKind.Succeeded
+        });
+
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => !dashboardCommandExecutor.IsExecuting("test-resource", "test-name"), "Command finish executing");
+    }
+
+    [Fact]
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
