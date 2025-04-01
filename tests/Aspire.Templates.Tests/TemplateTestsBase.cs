@@ -50,33 +50,44 @@ public partial class TemplateTestsBase
         AspireProject project,
         TestTargetFramework? tfm = null,
         BuildEnvironment? buildEnvironment = null,
-        Func<AspireProject, Task>? onBuildAspireProject = null)
+        string? extraArgs = null,
+        Func<AspireProject, Task>? onBuildAspireProject = null,
+        string? overrideRootDir = null)
     {
         buildEnvironment ??= BuildEnvironment.ForDefaultFramework;
         var tmfArg = tfm is not null ? $"-f {tfm.Value.ToTFMString()}" : "";
 
+        string rootDirToUse = overrideRootDir ?? project.RootDir;
         // Add test project
-        var testProjectName = $"{id}.{testTemplateName}Tests";
+        var testProjectName = $"{id}.{FixupSymbolName(testTemplateName)}Tests";
         using var newTestCmd = new DotNetNewCommand(
                                     _testOutput,
                                     label: $"new-test-{testTemplateName}",
                                     buildEnv: buildEnvironment)
-                                .WithWorkingDirectory(project.RootDir);
-        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\"");
+                                .WithWorkingDirectory(rootDirToUse);
+        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\" {extraArgs}");
         res.EnsureSuccessful();
 
-        var testProjectDir = Path.Combine(project.RootDir, testProjectName);
+        var testProjectDir = Path.Combine(rootDirToUse, testProjectName);
         Assert.True(Directory.Exists(testProjectDir), $"Expected tests project at {testProjectDir}");
 
         var testProjectPath = Path.Combine(testProjectDir, testProjectName + ".csproj");
         Assert.True(File.Exists(testProjectPath), $"Expected tests project file at {testProjectPath}");
 
-        PrepareTestCsFile(project.Id, testProjectDir, testTemplateName);
-        PrepareTestProject(project, testProjectPath);
+        var appHostProjectName = Path.GetFileName(project.AppHostProjectDirectory)!;
+        PrepareTestCsFile(
+            id: project.Id,
+            projectDir: testProjectDir,
+            appHostProjectName: appHostProjectName,
+            testTemplateName: testTemplateName);
+        PrepareTestProject(
+            project: project,
+            projectPath: testProjectPath,
+            appHostProjectName: appHostProjectName);
 
         return testProjectDir;
 
-        static void PrepareTestProject(AspireProject project, string projectPath)
+        static void PrepareTestProject(AspireProject project, string projectPath, string appHostProjectName)
         {
             // Insert <ProjectReference Include="$(MSBuildThisFileDirectory)..\aspire-starter0.AppHost\aspire-starter0.AppHost.csproj" /> in the project file
 
@@ -84,18 +95,18 @@ public partial class TemplateTestsBase
             StringBuilder output = new();
             using (var w = XmlWriter.Create(output, s_xmlWriterSettings))
             {
-                w.WriteString(project.Id);
+                w.WriteString(appHostProjectName);
             }
             var xmlEncodedId = output.ToString();
 
-            var projectReference = $@"<ProjectReference Include=""$(MSBuildThisFileDirectory)..\{xmlEncodedId}.AppHost\{xmlEncodedId}.AppHost.csproj"" />";
+            var projectReference = $@"<ProjectReference Include=""$(MSBuildThisFileDirectory)..\{xmlEncodedId}\{xmlEncodedId}.csproj"" />";
 
             var newContents = File.ReadAllText(projectPath)
                                     .Replace("</Project>", $"<ItemGroup>{projectReference}</ItemGroup>\n</Project>");
             File.WriteAllText(projectPath, newContents);
         }
 
-        static void PrepareTestCsFile(string id, string projectDir, string testTemplateName)
+        static void PrepareTestCsFile(string id, string projectDir, string appHostProjectName, string testTemplateName)
         {
             var testCsPath = Path.Combine(projectDir, "IntegrationTest1.cs");
             var sb = new StringBuilder();
@@ -126,8 +137,8 @@ public partial class TemplateTestsBase
                 sb.AppendLine(line);
             }
 
-            var classNameFromId = GeneratedClassNameFixupRegex().Replace(id, "_");
-            sb.Replace("Projects.MyAspireApp_AppHost", $"Projects.{classNameFromId}_AppHost");
+            var classNameFromId = GeneratedClassNameFixupRegex().Replace(appHostProjectName, "_");
+            sb.Replace("Projects.MyAspireApp_AppHost", $"Projects.{classNameFromId}");
             File.WriteAllText(testCsPath, sb.ToString());
         }
     }
@@ -379,22 +390,22 @@ public partial class TemplateTestsBase
         }
     }
 
-    public static TheoryData<string, TestSdk, TestTargetFramework, string?> TestDataForNewAndBuildTemplateTests(string templateName) => new()
+    public static TheoryData<string, string, TestSdk, TestTargetFramework, string?> TestDataForNewAndBuildTemplateTests(string templateName, string extraArgs) => new()
         {
             // Previous Sdk, Previous TFM
-            { templateName, TestSdk.Previous, TestTargetFramework.Previous, null },
+            { templateName, extraArgs, TestSdk.Previous, TestTargetFramework.Previous, null },
             // Previous Sdk - Current TFM
-            { templateName, TestSdk.Previous, TestTargetFramework.Current, "The current .NET SDK does not support targeting .NET 9.0" },
+            { templateName, extraArgs, TestSdk.Previous, TestTargetFramework.Current, "The current .NET SDK does not support targeting .NET 9.0" },
 
             // Current SDK, Previous TFM
-            { templateName, TestSdk.Current, TestTargetFramework.Previous, null },
-            // Current SDK, Current TFM - covered by other tests
-            // { templateName, TestSdk.Current, TestTargetFramework.Current, null },
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Previous, null },
+            // Current SDK, Current TFM
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Current, null },
 
             // Current SDK + previous runtime, Previous TFM
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, null },
+            { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, null },
             // Current SDK + previous runtime, Current TFM
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, null },
+            { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, null },
         };
 
     // Taken from dotnet/runtime src/tasks/Common/Utils.cs

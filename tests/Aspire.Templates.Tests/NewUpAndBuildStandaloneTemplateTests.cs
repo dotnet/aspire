@@ -11,9 +11,9 @@ namespace Aspire.Templates.Tests;
 public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-starter")]
-    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, string? error)
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-starter", ""])]
+    public async Task CanNewAndBuild(string templateName, string extraArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
@@ -32,6 +32,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
                 templateName,
                 _testOutput,
                 buildEnvironment: buildEnvToUse,
+                extraArgs: extraArgs,
                 targetFramework: tfm);
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");

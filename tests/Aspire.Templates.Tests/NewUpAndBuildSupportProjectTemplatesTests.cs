@@ -13,12 +13,18 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
     [Theory]
     // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-apphost")]
     // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-servicedefaults")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-mstest")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-nunit")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-xunit")]
-    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, string? error)
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-mstest", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
+
+    // ActiveIssue: https://github.com/dotnet/aspire/issues/8393
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
+    public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
-        var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
+        var id = GetNewProjectId(prefix: $"new_build_{FixupSymbolName(templateName)}");
+        var topLevelDir = Path.Combine(BuildEnvironment.TestRootPath, id + "_root");
         string config = "Debug";
 
         var buildEnvToUse = sdk switch
@@ -29,21 +35,32 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 
+        if (Directory.Exists(topLevelDir))
+        {
+            Directory.Delete(topLevelDir, recursive: true);
+        }
+        Directory.CreateDirectory(topLevelDir);
+
         try
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                id: id,
-                template: "aspire",
+                id: id + ".AppHost",
+                template: "aspire-apphost",
                 testOutput: _testOutput,
                 buildEnvironment: buildEnvToUse,
-                targetFramework: tfm);
+                targetFramework: tfm,
+                addEndpointsHook: false,
+                overrideRootDir: topLevelDir);
+            project.AppHostProjectDirectory = Path.Combine(topLevelDir, id + ".AppHost");
 
             var testProjectDir = await CreateAndAddTestTemplateProjectAsync(
                                         id: id,
                                         testTemplateName: templateName,
                                         project: project,
                                         tfm: tfm,
-                                        buildEnvironment: buildEnvToUse);
+                                        buildEnvironment: buildEnvToUse,
+                                        extraArgs: extraTestCreationArgs,
+                                        overrideRootDir: topLevelDir);
 
             await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
         }
