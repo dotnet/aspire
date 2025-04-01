@@ -75,7 +75,7 @@ public static class AzureOpenAIExtensions
 #pragma warning disable CS0618 // Type or member is obsolete
             foreach (var deployment in resource.Deployments)
             {
-                dependency = CreateDeployment(infrastructure, cogServicesAccount, ref dependency, deployment);
+                dependency = CreateDeployment(infrastructure, cogServicesAccount, dependency, deployment);
             }
 
             foreach (var deployment in resource.DeploymentResources)
@@ -83,7 +83,7 @@ public static class AzureOpenAIExtensions
                 dependency = CreateDeployment(
                     infrastructure,
                     cogServicesAccount,
-                    ref dependency,
+                    dependency,
                     new AzureOpenAIDeployment(
                         deployment.DeploymentName,
                         deployment.ModelName,
@@ -101,7 +101,7 @@ public static class AzureOpenAIExtensions
     }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-    private static CognitiveServicesAccountDeployment CreateDeployment(AzureResourceInfrastructure infrastructure, CognitiveServicesAccount cogServicesAccount, ref CognitiveServicesAccountDeployment? dependency, AzureOpenAIDeployment deployment)
+    private static CognitiveServicesAccountDeployment CreateDeployment(AzureResourceInfrastructure infrastructure, CognitiveServicesAccount cogServicesAccount, CognitiveServicesAccountDeployment? dependency, AzureOpenAIDeployment deployment)
 #pragma warning restore CS0618 // Type or member is obsolete
     {
         var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
@@ -134,8 +134,7 @@ public static class AzureOpenAIExtensions
             cdkDeployment.DependsOn.Add(dependency);
         }
 
-        dependency = cdkDeployment;
-        return dependency;
+        return cdkDeployment;
     }
 
     /// <summary>
