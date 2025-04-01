@@ -42,14 +42,14 @@ public sealed class DashboardCommandExecutor(
         }
         finally
         {
-            // There can be an interval inbetween a command finishing and new resource state with commands being sent to the client.
-            // For example:
-            // 1. Click stop command on a resource. The command is disabled while running.
-            // 2. Stop command finishes. The command is enabled.
-            // 3. New resource state arrives in dashboard with stop command replaced by run command.
-            //
-            // To avoid the stop command temporarily being enabled, add a delay between a command finishing, and it being re-enabled in the dashboard.
-            // This delay was chosen to balance avoiding an incorrect temporary state (new resource state should arrive within a second) and responsiveness.
+            // There may be a delay between a command finishing and the arrival of a new resource state with updated commands sent to the client.  
+            // For example:  
+            // 1. Click the stop command on a resource. The command is disabled while running.  
+            // 2. The stop command finishes, and it is re-enabled.  
+            // 3. A new resource state arrives in the dashboard, replacing the stop command with the run command.  
+            //  
+            // To prevent the stop command from being temporarily enabled, introduce a delay between a command finishing and re-enabling it in the dashboard.  
+            // This delay is chosen to balance avoiding an incorrect temporary state (since the new resource state should arrive within a second) and maintaining responsiveness.
             await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
             lock (_lock)
