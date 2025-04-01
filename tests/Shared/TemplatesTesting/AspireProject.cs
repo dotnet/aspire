@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using Polly;
 using Xunit;
 using Xunit.Sdk;
 
@@ -318,7 +319,7 @@ public partial class AspireProject : IAsyncDisposable
         return res;
     }
 
-    public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
+    public async Task<WrapperForIPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
     {
         string dashboardUrlToUse;
         if (Environment.GetEnvironmentVariable("DASHBOARD_URL_FOR_TEST") is string dashboardUrlForTest)
@@ -338,10 +339,32 @@ public partial class AspireProject : IAsyncDisposable
         cts.CancelAfter(TimeSpan.FromSeconds(DashboardAvailabilityTimeoutSecs));
         await WaitForDashboardToBeAvailableAsync(dashboardUrlToUse, _testOutput, cts.Token).ConfigureAwait(false);
 
-        var dashboardPage = await context.NewPageWithLoggingAsync(_testOutput);
-        await dashboardPage.GotoAsync(dashboardUrlToUse);
+        var dashboardPageWrapper = await context.NewPageWithLoggingAsync(_testOutput);
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = 3,
+                ShouldHandle = new PredicateBuilder().Handle<PlaywrightException>(ex =>
+                {
+                    return ex.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.OrdinalIgnoreCase) ||
+                            ex.Message.Contains("net::ERR_SOCKET_NOT_CONNECTED", StringComparison.OrdinalIgnoreCase);
+                }),
+                OnRetry = (args) =>
+                {
+                    _testOutput.WriteLine($"Reloading dashboard page due to {args.Outcome.Exception?.Message}");
+                    return ValueTask.CompletedTask;
+                },
+                Delay = TimeSpan.FromSeconds(1)
+            })
+            .Build();
 
-        return dashboardPage;
+        await pipeline.ExecuteAsync(async token =>
+        {
+            _testOutput.WriteLine($"Opening dashboard page at {dashboardUrlToUse}");
+            await dashboardPageWrapper.GotoAsync(dashboardUrlToUse);
+        }, cts.Token).ConfigureAwait(false);
+
+        return dashboardPageWrapper;
     }
 
     public Task WaitForDashboardToBeAvailableAsync(CancellationToken cancellationToken = default)

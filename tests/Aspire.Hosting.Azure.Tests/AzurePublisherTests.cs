@@ -192,6 +192,8 @@ public class AzurePublisherTests(ITestOutputHelper output)
             
             output account_connectionString string = account.outputs.connectionString
             
+            output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
+
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
             
             output fe_identity_id string = fe_identity.outputs.id
