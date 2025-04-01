@@ -20,13 +20,13 @@ public class WebTests
     {
         // Arrange
 #if (TestFx == "MSTest")
-        CancellationToken cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+        var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
 #elif (TestFx == "NUnit")
-        CancellationToken cancellationToken = TestContext.CurrentContext.CancellationToken;
+        var cancellationToken = TestContext.CurrentContext.CancellationToken;
 #elif (XUnitVersion == "v2")
-        CancellationToken cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+        var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
 #else // XunitVersion v3 or v3mtp
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
 #endif
 
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>(cancellationToken);
