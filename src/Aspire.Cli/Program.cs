@@ -7,16 +7,14 @@ using System.Data;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Commands;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
-using Semver;
 using Spectre.Console;
-using Spectre.Console.Rendering;
-using StreamJsonRpc;
 
 namespace Aspire.Cli;
 
@@ -61,10 +59,15 @@ public class Program
             builder.Logging.AddConsole();
         }
 
+        // Shared services.
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
+
+        // Commands.
+        builder.Services.AddTransient<RunCommand>();
+
         var app = builder.Build();
         return app;
     }
@@ -110,350 +113,10 @@ public class Program
         return rootCommand;
     }
 
-    private static void ValidateProjectOption(OptionResult result)
-    {
-        var value = result.GetValueOrDefault<FileInfo?>();
-
-        if (result.Implicit)
-        {
-            // Having no value here is fine, but there has to
-            // be a single csproj file in the current
-            // working directory.
-            var csprojFiles = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-
-            if (csprojFiles.Length > 1)
-            {
-                result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
-                return;
-            }
-            else if (csprojFiles.Length == 0)
-            {
-                result.AddError("The --project option was not specified and no *.csproj files were detected.");
-                return;
-            }
-
-            return;
-        }
-
-        if (value is null)
-        {
-            result.AddError("The --project option was specified but no path was provided.");
-            return;
-        }
-
-        if (!File.Exists(value.FullName))
-        {
-            result.AddError("The specified project file does not exist.");
-            return;
-        }
-    }
-
     private static void ConfigureRunCommand(Command parentCommand, IHost app)
     {
-        var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
-        command.Options.Add(projectOption);
-
-        var watchOption = new Option<bool>("--watch", "-w");
-        command.Options.Add(watchOption);
-
-        command.SetAction(async (parseResult, ct) => {
-            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureRunCommand)}-Action", ActivityKind.Internal);
-
-            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-            
-            if (effectiveAppHostProjectFile is null)
-            {
-                return ExitCodeConstants.FailedToFindProject;
-            }
-
-            var env = new Dictionary<string, string>();
-
-            var debug = parseResult.GetValue<bool>("--debug");
-
-            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
-
-            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
-            
-            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
-
-            if (waitForDebugger)
-            {
-                env[KnownConfigNames.WaitForDebugger] = "true";
-            }
-
-            try
-            {
-                await EnsureCertificatesTrustedAsync(runner, ct);
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
-                return ExitCodeConstants.FailedToTrustCertificates;
-            }
-
-            var appHostCompatabilityCheck = await CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
-
-            if (!appHostCompatabilityCheck.IsCompatableAppHost)
-            {
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-
-            var watch = parseResult.GetValue<bool>("--watch");
-
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(":hammer_and_wrench:  Building apphost...", async context => {
-                    await runner.BuildAsync(effectiveAppHostProjectFile, ct).ConfigureAwait(false);
-                });
-
-            var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
-
-            var pendingRun = runner.RunAsync(
-                effectiveAppHostProjectFile,
-                watch,
-                true,
-                Array.Empty<string>(),
-                env,
-                backchannelCompletitionSource,
-                ct);
-
-            if (useRichConsole)
-            {
-                // We wait for the back channel to be created to signal that
-                // the AppHost is ready to accept requests.
-                var backchannel = await AnsiConsole.Status()
-                                                   .Spinner(Spinner.Known.Dots3)
-                                                   .SpinnerStyle(Style.Parse("purple"))
-                                                   .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                                                        return await backchannelCompletitionSource.Task;
-                                                   });
-
-                // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await AnsiConsole.Status()
-                                                    .Spinner(Spinner.Known.Dots3)
-                                                    .SpinnerStyle(Style.Parse("purple"))
-                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-                                                        return await backchannel.GetDashboardUrlsAsync(ct);
-                                                    });
-
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                }
-                AnsiConsole.WriteLine();
-
-                var table = new Table().Border(TableBorder.Rounded);
-
-                await AnsiConsole.Live(table).StartAsync(async context => {
-
-                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
-
-                    table.AddColumn("Resource");
-                    table.AddColumn("Type");
-                    table.AddColumn("State");
-                    table.AddColumn("Endpoint(s)");
-
-                    var resourceStates = backchannel.GetResourceStatesAsync(ct);
-
-                    try
-                    {
-                        await foreach(var resourceState in resourceStates)
-                        {
-                            knownResources[resourceState.Resource] = resourceState;
-
-                            table.Rows.Clear();
-
-                            foreach (var knownResource in knownResources)
-                            {
-                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
-
-                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
-
-                                var stateRenderable = knownResource.Value.State switch {
-                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                                };
-
-                                IRenderable endpointsRenderable = new Text("None");
-                                if (knownResource.Value.Endpoints?.Length > 0)
-                                {
-                                    endpointsRenderable = new Rows(
-                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                    );
-                                }
-
-                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
-                            }
-
-                            context.Refresh();
-                        }
-                    }
-                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
-                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
-                        // that the apphost side of the RPC connection will be closed. Therefore if we get a 
-                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
-                        // asume that the apphost was shutdown and we can ignore it.
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the our side
-                        // of the backchannel side first and the connection is torn down on our-side
-                        // gracefully. We can ignore this exception as well.
-                    }
-                });
-
-                return await pendingRun;
-            }
-            else
-            {
-                return await pendingRun;
-            }
-        });
-
-        parentCommand.Subcommands.Add(command);
-    }
-
-    private static async Task<(bool IsCompatableAppHost, bool SupportsBackchannel)> CheckAppHostCompatabilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
-    {
-            var appHostInformation = await GetAppHostInformationAsync(runner, projectFile, cancellationToken);
-
-            if (appHostInformation.ExitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be analyzed due to a build error. For more information run with --debug switch.[/]");
-                return (false, false);
-            }
-
-            if (!appHostInformation.IsAspireHost)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire AppHost project.[/]");
-                return (false, false);
-            }
-
-            if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Could not parse Aspire SDK version.[/]");
-                return (false, false);
-            }
-
-            var compatableRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-            if (!aspireSdkVersion.Satisfies(compatableRanges))
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.[/]");
-                return (false, false);
-            }
-            else
-            {
-                // NOTE: When we go to support < 9.2.0 app hosts this is where we'll make
-                //       a determination as to whether the apphsot supports backchannel or not.
-                return (true, true);
-            }
-    }
-
-    private static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
-    {
-        using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
-
-        var appHostInformationResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":microscope: Checking project type...",
-                async (context) => {
-                    return await runner.GetAppHostInformationAsync(projectFile, cancellationToken);
-                });
-
-        return appHostInformationResult;
-    }
-
-    private static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
-    {
-        using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
-
-        var checkExitCode = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":locked_with_key: Checking certificates...",
-                async (context) => {
-                    return await runner.CheckHttpCertificateAsync(cancellationToken);
-                });
-
-        if (checkExitCode != 0)
-        {
-            var trustExitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
-                    ":locked_with_key: Trusting certificates...",
-                    async (context) => {
-                        return await runner.TrustHttpCertificateAsync(cancellationToken);
-                    });
-
-            if (trustExitCode != 0)
-            {
-                throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
-            }
-        }
-    }
-
-    private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
-    {
-        if (projectFile is not null)
-        {
-            // If the project file is passed, just use it.
-            return projectFile;
-        }
-
-        var projectFilePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-        try 
-        {
-            var projectFilePath = projectFilePaths?.SingleOrDefault();
-            if (projectFilePath is null)
-            {
-                throw new InvalidOperationException("No project file found.");
-            }
-            else
-            {
-                return new FileInfo(projectFilePath);
-            }
-            
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex.Message);
-            if (projectFilePaths.Length > 1)
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and multiple *.csproj files were detected.[/]");
-                
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and no *.csproj files were detected.[/]");
-            }
-            return null;
-        };
+        var command = app.Services.GetRequiredService<RunCommand>();
+        parentCommand.Add(command);
     }
 
     private static void ConfigurePublishCommand(Command parentCommand, IHost app)
@@ -461,7 +124,7 @@ public class Program
         var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
+        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var publisherOption = new Option<string>("--publisher", "-p");
@@ -476,7 +139,7 @@ public class Program
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -490,7 +153,7 @@ public class Program
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            var appHostCompatabilityCheck = await CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
+            var appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
 
             if (!appHostCompatabilityCheck.IsCompatableAppHost)
             {
@@ -783,7 +446,7 @@ public class Program
 
             try
             {
-                await EnsureCertificatesTrustedAsync(runner, ct);
+                await CertificatesHelper.EnsureCertificatesTrustedAsync(runner, ct);
             }
             catch (Exception ex)
             {
@@ -885,7 +548,7 @@ public class Program
         command.Arguments.Add(resourceArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
+        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -907,7 +570,7 @@ public class Program
                 var integrationName = parseResult.GetValue<string>("resource");
 
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+                var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
                 
                 if (effectiveAppHostProjectFile is null)
                 {
