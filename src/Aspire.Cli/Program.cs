@@ -920,6 +920,12 @@ public class Program
 
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
 
+                if (!packagesWithShortName.Any())
+                {
+                    AnsiConsole.MarkupLine("[red bold]:thumbs_down: No packages found.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+
                 var filteredPackagesWithShortName = packagesWithShortName.Where(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
 
                 if (!filteredPackagesWithShortName.Any() && integrationName is not null)
