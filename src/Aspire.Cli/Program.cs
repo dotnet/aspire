@@ -45,7 +45,7 @@ public class Program
                                                 nameof(Aspire.Cli.Program));
                                             });
 
-        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is { } otlpEndpoint)
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
         {
             // NOTE: If we always enable the OTEL exporter it dramatically
             //       impacts the CLI in terms of exiting quickly because it
