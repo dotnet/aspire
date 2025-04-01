@@ -5,7 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <RunTestsOnHelix>false</RunTestsOnHelix>
+
+    <!-- Do not run tests in Helix at all -->
+    <RunsOnHelixWindows>false</RunsOnHelixWindows>
+    <RunsOnHelixLinux>false</RunsOnHelixLinux>
   </PropertyGroup>
 
   <ItemGroup>
