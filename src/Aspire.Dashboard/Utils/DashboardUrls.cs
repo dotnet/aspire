@@ -14,13 +14,15 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs/";
     public const string TracesBasePath = "traces/";
 
+    public static string HomeUrl() => ResourcesUrl();
+
     public static string ResourcesUrl(string? resource = null, string? view = null)
     {
         var url = ResourcesBasePath;
 
         if (resource != null)
         {
-            url = QueryHelpers.AddQueryString("", "resource", resource);
+            url = QueryHelpers.AddQueryString(url, "resource", resource);
         }
 
         if (view != null)
