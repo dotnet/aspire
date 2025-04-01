@@ -247,8 +247,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         Debug.Assert(_resources is not null);
         return _resources.SingleOrDefault(
-            option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping
-                      && (string.Equals(ResourceName, option.Id?.InstanceId, StringComparisons.ResourceName) || string.Equals(ResourceName, option.Name, StringComparisons.ResourceName)))
+            option =>
+            {
+                var typeDetails = option.Id;
+                if (typeDetails is null || typeDetails.Type is OtlpApplicationType.ResourceGrouping)
+                {
+                    return false;
+                }
+
+                return string.Equals(ResourceName, typeDetails.Type is OtlpApplicationType.Instance
+                    ? option.Id?.InstanceId
+                    : option.Name, StringComparisons.ResourceName);
+            })
             ?? _noSelection;
     }
 
