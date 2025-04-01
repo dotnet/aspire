@@ -17,7 +17,49 @@ public sealed class DashboardCommandExecutor(
     IStringLocalizer<Dashboard.Resources.Resources> loc,
     NavigationManager navigationManager)
 {
+    private readonly HashSet<(string ResourceName, string CommandName)> _executingCommands = [];
+    private readonly object _lock = new object();
+
+    public bool IsExecuting(string resourceName, string commandName)
+    {
+        lock (_lock)
+        {
+            return _executingCommands.Contains((resourceName, commandName));
+        }
+    }
+
     public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
+    {
+        var executingCommandKey = (resource.Name, command.Name);
+        lock (_lock)
+        {
+            _executingCommands.Add(executingCommandKey);
+        }
+
+        try
+        {
+            await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+        }
+        finally
+        {
+            // There can be an interval inbetween a command finishing and new resource state with commands being sent to the client.
+            // For example:
+            // 1. Click stop command on a resource. The command is disabled while running.
+            // 2. Stop command finishes. The command is enabled.
+            // 3. New resource state arrives in dashboard with stop command replaced by run command.
+            //
+            // To avoid the stop command temporarily being enabled, add a delay between a command finishing, and it being re-enabled in the dashboard.
+            // This delay was chosen to balance avoiding an incorrect temporary state (new resource state should arrive within a second) and responsiveness.
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+            lock (_lock)
+            {
+                _executingCommands.Remove(executingCommandKey);
+            }
+        }
+    }
+
+    public async Task ExecuteAsyncCore(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
         {

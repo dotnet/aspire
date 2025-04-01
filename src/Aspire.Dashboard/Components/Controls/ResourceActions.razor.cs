@@ -40,6 +40,9 @@ public partial class ResourceActions : ComponentBase
     public required EventCallback<CommandViewModel> CommandSelected { get; set; }
 
     [Parameter]
+    public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
+
+    [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
 
     [Parameter]
@@ -142,7 +145,7 @@ public partial class ResourceActions : ComponentBase
                     Tooltip = command.DisplayDescription,
                     Icon = icon,
                     OnClick = () => CommandSelected.InvokeAsync(command),
-                    IsDisabled = command.State == CommandViewModelState.Disabled
+                    IsDisabled = command.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, command)
                 });
             }
         }

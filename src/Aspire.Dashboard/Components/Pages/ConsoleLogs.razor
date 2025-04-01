@@ -38,7 +38,7 @@
                 {
                     <FluentButton Appearance="Appearance.Lightweight"
                                   Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
-                                  Disabled="@(command.State == CommandViewModelState.Disabled)"
+                                  Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(PageViewModel.SelectedResource!.Name, command.Name))"
                                   OnClick="@(() => ExecuteResourceCommandAsync(command))"
                                   Class="highlighted-command">
                         @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
