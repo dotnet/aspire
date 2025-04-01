@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Data;
 using System.Diagnostics;
 using System.Text;
@@ -66,6 +65,7 @@ public class Program
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
 
         // Commands.
+        builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<RunCommand>();
 
         var app = builder.Build();
@@ -307,159 +307,10 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    private static void ValidateProjectTemplate(ArgumentResult result)
-    {
-        // TODO: We need to integrate with the template engine to interrogate
-        //       the list of available templates. For now we will just hard-code
-        //       the acceptable options.
-        //
-        //       Once we integrate with template engine we will also be able to
-        //       interrogate the various options and add them. For now we will 
-        //       keep it simple.
-        string[] validTemplates = [
-            "aspire-starter",
-            "aspire",
-            "aspire-apphost",
-            "aspire-servicedefaults",
-            "aspire-mstest",
-            "aspire-nunit",
-            "aspire-xunit"
-            ];
-
-        var value = result.GetValueOrDefault<string>();
-
-        if (value is null)
-        {
-            // This is OK, for now we will use the default
-            // template of aspire-starter, but we might
-            // be able to do more intelligent selection in the
-            // future based on what is already in the working directory.
-            return;
-        }
-
-        if (value is { } templateName && !validTemplates.Contains(templateName))
-        {
-            result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
-            return;
-        }
-    }
-
     private static void ConfigureNewCommand(Command parentCommand, IHost app)
     {
-        var command = new Command("new", "Create a new Aspire sample project.");
-        var templateArgument = new Argument<string>("template");
-        templateArgument.Validators.Add(ValidateProjectTemplate);
-        templateArgument.Arity = ArgumentArity.ZeroOrOne;
-        command.Arguments.Add(templateArgument);
-
-        var nameOption = new Option<string>("--name", "-n");
-        command.Options.Add(nameOption);
-
-        var outputOption = new Option<string?>("--output", "-o");
-        command.Options.Add(outputOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        command.Options.Add(prereleaseOption);
-        
-        var sourceOption = new Option<string?>("--source", "-s");
-        command.Options.Add(sourceOption);
-
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        command.Options.Add(templateVersionOption);
-
-        command.SetAction(async (parseResult, ct) => {
-            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureNewCommand)}-Action", ActivityKind.Internal);
-
-            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
-
-            var templateVersion = parseResult.GetValue<string>("--version");
-            var prerelease = parseResult.GetValue<bool>("--prerelease");
-
-            if (templateVersion is not null && prerelease)
-            {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --version and --prerelease options are mutually exclusive.[/]");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            else if (prerelease)
-            {
-                templateVersion = "*-*";
-            }
-            else if (templateVersion is null)
-            {
-                templateVersion = VersionHelper.GetDefaultTemplateVersion();
-            }
-
-            var source = parseResult.GetValue<string?>("--source");
-
-            var templateInstallResult = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
-                    ":ice:  Getting latest templates...",
-                    async context => {
-                        return await runner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
-                    });
-
-            if (templateInstallResult.ExitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToInstallTemplates;
-            }
-
-            AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
-
-            var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
-
-            if (parseResult.GetValue<string>("--output") is not { } outputPath)
-            {
-                outputPath = Environment.CurrentDirectory;
-            }
-            else
-            {
-                outputPath = Path.GetFullPath(outputPath);
-            }
-
-            if (parseResult.GetValue<string>("--name") is not { } name)
-            {
-                var outputPathDirectoryInfo = new DirectoryInfo(outputPath);
-                name = outputPathDirectoryInfo.Name;
-            }
-
-            int newProjectExitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
-                    ":rocket:  Creating new Aspire project...",
-                    async context => {
-                        return await runner.NewProjectAsync(
-                    templateName,
-                    name,
-                    outputPath,
-                    ct);
-                });
-
-            if (newProjectExitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-
-            try
-            {
-                await CertificatesHelper.EnsureCertificatesTrustedAsync(runner, ct);
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
-                return ExitCodeConstants.FailedToTrustCertificates;
-            }
-
-            AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
-
-            return ExitCodeConstants.Success;
-        });
-
-        parentCommand.Subcommands.Add(command);
+        var command = app.Services.GetRequiredService<NewCommand>();
+        parentCommand.Add(command);
     }
 
     private static async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
