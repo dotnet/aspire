@@ -14,8 +14,17 @@ public static class KeycloakResourceBuilderExtensions
     private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
     private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+    private const string ProxyEdgeEnvVarName = "KC_PROXY";
+    private const string HttpPortEnvVarName = "KC_HTTP_PORT";
+    private const string HttpEnabledEnvVarName = "KC_HTTP_ENABLED";
+    private const string HostNamePortEnvVarName = "KC_HOSTNAME_PORT";
+    private const string HostNameStrictBackchannelEnvVarName = "KC_HOSTNAME_STRICT_BACKCHANNEL";
+    private const string ProxyHeadersEnvVarName = "KC_PROXY_HEADERS";
+    private const string HostNameStrictEnvVarName = "KC_HOSTNAME_STRICT";
+    private const string HostNameStrictHttpsEnvVarName = "KC_HOSTNAME_STRICT_HTTPS";
 
     private const int DefaultContainerPort = 8080;
+    private const int HttpsContainerPort = 8443;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
@@ -61,7 +70,7 @@ public static class KeycloakResourceBuilderExtensions
             .WithImage(KeycloakContainerImageTags.Image)
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
-            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(port: port, targetPort: HttpsContainerPort)
             .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
             .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
@@ -69,6 +78,14 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
+                context.EnvironmentVariables[ProxyEdgeEnvVarName] = "edge";
+                context.EnvironmentVariables[HttpPortEnvVarName] = HttpsContainerPort.ToString();
+                context.EnvironmentVariables[HttpEnabledEnvVarName] = "true";
+                context.EnvironmentVariables[HostNamePortEnvVarName] = HttpsContainerPort.ToString();
+                context.EnvironmentVariables[HostNameStrictBackchannelEnvVarName] = "false";
+                context.EnvironmentVariables[ProxyHeadersEnvVarName] = "xforwarded";
+                context.EnvironmentVariables[HostNameStrictEnvVarName] = "false";
+                context.EnvironmentVariables[HostNameStrictHttpsEnvVarName] = "false";
             });
 
         if (builder.ExecutionContext.IsRunMode)
