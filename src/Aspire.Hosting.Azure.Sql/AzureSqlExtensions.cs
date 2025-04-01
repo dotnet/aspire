@@ -149,7 +149,7 @@ public static class AzureSqlExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
+    public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>> configureContainer)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
