@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
+using System.Globalization;
 
 namespace Aspire.Hosting;
 
@@ -23,8 +24,7 @@ public static class KeycloakResourceBuilderExtensions
     private const string HostNameStrictEnvVarName = "KC_HOSTNAME_STRICT";
     private const string HostNameStrictHttpsEnvVarName = "KC_HOSTNAME_STRICT_HTTPS";
 
-    private const int DefaultContainerPort = 8080;
-    private const int HttpsContainerPort = 8443;
+    private const int DefaultContainerPort = 8443;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
@@ -70,7 +70,7 @@ public static class KeycloakResourceBuilderExtensions
             .WithImage(KeycloakContainerImageTags.Image)
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
-            .WithHttpEndpoint(port: port, targetPort: HttpsContainerPort)
+            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
             .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
             .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
@@ -79,9 +79,9 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
                 context.EnvironmentVariables[ProxyEdgeEnvVarName] = "edge";
-                context.EnvironmentVariables[HttpPortEnvVarName] = HttpsContainerPort.ToString();
+                context.EnvironmentVariables[HttpPortEnvVarName] = DefaultContainerPort.ToString(CultureInfo.InvariantCulture);
                 context.EnvironmentVariables[HttpEnabledEnvVarName] = "true";
-                context.EnvironmentVariables[HostNamePortEnvVarName] = HttpsContainerPort.ToString();
+                context.EnvironmentVariables[HostNamePortEnvVarName] = DefaultContainerPort.ToString(CultureInfo.InvariantCulture);
                 context.EnvironmentVariables[HostNameStrictBackchannelEnvVarName] = "false";
                 context.EnvironmentVariables[ProxyHeadersEnvVarName] = "xforwarded";
                 context.EnvironmentVariables[HostNameStrictEnvVarName] = "false";
