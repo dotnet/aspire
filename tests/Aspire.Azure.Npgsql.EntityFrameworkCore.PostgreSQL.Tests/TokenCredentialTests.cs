@@ -14,9 +14,8 @@ namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class TokenCredentialTests
 {
-    private const string ConnectionString = "Host=localhost;Database=test";
-    private const string ConnectionStringWithUsername = "Host=localhost;Database=test;Username=admin";
-    private const string ConnectionStringWithUsernameAndPassword = "Host=localhost;Database=test;Username=admin;Password=p@ssw0rd1";
+    // These tests use different connection strings to prevent efcore from reusing the data source results between tests.
+    // c.f. https://github.com/npgsql/npgsql/issues/6085
 
     internal static void ConfigureDbContextOptionsBuilderForTesting(DbContextOptionsBuilder builder)
     {
@@ -30,16 +29,17 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void ReadsUsernameFromToken(bool useEnrich)
     {
+        var connectionString = "Host=localhost;Database=test2;Persist Security Info=True";
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", connectionString)
         ]);
 
         var fakeCred = new FakeTokenCredential(useManagedIdentity: false);
 
         if (useEnrich)
         {
-            var connectionString = builder.Configuration.GetConnectionString("npgsql");
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(connectionString));
             builder.EnrichAzureNpgsqlDbContext<TestDbContext>(configureSettings: settings => settings.Credential = fakeCred);
         }
@@ -51,7 +51,7 @@ public class TokenCredentialTests
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
-        Assert.Contains(ConnectionString, context.Database.GetDbConnection().ConnectionString);
+        Assert.Contains(connectionString, context.Database.GetDbConnection().ConnectionString);
         Assert.Contains("Username=mikey@mouse.com", context.Database.GetDbConnection().ConnectionString);
     }
 
@@ -60,16 +60,17 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void ReadsUsernameFromManagedIdentityToken(bool useEnrich)
     {
+        var connectionString = "Host=localhost;Database=test3;Persist Security Info=True";
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", connectionString)
         ]);
 
         var fakeCred = new FakeTokenCredential(useManagedIdentity: true);
 
         if (useEnrich)
         {
-            var connectionString = builder.Configuration.GetConnectionString("npgsql");
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(connectionString));
             builder.EnrichAzureNpgsqlDbContext<TestDbContext>(configureSettings: settings => settings.Credential = fakeCred);
         }
@@ -79,9 +80,10 @@ public class TokenCredentialTests
         }
 
         using var host = builder.Build();
-        var context = host.Services.GetRequiredService<TestDbContext>();
+        using var scope = host.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 
-        Assert.Contains(ConnectionString, context.Database.GetDbConnection().ConnectionString);
+        Assert.Contains(connectionString, context.Database.GetDbConnection().ConnectionString);
         Assert.Contains("Username=mi-123", context.Database.GetDbConnection().ConnectionString);
     }
 
@@ -90,16 +92,17 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void TokenCredentialIsIgnoredWhenUsernameAndPasswordAreSet(bool useEnrich)
     {
+        const string connectionString = "Host=localhost;Database=test;Persist Security Info=True;Username=admin;Password=p@ssw0rd1";
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionStringWithUsernameAndPassword)
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", connectionString)
         ]);
 
         var fakeCred = new FakeTokenCredential(useManagedIdentity: false);
 
         if (useEnrich)
         {
-            var connectionString = builder.Configuration.GetConnectionString("npgsql");
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(connectionString));
             builder.EnrichAzureNpgsqlDbContext<TestDbContext>(configureSettings: settings => settings.Credential = fakeCred);
         }
@@ -112,8 +115,7 @@ public class TokenCredentialTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.NotNull(fakeCred);
-        // Password is removed from the connection string for security reasons.
-        Assert.Equal(ConnectionStringWithUsername, context.Database.GetDbConnection().ConnectionString);
+        Assert.Equal(connectionString, context.Database.GetDbConnection().ConnectionString);
         Assert.False(fakeCred.IsGetTokenInvoked);
     }
 
@@ -122,16 +124,17 @@ public class TokenCredentialTests
     [InlineData(false)]
     public void DoesNotThrowWhenTokenCredentialHasNoUsername(bool useEnrich)
     {
+        const string connectionString = "Host=localhost;Database=test4;Persist Security Info=True";
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", connectionString)
         ]);
 
         var fakeCred = CreateAnonumousTokenCredentials();
 
         if (useEnrich)
         {
-            var connectionString = builder.Configuration.GetConnectionString("npgsql");
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(connectionString));
             builder.EnrichAzureNpgsqlDbContext<TestDbContext>(configureSettings: settings => settings.Credential = fakeCred);
         }
@@ -144,7 +147,7 @@ public class TokenCredentialTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.NotNull(fakeCred);
-        Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
+        Assert.Equal(connectionString, context.Database.GetDbConnection().ConnectionString);
         Assert.True(fakeCred.IsGetTokenInvoked);
         Assert.Contains("https://ossrdbms-aad.database.windows.net/.default", fakeCred.RequestedScopes);
         Assert.Contains("https://management.azure.com/.default", fakeCred.RequestedScopes);

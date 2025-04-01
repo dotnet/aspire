@@ -129,7 +129,7 @@ public static partial class AspireAzureEFPostgreSqlExtensions
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
 #if NET9_0_OR_GREATER
-        dbContextOptionsBuilder.UseNpgsql(connectionString, options =>
+        dbContextOptionsBuilder.UseNpgsql(options =>
         {
             options.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.ConfigureEntraIdAuthentication(settings.Credential));
         });
