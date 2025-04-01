@@ -63,7 +63,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
         Assert.Equal(DistributedApplicationOperation.Run, context.Operation);
         Assert.True(context.IsRunMode);

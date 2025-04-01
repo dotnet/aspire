@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +16,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
+[Experimental("ASPIREPUBLISHERS001")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>

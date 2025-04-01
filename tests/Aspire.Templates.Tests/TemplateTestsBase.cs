@@ -148,10 +148,10 @@ public partial class TemplateTestsBase
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 
-    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
-        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, logPath, timeoutSecs);
+    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(WrapperForIPage dashboardPageWrapper, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
+        => CheckDashboardHasResourcesAsync(dashboardPageWrapper, expectedResources, _testOutput, logPath, timeoutSecs);
 
-    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage,
+    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(WrapperForIPage dashboardPageWrapper,
                                                                                IEnumerable<ResourceRow> expectedResources,
                                                                                ITestOutputHelper testOutput,
                                                                                string logPath,
@@ -159,22 +159,23 @@ public partial class TemplateTestsBase
     {
         try
         {
-            return await CheckDashboardHasResourcesActualAsync(dashboardPage, expectedResources, testOutput, timeoutSecs);
+            return await CheckDashboardHasResourcesActualAsync(dashboardPageWrapper, expectedResources, testOutput, timeoutSecs);
         }
         catch
         {
             string screenshotPath = Path.Combine(logPath, "dashboard-fail.png");
-            await dashboardPage.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            await dashboardPageWrapper.Page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
             testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
             throw;
         }
     }
 
-    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
+    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(WrapperForIPage dashboardPageWrapper, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
     {
         // FIXME: check the page has 'Resources' label
         // fluent-toolbar/h1 resources
 
+        var numAttempts = 0;
         testOutput.WriteLine($"Waiting for resources to appear on the dashboard");
         await Task.Delay(500);
 
@@ -187,10 +188,22 @@ public partial class TemplateTestsBase
 
         while (foundNames.Count < expectedRowsTable.Count && !cts.IsCancellationRequested)
         {
+            if (dashboardPageWrapper.HasErrors)
+            {
+                if (numAttempts >= 3)
+                {
+                    throw new InvalidOperationException($"Failed to load dashboard page after {numAttempts} attempts");
+                }
+
+                testOutput.WriteLine($"----- Reloading dashboard page");
+                await dashboardPageWrapper.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load });
+                numAttempts++;
+            }
+
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            var rowsLocator = dashboardPage.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
+            var rowsLocator = dashboardPageWrapper.Page.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
@@ -274,7 +287,7 @@ public partial class TemplateTestsBase
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
                 // Check 'Source' column
-                var sourceCell = cellLocs[4];
+                var sourceCell = cellLocs[3];
                 // Since this will be the entire command, we can just confirm that the path of the executable contains
                 // the expected source (executable/project)
                 Assert.Contains(expectedRow.SourceContains, await sourceCell.InnerTextAsync());

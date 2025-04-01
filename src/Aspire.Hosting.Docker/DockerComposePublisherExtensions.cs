@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Docker;
+#pragma warning disable ASPIREPUBLISHERS001
+
+using Aspire.Hosting.Docker;
+
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions for adding a Docker Compose publisher to the application model.

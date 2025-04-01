@@ -11,6 +11,7 @@
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="$(PackageVersion)" />
 

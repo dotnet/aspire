@@ -23,6 +23,9 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
     }
 
+    // Sub-classed in Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
+    protected override bool CheckOptionClassSealed => false;
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
