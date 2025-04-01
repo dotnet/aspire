@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
@@ -29,7 +29,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7921", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7921", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions))]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange

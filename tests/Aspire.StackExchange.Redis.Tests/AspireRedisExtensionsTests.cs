@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Caching.Distributed;

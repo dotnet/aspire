@@ -2,47 +2,77 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Data;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Commands;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace Aspire.Cli;
 
 public class Program
 {
-    private static IHost BuildApplication(ParseResult parseResult)
+    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Aspire.Cli.Program));
+
+    private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
 
-        var debugOption = parseResult.GetValue<bool>("--debug");
+        builder.Logging.ClearProviders();
 
-        if (!debugOption)
+        // Always configure OpenTelemetry.
+        builder.Logging.AddOpenTelemetry(logging => {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+            });
+
+        var otelBuilder = builder.Services.AddOpenTelemetry()
+                                          .WithTracing(tracing => {
+                                            tracing.AddSource(
+                                                nameof(Aspire.Cli.NuGetPackageCache),
+                                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
+                                                nameof(Aspire.Cli.DotNetCliRunner),
+                                                nameof(Aspire.Cli.Program));
+                                            });
+
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
         {
-            // Suppress all logging and rely on AnsiConsole output.
-            builder.Logging.AddFilter((_) => false);
+            // NOTE: If we always enable the OTEL exporter it dramatically
+            //       impacts the CLI in terms of exiting quickly because it
+            //       has to finish sending telemetry.
+            otelBuilder.UseOtlpExporter();
         }
-        else
+
+        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
+
+        if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+            builder.Logging.AddConsole();
         }
 
+        // Shared services.
         builder.Services.AddTransient<DotNetCliRunner>();
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
+
+        // Commands.
+        builder.Services.AddTransient<NewCommand>();
+        builder.Services.AddTransient<RunCommand>();
+
         var app = builder.Build();
         return app;
     }
 
-    private static RootCommand GetRootCommand()
+    private static RootCommand GetRootCommand(IHost app)
     {
         var rootCommand = new RootCommand("Aspire CLI");
 
@@ -76,242 +106,25 @@ public class Program
 
         rootCommand.Options.Add(waitForDebuggerOption);
 
-        ConfigureRunCommand(rootCommand);
-        ConfigureBuildCommand(rootCommand);
-        ConfigureNewCommand(rootCommand);
-        ConfigureAddCommand(rootCommand);
+        ConfigureRunCommand(rootCommand, app);
+        ConfigurePublishCommand(rootCommand, app);
+        ConfigureNewCommand(rootCommand, app);
+        ConfigureAddCommand(rootCommand, app);
         return rootCommand;
     }
 
-    private static void ValidateProjectOption(OptionResult result)
+    private static void ConfigureRunCommand(Command parentCommand, IHost app)
     {
-        var value = result.GetValueOrDefault<FileInfo?>();
-
-        if (result.Implicit)
-        {
-            // Having no value here is fine, but there has to
-            // be a single csproj file in the current
-            // working directory.
-            var csprojFiles = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-
-            if (csprojFiles.Length > 1)
-            {
-                result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
-                return;
-            }
-            else if (csprojFiles.Length == 0)
-            {
-                result.AddError("The --project option was not specified and no *.csproj files were detected.");
-                return;
-            }
-
-            return;
-        }
-
-        if (value is null)
-        {
-            result.AddError("The --project option was specified but no path was provided.");
-            return;
-        }
-
-        if (!File.Exists(value.FullName))
-        {
-            result.AddError("The specified project file does not exist.");
-            return;
-        }
+        var command = app.Services.GetRequiredService<RunCommand>();
+        parentCommand.Add(command);
     }
 
-    private static void ConfigureRunCommand(Command parentCommand)
+    private static void ConfigurePublishCommand(Command parentCommand, IHost app)
     {
-        var command = new Command("run", "Run a .NET Aspire AppHost project in development mode.");
+        var command = new Command("publish", "Generates deployment artifacts for a .NET Aspire AppHost project.");
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
-        command.Options.Add(projectOption);
-
-        var watchOption = new Option<bool>("--watch", "-w");
-        command.Options.Add(watchOption);
-
-        command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct);
-
-            var runner = app.Services.GetRequiredService<DotNetCliRunner>();
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-            
-            if (effectiveAppHostProjectFile is null)
-            {
-                return ExitCodeConstants.FailedToFindProject;
-            }
-
-            var env = new Dictionary<string, string>();
-
-            var debug = parseResult.GetValue<bool>("--debug");
-
-            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
-
-            var forceUseRichConsole = Environment.GetEnvironmentVariable("ASPIRE_FORCE_RICH_CONSOLE") == "true";
-            
-            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
-
-            if (waitForDebugger)
-            {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
-            }
-
-            var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
-
-            var watch = parseResult.GetValue<bool>("--watch");
-
-            var pendingRun = runner.RunAsync(
-                effectiveAppHostProjectFile,
-                watch,
-                Array.Empty<string>(),
-                env,
-                backchannelCompletitionSource,
-                ct);
-
-            if (useRichConsole)
-            {
-                // We wait for the back channel to be created to signal that
-                // the AppHost is ready to accept requests.
-                var backchannel = await AnsiConsole.Status()
-                                                   .Spinner(Spinner.Known.Dots3)
-                                                   .SpinnerStyle(Style.Parse("purple"))
-                                                   .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                                                        return await backchannelCompletitionSource.Task;
-                                                   });
-
-                // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await AnsiConsole.Status()
-                                                    .Spinner(Spinner.Known.Dots3)
-                                                    .SpinnerStyle(Style.Parse("purple"))
-                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-                                                        return await backchannel.GetDashboardUrlsAsync(ct);
-                                                    });
-
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                }
-                AnsiConsole.WriteLine();
-
-                var table = new Table().Border(TableBorder.Rounded);
-
-                await AnsiConsole.Live(table).StartAsync(async context => {
-
-                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
-
-                    table.AddColumn("Resource");
-                    table.AddColumn("Type");
-                    table.AddColumn("State");
-                    table.AddColumn("Endpoint(s)");
-
-                    var resourceStates = backchannel.GetResourceStatesAsync(ct);
-
-                    await foreach(var resourceState in resourceStates)
-                    {
-                        knownResources[resourceState.Resource] = resourceState;
-
-                        table.Rows.Clear();
-
-                        foreach (var knownResource in knownResources)
-                        {
-                            var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
-
-                            var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
-
-                            var stateRenderable = knownResource.Value.State switch {
-                                "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                            };
-
-                            IRenderable endpointsRenderable = new Text("None");
-                            if (knownResource.Value.Endpoints?.Length > 0)
-                            {
-                                endpointsRenderable = new Rows(
-                                    knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                );
-                            }
-
-                            table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
-                        }
-
-                        context.Refresh();
-                    }
-
-                });
-
-                return await pendingRun;
-            }
-            else
-            {
-                return await pendingRun;
-            }
-        });
-
-        parentCommand.Subcommands.Add(command);
-    }
-
-    private static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
-    {
-        if (projectFile is not null)
-        {
-            // If the project file is passed, just use it.
-            return projectFile;
-        }
-
-        var projectFilePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-        try 
-        {
-            var projectFilePath = projectFilePaths?.SingleOrDefault();
-            if (projectFilePath is null)
-            {
-                throw new InvalidOperationException("No project file found.");
-            }
-            else
-            {
-                return new FileInfo(projectFilePath);
-            }
-            
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex.Message);
-            if (projectFilePaths.Length > 1)
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and multiple *.csproj files were detected.[/]");
-                
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and no *.csproj files were detected.[/]");
-            }
-            return null;
-        };
-    }
-
-    private static void ConfigureBuildCommand(Command parentCommand)
-    {
-        var command = new Command("build", "Builds deployment artifacts for a .NET Aspire AppHost project.");
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
+        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var publisherOption = new Option<string>("--publisher", "-p");
@@ -322,12 +135,11 @@ public class Program
         command.Options.Add(outputPath);
 
         command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            _ = app.RunAsync(ct);
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigurePublishCommand)}-Action", ActivityKind.Internal);
 
             var runner = app.Services.GetRequiredService<DotNetCliRunner>();
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -338,36 +150,58 @@ public class Program
 
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
-                env["ASPIRE_WAIT_FOR_DEBUGGER"] = "true";
+                env[KnownConfigNames.WaitForDebugger] = "true";
+            }
+
+            var appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
+
+            if (!appHostCompatabilityCheck.IsCompatableAppHost)
+            {
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
             var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishers = await AnsiConsole.Status()
+            var publishersResult = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
+                .StartAsync<(int ExitCode, string[]? Publishers)>(
                     publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
                     async context => {
+
+                        using var getPublishersActivity = s_activitySource.StartActivity(
+                            $"{nameof(ConfigurePublishCommand)}-Action-GetPublishers",
+                            ActivityKind.Client);
 
                         var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
                         var pendingInspectRun = runner.RunAsync(
                             effectiveAppHostProjectFile,
+                            false,
                             false,
                             ["--operation", "inspect"],
                             null,
                             backchannelCompletionSource,
                             ct).ConfigureAwait(false);
 
-                        using var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                         var publishers = await backchannel.GetPublishersAsync(ct).ConfigureAwait(false);
+                        
+                        await backchannel.RequestStopAsync(ct).ConfigureAwait(false);
+                        var exitCode = await pendingInspectRun;
 
-                        return publishers;
+                        return (exitCode, publishers);
 
                     }).ConfigureAwait(false);
 
+            if (publishersResult.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            var publishers = publishersResult.Publishers;
             if (publishers is null || publishers.Length == 0)
             {
                 AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
@@ -392,19 +226,70 @@ public class Program
                 publisher = AnsiConsole.Prompt(publisherPrompt);
             }
 
-            var exitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync($":hammer_and_wrench:  Building artifacts for '{publisher}' publisher...", async context => {
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
+
+            var exitCode = await AnsiConsole.Progress()
+                .AutoRefresh(true)
+                .Columns(
+                    new TaskDescriptionColumn() { Alignment = Justify.Left },
+                    new ProgressBarColumn() { Width = 10 },
+                    new ElapsedTimeColumn())
+                .StartAsync(async context => {
+
+                    using var generateArtifactsActivity = s_activitySource.StartActivity(
+                        $"{nameof(ConfigurePublishCommand)}-Action-GenerateArtifacts",
+                        ActivityKind.Internal);
+                    
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+
+                    var launchingAppHostTask = context.AddTask("Launching apphost");
+                    launchingAppHostTask.IsIndeterminate();
+                    launchingAppHostTask.StartTask();
+
                     var pendingRun = runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
+                        true,
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
-                        null, // TODO: We will use a backchannel here soon but null for now.
+                        backchannelCompletionSource,
                         ct);
 
+                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
+
+                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(ct);
+
+                    var progressTasks = new Dictionary<string, ProgressTask>();
+
+                    await foreach (var publishingActivity in publishingActivities)
+                    {
+                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                        {
+                            progressTask = context.AddTask(publishingActivity.Id);
+                            progressTask.StartTask();
+                            progressTask.IsIndeterminate();
+                            progressTasks.Add(publishingActivity.Id, progressTask);
+                        }
+
+                        progressTask.Description = $"{publishingActivity.StatusText}";
+
+                        if (publishingActivity.IsComplete)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                        else if (publishingActivity.IsError)
+                        {
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                    }
+
                     return await pendingRun;
+
                 });
 
             if (exitCode != 0)
@@ -422,165 +307,53 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    private static void ValidateProjectTemplate(ArgumentResult result)
+    private static void ConfigureNewCommand(Command parentCommand, IHost app)
     {
-        // TODO: We need to integrate with the template engine to interrogate
-        //       the list of available templates. For now we will just hard-code
-        //       the acceptable options.
-        //
-        //       Once we integrate with template engine we will also be able to
-        //       interrogate the various options and add them. For now we will 
-        //       keep it simple.
-        string[] validTemplates = [
-            "aspire-starter",
-            "aspire",
-            "aspire-apphost",
-            "aspire-servicedefaults",
-            "aspire-mstest",
-            "aspire-nunit",
-            "aspire-xunit"
-            ];
-
-        var value = result.GetValueOrDefault<string>();
-
-        if (value is null)
-        {
-            // This is OK, for now we will use the default
-            // template of aspire-starter, but we might
-            // be able to do more intelligent selection in the
-            // future based on what is already in the working directory.
-            return;
-        }
-
-        if (value is { } templateName && !validTemplates.Contains(templateName))
-        {
-            result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
-            return;
-        }
+        var command = app.Services.GetRequiredService<NewCommand>();
+        parentCommand.Add(command);
     }
 
-    private static void ConfigureNewCommand(Command parentCommand)
+    private static async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
     {
-        var command = new Command("new", "Create a new Aspire sample project.");
-        var templateArgument = new Argument<string>("template");
-        templateArgument.Validators.Add(ValidateProjectTemplate);
-        templateArgument.Arity = ArgumentArity.ZeroOrOne;
-        command.Arguments.Add(templateArgument);
+        var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
-        var nameOption = new Option<string>("--name", "-n");
-        command.Options.Add(nameOption);
-
-        var outputOption = new Option<string?>("--output", "-o");
-        command.Options.Add(outputOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        command.Options.Add(prereleaseOption);
-        
-        var sourceOption = new Option<string?>("--source", "-s");
-        command.Options.Add(sourceOption);
-
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.DefaultValueFactory = (result) => 
-        {
-            if (result.GetValue<bool>("--prerelease"))
-            {
-                return "*-*";
-            }
-            else
-            {
-                return VersionHelper.GetDefaultTemplateVersion();
-            }
-        };
-        command.Options.Add(templateVersionOption);
-
-        command.SetAction(async (parseResult, ct) => {
-            using var app = BuildApplication(parseResult);
-            var cliRunner = app.Services.GetRequiredService<DotNetCliRunner>();
-            _ = app.RunAsync(ct);
-
-            var templateVersion = parseResult.GetValue<string>("--version");
-            var source = parseResult.GetValue<string?>("--source");
-
-            int templateInstallExitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
-                    ":ice:  Getting latest templates...",
-                    async context => {
-                        return await cliRunner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, ct);
-                    });
-
-            if (templateInstallExitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The template installation failed with exit code {templateInstallExitCode}. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToInstallTemplates;
-            }
-
-            var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
-
-            if (parseResult.GetValue<string>("--output") is not { } outputPath)
-            {
-                outputPath = Environment.CurrentDirectory;
-            }
-            else
-            {
-                outputPath = Path.GetFullPath(outputPath);
-            }
-
-            if (parseResult.GetValue<string>("--name") is not { } name)
-            {
-                var outputPathDirectoryInfo = new DirectoryInfo(outputPath);
-                name = outputPathDirectoryInfo.Name;
-            }
-
-            int newProjectExitCode = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync(
-                    ":rocket:  Creating new Aspire project...",
-                    async context => {
-                        return await cliRunner.NewProjectAsync(
-                    templateName,
-                    name,
-                    outputPath,
-                    ct);
-                });
-
-            if (newProjectExitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-
-            return ExitCodeConstants.Success;
-        });
-
-        parentCommand.Subcommands.Add(command);
-    }
-
-    private static (string FriendlyName, NuGetPackage Package) GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> knownPackages)
-    {
         var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
             .Title("Select an integration to add:")
             .UseConverter(PackageNameWithFriendlyNameIfAvailable)
             .PageSize(10)
             .EnableSearch()
             .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(knownPackages);
+            .AddChoices(distinctPackages);
 
-        var selectedIntegration = AnsiConsole.Prompt(packagePrompt);
+        // If there is only one package, we can skip the prompt and just use it.
+        var selectedPackage = distinctPackages.Count() switch
+        {
+            1 => distinctPackages.First(),
+            > 1 => await AnsiConsole.PromptAsync(packagePrompt, cancellationToken),
+            _ => throw new InvalidOperationException("Unexpected number of packages found.")
+        };
 
-        var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
-            .DefaultValue(selectedIntegration.Package.Version)
-            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
-            .ShowDefaultValue(true)
-            .DefaultValueStyle(Style.Parse("darkmagenta"));
+        var packageVersions = possiblePackages.Where(p => p.Package.Id == selectedPackage.Package.Id);
 
-        var version = AnsiConsole.Prompt(versionPrompt);
+        // If any of the package versions are an exact match for the preferred version
+        // then we can skip the version prompt and just use that version.
+        if (packageVersions.Any(p => p.Package.Version == preferredVersion))
+        {
+            var preferredVersionPackage = packageVersions.First(p => p.Package.Version == preferredVersion);
+            return preferredVersionPackage;
+        }
 
-        selectedIntegration.Package.Version = version;
+            // ... otherwise we had better prompt.
+        var versionPrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
+            .Title($"Select a version of {selectedPackage.Package.Id}:")
+            .UseConverter(p => p.Package.Version)
+            .EnableSearch()
+            .HighlightStyle(Style.Parse("darkmagenta"))
+            .AddChoices(packageVersions);
 
-        return selectedIntegration;
+        var version = await AnsiConsole.PromptAsync(versionPrompt, cancellationToken);
+
+        return version;
 
         static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
         {
@@ -617,7 +390,7 @@ public class Program
         return (shortNameBuilder.ToString(), package);
     }
 
-    private static void ConfigureAddCommand(Command parentCommand)
+    private static void ConfigureAddCommand(Command parentCommand, IHost app)
     {
         var command = new Command("add", "Add an integration or other resource to the Aspire project.");
 
@@ -626,7 +399,7 @@ public class Program
         command.Arguments.Add(resourceArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ValidateProjectOption);
+        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         command.Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -639,17 +412,16 @@ public class Program
         command.Options.Add(sourceOption);
 
         command.SetAction(async (parseResult, ct) => {
+            using var activity = s_activitySource.StartActivity($"{nameof(ConfigureAddCommand)}-Action", ActivityKind.Internal);
 
             try
             {
-                var app = BuildApplication(parseResult);
-                
                 var integrationLookup = app.Services.GetRequiredService<INuGetPackageCache>();
 
                 var integrationName = parseResult.GetValue<string>("resource");
 
                 var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                var effectiveAppHostProjectFile = UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+                var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
                 
                 if (effectiveAppHostProjectFile is null)
                 {
@@ -665,24 +437,39 @@ public class Program
                     context => integrationLookup.GetPackagesAsync(effectiveAppHostProjectFile, prerelease, source, ct)
                     );
 
+                var version = parseResult.GetValue<string?>("--version");
+
                 var packagesWithShortName = packages.Select(p => GenerateFriendlyName(p));
 
-                var selectedNuGetPackage = packagesWithShortName.FirstOrDefault(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+                if (!packagesWithShortName.Any())
+                {
+                    AnsiConsole.MarkupLine("[red bold]:thumbs_down: No packages found.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
 
-                if (selectedNuGetPackage == default)
+                var filteredPackagesWithShortName = packagesWithShortName.Where(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+
+                if (!filteredPackagesWithShortName.Any() && integrationName is not null)
                 {
-                    selectedNuGetPackage = GetPackageByInteractiveFlow(packagesWithShortName);
+                    // If we didn't get an exact match on the friendly name or the package ID
+                    // then try a contains search to created a broader filtered list.
+                    filteredPackagesWithShortName = packagesWithShortName.Where(
+                        p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                        || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                        );
                 }
-                else
-                {
-                    // If we find an exact match we will use it, but override the version
-                    // if the version option is specified.
-                    var version = parseResult.GetValue<string?>("--version");
-                    if (version is not null)
-                    {
-                        selectedNuGetPackage.Package.Version = version;
-                    }
-                }
+
+                // If we didn't match any, show a complete list. If we matched one, and its
+                // an exact match, then we still prompt, but it will only prompt for
+                // the version. If there is more than one match then we prompt.
+                var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
+                    0 => await GetPackageByInteractiveFlow(packagesWithShortName, null, ct),
+                    1 => filteredPackagesWithShortName.First().Package.Version == version
+                        ? filteredPackagesWithShortName.First()
+                        : await GetPackageByInteractiveFlow(filteredPackagesWithShortName, null, ct),
+                    > 1 => await GetPackageByInteractiveFlow(filteredPackagesWithShortName, version, ct),
+                    _ => throw new InvalidOperationException("Unexpected number of packages found.")
+                };
 
                 var addPackageResult = await AnsiConsole.Status().StartAsync(
                     "Adding Aspire integration...",
@@ -699,7 +486,21 @@ public class Program
                     }
                 );
 
-                return addPackageResult;
+                if (addPackageResult != 0)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                    return ExitCodeConstants.Success;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                AnsiConsole.MarkupLine("[yellow bold]:stop_sign: Operation cancelled by user action.[/]");
+                return ExitCodeConstants.FailedToAddPackage;
             }
             catch (Exception ex)
             {
@@ -711,12 +512,23 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
-    public static Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
-        var rootCommand = GetRootCommand();
+
+        using var app = BuildApplication(args);
+
+        await app.StartAsync().ConfigureAwait(false);
+
+        var rootCommand = GetRootCommand(app);
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        return config.InvokeAsync(args);
+        
+        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Internal);
+        var exitCode = await config.InvokeAsync(args);
+
+        await app.StopAsync().ConfigureAwait(false);
+
+        return exitCode;
     }
 }

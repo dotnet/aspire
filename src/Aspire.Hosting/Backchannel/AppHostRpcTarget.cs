@@ -9,13 +9,42 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotificationService resourceNotificationService, IServiceProvider serviceProvider, IDistributedApplicationEventing eventing)
-{   
+internal class AppHostRpcTarget(
+    ILogger<AppHostRpcTarget> logger,
+    ResourceNotificationService resourceNotificationService,
+    IServiceProvider serviceProvider,
+    IDistributedApplicationEventing eventing,
+    PublishingActivityProgressReporter activityReporter,
+    IHostApplicationLifetime lifetime
+    ) 
+{
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        while (cancellationToken.IsCancellationRequested == false)
+        {
+            var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            yield return (
+                publishingActivity.Id,
+                publishingActivity.StatusMessage,
+                publishingActivity.IsComplete,
+                publishingActivity.IsError
+            );
+
+            if ( publishingActivity.IsPrimary &&(publishingActivity.IsComplete || publishingActivity.IsError))
+            {
+                // If the activity is complete or an error and it is the primary activity,
+                // we can stop listening for updates.
+                break;
+            }
+        }
+    }
+
     public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
@@ -28,14 +57,31 @@ internal class AppHostRpcTarget(ILogger<AppHostRpcTarget> logger, ResourceNotifi
                 continue;
             }
 
+            if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
+            {
+                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                endpoints = Enumerable.Empty<EndpointAnnotation>();
+            }
+    
+            var endpointUris = endpoints
+                .Where(e => e.AllocatedEndpoint != null)
+                .Select(e => e.AllocatedEndpoint!.UriString)
+                .ToArray();
             // TODO: Decide on whether we want to define a type and share it between codebases for this.
             yield return (
                 resourceEvent.Resource.Name,
                 resourceEvent.Snapshot.ResourceType,
                 resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                resourceEvent.Snapshot.Urls.Select(x => x.Url).ToArray()
+                endpointUris
                 );
         }
+    }
+
+    public Task RequestStopAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        lifetime.StopApplication();
+        return Task.CompletedTask;
     }
 
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)

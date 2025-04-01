@@ -17,6 +17,10 @@ param account_kv_outputs_name string
 @secure()
 param secretparam_value string
 
+param api_identity_outputs_principalname string
+
+param infra_outputs_azure_container_apps_environment_default_domain string
+
 param infra_outputs_azure_container_apps_environment_id string
 
 param infra_outputs_azure_container_registry_endpoint string
@@ -120,6 +124,10 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'VALUE'
               secretRef: 'value'
+            }
+            {
+              name: 'AZURE_PRINCIPAL_NAME'
+              value: api_identity_outputs_principalname
             }
             {
               name: 'AZURE_CLIENT_ID'

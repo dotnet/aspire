@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli;
@@ -12,10 +13,14 @@ internal interface INuGetPackageCache
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
 {
+    private readonly ActivitySource _activitySource = new(nameof(Aspire.Cli.NuGetPackageCache), "1.0.0");
+
     private const int SearchPageSize = 100;
 
     public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken)
     {
+        using var activity = _activitySource.StartActivity(nameof(GetPackagesAsync), ActivityKind.Client);
+
         logger.LogDebug("Getting integrations from NuGet");
 
         var collectedPackages = new List<NuGetPackage>();

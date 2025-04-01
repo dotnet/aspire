@@ -199,14 +199,7 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalNameParameter);
-
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-        var addAdminRole = azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _) ||
-            azureResource.InnerResource is not null; // the obsolete AsAzureSqlDatabase use this as well, ensure we generate the role assignment.
 
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
@@ -217,36 +210,29 @@ public static class AzureSqlExtensions
         },
         (infrastructure) =>
         {
-            var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Version = "12.0",
-                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
+            // Creating a new SqlServer instance requires an administrator,
+            // so we need to create one here using the empty PrincipalId/PrincipalName
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalNameParameter);
 
-            if (addAdminRole)
+            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                sqlServer.Administrators = new ServerExternalAdministrator()
+                Administrators = new ServerExternalAdministrator()
                 {
                     AdministratorType = SqlAdministratorType.ActiveDirectory,
                     IsAzureADOnlyAuthenticationEnabled = true,
                     Sid = principalIdParameter,
                     Login = principalNameParameter,
                     TenantId = BicepFunction.GetSubscription().TenantId
-                };
-            }
-
-            return sqlServer;
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
         });
-
-        // If the resource is an existing resource, we model the administrator access
-        // for the managed identity as an "edge" between the parent SqlServer resource
-        // and a custom SqlServerAzureADAdministrator resource.
-        if (addAdminRole && sqlServer.IsExistingResource)
-        {
-            AddActiveDirectoryAdministrator(infrastructure, sqlServer, principalIdParameter, principalNameParameter);
-        }
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {

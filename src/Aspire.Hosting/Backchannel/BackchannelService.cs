@@ -13,15 +13,13 @@ namespace Aspire.Hosting.Cli;
 
 internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
 {
-    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_BACKCHANNEL_PATH";
     private readonly List<JsonRpc> _rpcs = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-
-            var unixSocketPath = configuration.GetValue<string>(UnixSocketPathEnvironmentVariable);
+            var unixSocketPath = configuration.GetValue<string>(KnownConfigNames.UnixSocketPath);
 
             if (string.IsNullOrEmpty(unixSocketPath))
             {

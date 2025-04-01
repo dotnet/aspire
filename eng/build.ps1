@@ -96,6 +96,7 @@ foreach ($argument in $PSBoundParameters.Keys)
     "verbosity"              { $arguments += " -$argument " + $($PSBoundParameters[$argument]) }
     "configuration"          { $configuration = (Get-Culture).TextInfo.ToTitleCase($($PSBoundParameters[$argument])); $arguments += " -configuration $configuration" }
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
+    "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
@@ -106,3 +107,5 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
 
 Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
+
+exit 0

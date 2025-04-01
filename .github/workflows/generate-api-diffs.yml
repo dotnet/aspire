@@ -19,13 +19,14 @@ jobs:
         run: |
           set +e
 
-          for proj in $(find src -name '*.csproj' ! -path 'src/Aspire.ProjectTemplates/**/*.csproj' ! -path 'src/Aspire.Cli/**/*.csproj'); do
+          # Find all csproj files excluding specific paths
+          find src -name '*.csproj' | egrep -v 'Aspire.ProjectTemplates|Aspire.Cli' | while read proj; do
             export CI=false && ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
           done
         continue-on-error: true
 
       - name: Create or update pull request
-        uses: dotnet/actions-create-pull-request@v4
+        uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-api-diffs

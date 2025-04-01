@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Grpc.Core;
@@ -13,7 +13,6 @@ using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 

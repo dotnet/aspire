@@ -24,6 +24,36 @@ public class LogEntriesTests
     }
 
     [Fact]
+    public void Add_PauseAndThenRemove_ActivePauseKept()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+
+        // Act
+        AddLogLine(logEntries, "Hello world", isError: false);
+
+        // Completed pause
+        logEntries.InsertSorted(LogEntry.CreatePause(
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+
+        // Active pause
+        var pauseEntry = LogEntry.CreatePause(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        logEntries.InsertSorted(pauseEntry);
+
+        var pauseVM = pauseEntry.Pause;
+        Assert.NotNull(pauseVM);
+        pauseVM.FilteredCount++;
+
+        logEntries.Clear(keepActivePauseEntries: true);
+
+        // Assert
+        var entry = Assert.Single(logEntries.GetEntries());
+        Assert.Equal(pauseEntry, entry);
+        Assert.Equal(0, pauseVM.FilteredCount);
+    }
+
+    [Fact]
     public void AddLogLine_Single()
     {
         // Arrange

@@ -62,6 +62,26 @@
         <target state="translated">Condizione</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Disabilita tutto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Disabilita filtro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Abilita tutto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableFilterButtonText">
+        <source>Enable filter</source>
+        <target state="translated">Abilita filtro</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Campo</target>
@@ -244,17 +264,17 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningAcknowledge">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">Mostra valore</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="new">Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</target>
+        <target state="translated">Confermare di voler visualizzare il valore. In futuro, quando si apre il visualizzatore di testo, verranno mostrati automaticamente tutti i valori</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">
         <source>Sensitive value hidden</source>
-        <target state="new">Sensitive value hidden</target>
+        <target state="translated">Valore sensibile nascosto</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

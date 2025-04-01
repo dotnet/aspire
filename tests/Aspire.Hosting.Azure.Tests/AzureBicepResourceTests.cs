@@ -18,7 +18,7 @@ using Azure.Provisioning.Search;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -324,9 +324,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param keyVaultName string
-            
+
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -348,7 +348,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-            
+
             resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -359,7 +359,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-            
+
             resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -375,15 +375,31 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: db
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--cosmos'
               properties: {
                 value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
+              }
+              parent: keyVault
+            }
+
+            resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--db'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
+              }
+              parent: keyVault
+            }
+
+            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--container'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
               }
               parent: keyVault
             }
@@ -427,10 +443,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                                {
                                  "type": "azure.bicep.v0",
                                  "connectionString": "{cosmos.outputs.connectionString}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "principalId": ""
-                                 }
+                                 "path": "cosmos.module.bicep"
                                }
                                """;
 
@@ -440,8 +453,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalId string
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
@@ -490,21 +501,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
               }
               parent: mydatabase
-            }
-
-            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
-              name: '00000000-0000-0000-0000-000000000002'
-              parent: cosmos
-            }
-
-            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
-              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
-              properties: {
-                principalId: principalId
-                roleDefinitionId: cosmos_roleDefinition.id
-                scope: cosmos.id
-              }
-              parent: cosmos
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
@@ -591,9 +587,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
+
             param keyVaultName string
-            
+
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
@@ -615,7 +611,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'cosmos'
               }
             }
-            
+
             resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
@@ -626,7 +622,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: cosmos
             }
-            
+
             resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
@@ -642,11 +638,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: mydatabase
             }
-            
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-            
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionstrings--cosmos'
               properties: {
@@ -654,7 +650,23 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               parent: keyVault
             }
-            
+
+            resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--mydatabase'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
+              }
+              parent: keyVault
+            }
+
+            resource mycontainer_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionstrings--mycontainer'
+              properties: {
+                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
+              }
+              parent: keyVault
+            }
+
             output name string = cosmos.name
             """;
         output.WriteLine(manifest.BicepText);
@@ -694,10 +706,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                                {
                                  "type": "azure.bicep.v0",
                                  "connectionString": "{cosmos.outputs.connectionString}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "principalId": ""
-                                 }
+                                 "path": "cosmos.module.bicep"
                                }
                                """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -705,8 +714,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalId string
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
               name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
@@ -757,21 +764,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: mydatabase
             }
 
-            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
-              name: '00000000-0000-0000-0000-000000000002'
-              parent: cosmos
-            }
-
-            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
-              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
-              properties: {
-                principalId: principalId
-                roleDefinitionId: cosmos_roleDefinition.id
-                scope: cosmos.id
-              }
-              parent: cosmos
-            }
-
             output connectionString string = cosmos.properties.documentEndpoint
 
             output name string = cosmos.name
@@ -800,7 +792,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
         Assert.Equal("https://myendpoint", await appConfig.Resource.ConnectionStringExpression.GetValueAsync(default));
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(appConfig.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, appConfig.Resource);
 
         var connectionStringResource = (IResourceWithConnectionString)appConfig.Resource;
 
@@ -810,11 +804,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{appConfig.outputs.appConfigEndpoint}",
-              "path": "appConfig.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "appConfig.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -822,10 +812,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
               name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
@@ -841,6 +827,29 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
+            output appConfigEndpoint string = appConfig.properties.endpoint
+
+            output name string = appConfig.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var appConfigRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"appConfig-roles"));
+        var appConfigRolesManifest = await GetManifestWithBicep(appConfigRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param appconfig_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
+              name: appconfig_outputs_name
+            }
+
             resource appConfig_AppConfigurationDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(appConfig.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
               properties: {
@@ -850,13 +859,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: appConfig
             }
-
-            output appConfigEndpoint string = appConfig.properties.endpoint
-
-            output name string = appConfig.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(appConfigRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, appConfigRolesManifest.BicepText);
     }
 
     [Fact]
@@ -1279,11 +1284,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "mykv.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -1291,10 +1292,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
@@ -1312,21 +1309,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
-            resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-                principalType: principalType
-              }
-              scope: mykv
-            }
-
             output vaultUri string = mykv.properties.vaultUri
 
             output name string = mykv.name
-
-            output id string = mykv.id
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -1339,17 +1324,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, mykv.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "mykv.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -1357,11 +1340,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-            
-            param principalType string
-            
-            param principalId string
-            
+
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
@@ -1377,25 +1356,42 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'mykv'
               }
             }
-            
-            resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+
+            output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"mykv-roles"));
+        var kvRolesManifest = await GetManifestWithBicep(kvRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param mykv_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: mykv_outputs_name
+            }
+
+            resource mykv_KeyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
               properties: {
                 principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
                 principalType: principalType
               }
               scope: mykv
             }
-            
-            output vaultUri string = mykv.properties.vaultUri
-            
-            output name string = mykv.name
-            
-            output id string = mykv.id
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(kvRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, kvRolesManifest.BicepText);
     }
 
     [Fact]
@@ -1943,16 +1939,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("mynamespaceEndpoint", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{sb.outputs.serviceBusEndpoint}", connectionStringResource.ConnectionStringExpression.ValueExpression);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, serviceBus.Resource);
+
         var expected = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{sb.outputs.serviceBusEndpoint}",
-              "path": "sb.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "sb.module.bicep"
             }
             """;
         Assert.Equal(expected, manifest.ManifestNode.ToString());
@@ -1962,10 +1957,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             param sku string = 'Standard'
-
-            param principalType string
-
-            param principalId string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
               name: take('sb-${uniqueString(resourceGroup().id)}', 50)
@@ -1979,16 +1970,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'sb'
               }
-            }
-
-            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-                principalType: principalType
-              }
-              scope: sb
             }
 
             resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
@@ -2015,13 +1996,42 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               name: 't2'
               parent: sb
             }
-            
+
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
 
             output name string = sb.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"sb-roles"));
+        var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sb_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
+              name: sb_outputs_name
+            }
+
+            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
+            }
+            """;
+        output.WriteLine(sbRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, sbRolesManifest.BicepText);
     }
 
     [Fact]
@@ -2036,18 +2046,18 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{wps1.outputs.endpoint}",
-              "path": "wps1.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "wps1.module.bicep"
             }
             """;
 
         var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
 
         Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, wps.Resource);
+
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         Assert.Equal("wps1", wps.Resource.Name);
@@ -2059,10 +2069,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param sku string = 'Free_F1'
 
             param capacity int = 1
-
-            param principalType string
-
-            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -2076,6 +2082,28 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
+            output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"wps1-roles"));
+        var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param wps1_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' existing = {
+              name: wps1_outputs_name
+            }
+
             resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
               properties: {
@@ -2085,12 +2113,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: wps1
             }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
             """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(wpsRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, wpsRolesManifest.BicepText);
     }
 
     [Fact]
@@ -2110,9 +2135,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "path": "wps1.module.bicep",
               "params": {
                 "sku": "Standard_S1",
-                "capacity": 2,
-                "principalType": "",
-                "principalId": ""
+                "capacity": 2
               }
             }
             """;
@@ -2129,10 +2152,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalType string
-
-            param principalId string
-
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -2143,16 +2162,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'wps1'
               }
-            }
-
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
@@ -2230,9 +2239,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "storagesku": "{storagesku.value}",
-                "principalType": "",
-                "principalId": ""
+                "storagesku": "{storagesku.value}"
               }
             }
             """;
@@ -2242,12 +2249,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalType string
-            
-            param principalId string
-            
             param storagesku string
-            
+
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2271,36 +2274,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
               name: 'default'
               parent: storage
-            }
-
-            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: principalType
-              }
-              scope: storage
             }
 
             output blobEndpoint string = storage.properties.primaryEndpoints.blob
@@ -2391,9 +2364,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "storagesku": "{storagesku.value}",
-                "principalType": "",
-                "principalId": ""
+                "storagesku": "{storagesku.value}"
               }
             }
             """;
@@ -2402,10 +2373,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             param storagesku string
 
@@ -2432,36 +2399,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
               name: 'default'
               parent: storage
-            }
-
-            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: principalType
-              }
-              scope: storage
             }
 
             output blobEndpoint string = storage.properties.primaryEndpoints.blob
@@ -2544,16 +2481,16 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
 
-        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var storageManifest = await GetManifestWithBicep(model, storage.Resource);
 
         var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "storagesku": "{storagesku.value}",
-                "principalType": "",
-                "principalId": ""
+                "storagesku": "{storagesku.value}"
               }
             }
             """;
@@ -2562,10 +2499,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             param storagesku string
 
@@ -2594,36 +2527,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: storage
             }
 
-            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
             output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
@@ -2634,6 +2537,55 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
+
+        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+        var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param storage_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: storage_outputs_name
+            }
+
+            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: principalType
+              }
+              scope: storage
+            }
+            
+            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: principalType
+              }
+              scope: storage
+            }
+            
+            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: principalType
+              }
+              scope: storage
+            }
+            """;
+        output.WriteLine(storageRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, storageRolesManifest.BicepText);
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -2712,9 +2664,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "storagesku": "{storagesku.value}",
-                "principalType": "",
-                "principalId": ""
+                "storagesku": "{storagesku.value}"
               }
             }
             """;
@@ -2724,10 +2674,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             param storagesku string
 
@@ -2754,36 +2700,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
               name: 'default'
               parent: storage
-            }
-
-            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: principalType
-              }
-              scope: storage
-            }
-
-            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: principalType
-              }
-              scope: storage
             }
 
             output blobEndpoint string = storage.properties.primaryEndpoints.blob
@@ -2868,7 +2784,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("{search.outputs.connectionString}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(fakeConnectionString, await connectionStringResource.GetConnectionStringAsync());
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, search.Resource);
 
         // Validate the manifest
         var expectedManifest =
@@ -2878,9 +2796,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{search.outputs.connectionString}",
               "path": "search.module.bicep",
               "params": {
-                "searchSku": "{searchSku.value}",
-                "principalType": "",
-                "principalId": ""
+                "searchSku": "{searchSku.value}"
               }
             }
             """;
@@ -2889,10 +2805,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-            
-            param principalId string
 
             param searchSku string
 
@@ -2913,6 +2825,29 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
+            output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
+
+            output name string = search.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"search-roles"));
+        var searchRolesManifest = await GetManifestWithBicep(searchRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param search_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource search 'Microsoft.Search/searchServices@2023-11-01' existing = {
+              name: search_outputs_name
+            }
+
             resource search_SearchIndexDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(search.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7'))
               properties: {
@@ -2922,7 +2857,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: search
             }
-
+            
             resource search_SearchServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(search.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))
               properties: {
@@ -2932,13 +2867,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: search
             }
-
-            output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
-
-            output name string = search.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(searchRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, searchRolesManifest.BicepText);
     }
 
     [Fact]
@@ -2967,9 +2898,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault, bool useObsoleteApis)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -2984,11 +2917,34 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
                     account.Properties.DisableLocalAuth = false;
                 }
-            })
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
-            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+            });
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(openai.Resource);
+        if (useObsoleteApis)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            openai.AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
+                .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            openai.AddDeployment("mymodel", "gpt-35-turbo", "0613")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+            openai.AddDeployment("embedding-model", "text-embedding-ada-002", "2")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+        }
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, openai.Resource);
 
         Assert.NotNull(aiDeployments);
         Assert.Collection(
@@ -3000,11 +2956,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{openai.outputs.connectionString}",
-              "path": "openai.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "openai.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -3012,10 +2964,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = $$"""
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
 
             resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
               name: take('openai-${uniqueString(resourceGroup().id)}', 64)
@@ -3032,16 +2980,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'openai'
               }
-            }
-
-            resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(openai.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
-                principalType: principalType
-              }
-              scope: openai
             }
 
             resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
@@ -3085,6 +3023,35 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"openai-roles"));
+        var openaiRolesManifest = await GetManifestWithBicep(openaiRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param openai_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+              name: openai_outputs_name
+            }
+
+            resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(openai.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
+                principalType: principalType
+              }
+              scope: openai
+            }
+            """;
+        output.WriteLine(openaiRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, openaiRolesManifest.BicepText);
     }
 
     [Fact]

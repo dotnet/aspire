@@ -430,6 +430,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hide resource types.
+        /// </summary>
+        public static string ResourcesHideTypes {
+            get {
+                return ResourceManager.GetString("ResourcesHideTypes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No environment variables.
         /// </summary>
         public static string ResourcesNoEnvironmentVariables {
@@ -480,6 +489,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesResourceTypesHeader {
             get {
                 return ResourceManager.GetString("ResourcesResourceTypesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show resource types.
+        /// </summary>
+        public static string ResourcesShowTypes {
+            get {
+                return ResourceManager.GetString("ResourcesShowTypes", resourceCulture);
             }
         }
         

@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -35,20 +34,12 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             .WithReference(redis);
 
         using var app = builder.Build();
-
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource, skipPreparer: true);
+        var manifest = await GetManifestWithBicep(model, redis.Resource);
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalName string
 
             resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
               name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
@@ -71,6 +62,29 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
               }
             }
 
+            output connectionString string = '${redis_cache.properties.hostName},ssl=true'
+
+            output name string = redis_cache.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"redis-cache-roles"));
+        var redisRolesManifest = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param redis_cache_outputs_name string
+
+            param principalId string
+
+            param principalName string
+
+            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' existing = {
+              name: redis_cache_outputs_name
+            }
+
             resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
               name: guid(redis_cache.id, principalId, 'Data Contributor')
               properties: {
@@ -80,13 +94,9 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
               }
               parent: redis_cache
             }
-
-            output connectionString string = '${redis_cache.properties.hostName},ssl=true'
-
-            output name string = redis_cache.name
             """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        output.WriteLine(redisRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, redisRolesManifest.BicepText);
     }
 
     [Fact]
@@ -228,9 +238,6 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.True(cacheInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var cacheAnnotations2));
         Assert.Single(cacheAnnotations2);
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
-    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {

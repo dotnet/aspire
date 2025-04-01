@@ -48,6 +48,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreMetricsPaused(out _)" IsPausedChanged="@PauseManager.SetMetricsPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearMetrics" />
 
@@ -98,7 +99,7 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel is { SelectedMeter: not null, SelectedInstrument: not null })
                                     {
                                         <ChartContainer
                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"

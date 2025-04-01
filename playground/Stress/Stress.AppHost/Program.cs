@@ -70,7 +70,9 @@ serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", comman
 serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linked", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 
-builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
+builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
+       .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
+       .WithUrl("https://someotherplace.com/some-path", "Some other place");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

@@ -17,6 +17,11 @@
         <target state="translated">구조적 로그 제한 초과함</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">구조화된 로그 캡처가 {0}에 일시 중지됨</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">필터 추가</target>

@@ -8,8 +8,9 @@ using Newtonsoft.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddAzureCosmosDatabase("db");
-builder.AddAzureCosmosContainer("entries");
+builder.AddAzureCosmosDatabase("db")
+    .AddKeyedContainer("entries")
+    .AddKeyedContainer("users");
 builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 {
     configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);
@@ -18,14 +19,13 @@ builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-app.MapGet("/", async (Database db, Container container) =>
+
+static async Task<object> AddAndGetStatus<T>(Container container, T newEntry)
 {
-    // Add an entry to the database on each request.
-    var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
     await container.CreateItemAsync(newEntry);
 
-    var entries = new List<Entry>();
-    var iterator = container.GetItemQueryIterator<Entry>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
+    var entries = new List<T>();
+    var iterator = container.GetItemQueryIterator<T>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
 
     var batchCount = 0;
     while (iterator.HasMoreResults)
@@ -40,10 +40,22 @@ app.MapGet("/", async (Database db, Container container) =>
 
     return new
     {
-        batchCount = batchCount,
+        batchCount,
         totalEntries = entries.Count,
-        entries = entries
+        entries
     };
+}
+
+app.MapGet("/", async ([FromKeyedServices("entries")] Container container) =>
+{
+    var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
+    return await AddAndGetStatus(container, newEntry);
+});
+
+app.MapGet("/users", async ([FromKeyedServices("users")] Container container) =>
+{
+    var newEntry = new User() { Id = $"user-{Guid.NewGuid()}" };
+    return await AddAndGetStatus(container, newEntry);
 });
 
 app.MapGet("/ef", async (TestCosmosContext context) =>
@@ -57,6 +69,12 @@ app.MapGet("/ef", async (TestCosmosContext context) =>
 });
 
 app.Run();
+
+public class User
+{
+    [JsonProperty("id")]
+    public string? Id { get; set; }
+}
 
 public class Entry
 {

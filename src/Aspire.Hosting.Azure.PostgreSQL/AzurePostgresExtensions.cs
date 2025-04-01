@@ -484,39 +484,12 @@ public static class AzurePostgresExtensions
                 };
             }
 
-            if (azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _))
+            // We don't know the principalName, so we can't add it to the connection string.
+            // The user name will need to come from the application code.
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-                infrastructure.Add(principalNameParameter);
-
-                var admin = AddActiveDirectoryAdministrator(infrastructure, postgres, principalIdParameter, principalTypeParameter, principalNameParameter);
-
-                // This is a workaround for a bug in the API that requires the parent to be fully resolved
-                admin.DependsOn.Add(postgres);
-                foreach (var firewall in infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
-                {
-                    admin.DependsOn.Add(firewall);
-                }
-
-                infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
-                {
-                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
-                });
-            }
-            else
-            {
-                // When the AppliedRoleAssignmentsAnnotation is not present, it means the role assignment will be created externally.
-                // In this case, we don't know the principalName, so we can't add it to the connection string.
-                // The user name will need to come from the application code.
-                infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
-                {
-                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName}")
-                });
-            }
+                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName}")
+            });
         }
 
         // We need to output name to externalize role assignments.

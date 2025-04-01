@@ -3,7 +3,7 @@
 
 using System.Data;
 using System.Net;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Testing;
@@ -17,7 +17,6 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 

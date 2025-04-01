@@ -17,6 +17,11 @@
         <target state="translated">È stato superato il limite di log strutturati</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">L'acquisizione dei log strutturati è stata sospesa alle {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Aggiungi filtro</target>
