@@ -33,8 +33,8 @@ internal static class AppHostHelper
                 return (false, false);
             }
 
-            var compatableRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-            if (!aspireSdkVersion.Satisfies(compatableRanges))
+            var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
+            if (!aspireSdkVersion.Satisfies(compatibleRanges))
             {
                 AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.[/]");
                 return (false, false);

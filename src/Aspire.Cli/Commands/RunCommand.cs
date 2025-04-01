@@ -4,7 +4,6 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Commmands;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;

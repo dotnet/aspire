@@ -3,7 +3,7 @@
 
 using System.CommandLine;
 
-namespace Aspire.Cli.Commmands;
+namespace Aspire.Cli.Commands;
 
 internal abstract class BaseCommand : Command
 {
