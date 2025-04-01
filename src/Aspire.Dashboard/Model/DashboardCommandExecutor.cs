@@ -46,7 +46,7 @@ public sealed class DashboardCommandExecutor(
             // For example:
             // 1. Click the stop command on a resource. The command is disabled while running.
             // 2. The stop command finishes, and it is re-enabled.
-            // 3. A new resource state arrives in the dashboard, replacing the stop command with the run command.  
+            // 3. A new resource state arrives in the dashboard, replacing the stop command with the run command.
             //
             // To prevent the stop command from being temporarily enabled, introduce a delay between a command finishing and re-enabling it in the dashboard.
             // This delay is chosen to balance avoiding an incorrect temporary state (since the new resource state should arrive within a second) and maintaining responsiveness.
