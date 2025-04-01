@@ -270,7 +270,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddAntiforgery(options =>
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
-            // TODO: Set cookie path if PathBase is set
+
+            if (_dashboardOptionsMonitor?.CurrentValue.PathBase is not null)
+            {
+                options.Cookie.Path = _dashboardOptionsMonitor.CurrentValue.PathBase.TrimEnd('/');
+            }
         });
 
         _app = builder.Build();
@@ -721,7 +725,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 authentication.AddCookie(options =>
                 {
                     options.Cookie.Name = DashboardAuthCookieName;
-                    // TODO: Set cookie path if PathBase is set
+                    if (dashboardOptions.PathBase is not null)
+                    {
+                        options.Cookie.Path = dashboardOptions.PathBase.TrimEnd('/');
+                    }
                 });
 
                 authentication.AddOpenIdConnect(options =>
@@ -770,7 +777,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         return Task.CompletedTask;
                     };
                     options.Cookie.Name = DashboardAuthCookieName;
-                    // TODO: Set cookie path if PathBase is set
+                    if (dashboardOptions.PathBase is not null)
+                    {
+                        options.Cookie.Path = dashboardOptions.PathBase.TrimEnd('/');
+                    }
                 });
                 break;
             case FrontendAuthMode.Unsecured:
