@@ -288,22 +288,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         if (dashboardOptions.PathBase is not null)
         {
             _app.UsePathBase(dashboardOptions.PathBase);
-
-            // Redirect to path based URL if the request PathBase doesn't match configuration.
-            // e.g. options.PathBase == "/dashboard/" && request.PathBase == "" && request.Path == "/login" then redirect to "/dashboard/login"
-            _app.Use((context, next) =>
-            {
-                var pathBase = dashboardOptions.PathBase.TrimEnd('/');
-                if (context.Request.PathBase != pathBase)
-                {
-                    var requestPath = context.Request.Path;
-                    var requestQuery = context.Request.QueryString.ToString();
-                    var redirectUrl = $"{pathBase}{context.Request.Path}{requestQuery}";
-                    context.Response.Redirect(redirectUrl);
-                    return Task.CompletedTask;
-                }
-                return next(context);
-            });
+            _app.UsePathBaseRedirection();
         }
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
