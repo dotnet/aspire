@@ -7,11 +7,11 @@
     <IsTestProject>true</IsTestProject>
     <ExcludeTestUtilities>true</ExcludeTestUtilities>
 
-    <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <!-- no docker support on GHA/windows yet -->
-    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!-- Only run on GHA or Helix Linux; no docker support on Windows yet -->
+    <SupportsGithubActionsWindows>false</SupportsGithubActionsWindows>
+    <SupportsHelixWindows>false</SupportsHelixWindows>
+    <!-- Don't run tests on AzDO Windows -->
+    <SupportsAzdo Condition="'$(OS)' == 'Windows_NT'">false</SupportsAzdo>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 

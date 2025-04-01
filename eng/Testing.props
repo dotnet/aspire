@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- By default any test can run on all test platforms -->
+    <SupportsGithubActionsWindows>true</SupportsGithubActionsWindows>
+    <SupportsGithubActionsLinux>true</SupportsGithubActionsLinux>
+    <SupportsAzdo>true</SupportsAzdo>
+    <SupportsHelixWindows>true</SupportsHelixWindows>
+    <SupportsHelixLinux>true</SupportsHelixLinux>
+  </PropertyGroup>
+</Project>
