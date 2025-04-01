@@ -80,7 +80,7 @@ internal sealed class RunCommand : BaseCommand
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(":hammer_and_wrench:  Building apphost...", async context => {
+            .StartAsync(":hammer_and_wrench:  Building app host...", async context => {
                 await _runner.BuildAsync(effectiveAppHostProjectFile, cancellationToken).ConfigureAwait(false);
             });
 
