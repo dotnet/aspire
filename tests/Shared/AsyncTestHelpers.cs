@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using Aspire.TestUtilities;
 
 namespace Microsoft.AspNetCore.InternalTesting;
 
@@ -13,19 +14,14 @@ internal static class TestConstants
 {
     // IMPORTANT: If a test fails because these time out, consider adding a new field with a larger value.
     // These values are as big as they need to be to test things complete in the expected time.
-#if DEBUG
-    // Shorter duration when running tests with debug.
+    // Possible exception: OK to increase the CI multipliers to accommodate slow networks/hardware.
+
+    // Shorter duration when running tests on a dev machine.
     // Less time waiting for hang unit tests to fail in aspnetcore solution.
-    public const int DefaultTimeoutDuration = 5 * 1000;
-    public const int LongTimeoutDuration = 60 * 1000;
-    public const int DefaultOrchestratorTestTimeout = 15 * 1000;
-    public const int DefaultOrchestratorTestLongTimeout = 45 * 1000;
-#else
-    public const int DefaultTimeoutDuration = 30 * 1000;
-    public const int LongTimeoutDuration = 120 * 1000;
-    public const int DefaultOrchestratorTestTimeout = DefaultTimeoutDuration;
-    public const int DefaultOrchestratorTestLongTimeout = LongTimeoutDuration;
-#endif
+    public static readonly int DefaultTimeoutDuration = 5 * 1000 * (PlatformDetection.IsRunningOnCI ? 6 : 1); // 5 sec, 30 sec in CI
+    public static readonly int LongTimeoutDuration = 60 * 1000 * (PlatformDetection.IsRunningOnCI ? 3 : 1); // 60 sec, 180 sec in CI
+    public static readonly int DefaultOrchestratorTestTimeout = 15 * 1000 * (PlatformDetection.IsRunningOnCI ? 2 : 1); // 15 sec, 30 sec in CI
+    public static readonly int DefaultOrchestratorTestLongTimeout = 45 * 1000 * (PlatformDetection.IsRunningOnCI ? 4 : 1); // 45 sec, 180 sec in CI
 
     public static TimeSpan DefaultTimeoutTimeSpan { get; } = TimeSpan.FromMilliseconds(DefaultTimeoutDuration);
     public static TimeSpan LongTimeoutTimeSpan { get; } = TimeSpan.FromMilliseconds(LongTimeoutDuration);
@@ -35,8 +31,13 @@ internal static class AsyncTestHelpers
 {
     private static readonly string s_assemblyName = typeof(TimeoutException).Assembly.GetName().Name!;
 
-    public static CancellationTokenSource CreateDefaultTimeoutTokenSource(int milliseconds = TestConstants.DefaultTimeoutDuration)
+    public static CancellationTokenSource CreateDefaultTimeoutTokenSource(int milliseconds = -1)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         var cts = new CancellationTokenSource();
         if (!Debugger.IsAttached)
         {
@@ -45,8 +46,13 @@ internal static class AsyncTestHelpers
         return cts;
     }
 
-    public static async IAsyncEnumerable<T> DefaultTimeout<T>(this IAsyncEnumerable<T> asyncEnumerable, int milliseconds = TestConstants.DefaultTimeoutDuration, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
+    public static async IAsyncEnumerable<T> DefaultTimeout<T>(this IAsyncEnumerable<T> asyncEnumerable, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         // Wrap the enumerable with an enumerable that times out after exceeding time limit on each iteration.
         await using var enumator = asyncEnumerable.GetAsyncEnumerator();
         while (await enumator.MoveNextAsync().DefaultTimeout(milliseconds, filePath, lineNumber))
@@ -55,8 +61,13 @@ internal static class AsyncTestHelpers
         }
     }
 
-    public static Task DefaultTimeout(this Task task, int milliseconds = TestConstants.DefaultTimeoutDuration, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
+    public static Task DefaultTimeout(this Task task, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         return task.TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
     }
 
@@ -65,8 +76,13 @@ internal static class AsyncTestHelpers
         return task.TimeoutAfter(timeout, filePath, lineNumber);
     }
 
-    public static Task DefaultTimeout(this ValueTask task, int milliseconds = TestConstants.DefaultTimeoutDuration, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
+    public static Task DefaultTimeout(this ValueTask task, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         return task.AsTask().TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
     }
 
@@ -75,7 +91,7 @@ internal static class AsyncTestHelpers
         return task.AsTask().TimeoutAfter(timeout, filePath, lineNumber);
     }
 
-    public static Task<T> DefaultTimeout<T>(this Task<T> task, int milliseconds = TestConstants.DefaultTimeoutDuration, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
+    public static Task<T> DefaultTimeout<T>(this Task<T> task, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
         return task.TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
     }
@@ -85,8 +101,13 @@ internal static class AsyncTestHelpers
         return task.TimeoutAfter(timeout, filePath, lineNumber);
     }
 
-    public static Task<T> DefaultTimeout<T>(this ValueTask<T> task, int milliseconds = TestConstants.DefaultTimeoutDuration, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
+    public static Task<T> DefaultTimeout<T>(this ValueTask<T> task, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
     {
+        if (milliseconds == -1)
+        {
+            milliseconds = TestConstants.DefaultTimeoutDuration;
+        }
+
         return task.AsTask().TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
     }
 
