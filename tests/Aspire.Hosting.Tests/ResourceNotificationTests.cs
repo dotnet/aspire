@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -397,6 +398,25 @@ public class ResourceNotificationTests
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains($"CreationTimeStamp = {createdDate:s}"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("State = { Text = SomeState"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("ExitCode = 0"));
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncShouldThrowsIfResourceNameDoesNotExist()
+    {
+        var resource = new CustomResource("resource1");
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddResource(resource);
+        var app = builder.Build();
+
+        app.Run();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await rns.WaitForResourceHealthyAsync("notexist", default);
+        }).DefaultTimeout();
+
+        Assert.Equal(new InvalidOperationException($"Resource with name notexist not found."), exception);
     }
 
     private sealed class CustomResource(string name) : Resource(name),

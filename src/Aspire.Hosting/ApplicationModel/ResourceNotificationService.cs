@@ -415,6 +415,14 @@ public class ResourceNotificationService : IDisposable
 
     private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
+        var appModel = _serviceProvider.GetRequiredService<DistributedApplicationModel>();
+        var resourceExist = appModel.Resources.Any(resource => resource.Name.Equals(resourceName));
+
+        if (!resourceExist)
+        {
+            throw new InvalidOperationException($"Resource with name {resourceName} not found.");
+        }
+
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
