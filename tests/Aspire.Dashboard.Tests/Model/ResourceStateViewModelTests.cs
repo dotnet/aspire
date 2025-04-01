@@ -26,6 +26,9 @@ public class ResourceStateViewModelTests
         /* state */ KnownResourceState.Exited, 3, null, null,
         /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExitedUnexpectedly)}:{ResourceType}+3", "ErrorCircle", Color.Error, "Exited")]
     [InlineData(
+        /* state */ KnownResourceState.Exited, 0, null, null,
+        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:{ResourceType}", "RecordStop", Color.Info, "Exited")]
+    [InlineData(
         /* state */ KnownResourceState.Finished, 0, null, null,
         /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:{ResourceType}", "RecordStop", Color.Info, "Finished")]
     [InlineData(
