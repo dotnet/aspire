@@ -29,7 +29,7 @@ public class KeycloakResourceBuilderTests
         const string defaultEndpointName = "http";
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == defaultEndpointName));
-        Assert.Equal(8080, endpoint.TargetPort);
+        Assert.Equal(8443, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal(defaultEndpointName, endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -125,14 +125,22 @@ public class KeycloakResourceBuilderTests
               "env": {
                 "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
                 "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
-                "KC_HEALTH_ENABLED": "true"
+                "KC_HEALTH_ENABLED": "true",
+                "KC_PROXY": "edge",
+                "KC_HTTP_PORT": "8443",
+                "KC_HTTP_ENABLED": "true",
+                "KC_HOSTNAME_PORT": "8443",
+                "KC_HOSTNAME_STRICT_BACKCHANNEL": "false",
+                "KC_PROXY_HEADERS": "xforwarded",
+                "KC_HOSTNAME_STRICT": "false",
+                "KC_HOSTNAME_STRICT_HTTPS": "false"
               },
               "bindings": {
                 "http": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "targetPort": 8080
+                  "targetPort": 8443
                 },
                 "management": {
                   "scheme": "http",
