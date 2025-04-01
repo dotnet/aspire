@@ -479,3 +479,7 @@ dotnet_diagnostic.CA2007.severity = silent
 
 [*.{cs,vb}]
 dotnet_diagnostic.ASPIREEVENTING001.severity = none
+
+# xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken
+# TODO: Consider re-enabling and fixing violations.
+dotnet_diagnostic.xUnit1051.severity = none
