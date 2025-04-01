@@ -56,7 +56,8 @@ internal sealed class ValidateTokenMiddleware
                     {
                         newQuerystring = "?" + newQuerystring;
                     }
-                    context.Response.Redirect($"{context.Request.Path}{newQuerystring}");
+                    var redirectUrl = $"{context.Request.PathBase}{context.Request.Path}{newQuerystring}";
+                    context.Response.Redirect(redirectUrl);
                 }
 
                 return;
@@ -74,7 +75,7 @@ internal sealed class ValidateTokenMiddleware
         }
         else
         {
-            var redirectUrl = context.Request.PathBase + DashboardUrls.ResourcesUrl();
+            var redirectUrl = $"{context.Request.PathBase}{DashboardUrls.HomeUrl()}";
             context.Response.Redirect(redirectUrl);
         }
     }

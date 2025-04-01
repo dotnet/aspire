@@ -270,6 +270,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddAntiforgery(options =>
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
+            // TODO: Set cookie path if PathBase is set
         });
 
         _app = builder.Build();
@@ -287,6 +288,22 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         if (dashboardOptions.PathBase is not null)
         {
             _app.UsePathBase(dashboardOptions.PathBase);
+
+            // Redirect to path based URL if the request PathBase doesn't match configuration.
+            // e.g. options.PathBase == "/dashboard/" && request.PathBase == "" && request.Path == "/login" then redirect to "/dashboard/login"
+            _app.Use((context, next) =>
+            {
+                var pathBase = dashboardOptions.PathBase.TrimEnd('/');
+                if (context.Request.PathBase != pathBase)
+                {
+                    var requestPath = context.Request.Path;
+                    var requestQuery = context.Request.QueryString.ToString();
+                    var redirectUrl = $"{pathBase}{context.Request.Path}{requestQuery}";
+                    context.Response.Redirect(redirectUrl);
+                    return Task.CompletedTask;
+                }
+                return next(context);
+            });
         }
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
@@ -719,6 +736,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 authentication.AddCookie(options =>
                 {
                     options.Cookie.Name = DashboardAuthCookieName;
+                    // TODO: Set cookie path if PathBase is set
                 });
 
                 authentication.AddOpenIdConnect(options =>
@@ -767,6 +785,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         return Task.CompletedTask;
                     };
                     options.Cookie.Name = DashboardAuthCookieName;
+                    // TODO: Set cookie path if PathBase is set
                 });
                 break;
             case FrontendAuthMode.Unsecured:
