@@ -31,6 +31,14 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Azure Cosmos database to connect to."
                     },
+                    "ContainerName": {
+                      "type": "string",
+                      "description": "Gets or sets the name of the container to connect to."
+                    },
+                    "DatabaseName": {
+                      "type": "string",
+                      "description": "Gets or sets the name of the database to connect to."
+                    },
                     "DisableTracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",

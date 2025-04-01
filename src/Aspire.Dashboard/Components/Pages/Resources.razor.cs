@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ResourceGraph;
@@ -13,6 +14,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -26,11 +28,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     private const string StateColumn = nameof(StateColumn);
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
-    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string UrlsColumn = nameof(UrlsColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
     private IList<GridColumn>? _gridColumns;
+    private bool _hideResourceGraph;
     private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
@@ -47,6 +50,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => "Resources_PageState";
@@ -91,10 +96,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     private readonly List<MenuButtonItem> _resourcesMenuItems = new();
     private DotNetObjectReference<ResourcesInterop>? _resourcesInteropReference;
     private IJSObjectReference? _jsModule;
+    private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+    private bool _showResourceTypeColumn;
 
     // Filters in the resource popup
     // Internal for tests
@@ -154,11 +161,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", IsVisible: () => _showResourceTypeColumn),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
-            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
+            new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
+
+        _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
 
         PageViewModel = new ResourcesViewModel
         {
@@ -167,6 +176,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
         UpdateMenuButtons();
+
+        var showResourceTypeColumn = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowResourceTypes);
+        if (showResourceTypeColumn.Success)
+        {
+            _showResourceTypeColumn = showResourceTypeColumn.Value;
+        }
 
         if (DashboardClient.IsEnabled)
         {
@@ -291,8 +306,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && _jsModule == null)
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && !_graphInitialized)
         {
+            // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.
+            _graphInitialized = true;
+
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-resourcegraph.js");
 
             _resourcesInteropReference = DotNetObjectReference.Create(new ResourcesInterop(this));
@@ -383,6 +401,27 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 OnClick = OnToggleCollapseAll,
                 Text = Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)],
                 Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
+
+        if (_showResourceTypeColumn)
+        {
+             _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleResourceType,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesHideTypes)],
+                Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
+        else
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleResourceType,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesShowTypes)],
+                Icon = new Icons.Regular.Size16.Eye()
             });
         }
     }
@@ -539,26 +578,26 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
-    private static string GetEndpointsTooltip(ResourceViewModel resource)
+    private static string GetUrlsTooltip(ResourceViewModel resource)
     {
-        var displayedEndpoints = GetDisplayedEndpoints(resource);
+        var displayedUrls = GetDisplayedUrls(resource);
 
-        if (displayedEndpoints.Count == 0)
+        if (displayedUrls.Count == 0)
         {
             return string.Empty;
         }
 
-        if (displayedEndpoints.Count == 1)
+        if (displayedUrls.Count == 1)
         {
-            return displayedEndpoints[0].Text;
+            return displayedUrls[0].Text;
         }
 
-        var maxShownEndpoints = 3;
-        var tooltipBuilder = new StringBuilder(string.Join(", ", displayedEndpoints.Take(maxShownEndpoints).Select(endpoint => endpoint.Text)));
+        var maxShownUrls = 3;
+        var tooltipBuilder = new StringBuilder(string.Join(", ", displayedUrls.Take(maxShownUrls).Select(url => url.Text)));
 
-        if (displayedEndpoints.Count > maxShownEndpoints)
+        if (displayedUrls.Count > maxShownUrls)
         {
-            tooltipBuilder.Append(CultureInfo.CurrentCulture, $" + {displayedEndpoints.Count - maxShownEndpoints}");
+            tooltipBuilder.Append(CultureInfo.CurrentCulture, $" + {displayedUrls.Count - maxShownUrls}");
         }
 
         return tooltipBuilder.ToString();
@@ -611,9 +650,17 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         UpdateMenuButtons();
     }
 
-    private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
+    private async Task OnToggleResourceType()
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
+        _showResourceTypeColumn = !_showResourceTypeColumn;
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesShowResourceTypes, _showResourceTypeColumn);
+        await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
+    }
+
+    private static List<DisplayedUrl> GetDisplayedUrls(ResourceViewModel resource)
+    {
+        return ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true);
     }
 
     private bool HasAnyChildResources()
@@ -673,7 +720,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     public Task UpdateViewModelFromQueryAsync(ResourcesViewModel viewModel)
     {
-        if (Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
+        // Don't allow the view to be updated from the query string if the resource graph is disabled.
+        if (!_hideResourceGraph && Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
         {
             viewModel.SelectedViewKind = vk;
         }

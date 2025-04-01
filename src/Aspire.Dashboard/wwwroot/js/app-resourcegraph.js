@@ -40,10 +40,11 @@ class ResourceGraph {
 
         // Enable zoom + pan
         // https://www.d3indepth.com/zoom-and-pan/
-        let zoom = d3.zoom().on('zoom', (event) => {
+        // scaleExtent limits zoom to reasonable values
+        this.zoom = d3.zoom().scaleExtent([0.2, 4]).on('zoom', (event) => {
             this.baseGroup.attr('transform', event.transform);
         });
-        this.svg.call(zoom);
+        this.svg.call(this.zoom);
 
         // simulation setup with all forces
         this.linkForce = d3
@@ -116,6 +117,26 @@ class ResourceGraph {
 
         this.linkElementsG = this.baseGroup.append("g").attr("class", "links");
         this.nodeElementsG = this.baseGroup.append("g").attr("class", "nodes");
+
+        this.initializeButtons();
+    }
+
+    initializeButtons() {
+        d3.select('.graph-zoom-in').on("click", () => this.zoomIn());
+        d3.select('.graph-zoom-out').on("click", () => this.zoomOut());
+        d3.select('.graph-reset').on("click", () => this.resetZoomAndPan());
+    }
+
+    resetZoomAndPan() {
+        this.svg.transition().call(this.zoom.transform, d3.zoomIdentity);
+    }
+
+    zoomIn() {
+        this.svg.transition().call(this.zoom.scaleBy, 1.5);
+    }
+
+    zoomOut() {
+        this.svg.transition().call(this.zoom.scaleBy, 2 / 3);
     }
 
     createArrowMarker(parent, id, className, width, height, x) {
@@ -134,10 +155,12 @@ class ResourceGraph {
     }
 
     resize() {
-        var container = document.getElementsByClassName("resources-summary-layout")[0];
-        var width = container.clientWidth;
-        var height = Math.max(container.clientHeight - 50, 0);
-        this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        var container = document.querySelector(".resources-summary-layout");
+        if (container) {
+            var width = container.clientWidth;
+            var height = Math.max(container.clientHeight - 50, 0);
+            this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        }
     }
 
     switchTo(resourceName) {

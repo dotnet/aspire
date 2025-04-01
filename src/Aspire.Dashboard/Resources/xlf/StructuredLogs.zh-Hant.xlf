@@ -17,6 +17,11 @@
         <target state="translated">超過結構化記錄限制</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">結構化記錄擷取已於 {0} 暫停</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">新增篩選</target>

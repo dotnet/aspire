@@ -172,11 +172,6 @@
         <target state="translated">Heure d’arrêt</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">Points de terminaison</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">Environnement</target>
@@ -187,6 +182,26 @@
         <target state="translated">A des filtres</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="translated">Réinitialiser</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="translated">Zoom avant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="translated">Zoom arrière</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Masquer les types de ressources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">Aucun filtre</target>
@@ -195,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">État</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Afficher les types de ressources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -245,6 +265,11 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">Type</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

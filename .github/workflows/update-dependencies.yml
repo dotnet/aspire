@@ -13,10 +13,10 @@ jobs:
   update-dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET 9
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@b2ace4b12f4cec1b96b6361ff2694ba9e931ceb4 # v3.3.1
         with:
           dotnet-version: "9.0.x"
 
@@ -39,7 +39,7 @@ jobs:
           git checkout -- .
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
+        uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-dependencies

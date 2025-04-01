@@ -16,6 +16,7 @@ public sealed class DashboardOptions
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
+    public UIOptions UI { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -233,6 +234,11 @@ public sealed class TelemetryLimitOptions
     public int MaxAttributeCount { get; set; } = 128;
     public int MaxAttributeLength { get; set; } = int.MaxValue;
     public int MaxSpanEventCount { get; set; } = int.MaxValue;
+}
+
+public sealed class UIOptions
+{
+    public bool? DisableResourceGraph { get; set; }
 }
 
 // Don't set values after validating/parsing options.

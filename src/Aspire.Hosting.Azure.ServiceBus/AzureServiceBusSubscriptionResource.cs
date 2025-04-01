@@ -39,7 +39,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Subscription.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression => Parent.Parent.GetConnectionString(Parent.TopicName, SubscriptionName);
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
@@ -91,7 +91,7 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
 
     // ensure Azure Functions projects can WithReference a ServiceBus queue
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+        => Parent.Parent.ApplyAzureFunctionsConfiguration(target, connectionName, Parent.TopicName, SubscriptionName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

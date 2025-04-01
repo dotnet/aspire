@@ -59,7 +59,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'connectionString'
+  name: 'connectionstrings--pgsql'
   properties: {
     value: 'Host=${pgsql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
   }
@@ -67,9 +67,11 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 }
 
 resource pgsqldb_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'pgsqldb-connectionString'
+  name: 'connectionstrings--pgsqldb'
   properties: {
     value: 'Host=${pgsql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=pgsqldb'
   }
   parent: keyVault
 }
+
+output name string = pgsql.name

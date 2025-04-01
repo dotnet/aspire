@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
@@ -68,6 +70,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8223", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task VerifyExplicitRunModeWithPublisherInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will enter
@@ -136,11 +139,10 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "publish", "--publisher", "manifest", "--output-path", "test-output-path"])
             .WithTestAndResourceLogging(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
-        // TOOD: This won't work because this event does not fire in publish mode. We need
-        //       another way to get at this internal state.
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) => {
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
@@ -167,11 +169,10 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "inspect"])
             .WithTestAndResourceLogging(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
-        // TOOD: This won't work because this event does not fire in publish mode. We need
-        //       another way to get at this internal state.
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) => {
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
@@ -198,11 +199,10 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder
             .Create(["--operation", "inspect", "--publisher", "manifest"])
             .WithTestAndResourceLogging(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
-        // TOOD: This won't work because this event does not fire in publish mode. We need
-        //       another way to get at this internal state.
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) => {
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;

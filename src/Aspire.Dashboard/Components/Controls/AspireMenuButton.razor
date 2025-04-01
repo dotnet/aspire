@@ -21,7 +21,11 @@
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+
+        @if (!HideIcon)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+        }
     }
 </FluentButton>
 
@@ -36,10 +40,10 @@
         {
             var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
             {
-                { "title", item.Tooltip ?? string.Empty }
+                { "title", item.Tooltip ?? item.Text ?? string.Empty }
             };
 
-            <FluentMenuItem Id="@item.Id" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+            <FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
                 @item.Text
                 @if (item.Icon != null)
                 {

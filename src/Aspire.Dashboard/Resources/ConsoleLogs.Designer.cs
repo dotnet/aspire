@@ -133,6 +133,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &lt;Log capture paused at {0}, {1} log(s) filtered out&gt;.
+        /// </summary>
+        public static string ConsoleLogsPauseActive {
+            get {
+                return ResourceManager.GetString("ConsoleLogsPauseActive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;.
+        /// </summary>
+        public static string ConsoleLogsPauseDetails {
+            get {
+                return ResourceManager.GetString("ConsoleLogsPauseDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource commands.
         /// </summary>
         public static string ConsoleLogsResourceCommands {
@@ -174,6 +192,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ConsoleLogsTimestampShow {
             get {
                 return ResourceManager.GetString("ConsoleLogsTimestampShow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UTC timestamps.
+        /// </summary>
+        public static string ConsoleLogsTimestampShowUtc {
+            get {
+                return ResourceManager.GetString("ConsoleLogsTimestampShowUtc", resourceCulture);
             }
         }
         

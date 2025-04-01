@@ -458,6 +458,38 @@ public static class ProjectResourceBuilderExtensions
                     },
                     createIfNotExists: true);
                 }
+
+                // Update URLs for endpoints from the launch profile if a launchUrl is set
+                if (Uri.TryCreate(launchProfile.LaunchUrl, UriKind.RelativeOrAbsolute, out var launchUri))
+                {
+                    builder.WithUrls(context =>
+                    {
+                        if (context.Resource.TryGetEndpoints(out var endpoints))
+                        {
+                            foreach (var endpoint in endpoints)
+                            {
+                                if (endpoint.FromLaunchProfile)
+                                {
+                                    var url = context.Urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, endpoint.Name, StringComparisons.EndpointAnnotationName));
+                                    if (url is not null)
+                                    {
+                                        if (launchUri.IsAbsoluteUri)
+                                        {
+                                            // Launch URL is absolute, replace the url entirely
+                                            url.Url = launchProfile.LaunchUrl;
+                                        }
+                                        else
+                                        {
+                                            // Launch URL is relative so update the URL to use the launchUrl as path/query
+                                            var baseUri = new Uri(url.Url);
+                                            url.Url = (new Uri(baseUri, launchUri)).ToString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
             }
 
             builder.WithEnvironment(context =>
@@ -656,7 +688,11 @@ public static class ProjectResourceBuilderExtensions
         var cb = builder.ApplicationBuilder.AddResource(container);
         // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
-        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+
+        var projectFilePath = builder.Resource.GetProjectMetadata().ProjectPath;
+        var projectDirectoryPath = Path.GetDirectoryName(projectFilePath) ?? throw new InvalidOperationException($"Unable to get directory name for {projectFilePath}");
+
+        cb.WithDockerfile(contextPath: projectDirectoryPath);
         // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());

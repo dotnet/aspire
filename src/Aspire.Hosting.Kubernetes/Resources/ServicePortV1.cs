@@ -52,12 +52,12 @@ public sealed class ServicePortV1
     /// This value specifies the port on which the service is accessible.
     /// </summary>
     [YamlMember(Alias = "port")]
-    public int Port { get; set; }
+    public Int32OrStringV1 Port { get; set; } = null!;
 
     /// <summary>
     /// Specifies the port on the target container to which traffic should be directed.
     /// Typically used in Kubernetes Service definitions to map incoming traffic to the appropriate port of the application running in a pod.
     /// </summary>
     [YamlMember(Alias = "targetPort")]
-    public int TargetPort { get; set; }
+    public Int32OrStringV1 TargetPort { get; set; } = null!;
 }

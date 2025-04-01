@@ -177,6 +177,7 @@ public partial class StructuredLogsTests : DashboardTestContext
 
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        Services.AddSingleton<PauseManager>();
         Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
@@ -189,6 +190,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<GlobalState>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

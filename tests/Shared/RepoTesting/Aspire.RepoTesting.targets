@@ -4,9 +4,9 @@
     This provides support for running tests outside of the repo, for example on a helix agent.
     - For this you need the source of the tests, and any dependencies.
     - Instead of direct `ProjectReferences` to the various Aspire hosting, and component projects use
-      `@(AspireProjectOrPackageReference)`, and @(AspireProjectOrPackageReference)`.
-      - These are converted to `ProjectReference` when `$(TestsRunningOutsideOfRepo) != true`.
-      - But converted to `PackageReference` when `$(TestsRunningOutsideOfRepo) == true`.
+      `@(AspireProjectOrPackageReference)`. These are converted to
+        - `ProjectReference` when `$(TestsRunningOutsideOfRepo) != true`, and
+        - `PackageReference` when `$(TestsRunningOutsideOfRepo) == true`.
 
     - To allow building such test projects, the build is isolated and patched to build outside the
       repo by adding appropriate `Directory.Build.{props,targets}`, and `Directory.Packages.props`
@@ -39,7 +39,7 @@
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
     <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
 
-    <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
+    <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestUtilityProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath Condition="'$(GeneratedPackagesVersionsPropsPath)' == ''">$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
   </PropertyGroup>
 
@@ -53,6 +53,10 @@
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <PackageReference Include="@(AspireProjectOrPackageReference)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IncludeTestPackages)' == 'true'">
+    <Using Include="Xunit.Abstractions" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'" Label="Test packages">

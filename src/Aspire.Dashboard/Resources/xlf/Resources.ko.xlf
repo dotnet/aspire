@@ -172,11 +172,6 @@
         <target state="translated">중지 시간</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">엔드포인트</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">환경</target>
@@ -187,6 +182,26 @@
         <target state="translated">필터 있음</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="translated">초기화</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="translated">확대</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="translated">축소</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">리소스 종류 숨기기</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">필터 없음</target>
@@ -195,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">상태</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">리소스 종류 표시</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -245,6 +265,11 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">형식</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

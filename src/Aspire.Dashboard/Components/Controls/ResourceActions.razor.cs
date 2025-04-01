@@ -84,40 +84,39 @@ public partial class ResourceActions : ComponentBase
         var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
         if (hasTelemetryApplication)
         {
-            var telemetryTooltip = !hasTelemetryApplication ? Loc[nameof(Resources.Resources.ResourceActionTelemetryTooltip)] : string.Empty;
             _menuItems.Add(new MenuButtonItem { IsDivider = true });
             _menuItems.Add(new MenuButtonItem
             {
                 Text = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                Tooltip = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
                 Icon = s_structuredLogsIcon,
                 OnClick = () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                },
-                Tooltip = telemetryTooltip
+                }
             });
             _menuItems.Add(new MenuButtonItem
             {
                 Text = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Tooltip = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
                 Icon = s_tracesIcon,
                 OnClick = () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                },
-                Tooltip = telemetryTooltip
+                }
             });
             _menuItems.Add(new MenuButtonItem
             {
                 Text = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                Tooltip = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
                 Icon = s_metricsIcon,
                 OnClick = () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                },
-                Tooltip = telemetryTooltip
+                }
             });
         }
 
@@ -134,7 +133,7 @@ public partial class ResourceActions : ComponentBase
 
             foreach (var command in menuCommands)
             {
-                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
+                var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
                 _menuItems.Add(new MenuButtonItem
                 {

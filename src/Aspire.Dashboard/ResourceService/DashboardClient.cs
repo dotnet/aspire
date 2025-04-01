@@ -341,7 +341,7 @@ internal sealed class DashboardClient : IDashboardClient
                                 foreach (var resource in response.InitialData.Resources)
                                 {
                                     // Add to map.
-                                    var viewModel = resource.ToViewModel(_timeProvider, _knownPropertyLookup);
+                                    var viewModel = resource.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
                                     _resourceByName[resource.Name] = viewModel;
 
                                     // Send this update to any subscribers too.
@@ -361,7 +361,7 @@ internal sealed class DashboardClient : IDashboardClient
                                     if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
                                         // Upsert (i.e. add or replace)
-                                        var viewModel = change.Upsert.ToViewModel(_timeProvider, _knownPropertyLookup);
+                                        var viewModel = change.Upsert.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
                                         _resourceByName[change.Upsert.Name] = viewModel;
                                         changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                     }
@@ -584,7 +584,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel(_timeProvider, _knownPropertyLookup);
+                    _resourceByName[data.Name] = data.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
                 }
             }
         }

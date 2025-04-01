@@ -62,6 +62,26 @@
         <target state="translated">Koşul</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Tümünü devre dışı bırak</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Filtreyi devre dışı bırak</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Tümünü etkinleştir</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableFilterButtonText">
+        <source>Enable filter</source>
+        <target state="translated">Filtreyi etkinleştir</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Alan</target>
@@ -240,6 +260,21 @@
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
         <target state="translated">XML dosyasını biçimlendir</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="translated">Değeri göster</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="translated">Değeri göstermek istediğinizi onaylayın. Gelecekte, metin görselleştiricisinin açılması tüm değerleri otomatik olarak gösterilmesini sağlayacaktır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="translated">Hassas değer gizlendi</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

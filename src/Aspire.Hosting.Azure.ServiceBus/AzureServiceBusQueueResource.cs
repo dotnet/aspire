@@ -39,7 +39,7 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Queue.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(QueueName, null);
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
@@ -97,7 +97,7 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
 
     // ensure Azure Functions projects can WithReference a ServiceBus queue
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+        => Parent.ApplyAzureFunctionsConfiguration(target, connectionName, QueueName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

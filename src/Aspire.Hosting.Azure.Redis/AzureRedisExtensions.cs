@@ -3,12 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
-using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
-using Azure.Provisioning.Redis;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Redis;
+using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
+using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
 namespace Aspire.Hosting;
 
@@ -96,7 +96,7 @@ public static class AzureRedisExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
     ///
-    /// You can use the <see cref="WithAccessKeyAuthentication"/> method to configure the resource to use access key authentication.
+    /// You can use the <see cref="WithAccessKeyAuthentication(IResourceBuilder{AzureRedisCacheResource}, IResourceBuilder{IKeyVaultResource})"/> method to configure the resource to use access key authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
@@ -121,7 +121,8 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -191,8 +192,33 @@ public static class AzureRedisExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+                                           .WithParentRelationship(builder.Resource);
+
+        return builder.WithAccessKeyAuthentication(kv);
+    }
+
+    /// <summary>
+    /// Configures the resource to use access key authentication for Azure Cache for Redis.
+    /// </summary>
+    /// <param name="builder">The Azure Cache for Redis resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IKeyVaultResource> keyVaultBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keyVaultBuilder);
+
         var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{azureResource.Name}");
+        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
+
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
 
         return builder;
     }
@@ -237,7 +263,7 @@ public static class AzureRedisExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = "connectionString",
+                Name = $"connectionstrings--{redisResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
@@ -256,23 +282,25 @@ public static class AzureRedisExtensions
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
-
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
-            {
-                Parent = redis,
-                AccessPolicyName = "Data Contributor",
-                ObjectId = principalIdParameter,
-                ObjectIdAlias = principalNameParameter
-            });
-
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
         }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+    }
+
+    internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)
+    {
+        infra.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+        {
+            Name = BicepFunction.CreateGuid(redis.Id, principalId, "Data Contributor"),
+            Parent = redis,
+            AccessPolicyName = "Data Contributor",
+            ObjectId = principalId,
+            ObjectIdAlias = principalName
+        });
     }
 }

@@ -86,10 +86,8 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
                 ItemRemovedForCapacity?.Invoke(item);
                 return;
             }
-            else
-            {
-                ItemRemovedForCapacity?.Invoke(this[0]);
-            }
+
+            var removedItem = this[0];
 
             var internalIndex = InternalIndex(index);
 
@@ -115,7 +113,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
             }
             else if (internalIndex < _end && _end < _buffer.Count - 1)
             {
-                data.Slice(internalIndex, _end - internalIndex).CopyTo(data.Slice(_end));
+                data.Slice(internalIndex, _end - internalIndex).CopyTo(data.Slice(internalIndex + 1));
             }
             else
             {
@@ -127,6 +125,9 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
             Increment(ref _end);
             _start = _end;
+
+            Debug.Assert(!_buffer.Contains(removedItem), "Item was not correctly removed.");
+            ItemRemovedForCapacity?.Invoke(removedItem);
         }
         else
         {
@@ -192,11 +193,14 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
     {
         if (IsFull)
         {
-            ItemRemovedForCapacity?.Invoke(this[0]);
+            var removedItem = this[0];
 
             _buffer[_end] = item;
             Increment(ref _end);
             _start = _end;
+
+            Debug.Assert(!_buffer.Contains(removedItem), "Item was not correctly removed.");
+            ItemRemovedForCapacity?.Invoke(removedItem);
         }
         else
         {
@@ -282,11 +286,21 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
         --index;
     }
 
+    public CircularBuffer<T> Clone()
+    {
+        var buffer = new CircularBuffer<T>(_buffer.ToList(), Capacity, _start, _end);
+        buffer.ItemRemovedForCapacity = ItemRemovedForCapacity;
+
+        return buffer;
+    }
+
     private sealed class CircularBufferDebugView(CircularBuffer<T> collection)
     {
         private readonly CircularBuffer<T> _collection = collection;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public T[] Items => _collection.ToArray();
+        public int Start => _collection._start;
+        public int End => _collection._end;
+        public int Capacity => _collection.Capacity;
     }
 }

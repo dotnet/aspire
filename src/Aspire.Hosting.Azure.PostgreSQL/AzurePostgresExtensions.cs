@@ -118,7 +118,7 @@ public static class AzurePostgresExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
     ///
-    /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
+    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{IKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
@@ -141,7 +141,8 @@ public static class AzurePostgresExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -285,6 +286,29 @@ public static class AzurePostgresExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+                                           .WithParentRelationship(builder.Resource);
+
+        return builder.WithPasswordAuthentication(kv, userName, password);
+    }
+
+    /// <summary>
+    /// Configures the resource to use password authentication for Azure PostgreSQL Flexible Server.
+    /// This overload is used when the PostgreSQL resource is created in a container and the password is stored in an Azure Key Vault secret.
+    /// </summary>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
+        this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
+        IResourceBuilder<IKeyVaultResource> keyVaultBuilder,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var azureResource = builder.Resource;
 
         azureResource.UserNameParameter = userName?.Resource ??
@@ -295,7 +319,9 @@ public static class AzurePostgresExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
-        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{builder.Resource.Name}");
+
+        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;
@@ -303,6 +329,13 @@ public static class AzurePostgresExtensions
         {
             containerResource.UserNameParameter = azureResource.UserNameParameter;
             containerResource.PasswordParameter = azureResource.PasswordParameter;
+        }
+
+        // remove role assignment annotations when using password authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
         }
 
         return builder;
@@ -412,7 +445,7 @@ public static class AzurePostgresExtensions
             var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
-                Name = "connectionString",
+                Name = $"connectionstrings--{azureResource.Name}",
                 Properties = new SecretProperties
                 {
                     Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
@@ -445,34 +478,29 @@ public static class AzurePostgresExtensions
                 };
             }
 
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
-
-            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.BicepIdentifier}_admin")
-            {
-                Parent = postgres,
-                Name = principalIdParameter,
-                PrincipalType = principalTypeParameter,
-                PrincipalName = principalNameParameter,
-            };
-
-            // This is a workaround for a bug in the API that requires the parent to be fully resolved
-            admin.DependsOn.Add(postgres);
-            foreach (var firewall in infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
-            {
-                admin.DependsOn.Add(firewall);
-            }
-            infrastructure.Add(admin);
-
+            // We don't know the principalName, so we can't add it to the connection string.
+            // The user name will need to come from the application code.
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
+                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName}")
             });
         }
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name });
+    }
+
+    internal static PostgreSqlFlexibleServerActiveDirectoryAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, PostgreSqlFlexibleServer postgres, BicepValue<Guid> principalId, BicepValue<PostgreSqlFlexibleServerPrincipalType> principalType, BicepValue<string> principalName)
+    {
+        var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.BicepIdentifier}_admin")
+        {
+            Parent = postgres,
+            Name = principalId,
+            PrincipalType = principalType,
+            PrincipalName = principalName,
+        };
+        infra.Add(admin);
+        return admin;
     }
 
     private static ParameterResource CreateDefaultUserNameParameter<T>(IResourceBuilder<T> builder) where T : AzureBicepResource
