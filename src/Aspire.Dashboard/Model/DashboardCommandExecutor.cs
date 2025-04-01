@@ -42,13 +42,13 @@ public sealed class DashboardCommandExecutor(
         }
         finally
         {
-            // There may be a delay between a command finishing and the arrival of a new resource state with updated commands sent to the client.  
-            // For example:  
-            // 1. Click the stop command on a resource. The command is disabled while running.  
-            // 2. The stop command finishes, and it is re-enabled.  
+            // There may be a delay between a command finishing and the arrival of a new resource state with updated commands sent to the client.
+            // For example:
+            // 1. Click the stop command on a resource. The command is disabled while running.
+            // 2. The stop command finishes, and it is re-enabled.
             // 3. A new resource state arrives in the dashboard, replacing the stop command with the run command.  
-            //  
-            // To prevent the stop command from being temporarily enabled, introduce a delay between a command finishing and re-enabling it in the dashboard.  
+            //
+            // To prevent the stop command from being temporarily enabled, introduce a delay between a command finishing and re-enabling it in the dashboard.
             // This delay is chosen to balance avoiding an incorrect temporary state (since the new resource state should arrive within a second) and maintaining responsiveness.
             await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
