@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -92,7 +93,8 @@ public static class PageExtensions
     /// </returns>
     public static async Task<bool> InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
     {
-        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
+        var baseRelativePath = page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri);
+        if (string.Equals(page.BasePath, baseRelativePath))
         {
             var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })
@@ -100,7 +102,7 @@ public static class PageExtensions
                 var newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
 
                 // Don't navigate if the URL redirects to itself.
-                if (newUrl != "/" + page.BasePath)
+                if (!DashboardUrls.IsUrlForPage(page.BasePath, newUrl))
                 {
                     // Replace the initial address with this navigation.
                     // We do this because the visit to "/{BasePath}" then redirect to the final address is automatic from the user perspective.

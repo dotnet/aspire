@@ -14,6 +14,19 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs/";
     public const string TracesBasePath = "traces/";
 
+    public static bool IsUrlForPage(string baseRelativePath, string targetPagePath)
+    {
+        if (baseRelativePath == targetPagePath)
+        {
+            return true;
+        }
+
+        var queryIndex = baseRelativePath.IndexOf('?');
+        var testPath = queryIndex >= 0 ? baseRelativePath[..queryIndex] : baseRelativePath;
+        var isMatch = testPath.TrimEnd('/') == targetPagePath;
+        return isMatch;
+    }
+
     public static string HomeUrl() => ResourcesUrl();
 
     public static string ResourcesUrl(string? resource = null, string? view = null)
