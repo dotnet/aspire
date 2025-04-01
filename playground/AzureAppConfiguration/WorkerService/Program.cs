@@ -1,14 +1,13 @@
-using Azure.Identity;
 using Microsoft.FeatureManagement;
 using WorkerService;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
+builder.AddAzureAppConfigurationClient("appConfig");
 builder.Services.AddHostedService<Worker>();
 builder.Configuration.AddAzureAppConfiguration(
     "appconfig",
-    configureSettings: settings => settings.Credential = new AzureCliCredential(),
     configureOptions: options => {
         options.UseFeatureFlags();
         options.ConfigureRefresh(refresh =>
