@@ -189,30 +189,10 @@ public class Program
                 return ExitCodeConstants.FailedToTrustCertificates;
             }
 
-            var appHostInformation = await GetAppHostInformationAsync(runner, effectiveAppHostProjectFile, ct);
+            var appHostCompatabilityCheck = await CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
 
-            if (appHostInformation.ExitCode != 0)
+            if (!appHostCompatabilityCheck.IsCompatableAppHost)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be analyzed due to a build error. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-
-            if (!appHostInformation.IsAspireHost)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire AppHost project.[/]");
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-
-            if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Could not parse Aspire SDK version.[/]");
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-
-            var compatableRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-            if (!aspireSdkVersion.Satisfies(compatableRanges))
-            {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.[/]");
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
@@ -348,6 +328,42 @@ public class Program
         parentCommand.Subcommands.Add(command);
     }
 
+    private static async Task<(bool IsCompatableAppHost, bool SupportsBackchannel)> CheckAppHostCompatabilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+            var appHostInformation = await GetAppHostInformationAsync(runner, projectFile, cancellationToken);
+
+            if (appHostInformation.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be analyzed due to a build error. For more information run with --debug switch.[/]");
+                return (false, false);
+            }
+
+            if (!appHostInformation.IsAspireHost)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire AppHost project.[/]");
+                return (false, false);
+            }
+
+            if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Could not parse Aspire SDK version.[/]");
+                return (false, false);
+            }
+
+            var compatableRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
+            if (!aspireSdkVersion.Satisfies(compatableRanges))
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.[/]");
+                return (false, false);
+            }
+            else
+            {
+                // NOTE: When we go to support < 9.2.0 app hosts this is where we'll make
+                //       a determination as to whether the apphsot supports backchannel or not.
+                return (true, true);
+            }
+    }
+
     private static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
         using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
@@ -465,6 +481,13 @@ public class Program
             if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
+            }
+
+            var appHostCompatabilityCheck = await CheckAppHostCompatabilityAsync(runner, effectiveAppHostProjectFile, ct);
+
+            if (!appHostCompatabilityCheck.IsCompatableAppHost)
+            {
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
             var publisher = parseResult.GetValue<string>("--publisher");
