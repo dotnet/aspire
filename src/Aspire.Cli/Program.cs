@@ -806,7 +806,7 @@ public class Program
 
         var versionPrompt = new TextPrompt<string>($"Specify a version of {selectedIntegration.Package.Id}")
             .DefaultValue(selectedIntegration.Package.Version)
-            .Validate(value => string.IsNullOrEmpty(value) ? ValidationResult.Error("Version cannot be empty.") : ValidationResult.Success())
+            .Validate(ValidatePackageVersion)
             .ShowDefaultValue(true)
             .DefaultValueStyle(Style.Parse("darkmagenta"));
 
@@ -826,6 +826,18 @@ public class Program
             {
                 return packageWithFriendlyName.Package.Id;
             }
+        }
+    }
+
+    private static ValidationResult ValidatePackageVersion(string version)
+    {
+        if (SemVersion.TryParse(version, out var _))
+        {
+            return ValidationResult.Success();
+        }
+        else
+        {
+            return ValidationResult.Error("Invalid version format.");
         }
     }
 
