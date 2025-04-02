@@ -342,6 +342,20 @@ public static class AzureCosmosExtensions
         var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 
+        // remove the KeyVault from the model if the emulator is used during run mode.
+        // need to do this later in case builder becomes an emulator after this method is called.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, _) =>
+            {
+                if (builder.Resource.IsEmulator)
+                {
+                    data.Model.Resources.Remove(kv.Resource);
+                }
+                return Task.CompletedTask;
+            });
+        }
+
         return builder.WithAccessKeyAuthentication(kv);
     }
 
