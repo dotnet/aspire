@@ -14,6 +14,7 @@ namespace Aspire.Hosting.Tests;
 public class OperationModesTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8400")]
     public async Task VerifyBackwardsCompatableRunModeInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will continue

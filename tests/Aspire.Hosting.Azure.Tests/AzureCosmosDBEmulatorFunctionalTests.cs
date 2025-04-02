@@ -22,6 +22,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     // [InlineData(true)] // "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820"
     [InlineData(false)]
     [RequiresDocker]
+    [QuarantinedTest("//github.com/dotnet/aspire/issues/7345")]
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
     {
         // Cosmos can be pretty slow to spin up, lets give it plenty of time.
