@@ -26,7 +26,7 @@ public sealed class QdrantContainerFixture : IAsyncLifetime
         return $"Endpoint={endpoint}";
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -40,7 +40,7 @@ public sealed class QdrantContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Container is not null)
         {

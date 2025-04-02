@@ -8,6 +8,7 @@ using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Polly;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;

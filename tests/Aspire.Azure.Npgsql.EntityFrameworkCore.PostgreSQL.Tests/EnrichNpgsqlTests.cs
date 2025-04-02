@@ -4,7 +4,6 @@
 using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 using Aspire.Npgsql.Tests;
 using Aspire.TestUtilities;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -51,7 +50,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]
