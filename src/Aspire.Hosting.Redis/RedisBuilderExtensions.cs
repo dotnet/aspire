@@ -21,6 +21,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class RedisBuilderExtensions
 {
+    private const string PasswordEnvVarName = "REDIS_PASSWORD";
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
@@ -101,7 +102,7 @@ public static class RedisBuilderExtensions
                       {
                           if (redis.PasswordParameter is { } password)
                           {
-                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                              context.EnvironmentVariables[PasswordEnvVarName] = password;
                           }
                       })
                       .WithArgs(context =>
@@ -114,7 +115,7 @@ public static class RedisBuilderExtensions
                           if (redis.PasswordParameter is not null)
                           {
                               redisCommand.Add("--requirepass");
-                              redisCommand.Add("$REDIS_PASSWORD");
+                              redisCommand.Add($"${PasswordEnvVarName}");
                           }
 
                           if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
@@ -598,5 +599,42 @@ public static class RedisBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/data");
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="password"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder.WithEnvironment(context =>
+        {
+            if (builder.Resource.PasswordParameter is { } password)
+            {
+                context.EnvironmentVariables[PasswordEnvVarName] = password;
+            }
+        });
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="port"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<RedisResource> WithHostPort(this IResourceBuilder<RedisResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(RedisResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+
     }
 }
