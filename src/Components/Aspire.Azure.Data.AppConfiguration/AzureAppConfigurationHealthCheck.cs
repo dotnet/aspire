@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Azure;
 using Azure.Data.AppConfiguration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -21,11 +22,20 @@ internal sealed class AzureAppConfigurationHealthCheck : IHealthCheck
     {
         try
         {
-            _ = await _client.GetConfigurationSettingAsync("*", null, cancellationToken).ConfigureAwait(false);
+            var selector = new SettingSelector
+            {
+                KeyFilter = "__UNEXISTED_KEY__",
+                LabelFilter = null
+            };
+            AsyncPageable<ConfigurationSetting> pageableSettings = _client.GetConfigurationSettingsAsync(selector, cancellationToken);
+            await foreach (var page in pageableSettings.AsPages().ConfigureAwait(false))
+            {
+                _ = page.GetRawResponse(); // If healthy, the response should be 200 and with empty content
+            }
 
             return HealthCheckResult.Healthy();
         }
-        catch (Exception ex)
+        catch (RequestFailedException ex)
         {
             return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
         }
