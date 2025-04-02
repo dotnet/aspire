@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using Spectre.Console;
 using BaseRootCommand = System.CommandLine.RootCommand;
 
@@ -30,7 +29,7 @@ internal sealed class RootCommand : BaseRootCommand
                 AnsiConsole.Status().Start(
                     $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
                     context => {
-                        while (!Debugger.IsAttached)
+                        while (!System.Diagnostics.Debugger.IsAttached)
                         {
                             Thread.Sleep(1000);
                         }
