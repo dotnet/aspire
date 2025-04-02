@@ -105,7 +105,7 @@ public class TemplatesCustomHive
                                 : Path.Combine(BuildEnvironment.TempDir, "templates", "working"); // avoid running from the repo
         Directory.CreateDirectory(workingDir);
         using var cmd = new ToolCommand(dotnet,
-                                        new TestOutputWrapper(forceShowBuildOutput: true),
+                                        new TestOutputWrapper(),
                                         label: "template install")
                             .WithWorkingDirectory(workingDir);
 
