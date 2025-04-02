@@ -44,6 +44,8 @@ jobs:
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
 
       - name: Run quarantined tests
+        env:
+          CI: false
         run: |
           ${{ env.BUILD_SCRIPT }} -projects ${{ github.workspace }}/tests/Shared/SolutionTests.proj -restore -build -test -c Release /p:RunQuarantinedTests=true /bl:${{ github.workspace }}/artifacts/log/Release/test-quarantined.binlog
 
