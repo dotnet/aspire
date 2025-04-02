@@ -18,9 +18,9 @@
     <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
 
     <!-- This runs in a separate job -->
-    <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Workload.Tests\**\*Tests.csproj" />
+    <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />
 
-    <_TestProjectsToInclude Include="$(RepoRoot)tests\Aspire.Hosting.Tests\*Tests.csproj" />
+    <_TestProjectsToInclude Include="$(RepoRoot)tests\**\*Tests.csproj" />
 
     <!-- Add all the test projects we want to build as project references, so the traversal SDK can build them -->
     <ProjectReference Include="@(_TestProjectsToInclude)"
