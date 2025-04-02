@@ -962,6 +962,7 @@ public class DistributedApplicationTests
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
+    [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
