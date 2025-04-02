@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Xunit.Sdk;
-
 namespace Aspire.TestUtilities;
 
 /// <summary>
@@ -34,7 +32,6 @@ namespace Aspire.TestUtilities;
 /// </item>
 /// </list>
 /// </example>
-[TraitDiscoverer("Aspire.TestUtilities.QuarantinedTestTraitDiscoverer", "Aspire.TestUtilities")]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
 public sealed class QuarantinedTestAttribute : Attribute, ITraitAttribute
 {
@@ -51,4 +48,7 @@ public sealed class QuarantinedTestAttribute : Attribute, ITraitAttribute
     {
         Reason = reason;
     }
+
+    public IReadOnlyCollection<KeyValuePair<string, string>> GetTraits()
+        => [new KeyValuePair<string, string>("quarantined", "true")];
 }
