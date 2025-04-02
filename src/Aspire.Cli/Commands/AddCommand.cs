@@ -90,7 +90,7 @@ internal sealed class AddCommand : BaseCommand
             // If we didn't match any, show a complete list. If we matched one, and its
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
-            var selectedNuGetPackage = filteredPackagesWithShortName.Count switch {
+            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
                 0 => await GetPackageByInteractiveFlow(packagesWithShortName, null, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()
