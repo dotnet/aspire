@@ -209,14 +209,12 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
-        sql.RunAsContainer(configureOptions: c =>
+        sql.RunAsContainer(configureContainer: c =>
         {
-            c.Port = 12455;
-            c.Password = pass;
-        }, configureContainer: c =>
-        {
-            innerSql = c;
             c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455));
+            c.WithHostPort(12455)
+            .WithPassword(pass);
+            innerSql = c;
         });
 
         Assert.NotNull(innerSql);

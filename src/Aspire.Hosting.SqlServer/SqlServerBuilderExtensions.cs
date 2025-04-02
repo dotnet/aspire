@@ -200,6 +200,40 @@ public static partial class SqlServerBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="password"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<SqlServerServerResource> WithPassword(this IResourceBuilder<SqlServerServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        var sqlserver = builder.Resource.WithPassword(password.Resource);
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlserver.PasswordParameter;
+        });
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="port"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(SqlServerServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+
+    }
+
     private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
     {
         try
