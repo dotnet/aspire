@@ -30,10 +30,9 @@
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
-      <!-- TODO: Fix this for MTP -->
       <_TestBlameArguments Remove="@(_TestBlameArguments)" />
-      <_TestBlameArguments Include="--blame-crash" />
-      <_TestBlameArguments Include="--blame-crash-dump-type full" />
+      <_TestBlameArguments Include="--crashdump" />
+      <_TestBlameArguments Include="--crashdump-type Full" />
 
       <!-- Using `dotnet test` for the project directly here -->
       <_TestRunCommandArguments Include="dotnet exec @.runsettings --results-directory $(_HelixLogsPath)" />
