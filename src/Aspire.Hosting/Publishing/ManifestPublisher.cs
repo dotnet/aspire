@@ -40,13 +40,13 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
             // compatibility with AZD, but also support manifest publishing via the Aspire CLI
             // where the output path is a directory (since not all publishers use a manifest).
             _options.Value.OutputPath = Path.Combine(_options.Value.OutputPath, "aspire-manifest.json");
-            var parentDirectory = Directory.GetParent(_options.Value.OutputPath);
-            
-            if (!Directory.Exists(parentDirectory!.FullName))
-            {
-                // Create the directory if it does not exist
-                Directory.CreateDirectory(parentDirectory.FullName);
-            }
+        }
+
+        var parentDirectory = Directory.GetParent(_options.Value.OutputPath);
+        if (!Directory.Exists(parentDirectory!.FullName))
+        {
+            // Create the directory if it does not exist
+            Directory.CreateDirectory(parentDirectory.FullName);
         }
 
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
