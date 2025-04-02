@@ -76,17 +76,11 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </summary>
     public IReadOnlyDictionary<string, string> Databases => _databases;
 
-    /// <summary>
-    /// TODO
-    /// </summary>
-    /// <param name="password"></param>
-    /// <returns></returns>
-    public SqlServerServerResource WithPassword(ParameterResource password)
+    internal void SetPassword(ParameterResource password)
     {
         ArgumentNullException.ThrowIfNull(password);
 
         PasswordParameter = password;
-        return this;
     }
 
     internal void AddDatabase(SqlServerDatabaseResource database)

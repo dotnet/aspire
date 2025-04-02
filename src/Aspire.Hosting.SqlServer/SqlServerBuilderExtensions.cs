@@ -211,10 +211,10 @@ public static partial class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(password);
 
-        var sqlserver = builder.Resource.WithPassword(password.Resource);
+        builder.Resource.SetPassword(password.Resource);
         return builder.WithEnvironment(context =>
         {
-            context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlserver.PasswordParameter;
+            context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = builder.Resource.PasswordParameter;
         });
     }
 
