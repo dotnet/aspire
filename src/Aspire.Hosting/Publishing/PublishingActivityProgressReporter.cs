@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 
 namespace Aspire.Hosting.Publishing;
@@ -8,6 +11,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Represents a publishing activity.
 /// </summary>
+[Experimental("ASPIREPUBLISHERS001")]
 public sealed class PublishingActivity
 {
     internal PublishingActivity(string id, string initialStatusText, bool isPrimary = false)
@@ -47,6 +51,7 @@ public sealed class PublishingActivity
 /// <summary>
 /// Interface for reporting publishing activity progress.
 /// </summary>
+[Experimental("ASPIREPUBLISHERS001")]
 public interface IPublishingActivityProgressReporter
 {
     /// <summary>

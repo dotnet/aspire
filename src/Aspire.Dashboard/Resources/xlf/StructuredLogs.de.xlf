@@ -17,6 +17,11 @@
         <target state="translated">Grenzwert für strukturiertes Protokoll überschritten</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Die Erfassung strukturierter Protokolle wurde angehalten um {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Filter hinzufügen</target>

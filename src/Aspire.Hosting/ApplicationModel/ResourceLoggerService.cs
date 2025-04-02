@@ -496,7 +496,7 @@ public class ResourceLoggerService
         {
             lock (_lock)
             {
-                _backlog.Clear();
+                _backlog.Clear(keepActivePauseEntries: false);
                 _backlog.BaseLineNumber = 0;
             }
         }

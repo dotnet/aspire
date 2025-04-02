@@ -5,8 +5,8 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:15877",
-        "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15876"
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:15877",
+        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15876"
       },
       "applicationUrl": "https://localhost:15889;http://localhost:15888"
     }

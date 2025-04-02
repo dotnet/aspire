@@ -19,7 +19,17 @@ public class WebTests
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
         // Arrange
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>();
+#if (TestFx == "MSTest")
+        var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+#elif (TestFx == "NUnit")
+        var cancellationToken = TestContext.CurrentContext.CancellationToken;
+#elif (XUnitVersion == "v2")
+        var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+#else // XunitVersion v3 or v3mtp
+        var cancellationToken = TestContext.Current.CancellationToken;
+#endif
+
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>(cancellationToken);
         appHost.Services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Debug);
@@ -35,13 +45,13 @@ public class WebTests
             clientBuilder.AddStandardResilienceHandler();
         });
 
-        await using var app = await appHost.BuildAsync().WaitAsync(DefaultTimeout);
-        await app.StartAsync().WaitAsync(DefaultTimeout);
+        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
         // Act
         var httpClient = app.CreateHttpClient("webfrontend");
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend").WaitAsync(DefaultTimeout);
-        var response = await httpClient.GetAsync("/");
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var response = await httpClient.GetAsync("/", cancellationToken);
 
         // Assert
 #if (TestFx == "MSTest")

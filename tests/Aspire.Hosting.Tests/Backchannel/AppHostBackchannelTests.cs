@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using System.Net.Sockets;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
@@ -18,7 +20,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanConnectToBackchannel()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -54,7 +56,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRespondToPingAsync()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
@@ -89,7 +91,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanStreamResourceStates()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddResource(new TestResource("test"))
                .WithInitialState(new () {
@@ -138,7 +140,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRequestPublishersAsync()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
@@ -169,6 +171,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         Assert.Collection(
             publishers,
+            x => Assert.Equal("manifest", x),
             x => Assert.Equal("dummy1", x),
             x => Assert.Equal("dummy2", x)
             );
@@ -180,7 +183,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     public async Task CanRequestPublishersAsyncInInspectMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create("--operation", "inspect").WithTestAndResourceLogging(outputHelper);
-        builder.Configuration["ASPIRE_BACKCHANNEL_PATH"] = UnixSocketHelper.GetBackchannelSocketPath();
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
 
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
         builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
@@ -213,6 +216,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         Assert.Collection(
             publishers,
+            x => Assert.Equal("manifest", x),
             x => Assert.Equal("dummy1", x),
             x => Assert.Equal("dummy2", x)
             );

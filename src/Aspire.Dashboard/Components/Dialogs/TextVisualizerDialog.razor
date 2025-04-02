@@ -30,25 +30,12 @@
 </FluentDialogHeader>
 
 <FluentDialogBody>
-    @if (Content.ContainsSecret && ShowContainsSecretsWarning is null)
-    {
-        return;
-    }
-
     <div class="text-visualizer-container">
-        @if (Content.ContainsSecret && ShowContainsSecretsWarning is true)
-        {
-            <FluentMessageBar Title="@Loc[nameof(Dialogs.TextVisualizerSecretWarningTitle)]" Intent="@MessageIntent.Warning" AllowDismiss="false">
-                @Loc[nameof(Dialogs.TextVisualizerSecretWarningDescription)]
-            </FluentMessageBar>
-
-            <FluentButton Class="text-visualizer-unmask-content" OnClick="@UnmaskContentAsync">@Loc[nameof(Dialogs.TextVisualizerSecretWarningAcknowledge)]</FluentButton>
-        }
-        else
+        @if (IsTextContentDisplayed)
         {
             <div class="log-overflow">
                 <div class="log-container" id="@_logContainerId">
-                    <Virtualize Items="@FormattedLines" ItemSize="20" OverscanCount="100">
+                    <Virtualize Items="@FormattedLines" ItemSize="20" OverscanCount="200">
                         <div class="log-line-row-container">
                             <div class="log-line-row">
                                 <span class="log-line-area">
@@ -78,11 +65,27 @@
                           Class="text-visualizer-copy"
                           AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
                 <span slot="start">
-                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start"/>
-                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start"/>
+                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
                 </span>
                 @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
             </FluentButton>
+        }
+        else if (ShowSecretsWarning is true)
+        {
+            @* Don't display until ShowSecretsWarning is loaded and is known to be true *@
+            <div class="block-warning">
+                <div class="block-warning-icon">
+                    <FluentIcon Value="new Icons.Filled.Size16.Warning()" Color="Color.Warning" />
+                </div>
+
+                <div class="block-warning-message">
+                    <span class="title">@Loc[nameof(Dialogs.TextVisualizerSecretWarningTitle)]</span>
+                    @Loc[nameof(Dialogs.TextVisualizerSecretWarningDescription)]
+                </div>
+            </div>
+
+            <FluentButton Class="text-visualizer-unmask-content" OnClick="@UnmaskContentAsync">@Loc[nameof(Dialogs.TextVisualizerSecretWarningAcknowledge)]</FluentButton>
         }
     </div>
 </FluentDialogBody>

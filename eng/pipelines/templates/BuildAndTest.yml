@@ -92,6 +92,7 @@ steps:
         DCP_DIAGNOSTICS_LOG_LEVEL: debug
         DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
         DCP_PRESERVE_EXECUTABLE_LOGS: 1
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
       displayName: Run non-helix tests
 
     - ${{ if ne(parameters.isWindows, 'true') }}:

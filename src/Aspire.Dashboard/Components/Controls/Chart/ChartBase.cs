@@ -46,6 +46,9 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
 
@@ -66,7 +69,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     {
         // Copy the token so there is no chance it is accessed on CTS after it is disposed.
         CancellationToken = _cts.Token;
-        _currentDataStartTime = GetCurrentDataTime();
+        _currentDataStartTime = PauseManager.AreMetricsPaused(out var pausedAt) ? pausedAt.Value : GetCurrentDataTime();
         InstrumentViewModel.DataUpdateSubscriptions.Add(OnInstrumentDataUpdate);
     }
 
@@ -80,7 +83,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var inProgressDataTime = GetCurrentDataTime();
+        var inProgressDataTime = PauseManager.AreMetricsPaused(out var pausedAt) ? pausedAt.Value : GetCurrentDataTime();
 
         while (_currentDataStartTime.Add(_tickDuration) < inProgressDataTime)
         {

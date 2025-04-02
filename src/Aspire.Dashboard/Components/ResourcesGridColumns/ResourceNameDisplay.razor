@@ -6,18 +6,25 @@
 
 @inject IStringLocalizer<Columns> Loc
 
-<span class="resource-name-text" title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+<span class="resource-name-container">
+    <FluentIcon Width="16px"
+                Class="resource-icon"
+                Color="Color.Custom"
+                CustomColor="@ColorGenerator.Instance.GetColorHexByKey(FormatName(Resource))"
+                Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
 
-@if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
-    value.Value.HasStringValue &&
-    StringComparer.Ordinal.Equals(value.Value.StringValue, KnownContainerLifetimes.Persistent))
-{
-    <FluentIcon
-        Icon="Icons.Regular.Size16.Pin"
-        Title="@Loc[nameof(Columns.PersistentContainerIconTooltip)]"
-        Color="Color.Neutral"
-        Class="persistent-container-icon" />
-}
+    <span class="resource-name-text">
+        <FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" />
+    </span>
+
+    @if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
+        value.Value.HasStringValue &&
+        StringComparer.Ordinal.Equals(value.Value.StringValue, KnownContainerLifetimes.Persistent))
+    {
+        <FluentIcon Icon="Icons.Regular.Size16.Pin" Title="@Loc[nameof(Columns.PersistentContainerIconTooltip)]"
+            Color="Color.Neutral" Class="persistent-container-icon" />
+    }
+</span>
 
 @code {
     [Parameter, EditorRequired]

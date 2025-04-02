@@ -12,6 +12,11 @@
         <target state="translated">超過追蹤限制</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Traces capture paused at {0}</source>
+        <target state="translated">追蹤擷取已在 {0} 暫停</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">名稱: {0}</target>

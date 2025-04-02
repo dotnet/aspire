@@ -1,6 +1,7 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
+  <Import Project="$(RepositoryEngineeringDir)Testing.props" />
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
 
   <PropertyGroup>
@@ -15,6 +16,8 @@
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
+
+    <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

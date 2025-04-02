@@ -215,8 +215,9 @@ public class PublishAsDockerfileTests
         using var tempDir = CreateDirectoryWithDockerFile();
 
         var path = tempDir.Directory.FullName;
+        var projectPath = Path.Combine(path, "project.csproj");
 
-        var project = builder.AddProject("project", path, o => o.ExcludeLaunchProfile = true)
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
                             .WithArgs("/usr/foo")
                             .PublishAsDockerFile(c =>
                              {

@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Kubernetes;
+#pragma warning disable ASPIREPUBLISHERS001
+
+using Aspire.Hosting.Kubernetes;
+
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions for adding a Kubernetes publisher to the application model.

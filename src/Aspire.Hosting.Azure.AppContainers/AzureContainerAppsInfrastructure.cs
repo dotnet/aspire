@@ -92,7 +92,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
 
             // Set the known parameters for the container app environment
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.ContainerRegistryManagedIdentityId);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.PrincipalId);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
@@ -169,6 +169,11 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
+                // Write a fake parameter for the container app environment
+                // so azd knows the Dashboard URL - see https://github.com/dotnet/aspire/issues/8449.
+                // This is temporary until a real fix can be made in azd.
+                AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
+
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
