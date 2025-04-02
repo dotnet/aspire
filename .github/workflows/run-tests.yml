@@ -219,7 +219,6 @@ jobs:
           TestsRunningOutsideOfRepo: true
         run: >
           dotnet test -s .runsettings ${{ env.TEST_ASSEMBLY_NAME }}.dll
-          -l "console;verbosity=normal"
           -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
           -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
           --blame
@@ -242,7 +241,6 @@ jobs:
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
           -s eng/testing/.runsettings
-          -l "console;verbosity=normal"
           -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
           -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
           "--blame"

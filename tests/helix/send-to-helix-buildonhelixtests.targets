@@ -58,6 +58,7 @@
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
         <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
+        <Command Condition="'%(FileName)' == 'Aspire.Playground.Tests'">%(Command) --no-build</Command>
         <Timeout>00:15:00</Timeout>
         <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
 
