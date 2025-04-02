@@ -360,7 +360,7 @@ internal sealed class KubernetesResourceContext(
             formattedName.ToHelmSecretExpression(resource.Name) :
             formattedName.ToHelmConfigExpression(resource.Name);
 
-        var value = parameter.Default is null ? null : parameter.Value;
+        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
         return new(expression, value);
     }
 
