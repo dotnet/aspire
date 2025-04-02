@@ -7,6 +7,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Redis;
+using Microsoft.Extensions.DependencyInjection;
 using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
 using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
