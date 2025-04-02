@@ -12,27 +12,37 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents a context for publishing Azure Resource Manager (ARM) templates for a distributed application.
+/// Represents a context for publishing Azure bicep templates for a distributed application.
 /// </summary>
 /// <remarks>
-/// This context facilitates the generation of ARM templates using the provided application model,
+/// This context facilitates the generation of bicep templates using the provided application model,
 /// publisher options, and execution context. It handles resource configuration and ensures
-/// that the ARM template is created in the specified output path.
+/// that the bicep template is created in the specified output path.
 /// </remarks>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-internal sealed class AzurePublishingContext(
+public sealed class AzurePublishingContext(
     AzurePublisherOptions publisherOptions,
+    AzureProvisioningOptions provisioningOptions,
     ILogger logger)
 {
     private ILogger Logger => logger;
     private AzurePublisherOptions PublisherOptions => publisherOptions;
 
-    public Infrastructure Infra = new()
+    /// <summary>
+    /// Gets the main.bicep infrastructure for the distributed application.
+    /// </summary>
+    public Infrastructure MainInfrastructure = new()
     {
         TargetScope = DeploymentScope.Subscription
     };
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    /// <summary>
+    /// Writes the specified distributed application model to the output path using Bicep templates.
+    /// </summary>
+    /// <param name="model">The distributed application model to write to the output path.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the async operation.</returns>
+    public async Task WriteModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
@@ -43,10 +53,12 @@ internal sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, cancellationToken).ConfigureAwait(false);
+
+        await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, CancellationToken _)
     {
         var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
         if (!outputDirectory.Exists)
@@ -55,13 +67,13 @@ internal sealed class AzurePublishingContext(
         }
 
         var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
-        Infra.Add(environmentParam);
+        MainInfrastructure.Add(environmentParam);
 
         var locationParam = new ProvisioningParameter("location", typeof(string));
-        Infra.Add(locationParam);
+        MainInfrastructure.Add(locationParam);
 
         var principalId = new ProvisioningParameter("principalId", typeof(string));
-        Infra.Add(principalId);
+        MainInfrastructure.Add(principalId);
 
         var tags = new ProvisioningVariable("tags", typeof(object))
         {
@@ -223,15 +235,15 @@ internal sealed class AzurePublishingContext(
 
         foreach (var (_, pp) in parameterMap)
         {
-            Infra.Add(pp);
+            MainInfrastructure.Add(pp);
         }
 
-        Infra.Add(tags);
-        Infra.Add(rg);
+        MainInfrastructure.Add(tags);
+        MainInfrastructure.Add(rg);
 
         foreach (var (_, module) in moduleMap)
         {
-            Infra.Add(module);
+            MainInfrastructure.Add(module);
         }
 
         foreach (var (_, output) in outputs)
@@ -245,7 +257,7 @@ internal sealed class AzurePublishingContext(
                 Value = GetOutputs(module, output.Name)
             };
 
-            Infra.Add(bicepOutput);
+            MainInfrastructure.Add(bicepOutput);
         }
 
         return Task.CompletedTask;
@@ -270,5 +282,21 @@ internal sealed class AzurePublishingContext(
                 Visit(reference, visitor, visited);
             }
         }
+    }
+
+    /// <summary>
+    /// Saves the compiled Bicep template to disk.
+    /// </summary>
+    /// <param name="outputDirectoryPath">The path to the output directory where the Bicep template will be saved.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
+    private async Task SaveToDiskAsync(string outputDirectoryPath)
+    {
+        var plan = MainInfrastructure.Build(provisioningOptions.ProvisioningBuildOptions);
+        var compiledBicep = plan.Compile().First();
+
+        logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", MainInfrastructure.BicepName, outputDirectoryPath);
+
+        var bicepPath = Path.Combine(outputDirectoryPath, $"{MainInfrastructure.BicepName}.bicep");
+        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }
