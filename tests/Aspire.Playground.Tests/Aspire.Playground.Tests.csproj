@@ -50,7 +50,6 @@
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" />
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestTraitDiscoverer.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
   </ItemGroup>
@@ -97,7 +96,6 @@
     <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestTraitDiscoverer.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="..\helix\xunit.runner.json" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
