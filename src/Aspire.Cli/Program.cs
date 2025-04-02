@@ -288,8 +288,8 @@ public class Program
                         }
                     }
 
+                    await backchannel.RequestStopAsync(ct).ConfigureAwait(false);
                     return await pendingRun;
-
                 });
 
             if (exitCode != 0)

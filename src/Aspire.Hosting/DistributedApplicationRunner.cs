@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Cli;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,12 +13,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter, IDistributedApplicationEventing eventing) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (executionContext.IsPublishMode)
         {
+            if (backchannelService.IsBackchannelExpected)
+            {
+                logger.LogInformation("Waiting for backchannel connection before publishing.");
+                await backchannelService.BackchannelConnected.ConfigureAwait(false);
+            }
+
             var publishingActivity = await activityReporter.CreateActivityAsync(
                 "publishing-artifacts",
                 $"Executing publisher {executionContext.PublisherName}",
@@ -40,7 +47,10 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                 publishingActivity.IsComplete = true;
                 await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
 
-                lifetime.StopApplication();
+                if (!backchannelService.IsBackchannelExpected)
+                {
+                    lifetime.StopApplication();
+                }
             }
             catch (Exception ex)
             {
