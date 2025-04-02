@@ -100,13 +100,17 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddAzureRedis_WithAccessKeyAuthentication_NoKeyVaultWithContainer()
+    public async Task AddAzureRedis_WithAccessKeyAuthentication_NoKeyVaultWithContainer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddAzureRedis("redis").WithAccessKeyAuthentication().RunAsContainer();
 
-        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
     }
 
     [Theory]

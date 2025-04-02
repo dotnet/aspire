@@ -339,8 +339,20 @@ public static class AzureCosmosExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var kv = builder.ApplicationBuilder.CreateAzureKeyVaultResourceBuilder($"{builder.Resource.Name}-kv")
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
+
+        // remove the KeyVault from the model if the emulator is used.
+        // need to do this later in case builder becomes an emulator after this method is called.
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, _) =>
+        {
+            var executionContext = data.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+            if (executionContext.IsRunMode && builder.Resource.IsEmulator)
+            {
+                data.Model.Resources.Remove(kv.Resource);
+            }
+            return Task.CompletedTask;
+        });
 
         return builder.WithAccessKeyAuthentication(kv);
     }

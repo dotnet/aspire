@@ -146,13 +146,17 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddAzurePostgresFlexibleServer_WithPasswordAuthentication_NoKeyVaultWithContainer()
+    public async Task AddAzurePostgresFlexibleServer_WithPasswordAuthentication_NoKeyVaultWithContainer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().RunAsContainer();
 
-        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
     }
 
     [Theory]
