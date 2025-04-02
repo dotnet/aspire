@@ -30,15 +30,16 @@
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
+      <!-- TODO: Fix this for MTP -->
       <_TestBlameArguments Remove="@(_TestBlameArguments)" />
       <_TestBlameArguments Include="--blame-crash" />
       <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
+      <_TestRunCommandArguments Include="dotnet exec @.runsettings --results-directory $(_HelixLogsPath)" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
-      <_TestRunCommandArguments Include="--filter &quot;quarantined!=true&quot;" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
     </ItemGroup>
 
     <PropertyGroup>

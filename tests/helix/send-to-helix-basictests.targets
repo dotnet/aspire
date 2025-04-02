@@ -21,8 +21,8 @@
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="--filter &quot;quarantined!=true&quot; -- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--filter &quot;quarantined!=true&quot; -- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
+      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="--filter-not-trait &quot;quarantined=true&quot; -- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
+      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--filter-not-trait &quot;quarantined=true&quot; -- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
     </ItemGroup>
 
     <PropertyGroup>

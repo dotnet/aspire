@@ -12,10 +12,10 @@
     <DotNetRuntimePreviousVersionForTesting>8.0.13</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for templates tests -->
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
-    <UseVSTestRunner>true</UseVSTestRunner>
     <XunitV3Version>2.0.0</XunitV3Version>
     <XUnitAnalyzersVersion>1.20.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.0.2</XunitRunnerVisualStudioVersion>
+    <MicrosoftTestingPlatformVersion>1.6.3</MicrosoftTestingPlatformVersion>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
     <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>

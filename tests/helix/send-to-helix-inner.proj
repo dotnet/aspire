@@ -62,13 +62,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestBlameArguments Include="--blame-hang" />
-    <_TestBlameArguments Include="--blame-hang-dump-type full" />
-    <_TestBlameArguments Include="--blame-hang-timeout 10m" />
-    <_TestBlameArguments Include="--blame-crash" />
-    <_TestBlameArguments Include="--blame-crash-dump-type full" />
+    <_TestBlameArguments Include="--hangdump" />
+    <_TestBlameArguments Include="--hangdump-type Full" />
+    <_TestBlameArguments Include="--hangdump-timeout 10m" />
+    <_TestBlameArguments Include="--crashdump" />
+    <_TestBlameArguments Include="--crashdump-type Full" />
 
-    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx @.runsettings" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
