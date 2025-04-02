@@ -2,7 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+
+#if DEBUG
+using System.Diagnostics;
 using Spectre.Console;
+#endif
+
 using BaseRootCommand = System.CommandLine.RootCommand;
 
 namespace Aspire.Cli.Commands;
@@ -29,7 +34,7 @@ internal sealed class RootCommand : BaseRootCommand
                 AnsiConsole.Status().Start(
                     $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
                     context => {
-                        while (!System.Diagnostics.Debugger.IsAttached)
+                        while (!Debugger.IsAttached)
                         {
                             Thread.Sleep(1000);
                         }
