@@ -17,6 +17,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static partial class SqlServerBuilderExtensions
 {
+
+    private const string PasswordEnvVarName = "MSSQL_SA_PASSWORD";
+
     // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
     // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
     [GeneratedRegex(@"^\s*GO(?<repeat>\s+\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
@@ -86,7 +89,7 @@ public static partial class SqlServerBuilderExtensions
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
+                          context.EnvironmentVariables[PasswordEnvVarName] = sqlServer.PasswordParameter;
                       })
                       .WithHealthCheck(healthCheckKey);
     }
@@ -214,7 +217,7 @@ public static partial class SqlServerBuilderExtensions
         builder.Resource.SetPassword(password.Resource);
         return builder.WithEnvironment(context =>
         {
-            context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = builder.Resource.PasswordParameter;
+            context.EnvironmentVariables[PasswordEnvVarName] = builder.Resource.PasswordParameter;
         });
     }
 
