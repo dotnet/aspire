@@ -5,12 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Sql;
 
-/// <summary>  
-/// Represents options for running a SQL Server as a container.  
-/// This class allows configuration of the SQL Server container,   
-/// including the port to expose and the password for the SQL Server instance.  
-/// </summary>  
-public class RunAsContainerOptions
+/// <summary>
+/// Options for configuring the behavior of <see cref="AzureSqlExtensions.RunAsContainer(IResourceBuilder{AzureSqlServerResource}, Action{IResourceBuilder{SqlServerServerResource}}?, Action{RunAsContainerOptions}?)"/>.
+/// </summary>
+public sealed class RunAsContainerOptions
 {
     /// <summary>  
     /// Gets or Sets the port for the SQL Server.  
