@@ -103,13 +103,18 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
+    private static object? GetExistingResourceGroup(AzureBicepResource resource) =>
+        resource.Scope?.ResourceGroup ??
+            (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
+                existingResource.ResourceGroup :
+                null);
+
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var resourceGroup = context.ResourceGroup;
         var resourceLogger = loggerService.GetLogger(resource);
 
-        if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) &&
-            existingResource.ResourceGroup is { } existingResourceGroup)
+        if (GetExistingResourceGroup(resource) is { } existingResourceGroup)
         {
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
                 ? parameterResource.Value
@@ -477,20 +482,14 @@ internal sealed class BicepProvisioner(
     {
         // Resolve the scope from the AzureBicepResource if it has already been set
         // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
-        var targetScope = resource.Scope;
-        if (targetScope is null
-            && resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource)
-            && existingResource.ResourceGroup is { } existingResourceGroup)
-        {
-            targetScope = new AzureBicepResourceScope(existingResourceGroup);
-        }
+        var targetScope = GetExistingResourceGroup(resource);
 
-        scope["resourceGroup"] = targetScope?.ResourceGroup switch
+        scope["resourceGroup"] = targetScope switch
         {
             string s => s,
             IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
             null => null,
-            _ => throw new NotSupportedException($"The scope value type {targetScope.ResourceGroup.GetType()} is not supported.")
+            _ => throw new NotSupportedException($"The scope value type {targetScope.GetType()} is not supported.")
         };
     }
 
