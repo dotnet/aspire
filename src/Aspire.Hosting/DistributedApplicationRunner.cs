@@ -19,9 +19,14 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
     {
         if (executionContext.IsPublishMode)
         {
+            // If we are running in publish mode and are being driven by the
+            // CLI we need to wait for the backchannel from the CLI to the
+            // apphost to be connected so we can stream back publishing progress.
+            // This code detects that a backchannel is expected - and if so
+            // we block until the backchannel is connected and bound to the RPC target.
             if (backchannelService.IsBackchannelExpected)
             {
-                logger.LogInformation("Waiting for backchannel connection before publishing.");
+                logger.LogDebug("Waiting for backchannel connection before publishing.");
                 await backchannelService.BackchannelConnected.ConfigureAwait(false);
             }
 
@@ -47,6 +52,11 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                 publishingActivity.IsComplete = true;
                 await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
 
+                // If we are running in publish mode and a backchannel is being
+                // used then we don't want to stop the app host. Instead the
+                // CLI will tell the app host to stop when it is done - and
+                // if the CLI crashes then the orphan detector will kick in
+                // and stop the app host.
                 if (!backchannelService.IsBackchannelExpected)
                 {
                     lifetime.StopApplication();

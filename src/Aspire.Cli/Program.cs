@@ -288,6 +288,11 @@ public class Program
                         }
                     }
 
+                    // When we are running in publish mode we don't want the app host to
+                    // stop itself while we might still be streaming data back across
+                    // the RPC backchannel. So we need to take responsibility for stopping
+                    // the app host. If the CLI exits/crashes without explicitly stopping
+                    // the app host the orphan detector in the app host will kick in.
                     await backchannel.RequestStopAsync(ct).ConfigureAwait(false);
                     return await pendingRun;
                 });
