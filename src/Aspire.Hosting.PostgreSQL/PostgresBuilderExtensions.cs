@@ -424,6 +424,58 @@ public static class PostgresBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="password"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<PostgresServerResource> WithPassword(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[PasswordEnvVarName] = builder.Resource.PasswordParameter;
+        });
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="userName"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<PostgresServerResource> WithUserName(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> userName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(userName);
+
+        builder.Resource.SetUserName(userName.Resource);
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[UserEnvVarName] = builder.Resource.UserNameReference;
+        });
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="port"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<PostgresServerResource> WithHostPort(this IResourceBuilder<PostgresServerResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(PostgresServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+
+    }
+
     private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
     {
         var bookmarkFiles = new List<ContainerFileSystemItem>();
