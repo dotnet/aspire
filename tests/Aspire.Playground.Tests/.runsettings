@@ -16,11 +16,6 @@
           <LogFileName>TestResults.trx</LogFileName>
         </Configuration>
       </Logger>
-      <Logger friendlyName="console">
-        <Configuration>
-          <Verbosity>normal</Verbosity>
-        </Configuration>
-      </Logger>
     </Loggers>
   </LoggerRunSettings>
 </RunSettings>
