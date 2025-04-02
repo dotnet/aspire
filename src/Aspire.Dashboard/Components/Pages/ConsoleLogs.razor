@@ -30,35 +30,38 @@
             <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
-            @if (_highlightedCommands.Count > 0)
+            @if (PageViewModel.SelectedResource is { } selectedResource)
             {
-                <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
-
-                @foreach (var command in _highlightedCommands)
+                if (_highlightedCommands.Count > 0)
                 {
-                    <FluentButton Appearance="Appearance.Lightweight"
-                                  Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
-                                  Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(PageViewModel.SelectedResource!.Name, command.Name))"
-                                  OnClick="@(() => ExecuteResourceCommandAsync(command))"
-                                  Class="highlighted-command">
-                        @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
-                        {
-                            <FluentIcon Value="@icon" Width="16px" />
-                        }
-                        else
-                        {
-                            @command.DisplayName
-                        }
-                    </FluentButton>
-                }
-            }
+                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
 
-            @if (_resourceMenuItems.Count > 0)
-            {
-                <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-                                  Items="@_resourceMenuItems"
-                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+                    @foreach (var command in _highlightedCommands)
+                    {
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                                      Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selectedResource.Name, command.Name))"
+                                      OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                                      Class="highlighted-command">
+                            @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
+                            {
+                                <FluentIcon Value="@icon" Width="16px" />
+                            }
+                            else
+                            {
+                                @command.DisplayName
+                            }
+                        </FluentButton>
+                    }
+                }
+
+                if (_resourceMenuItems.Count > 0)
+                {
+                    <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                      Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                                      Items="@_resourceMenuItems"
+                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+                }
             }
 
             @if (ViewportInformation.IsDesktop)
