@@ -136,7 +136,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -193,7 +193,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 

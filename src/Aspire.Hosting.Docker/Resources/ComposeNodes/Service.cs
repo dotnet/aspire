@@ -123,12 +123,13 @@ public sealed class Service : NamedComposeMember
 
     /// <summary>
     /// Specifies a list of services that this service depends on.
-    /// The dependencies are expressed as a list of service names.
+    /// The dependencies are expressed as service names with optional conditions.
+    /// Supported conditions are: "service_started", "service_healthy", "service_completed_successfully"
     /// This property defines the order in which services should be started,
     /// ensuring that the specified services are initialized before the current service.
     /// </summary>
     [YamlMember(Alias = "depends_on", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
-    public List<string> DependsOn { get; set; } = [];
+    public Dictionary<string, ServiceDependency> DependsOn { get; set; } = [];
 
     /// <summary>
     /// Specifies the user that the container will run as.

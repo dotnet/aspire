@@ -217,8 +217,35 @@ internal sealed class DockerComposePublishingContext(
             AddPorts(composeService);
             AddVolumes(composeService);
             SetContainerImage(containerImageName, composeService);
+            SetDependsOn(composeService);
 
             return composeService;
+        }
+
+        private void SetDependsOn(Service composeService)
+        {
+            if (resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+            {
+                foreach (var waitAnnotation in waitAnnotations)
+                {
+                    // We can only wait on other compose services
+                    if (waitAnnotation.Resource is ProjectResource || waitAnnotation.Resource.IsContainer())
+                    {
+                        // https://docs.docker.com/compose/how-tos/startup-order/#control-startup
+                        composeService.DependsOn[waitAnnotation.Resource.Name.ToLowerInvariant()] = new()
+                        {
+                            Condition = waitAnnotation.WaitType switch
+                            {
+                                // REVIEW: This only works if the target service has health checks,
+                                // revisit this when we have a way to add health checks to the compose service
+                                // WaitType.WaitUntilHealthy => "service_healthy",
+                                WaitType.WaitForCompletion => "service_completed_successfully",
+                                _ => "service_started",
+                            },
+                        };
+                    }
+                }
+            }
         }
 
         private bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
