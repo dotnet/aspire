@@ -5,6 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.RabbitMQ;
 using Testcontainers.RabbitMq;
 using Xunit;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
