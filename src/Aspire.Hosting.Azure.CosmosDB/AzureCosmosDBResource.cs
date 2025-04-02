@@ -134,7 +134,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var builder = new ReferenceExpressionBuilder();
 
-        if (UseAccessKeyAuthentication)
+        if (UseAccessKeyAuthentication && !IsEmulator)
         {
             builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(childResourceName)));
         }
