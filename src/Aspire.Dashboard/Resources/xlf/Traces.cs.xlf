@@ -12,6 +12,11 @@
         <target state="translated">Překročil se limit trasování</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Traces capture paused at {0}</source>
+        <target state="translated">Zachytávání trasování bylo pozastaveno v {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Název: {0}</target>

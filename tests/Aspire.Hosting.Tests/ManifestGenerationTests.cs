@@ -225,7 +225,7 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}", container.GetProperty("connectionString").GetString());
     }
 
     [Fact]
@@ -398,8 +398,16 @@ public class ManifestGenerationTests
                 },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "entrypoint": "/bin/sh",
+                  "args": [
+                    "-c",
+                    "redis-server --requirepass $REDIS_PASSWORD"
+                  ],
+                  "env": {
+                    "REDIS_PASSWORD": "{redis-password.value}"
+                  },
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -432,6 +440,22 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
+                },
+                "redis-password": {
+                  "type": "parameter.v0",
+                  "value": "{redis-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "special": false
+                        }
+                      }
+                    }
+                  }
                 },
                 "postgres-password": {
                   "type": "parameter.v0",
@@ -510,7 +534,7 @@ public class ManifestGenerationTests
 
     private static string[] GetManifestArgs()
     {
-        var manifestPath = Path.GetTempFileName();
+        var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
         return ["--publisher", "manifest", "--output-path", manifestPath];
     }
 }

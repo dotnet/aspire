@@ -61,24 +61,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Endpoints.
-        /// </summary>
-        public static string EndpointsColumnDisplayOverflowTitle {
-            get {
-                return ResourceManager.GetString("EndpointsColumnDisplayOverflowTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Starting....
-        /// </summary>
-        public static string EndpointsColumnDisplayPlaceholder {
-            get {
-                return ResourceManager.GetString("EndpointsColumnDisplayPlaceholder", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
         /// </summary>
         public static string PersistentContainerIconTooltip {
@@ -256,6 +238,24 @@ namespace Aspire.Dashboard.Resources {
         public static string UnreadLogErrorsBadgeOneErrorLog {
             get {
                 return ResourceManager.GetString("UnreadLogErrorsBadgeOneErrorLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URLs.
+        /// </summary>
+        public static string UrlsColumnDisplayOverflowTitle {
+            get {
+                return ResourceManager.GetString("UrlsColumnDisplayOverflowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting....
+        /// </summary>
+        public static string UrlsColumnDisplayPlaceholder {
+            get {
+                return ResourceManager.GetString("UrlsColumnDisplayPlaceholder", resourceCulture);
             }
         }
     }

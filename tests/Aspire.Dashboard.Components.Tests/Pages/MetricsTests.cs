@@ -22,7 +22,7 @@ using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class MetricsTests : TestContext
+public partial class MetricsTests : DashboardTestContext
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -157,14 +157,18 @@ public partial class MetricsTests : TestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 1);
 
-        var tree1 = cut.FindComponent<FluentTreeView>();
-        var items1 = tree1.FindComponents<FluentTreeItem>();
-
-        foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+        cut.WaitForAssertion(() =>
         {
-            Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-            Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
-        }
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree1 = cut.FindComponent<FluentTreeView>();
+            var items1 = tree1.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
 
         // Act 2
         // New instruments added
@@ -198,14 +202,18 @@ public partial class MetricsTests : TestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        var tree2 = cut.FindComponent<FluentTreeView>();
-        var items2 = tree2.FindComponents<FluentTreeItem>();
-
-        foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+        cut.WaitForAssertion(() =>
         {
-            Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-            Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
-        }
+            // Assert in wait to make sure rendering has caught up to data update.
+            var tree2 = cut.FindComponent<FluentTreeView>();
+            var items2 = tree2.FindComponents<FluentTreeItem>();
+
+            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
+            {
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
+                Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+            }
+        });
     }
 
     private void ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)
@@ -280,7 +288,7 @@ public partial class MetricsTests : TestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TestConstants.WaitTimeout);
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.MeterName);

@@ -2,9 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
+    <!-- no docker support on GHA/windows yet -->
+    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <!-- no docker support on helix/windows yet -->
@@ -28,7 +29,11 @@
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit.v3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
@@ -36,5 +41,5 @@
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+  <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />
 </Project>

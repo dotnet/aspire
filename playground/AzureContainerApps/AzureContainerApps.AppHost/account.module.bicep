@@ -1,9 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalType string
-
-param principalId string
+param keyVaultName string
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('account-${uniqueString(resourceGroup().id)}', 44)
@@ -19,7 +17,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       defaultConsistencyLevel: 'Session'
     }
     databaseAccountOfferType: 'Standard'
-    disableLocalAuth: true
+    disableLocalAuth: false
   }
   kind: 'GlobalDocumentDB'
   tags: {
@@ -38,19 +36,24 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   parent: account
 }
 
-resource account_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
-  name: '00000000-0000-0000-0000-000000000002'
-  parent: account
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
 }
 
-resource account_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
-  name: guid(principalId, account_roleDefinition.id, account.id)
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  name: 'connectionstrings--account'
   properties: {
-    principalId: principalId
-    roleDefinitionId: account_roleDefinition.id
-    scope: account.id
+    value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey}'
   }
-  parent: account
+  parent: keyVault
 }
 
-output connectionString string = account.properties.documentEndpoint
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  name: 'connectionstrings--db'
+  properties: {
+    value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey};Database=db'
+  }
+  parent: keyVault
+}
+
+output name string = account.name

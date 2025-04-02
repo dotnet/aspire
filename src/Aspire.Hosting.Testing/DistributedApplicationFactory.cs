@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
 
 namespace Aspire.Hosting.Testing;
 
@@ -21,6 +21,7 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
+    private readonly string[] _args = ThrowIfNullOrContainsIsNullOrEmpty(args);
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -79,6 +80,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public HttpClient CreateHttpClient(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().CreateHttpClient(resourceName, endpointName);
     }
@@ -91,6 +94,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public ValueTask<string?> GetConnectionString(string resourceName)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetConnectionStringAsync(resourceName);
     }
@@ -105,6 +110,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public Uri GetEndpoint(string resourceName, string? endpointName = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         ObjectDisposedException.ThrowIf(_disposingCts.IsCancellationRequested, this);
         return GetStartedApplication().GetEndpoint(resourceName, endpointName);
     }
@@ -140,6 +147,24 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     /// <param name="application">The application.</param>
     protected virtual void OnBuilt(DistributedApplication application)
     {
+    }
+
+    private static string[] ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        foreach (var arg in args)
+        {
+            if (string.IsNullOrEmpty(arg))
+            {
+                var values = string.Join(", ", args);
+                if (arg is null)
+                {
+                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
+            }
+        }
+        return args;
     }
 
     private void OnBuiltCore(DistributedApplication application)
@@ -179,8 +204,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         SetDefault("DcpPublisher:WaitForResourceCleanup", "true");
 
         // Make sure we have a dashboard URL and OTLP endpoint URL.
-        SetDefault("ASPNETCORE_URLS", "http://localhost:8080");
-        SetDefault("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
+        SetDefault(KnownConfigNames.AspNetCoreUrls, "http://localhost:8080");
+        SetDefaultFallback(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, "http://localhost:4317");
 
         var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
         if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
@@ -196,6 +221,14 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             if (existingConfig[key] is null)
             {
                 additionalConfig[key] = value;
+            }
+        }
+
+        void SetDefaultFallback(string primaryKey, string secondaryKey, string? value)
+        {
+            if (existingConfig[primaryKey] is null && existingConfig[secondaryKey] is null)
+            {
+                additionalConfig[primaryKey] = value;
             }
         }
     }
@@ -216,7 +249,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         DistributedApplicationOptions applicationOptions,
         HostApplicationBuilderSettings hostBuilderOptions)
     {
-        ConfigureBuilder(args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
+        ConfigureBuilder(_args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
     }
 
     private static void PostConfigureBuilderOptions(
@@ -391,7 +424,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         try
         {
             using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-            var app = await factory(args ?? [], cts.Token).ConfigureAwait(false);
+            var app = await factory(_args, cts.Token).ConfigureAwait(false);
             _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
                 ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
             OnBuiltCore(app);

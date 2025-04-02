@@ -132,6 +132,21 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             _manifestExpressions.Add(valueProvider.ValueExpression);
         }
 
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            var index = _valueProviders.Count;
+            _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
+
+            _valueProviders.Add(valueProvider.Resource);
+            _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
+        }
+
         internal readonly ReferenceExpression GetExpression() =>
             new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
     }
@@ -235,6 +250,17 @@ public class ReferenceExpressionBuilder
         public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
         {
             builder.AppendFormatted(valueProvider);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider.Resource);
         }
     }
 }

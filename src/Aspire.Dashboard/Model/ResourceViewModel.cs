@@ -1,10 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
@@ -147,9 +145,6 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
-    private sealed record IconKey(string IconName, IconVariant IconVariant);
-    private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
-
     public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
@@ -174,46 +169,6 @@ public sealed class CommandViewModel
         IsHighlighted = isHighlighted;
         IconName = iconName;
         IconVariant = iconVariant;
-    }
-
-    public static CustomIcon? ResolveIconName(string iconName, IconVariant? iconVariant)
-    {
-        // Icons.GetInstance isn't efficient. Cache icon lookup.
-        return s_iconCache.GetOrAdd(new IconKey(iconName, iconVariant ?? IconVariant.Regular), static key =>
-        {
-            // We display 16px icons in the UI. Some icons aren't available in 16px size so fall back to 20px.
-            CustomIcon? icon;
-            if (TryGetIcon(key, IconSize.Size16, out icon))
-            {
-                return icon;
-            }
-            if (TryGetIcon(key, IconSize.Size20, out icon))
-            {
-                return icon;
-            }
-
-            return null;
-        });
-    }
-
-    private static bool TryGetIcon(IconKey key, IconSize size, [NotNullWhen(true)] out CustomIcon? icon)
-    {
-        try
-        {
-            icon = (new IconInfo
-            {
-                Name = key.IconName,
-                Variant = key.IconVariant,
-                Size = size
-            }).GetInstance();
-            return true;
-        }
-        catch
-        {
-            // Icon name or size couldn't be found.
-            icon = null;
-            return false;
-        }
     }
 }
 
@@ -318,22 +273,31 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
 
 public sealed record KnownProperty(string Key, string DisplayName);
 
-[DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
+[DebuggerDisplay("EndpointName = {EndpointName}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
 {
-    public string Name { get; }
+    public string? EndpointName { get; }
     public Uri Url { get; }
     public bool IsInternal { get; }
+    public bool IsInactive { get; }
+    public UrlDisplayPropertiesViewModel DisplayProperties { get; }
 
-    public UrlViewModel(string name, Uri url, bool isInternal)
+    public UrlViewModel(string? endpointName, Uri url, bool isInternal, bool isInactive, UrlDisplayPropertiesViewModel displayProperties)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(displayProperties);
 
-        Name = name;
+        EndpointName = endpointName;
         Url = url;
         IsInternal = isInternal;
+        DisplayProperties = displayProperties;
+        IsInactive = isInactive;
     }
+}
+
+public record UrlDisplayPropertiesViewModel(string DisplayName, int SortOrder)
+{
+    public static readonly UrlDisplayPropertiesViewModel Empty = new(string.Empty, 0);
 }
 
 public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem

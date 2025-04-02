@@ -8,10 +8,13 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -23,6 +26,9 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public sealed class TelemetryRepository
 {
+    private readonly PauseManager _pauseManager;
+    private readonly ILogger _logger;
+
     private readonly object _lock = new();
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
 
@@ -47,20 +53,24 @@ public sealed class TelemetryRepository
     internal readonly OtlpContext _otlpContext;
 
     public bool HasDisplayedMaxLogLimitMessage { get; set; }
+    public Message? MaxLogLimitMessage { get; set; }
+
     public bool HasDisplayedMaxTraceLimitMessage { get; set; }
+    public Message? MaxTraceLimitMessage { get; set; }
 
     // For testing.
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
     internal List<Subscription> TracesSubscriptions => _tracesSubscriptions;
 
-    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
+    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager)
     {
-        var logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
+        _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
         _otlpContext = new OtlpContext
         {
-            Logger = logger,
+            Logger = _logger,
             Options = dashboardOptions.Value.TelemetryLimits
         };
+        _pauseManager = pauseManager;
 
         _logs = new(_otlpContext.Options.MaxLogCount);
         _traces = new(_otlpContext.Options.MaxTraceCount);
@@ -267,6 +277,12 @@ public sealed class TelemetryRepository
 
     public void AddLogs(AddContext context, RepeatedField<ResourceLogs> resourceLogs)
     {
+        if (_pauseManager.AreStructuredLogsPaused(out _))
+        {
+            _logger.LogTrace("{Count} incoming structured log(s) ignored because of an active pause.", resourceLogs.Count);
+            return;
+        }
+
         foreach (var rl in resourceLogs)
         {
             OtlpApplicationView applicationView;
@@ -401,12 +417,12 @@ public sealed class TelemetryRepository
                 results = results.Where(l => MatchApplications(l.ApplicationView.ApplicationKey, applications));
             }
 
-            foreach (var filter in context.Filters)
+            foreach (var filter in context.Filters.GetEnabledFilters())
             {
                 results = filter.Apply(results);
             }
 
-            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count);
+            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _logs.IsFull);
         }
         finally
         {
@@ -502,7 +518,9 @@ public sealed class TelemetryRepository
                 results = results.Where(t => t.FullName.Contains(context.FilterText, StringComparison.OrdinalIgnoreCase));
             }
 
-            if (context.Filters.Count > 0)
+            var filters = context.Filters.GetEnabledFilters().ToList();
+
+            if (filters.Count > 0)
             {
                 results = results.Where(t =>
                 {
@@ -510,7 +528,7 @@ public sealed class TelemetryRepository
                     foreach (var span in t.Spans)
                     {
                         var match = true;
-                        foreach (var filter in context.Filters)
+                        foreach (var filter in filters)
                         {
                             if (!filter.Apply(span))
                             {
@@ -532,7 +550,7 @@ public sealed class TelemetryRepository
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
             var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
 
-            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, _traces.IsFull, copyFunc);
             var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
 
             return new GetTracesResponse
@@ -800,6 +818,12 @@ public sealed class TelemetryRepository
 
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
+        if (_pauseManager.AreMetricsPaused(out _))
+        {
+            _logger.LogTrace("{Count} incoming metric(s) ignored because of an active pause.", resourceMetrics.Count);
+            return;
+        }
+
         foreach (var rm in resourceMetrics)
         {
             OtlpApplicationView applicationView;
@@ -822,6 +846,12 @@ public sealed class TelemetryRepository
 
     public void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
     {
+        if (_pauseManager.AreTracesPaused(out _))
+        {
+            _logger.LogTrace("{Count} incoming trace(s) ignored because of an active pause.", resourceSpans.Count);
+            return;
+        }
+
         foreach (var rs in resourceSpans)
         {
             OtlpApplicationView applicationView;
@@ -984,6 +1014,9 @@ public sealed class TelemetryRepository
                         {
                             _tracePropertyKeys.Add((applicationView.Application, kvp.Key));
                         }
+
+                        // Newly added or updated trace should always been in the collection.
+                        Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
 
                         lastTrace = trace;
                     }
@@ -1174,13 +1207,15 @@ public sealed class TelemetryRepository
             {
                 Summary = instrument.Summary,
                 KnownAttributeValues = instrument.KnownAttributeValues,
-                Dimensions = instrument.Dimensions.Values.ToList()
+                Dimensions = instrument.Dimensions.Values.ToList(),
+                HasOverflow = instrument.HasOverflow
             };
         }
         else
         {
             var allDimensions = new List<DimensionScope>();
             var allKnownAttributes = new Dictionary<string, List<string?>>();
+            var hasOverflow = false;
 
             foreach (var instrument in instruments)
             {
@@ -1199,13 +1234,16 @@ public sealed class TelemetryRepository
                         values = knownAttributeValues.Value.ToList();
                     }
                 }
+
+                hasOverflow = hasOverflow || instrument.HasOverflow;
             }
 
             return new OtlpInstrumentData
             {
                 Summary = instruments[0].Summary,
                 Dimensions = allDimensions,
-                KnownAttributeValues = allKnownAttributes
+                KnownAttributeValues = allKnownAttributes,
+                HasOverflow = hasOverflow
             };
         }
     }

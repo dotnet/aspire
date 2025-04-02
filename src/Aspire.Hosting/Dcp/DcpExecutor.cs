@@ -56,7 +56,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
     // Internal for testing.
-    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
 
@@ -94,7 +94,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         _distributedApplicationOptions = distributedApplicationOptions;
         _options = options;
         _executionContext = executionContext;
-        _resourceState = new(model.Resources.ToDictionary(r => r.Name));
+        _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
@@ -902,6 +902,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
                 try
                 {
+                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                    // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                    foreach (var er in executables)
+                    {
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable) er.DcpResource, s))).ConfigureAwait(false);
+                    }
+
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
 
                     foreach (var er in executables)
@@ -1024,6 +1031,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
+                {
+                    // If there are app host args, add a double-dash to separate them from the launch args.
+                    launchProfileArgs.Insert(0, "--");
+                }
+
                 launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
             }
         }
@@ -1036,17 +1049,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
     {
-        var args = new List<string>();
         if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
         {
-            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-            if (cmdArgs.Count > 0)
-            {
-                args.Add("--");
-                args.AddRange(cmdArgs);
-            }
+            return CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
         }
-        return args;
+
+        return [];
     }
 
     private void PrepareContainers()
@@ -1075,28 +1083,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 ctr.Spec.Persistent = true;
             }
 
+            if (container.TryGetContainerImagePullPolicy(out var pullPolicy))
+            {
+                ctr.Spec.PullPolicy = pullPolicy switch
+                {
+                    ImagePullPolicy.Default => null,
+                    ImagePullPolicy.Always => ContainerPullPolicy.Always,
+                    ImagePullPolicy.Missing => ContainerPullPolicy.Missing,
+                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(ImagePullPolicy), pullPolicy)}' for container '{container.Name}'")
+                };
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
-
-            if (container.TryGetContainerMounts(out var containerMounts))
-            {
-                ctr.Spec.VolumeMounts = [];
-
-                foreach (var mount in containerMounts)
-                {
-                    var volumeSpec = new VolumeMount
-                    {
-                        Source = mount.Source,
-                        Target = mount.Target,
-                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
-                        IsReadOnly = mount.IsReadOnly
-                    };
-
-                    ctr.Spec.VolumeMounts.Add(volumeSpec);
-                }
-            }
 
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
@@ -1173,6 +1174,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
             foreach (var cr in containerResources)
             {
+                // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container) cr.DcpResource, s))).ConfigureAwait(false);
+
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
                     await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
@@ -1205,6 +1210,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Ports = BuildContainerPorts(cr);
         }
+
+        spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
+
+        spec.CreateFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1498,36 +1507,55 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource
         {
-            var resourceNotFound = false;
-            try
-            {
-                await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
-            catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // No-op if the resource wasn't found.
-                // This could happen in a race condition, e.g. double clicking start button.
-                resourceNotFound = true;
-            }
+            _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
 
-            // Ensure resource is deleted. DeleteAsync returns before the resource is completely deleted so we must poll
-            // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
-            // Deleting a resource might take a while (more than 10 seconds), because DCP tries to gracefully shut it down first
-            // before resorting to more extreme measures.
-            if (!resourceNotFound)
+            var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (resourceName, attemptCancellationToken) =>
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
+                string? uid = null;
+
+                // Make deletion part of the retry loop--we have seen cases during test execution when
+                // the deletion request completed with success code, but it was never "acted upon" by DCP.
+
+                try
                 {
-                    try
-                    {
-                        await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
-                    }
-                    catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Success.
-                    }
-                }, resourceName, cancellationToken).ConfigureAwait(false);
+                    var r = await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    uid = r.Uid();
+
+                    _logger.LogDebug("Delete request for '{ResourceName}' successfully completed. Resource to delete has UID '{Uid}'.", resourceName, uid);
+                }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogDebug("Delete request for '{ResourceName}' returned NotFound.", resourceName);
+
+                    // Not found means the resource is truly gone from the API server, which is our goal. Report success.
+                    return true;
+                }
+
+                // Ensure resource is deleted. DeleteAsync returns before the resource is completely deleted so we must poll
+                // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
+                // Deleting a resource might take a while (more than 10 seconds), because DCP tries to gracefully shut it down first
+                // before resorting to more extreme measures.
+
+                try
+                {
+                    _logger.LogDebug("Polling DCP to check if '{ResourceName}' is deleted...", resourceName);
+                    var r = await _kubernetesService.GetAsync<T>(resourceName, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    _logger.LogDebug("Get request for '{ResourceName}' returned resource with UID '{Uid}'.", resourceName, uid);
+
+                    return false;
+                }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogDebug("Get request for '{ResourceName}' returned NotFound.", resourceName);
+
+                    // Success.
+                    return true;
+                }
+            }, resourceName, cancellationToken).ConfigureAwait(false);
+
+            if (!result)
+            {
+                throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
             }
         }
     }
@@ -1558,6 +1586,36 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             cancellationToken).ConfigureAwait(false);
 
         return (args, failedToApplyArgs);
+    }
+
+    private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(IResource modelResource, CancellationToken cancellationToken)
+    {
+        var createFiles = new List<ContainerCreateFileSystem>();
+
+        if (modelResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
+        {
+            foreach (var a in createFileAnnotations)
+            {
+                var entries = await a.Callback(
+                    new()
+                    {
+                        Model = modelResource,
+                        ServiceProvider = _executionContext.ServiceProvider
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
+                createFiles.Add(new ContainerCreateFileSystem
+                {
+                    Destination = a.DestinationPath,
+                    DefaultOwner = a.DefaultOwner,
+                    DefaultGroup = a.DefaultGroup,
+                    Umask = (int?)a.Umask,
+                    Entries = entries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
+                });
+            }
+        }
+
+        return createFiles;
     }
 
     private async Task<(List<EnvVar>, bool)> BuildEnvVarsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
@@ -1645,5 +1703,28 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         return ports;
+    }
+
+    private static List<VolumeMount> BuildContainerMounts(IResource container)
+    {
+        var volumeMounts = new List<VolumeMount>();
+
+        if (container.TryGetContainerMounts(out var containerMounts))
+        {
+            foreach (var mount in containerMounts)
+            {
+                var volumeSpec = new VolumeMount
+                {
+                    Source = mount.Source,
+                    Target = mount.Target,
+                    Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                    IsReadOnly = mount.IsReadOnly
+                };
+
+                volumeMounts.Add(volumeSpec);
+            }
+        }
+
+        return volumeMounts;
     }
 }

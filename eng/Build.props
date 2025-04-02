@@ -4,7 +4,11 @@
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj"  />
+
+    <!-- `$(SkipTestProjects)` allows skipping test projects from being
+          included in the build at all. This is useful for cases like when we are
+          just building the packages, and don't need to build the test projects. -->
+    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->

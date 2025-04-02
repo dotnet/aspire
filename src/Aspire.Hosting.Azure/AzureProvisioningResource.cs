@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
@@ -13,18 +15,61 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource in the Aspire application model.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
     /// Callback for configuring the Azure resources.
     /// </summary>
-    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure;
+    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure ?? throw new ArgumentNullException(nameof(configureInfrastructure));
 
     /// <summary>
     /// Gets or sets the <see cref="global::Azure.Provisioning.ProvisioningBuildOptions"/> which contains common settings and
     /// functionality for building Azure resources.
     /// </summary>
     public ProvisioningBuildOptions? ProvisioningBuildOptions { get; set; }
+
+    /// <summary>
+    /// Adds a new <see cref="ProvisionableResource"/> into <paramref name="infra"/>. The new resource
+    /// represents a reference to the current <see cref="AzureProvisioningResource"/> via https://learn.microsoft.com/azure/azure-resource-manager/bicep/existing-resource.
+    /// </summary>
+    /// <param name="infra">The <see cref="AzureResourceInfrastructure"/> to add the existing resource into.</param>
+    /// <returns>A new <see cref="ProvisionableResource"/>, typically using the FromExisting method on the derived <see cref="ProvisionableResource"/> class.</returns>
+    public virtual ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) => throw new NotImplementedException();
+
+    /// <summary>
+    /// Adds role assignments to this Azure resource.
+    /// </summary>
+    /// <param name="roleAssignmentContext">The context containing information about the role assignments and what principal to use.</param>
+    public virtual void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        var infra = roleAssignmentContext.Infrastructure;
+        var prefix = this.GetBicepIdentifier();
+        var existingResource = AddAsExistingResource(infra);
+
+        var principalType = roleAssignmentContext.PrincipalType;
+        var principalId = roleAssignmentContext.PrincipalId;
+
+        foreach (var role in roleAssignmentContext.Roles)
+        {
+            infra.Add(CreateRoleAssignment(prefix, existingResource, role.Id, role.Name, principalType, principalId));
+        }
+    }
+
+    private static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string roleId, string roleName, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
+    {
+        var raName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_{roleName}");
+        var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
+
+        return new RoleAssignment(raName)
+        {
+            Name = BicepFunction.CreateGuid(id, principalId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", roleId)),
+            Scope = new IdentifierExpression(scope.BicepIdentifier),
+            PrincipalType = principalType,
+            RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", roleId),
+            PrincipalId = principalId
+        };
+    }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -89,10 +134,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
             if (existingAnnotation.ResourceGroup is not null)
             {
-                var existingResourceGroup = existingAnnotation.ResourceGroup is ParameterResource resourceGroupParameter
-                    ? resourceGroupParameter
-                    : existingAnnotation.ResourceGroup;
-                infrastructure.AspireResource.Scope = new(existingResourceGroup);
+                infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroup);
             }
         }
         else

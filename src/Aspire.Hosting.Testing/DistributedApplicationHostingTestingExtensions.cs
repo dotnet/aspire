@@ -22,6 +22,9 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public static HttpClient CreateHttpClient(this DistributedApplication app, string resourceName, string? endpointName = default)
     {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         var baseUri = GetEndpointUriStringCore(app, resourceName, endpointName);
         var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
         var client = clientFactory.CreateClient();
@@ -40,6 +43,9 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public static ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
         {
@@ -58,7 +64,13 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default) => new(GetEndpointUriStringCore(app, resourceName, endpointName));
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        return new(GetEndpointUriStringCore(app, resourceName, endpointName));
+    }
 
     static IResource GetResource(DistributedApplication app, string resourceName)
     {

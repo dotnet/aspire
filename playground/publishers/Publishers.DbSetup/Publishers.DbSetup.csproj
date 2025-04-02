@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
+    <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+    <!-- This is to override CentralPackageTransitivePinningEnabled -->
+    <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
+    <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
+    <ProjectReference Include="..\Publishers.Common\Publishers.Common.csproj" />
+  </ItemGroup>
+
+</Project>

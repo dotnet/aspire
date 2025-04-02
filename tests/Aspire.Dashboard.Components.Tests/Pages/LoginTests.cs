@@ -10,12 +10,11 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
-public partial class LoginTests : TestContext
+public partial class LoginTests : DashboardTestContext
 {
     private readonly ITestOutputHelper _testOutputHelper;
 

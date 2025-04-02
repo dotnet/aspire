@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
 using Microsoft.Extensions.Configuration;
@@ -237,6 +237,109 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
     }
 
     [Fact]
+    public void AddCosmosDbContext_SetsDatabaseWhenPresentInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database={databaseName};");
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => capturedSettings = settings);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(databaseName, capturedSettings.DatabaseName);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", databaseName);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseNameInSettings_FavorsOverNameInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var databaseName = "testdb";
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;Database=connectionStringDatabaseName;");
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos",
+            configureSettings: settings => settings.DatabaseName = databaseName);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var client = context.Database.GetCosmosClient();
+
+        Assert.NotNull(client);
+        Assert.Equal(expectedEndpoint, client.Endpoint.ToString());
+        Assert.NotNull(context.Database);
+        Assert.Equal(databaseName, context.Database.GetCosmosDatabaseId());
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos"));
+
+        Assert.Contains("A DbContext could not be configured with this AddCosmosDbContext overload.", exception.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithDatabaseName_WithNoConnectionString_ThrowsException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", "testdb");
+
+        using var host = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+
+        Assert.Contains("A DbContext could not be configured.", exception.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_ThrowWhenDatabaseNotInConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var expectedEndpoint = "https://localhost:8081/";
+
+        PopulateConfiguration(builder.Configuration, $"AccountEndpoint={expectedEndpoint};AccountKey=fake;");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos"));
+        Assert.Contains("A DbContext could not be configured with this AddCosmosDbContext overload.", exception.Message);
+    }
+
+    [Fact]
     public void AddAzureCosmosClient_FailsWithError()
     {
         var e = Assert.Throws<ArgumentException>(() =>
@@ -244,6 +347,60 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         Assert.Contains("missing", e.Message);
         Assert.Contains("AccountEndpoint", e.Message);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+        var databaseName = "testdbname";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:RequestTimeout"] = "60",
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:DisableTracing"] = "true"
+        });
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(TimeSpan.Parse("60"), capturedSettings.RequestTimeout);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddCosmosDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+        var databaseName = "testdbname";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:{connectionName}:RequestTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Microsoft:EntityFrameworkCore:Cosmos:TestDbContext:RequestTimeout"] = "120"
+        });
+
+        EntityFrameworkCoreCosmosSettings? capturedSettings = null;
+        builder.AddCosmosDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(TimeSpan.Parse("120"), capturedSettings.RequestTimeout);
     }
 
     private static void PopulateConfiguration(ConfigurationManager configuration, string connectionString) =>

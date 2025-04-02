@@ -82,6 +82,11 @@
         <target state="translated">アクション</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesChangeViewOptions">
+        <source>View options</source>
+        <target state="translated">表示オプション</target>
+        <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="translated">コンテナー引数</target>
@@ -167,11 +172,6 @@
         <target state="translated">停止時刻</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">エンドポイント</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">環境</target>
@@ -182,6 +182,26 @@
         <target state="translated">フィルターあり</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="translated">リセット</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="translated">拡大</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="translated">縮小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">リソースの種類を非表示にする</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">フィルターなし</target>
@@ -190,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">状態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">リソースの種類を表示する</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -240,6 +265,11 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

@@ -17,7 +17,7 @@ public class ResourceOutgoingPeerResolverTests
         return ModelTestHelpers.CreateResource(
             appName: name,
             displayName: displayName,
-            urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)]);
+            urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]);
     }
 
     [Fact]

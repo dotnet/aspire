@@ -33,7 +33,7 @@
     },
     "db2": {
       "type": "value.v0",
-      "connectionString": "{sql2.connectionString};Database=db2"
+      "connectionString": "{sql2.connectionString};Initial Catalog=db2"
     },
     "dbsetup": {
       "type": "project.v0",
@@ -85,6 +85,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "sql1-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql1-roles.module.bicep",
+      "params": {
+        "sql1_outputs_name": "{sql1.outputs.name}",
+        "principalId": "",
+        "principalName": ""
       }
     },
     "sql2-password": {

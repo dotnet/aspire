@@ -101,8 +101,8 @@ public static class DistributedApplicationTestingBuilder
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
     public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(entryPoint, nameof(entryPoint));
-        ArgumentNullException.ThrowIfNull(args, nameof(args));
+        ArgumentNullException.ThrowIfNull(entryPoint);
+        ThrowIfNullOrContainsIsNullOrEmpty(args);
         ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
 
         var factory = new SuspendingDistributedApplicationFactory(entryPoint, args, configureBuilder);
@@ -129,10 +129,27 @@ public static class DistributedApplicationTestingBuilder
     /// </returns>
     public static IDistributedApplicationTestingBuilder Create(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
     {
-        ArgumentNullException.ThrowIfNull(args, nameof(args));
-        ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
+        ThrowIfNullOrContainsIsNullOrEmpty(args);
+        ArgumentNullException.ThrowIfNull(configureBuilder);
 
         return new TestingBuilder(args, configureBuilder);
+    }
+
+    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        foreach (var arg in args)
+        {
+            if (string.IsNullOrEmpty(arg))
+            {
+                var values = string.Join(", ", args);
+                if (arg is null)
+                {
+                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
+            }
+        }
     }
 
     private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
@@ -290,7 +307,7 @@ public static class DistributedApplicationTestingBuilder
                 DistributedApplicationFactory.ConfigureBuilder(args, applicationOptions, hostBuilderOptions, FindApplicationAssembly(), configureBuilder);
             });
 
-            if (!builder.Configuration.GetValue("ASPIRE_TESTING_DISABLE_HTTP_CLIENT", false))
+            if (!builder.Configuration.GetValue(KnownConfigNames.TestingDisableHttpClient, false))
             {
                 builder.Services.AddHttpClient();
                 builder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());

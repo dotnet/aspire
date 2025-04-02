@@ -174,11 +174,40 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <summary>
 /// A snapshot of the url.
 /// </summary>
-/// <param name="Name">Name of the url.</param>
+/// <param name="Name">Name of the endpoint associated with the url.</param>
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
-public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+public sealed record UrlSnapshot(string? Name, string Url, bool IsInternal)
+{
+    /// <summary>
+    /// The UI display properties for the url.
+    /// </summary>
+    public UrlDisplayPropertiesSnapshot DisplayProperties { get; init; } = new();
+
+    /// <summary>
+    /// Whether this URL is inactive or not.
+    /// </summary>
+    /// <remarks>
+    /// Inactive URLs are not displayed in UI.
+    /// </remarks>
+    public bool IsInactive { get; init; }
+
+    internal void Deconstruct(out string? name, out string url, out bool isInternal, out bool isInactive)
+    {
+        name = Name;
+        url = Url;
+        isInternal = IsInternal;
+        isInactive = IsInactive;
+    }
+}
+
+/// <summary>
+/// A snapshot of the display properties for a url.
+/// </summary>
+/// <param name="DisplayName">The display name of the url.</param>
+/// <param name="SortOrder">The order of the url in UI. Higher numbers are displayed first in the UI.</param>
+public sealed record UrlDisplayPropertiesSnapshot(string DisplayName = "", int SortOrder = 0);
 
 /// <summary>
 /// A snapshot of a volume, mounted to a container.

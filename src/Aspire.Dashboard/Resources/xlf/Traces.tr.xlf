@@ -12,6 +12,11 @@
         <target state="translated">İzleme sınırı aşıldı</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Traces capture paused at {0}</source>
+        <target state="translated">İzleme yakalama işlemi {0}’da duraklatıldı</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Ad: {0}</target>

@@ -1,8 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
-using Microsoft.DotNet.XUnitExtensions;
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
 using Microsoft.Extensions.Configuration;
@@ -45,7 +44,7 @@ public class EnrichCosmosDbTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

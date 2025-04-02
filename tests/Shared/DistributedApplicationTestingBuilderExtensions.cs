@@ -4,7 +4,7 @@
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Aspire.Hosting.Utils;
 
@@ -24,12 +24,18 @@ public static class DistributedApplicationTestingBuilderExtensions
         return builder;
     }
 
-    public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder)
+    public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder, string? path = null)
     {
         // We create the Aspire Store in a folder with user-only access. This way non-root containers won't be able
         // to access the files unless they correctly assign the required permissions for the container to work.
 
-        builder.Configuration["Aspire:Store:Path"] = Directory.CreateTempSubdirectory().FullName;
+        builder.Configuration["Aspire:Store:Path"] = path ?? Directory.CreateTempSubdirectory().FullName;
+        return builder;
+    }
+
+    public static IDistributedApplicationTestingBuilder WithResourceCleanUp(this IDistributedApplicationTestingBuilder builder, bool? resourceCleanup = null)
+    {
+        builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = resourceCleanup.ToString();
         return builder;
     }
 }

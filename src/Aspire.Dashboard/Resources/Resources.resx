@@ -158,8 +158,8 @@
   <data name="ResourcesSourceColumnHeader" xml:space="preserve">
     <value>Source</value>
   </data>
-  <data name="ResourcesEndpointsColumnHeader" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
     <value>Environment</value>
@@ -273,5 +273,24 @@
   </data>
   <data name="ResourceExpandAllChildren" xml:space="preserve">
     <value>Expand child resources</value>
+  </data>
+  <data name="ResourcesChangeViewOptions" xml:space="preserve">
+    <value>View options</value>
+    <comment>An icon allowing the user to expand or collapse all child resources.</comment>
+  </data>
+  <data name="ResourcesGraphZoomOutButton" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="ResourcesGraphZoomInButton" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="ResourcesGraphResetButton" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
   </data>
 </root>

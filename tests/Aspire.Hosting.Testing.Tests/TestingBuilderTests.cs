@@ -3,7 +3,7 @@
 
 using System.Net.Http.Json;
 using System.Reflection;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -12,7 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Testing.Tests;
 
@@ -211,6 +210,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7930")]
     public async Task ArgsPropagateToAppHostConfiguration(bool genericEntryPoint, bool directArgs)
     {
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];

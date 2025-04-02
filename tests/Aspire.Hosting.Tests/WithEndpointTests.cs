@@ -597,6 +597,26 @@ public class WithEndpointTests
         Assert.Equal(expectedManifest1, manifests[1].ToString());
     }
 
+    [Fact]
+    public void WithEndpoint_WithAllArguments_ForwardsAllArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint(123, 456, "scheme", "mybinding", "env", true, true);
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
+
+        Assert.Equal(123, endpoint.Port);
+        Assert.Equal(456, endpoint.TargetPort);
+        Assert.Equal("scheme", endpoint.UriScheme);
+        Assert.Equal("env", endpoint.TargetPortEnvironmentVariable);
+        Assert.True(endpoint.IsProxied);
+        Assert.True(endpoint.IsExternal);
+        Assert.Equal(System.Net.Sockets.ProtocolType.Tcp, endpoint.Protocol);
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "projectpath";

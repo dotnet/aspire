@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +10,6 @@ using Microsoft.Extensions.Hosting;
 using Polly;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Garnet.Tests;
 
@@ -131,7 +130,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
                     // to the bind mount directory.
                     // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
                     const UnixFileMode BindMountPermissions =

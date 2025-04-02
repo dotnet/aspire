@@ -9,10 +9,6 @@
     <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>80</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />

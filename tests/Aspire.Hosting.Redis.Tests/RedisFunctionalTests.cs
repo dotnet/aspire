@@ -1,13 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json.Nodes;
-using Aspire.Components.Common.Tests;
+using System.Net;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
-using Aspire.Hosting.Tests.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +14,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
+using Aspire.Hosting.Tests.Dcp;
+using System.Text.Json.Nodes;
+using Aspire.Hosting;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -24,7 +25,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7177")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7177")]
     public async Task VerifyWaitForOnRedisBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -123,7 +124,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7291")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7291")]
     public async Task VerifyDatabasesAreNotDuplicatedForPersistentRedisInsightContainer()
     {
         var randomResourceSuffix = Random.Shared.Next(10000).ToString();
@@ -228,7 +229,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/6099")]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -380,10 +381,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-        if (!Directory.Exists(bindMountPath))
-        {
-            Directory.CreateDirectory(bindMountPath);
-        }
+        Directory.CreateDirectory(bindMountPath);
 
         // Use a bind mount to do a snapshot save
 
@@ -539,7 +537,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [InlineData(true)]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7176")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7176")]
     public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -567,6 +565,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }
 
@@ -709,5 +708,40 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         public string? Name { get; set; }
         public int? Db { get; set; }
         public string? ConnectionType { get; set; }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithRedisCommanderShouldWorkWithPassword()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var passwordParameter = builder.AddParameter("pass", "p@ssw0rd1");
+
+        var redis = builder.AddRedis("redis", password: passwordParameter)
+           .WithRedisCommander();
+
+        builder.Services.AddHttpClient();
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
+
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(redis.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(redisCommander.Name, cts.Token);
+
+        var endpoint = redisCommander.GetEndpoint("http");
+        var redisCommanderUrl = endpoint.Url;
+        Assert.NotNull(redisCommanderUrl);
+
+        var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = clientFactory.CreateClient();
+
+        var httpResponse = await client.GetAsync(redisCommanderUrl!);
+        httpResponse.EnsureSuccessStatusCode();
     }
 }

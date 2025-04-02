@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +9,6 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
-using Xunit.Abstractions;
 using Polly;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -104,7 +103,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7293")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7293")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -134,7 +133,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // MongoDB container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 mongodb1.WithDataBindMount(bindMountPath);
             }
 
@@ -246,7 +247,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -258,18 +259,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-        if (!OperatingSystem.IsWindows())
-        {
-            // Change permissions for non-root accounts (container user account)
-            const UnixFileMode OwnershipPermissions =
-               UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-        }
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
         try
         {
