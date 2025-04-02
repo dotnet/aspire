@@ -425,11 +425,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Configures the password that the PostgreSQL resource is used.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="password"></param>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPassword(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> password)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -443,11 +443,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Configures the user name that the PostgreSQL resource is used.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="userName"></param>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithUserName(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> userName)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -461,12 +461,12 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Configures the host port that the PostgreSQL resource is exposed on instead of using randomly assigned port.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="port"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<PostgresServerResource> WithHostPort(this IResourceBuilder<PostgresServerResource> builder, int port)
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithHostPort(this IResourceBuilder<PostgresServerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.WithEndpoint(PostgresServerResource.PrimaryEndpointName, endpoint =>
