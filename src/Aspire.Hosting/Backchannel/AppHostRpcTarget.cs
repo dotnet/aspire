@@ -29,6 +29,14 @@ internal class AppHostRpcTarget(
         while (cancellationToken.IsCancellationRequested == false)
         {
             var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            if (publishingActivity == null)
+            {
+                // If the publishing activity is null, it means that the activity has been removed.
+                // This can happen if the activity is complete or an error occurred.
+                yield break;
+            }
+
             yield return (
                 publishingActivity.Id,
                 publishingActivity.StatusMessage,
@@ -40,7 +48,7 @@ internal class AppHostRpcTarget(
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
-                break;
+                yield break;
             }
         }
     }
