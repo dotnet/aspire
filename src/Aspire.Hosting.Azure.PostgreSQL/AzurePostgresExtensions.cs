@@ -8,6 +8,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.PostgreSql;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -286,14 +287,20 @@ public static class AzurePostgresExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.Resource.IsContainer())
-        {
-            // If the resource is running in a container, we need to set the username and password parameters on the inner resource.
-            return builder;
-        }
-
-        var kv = builder.ApplicationBuilder.CreateAzureKeyVaultResourceBuilder($"{builder.Resource.Name}-kv")
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
+
+        // remove the KeyVault from the model if the emulator is used.
+        // need to do this later in case builder becomes an emulator after this method is called.
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+        {
+            var executionContext = data.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+            if (executionContext.IsRunMode && builder.Resource.IsContainer())
+            {
+                data.Model.Resources.Remove(kv.Resource);
+            }
+            return Task.CompletedTask;
+        });
 
         return builder.WithPasswordAuthentication(kv, userName, password);
     }

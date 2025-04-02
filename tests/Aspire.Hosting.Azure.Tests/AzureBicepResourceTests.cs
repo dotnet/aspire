@@ -239,7 +239,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -249,7 +249,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
 #pragma warning restore ASPIRECOSMOSDB001
 
-        Assert.Empty(builder.Resources.OfType<AzureKeyVaultResource>());
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
     }
 
     [Theory]

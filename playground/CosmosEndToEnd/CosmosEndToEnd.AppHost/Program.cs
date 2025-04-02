@@ -6,8 +6,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var cosmos = builder.AddAzureCosmosDB("cosmos")
-                .RunAsPreviewEmulator(e => e.WithDataExplorer())
-                .WithAccessKeyAuthentication();
+                .RunAsPreviewEmulator(e => e.WithDataExplorer());
 
 var db = cosmos.AddCosmosDatabase("db");
 var entries = db.AddContainer("entries", "/id", "staging-entries");
