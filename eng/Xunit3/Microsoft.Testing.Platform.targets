@@ -9,8 +9,8 @@
     <PropertyGroup>
       <_TestResultDirectory>$([System.IO.Path]::GetDirectoryName('%(TestToRun.ResultsTrxPath)'))</_TestResultDirectory>
       <_TestResultTrxFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsTrxPath)'))</_TestResultTrxFileName>
-      <_TestResultXmlFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsXmlFileName)'))</_TestResultXmlFileName>
-      <_TestResultHtmlFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsHtmlFileName)'))</_TestResultHtmlFileName>
+      <_TestResultXmlFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsXmlPath)'))</_TestResultXmlFileName>
+      <_TestResultHtmlFileName>$([System.IO.Path]::GetFileName('%(TestToRun.ResultsHtmlPath)'))</_TestResultHtmlFileName>
     </PropertyGroup>
 
     <PropertyGroup>
