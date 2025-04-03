@@ -8,7 +8,7 @@ namespace Aspire.Cli;
 
 internal interface INuGetPackageCache
 {
-    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
@@ -17,7 +17,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
 
     private const int SearchPageSize = 100;
 
-    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken)
+    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -31,7 +31,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
         {
             // This search should pick up Aspire.Hosting.* and CommunityToolkit.Aspire.Hosting.*
             var result = await cliRunner.SearchPackagesAsync(
-                projectFile,
+                workingDirectory,
                 "Aspire.Hosting",
                 prerelease,
                 SearchPageSize,
