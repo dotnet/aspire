@@ -714,7 +714,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
-                if (value is IKeyVaultSecretReference vaultSecretReference)
+                if (value is IAzureKeyVaultSecretReference vaultSecretReference)
                 {
                     if (parent is null)
                     {
@@ -797,7 +797,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 return secret.Properties.SecretUri;
             }
 
-            private BicepValue<string> AllocateKeyVaultSecretUriReference(IKeyVaultSecretReference secretOutputReference)
+            private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
             {
                 if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
                 {

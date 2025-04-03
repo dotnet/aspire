@@ -33,7 +33,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     ///
     /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
