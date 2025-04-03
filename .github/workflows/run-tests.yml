@@ -16,7 +16,7 @@ on:
       testSessionTimeout:
         required: false
         type: string
-        default: "600000"
+        default: "10m"
       testHangTimeout:
         required: false
         type: string
