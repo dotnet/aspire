@@ -367,7 +367,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [InlineData(true)]
     [RequiresDocker]
-    //[QuarantinedTest("https://github.com/dotnet/aspire/issues/7176")]
     public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -403,16 +402,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
-                // so we will use that to know when the databases have been successfully imported
-                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder1.Resource, (evt, ct) =>
-                {
-                    redisInsightsReady.TrySetResult();
-                    return Task.CompletedTask;
-                });
-
-                await redisInsightsReady.Task.WaitAsync(cts.Token);
+                await app.WaitForHealthyAsync(redisInsightBuilder1).WaitAsync(cts.Token);
 
                 try
                 {
@@ -446,16 +436,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
-                // so we will use that to know when the databases have been successfully imported
-                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder2.Resource, (evt, ct) =>
-                {
-                    redisInsightsReady.TrySetResult();
-                    return Task.CompletedTask;
-                });
-
-                await redisInsightsReady.Task.WaitAsync(cts.Token);
+                await app.WaitForHealthyAsync(redisInsightBuilder2).WaitAsync(cts.Token);
 
                 try
                 {
