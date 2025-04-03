@@ -15,13 +15,13 @@ namespace Aspire.Cli;
 
 internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider)
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(Aspire.Cli.DotNetCliRunner));
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(DotNetCliRunner));
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = ["msbuild", "-getproperty:IsAspireHost,AspireHostingSDKVersion"];
 
@@ -79,7 +79,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(RunAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         if (watch && noBuild)
         {
@@ -100,7 +100,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> CheckHttpCertificateAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(CheckHttpCertificateAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = ["dev-certs", "https", "--check", "--trust"];
         return await ExecuteAsync(
@@ -114,7 +114,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> TrustHttpCertificateAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(TrustHttpCertificateAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = ["dev-certs", "https", "--trust"];
         return await ExecuteAsync(
@@ -230,7 +230,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(NewProjectAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath];
         return await ExecuteAsync(
@@ -259,7 +259,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, Action<StreamWriter, StreamReader, StreamReader>? streamsCallback, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(ExecuteAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         var startInfo = new ProcessStartInfo("dotnet")
         {
@@ -379,7 +379,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<AppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(StartBackchannelAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
 
@@ -431,7 +431,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
     public async Task<int> BuildAsync(FileInfo projectFilePath, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(BuildAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
         return await ExecuteAsync(
@@ -444,7 +444,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
     }
     public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(AddPackageAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         string[] cliArgs = [
             "add",
@@ -477,9 +477,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(SearchPackagesAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         List<string> cliArgs = [
             "package",
@@ -510,7 +510,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         var result = await ExecuteAsync(
             args: cliArgs.ToArray(),
             env: null,
-            workingDirectory: projectFilePath.Directory!,
+            workingDirectory: workingDirectory!,
             backchannelCompletionSource: null,
             streamsCallback: (_, output, _) => {
                 // We need to read the output of the streams
@@ -550,6 +550,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 foreach (var packageResult in sourcePackagesArray.EnumerateArray())
                 {
                     var id = packageResult.GetProperty("id").GetString();
+
+                    // var version = prerelease switch {
+                    //     true => packageResult.GetProperty("version").GetString(),
+                    //     false => packageResult.GetProperty("latestVersion").GetString()
+                    // };
+
                     var version = packageResult.GetProperty("latestVersion").GetString();
 
                     foundPackages.Add(new NuGetPackage
