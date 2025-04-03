@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">10m</BlameHangTimeout>
-    <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crash-dump</_BlameArgs>
+    <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crashdump</_BlameArgs>
 
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --show-live-output on</TestRunnerAdditionalArguments>
 
