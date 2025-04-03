@@ -10,7 +10,7 @@
 
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --show-live-output on</TestRunnerAdditionalArguments>
 
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == ''">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == ''">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
   </PropertyGroup>
 </Project>
