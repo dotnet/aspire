@@ -511,16 +511,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         await EnsureRedisInsightEulaAccepted(client, ct);
     }
 
-    internal sealed class RedisInsightDatabaseModel
-    {
-        public string? Id { get; set; }
-        public string? Host { get; set; }
-        public int? Port { get; set; }
-        public string? Name { get; set; }
-        public int? Db { get; set; }
-        public string? ConnectionType { get; set; }
-    }
-
     [Fact]
     [RequiresDocker]
     public async Task WithRedisCommanderShouldWorkWithPassword()
