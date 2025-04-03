@@ -14,7 +14,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RunCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly DotNetCliRunner _runner;
 
     public RunCommand(DotNetCliRunner runner) : base("run", "Run an Aspire app host in development mode.")
@@ -33,7 +33,7 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity($"{nameof(ExecuteAsync)}", ActivityKind.Internal);
+        using var activity = _activitySource.StartActivity();
 
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
