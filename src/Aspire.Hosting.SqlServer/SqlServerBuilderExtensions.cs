@@ -9,6 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Aspire.Hosting.SqlServer;
 
 namespace Aspire.Hosting;
 
