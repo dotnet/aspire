@@ -229,40 +229,34 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 5540, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            resourceBuilder.WithEnvironment(context =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
                 if (!redisInstances.Any())
                 {
                     // No-op if there are no Redis resources present.
-                    return Task.CompletedTask;
+                    return;
                 }
 
-                resourceBuilder.WithEnvironment(context =>
+                var counter = 1;
+
+                foreach (var redisInstance in redisInstances)
                 {
-                    var counter = 1;
-
-                    foreach (var redisInstance in redisInstances)
+                    if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-                        if (redisInstance.PrimaryEndpoint.IsAllocated)
+                        // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
+                        context.EnvironmentVariables.Add($"RI_REDIS_PORT{counter}", redisInstance.PrimaryEndpoint.TargetPort!.Value);
+                        context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
+                        if (redisInstance.PasswordParameter is not null)
                         {
-                            // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                            // This will need to be refactored once updated service discovery APIs are available
-                            context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
-                            context.EnvironmentVariables.Add($"RI_REDIS_PORT{counter}", redisInstance.PrimaryEndpoint.TargetPort!.Value);
-                            context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
-                            if (redisInstance.PasswordParameter is not null)
-                            {
-                                context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter.Value);
-                            }
-
-                            counter++;
+                            context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter.Value);
                         }
-                    }
-                });
 
-                return Task.CompletedTask;
+                        counter++;
+                    }
+                }
             });
 
             resourceBuilder.WithRelationship(builder.Resource, "RedisInsight");

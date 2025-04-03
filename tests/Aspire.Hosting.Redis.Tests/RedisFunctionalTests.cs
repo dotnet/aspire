@@ -123,6 +123,60 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyWithRedisInsightImportDatabases()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var redis1 = builder.AddRedis("redis-1");
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
+        Assert.NotNull(redisInsightBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForHealthyAsync(redisInsightBuilder).WaitAsync(cts.Token);
+
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
+
+        // Accept EULA first; otherwise, /api/databases will not work properly.
+        await AcceptRedisInsightEula(client, cts.Token);
+
+        var response = await client.GetAsync("/api/databases", cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        var databases = await response.Content.ReadFromJsonAsync<List<RedisInsightDatabaseModel>>(cts.Token);
+        Assert.NotNull(databases);
+
+        databases = [.. databases.OrderBy(d => d.Id)];
+        Assert.NotNull(databases);
+        Assert.Collection(databases,
+        db =>
+        {
+            Assert.Equal(redis1.Resource.Name, db.Name);
+            Assert.Equal(redis1.Resource.Name, db.Host);
+            Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
+        },
+        db =>
+        {
+            Assert.Equal(redis2.Resource.Name, db.Name);
+            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
+        });
+
+        foreach (var db in databases)
+        {
+            var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts2.Token);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
         // Use a volume to do a snapshot save
@@ -553,5 +607,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var httpResponse = await client.GetAsync(redisCommanderUrl!);
         httpResponse.EnsureSuccessStatusCode();
+    }
+
+    internal sealed class RedisInsightDatabaseModel
+    {
+        public string? Id { get; set; }
+        public string? Host { get; set; }
+        public int? Port { get; set; }
+        public string? Name { get; set; }
     }
 }
