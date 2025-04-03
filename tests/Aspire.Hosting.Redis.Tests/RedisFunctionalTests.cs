@@ -16,6 +16,7 @@ using StackExchange.Redis;
 using Xunit;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
+using Polly;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -473,20 +474,28 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private static async Task EnsureRedisInsightEulaAccepted(HttpClient httpClient, CancellationToken ct)
     {
-        var response = await httpClient.GetAsync("/api/settings", ct);
-        response.EnsureSuccessStatusCode();
+        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+                            .Build();
 
-        var content = await response.Content.ReadAsStringAsync(ct);
+        await pipeline.ExecuteAsync(async ct =>
+         {
+             var response = await httpClient.GetAsync("/api/settings", ct);
+             response.EnsureSuccessStatusCode();
 
-        var jo = JsonObject.Parse(content);
-        Assert.NotNull(jo);
-        var agreements = jo["agreements"];
+             var content = await response.Content.ReadAsStringAsync(ct);
 
-        Assert.NotNull(agreements);
-        Assert.False(agreements["analytics"]!.GetValue<bool>());
-        Assert.False(agreements["notifications"]!.GetValue<bool>());
-        Assert.False(agreements["encryption"]!.GetValue<bool>());
-        Assert.True(agreements["eula"]!.GetValue<bool>());
+             var jo = JsonObject.Parse(content);
+             Assert.NotNull(jo);
+             var agreements = jo["agreements"];
+
+             Assert.NotNull(agreements);
+             Assert.False(agreements["analytics"]!.GetValue<bool>());
+             Assert.False(agreements["notifications"]!.GetValue<bool>());
+             Assert.False(agreements["encryption"]!.GetValue<bool>());
+             Assert.True(agreements["eula"]!.GetValue<bool>());
+         }, ct);
+
     }
 
     static async Task AcceptRedisInsightEula(HttpClient client, CancellationToken ct)
