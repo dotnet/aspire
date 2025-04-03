@@ -11,7 +11,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly DotNetCliRunner _runner;
 
     public NewCommand(DotNetCliRunner runner) : base("new", "Create a new Aspire sample project.")
@@ -79,7 +79,7 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity($"{nameof(ExecuteAsync)}", ActivityKind.Internal);
+        using var activity = _activitySource.StartActivity();
 
         var templateVersion = parseResult.GetValue<string>("--version");
         var prerelease = parseResult.GetValue<bool>("--prerelease");

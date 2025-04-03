@@ -11,7 +11,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
     private readonly DotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
@@ -42,7 +42,7 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity($"{nameof(ExecuteAsync)}", ActivityKind.Internal);
+        using var activity = _activitySource.StartActivity();
 
         try
         {

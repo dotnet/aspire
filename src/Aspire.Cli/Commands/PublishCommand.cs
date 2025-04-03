@@ -12,7 +12,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class PublishCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(PublishCommand));
     private readonly DotNetCliRunner _runner;
 
     public PublishCommand(DotNetCliRunner runner) : base("publish", "Generates deployment artifacts for an Aspire app host project.")
@@ -34,7 +34,7 @@ internal sealed class PublishCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity($"{nameof(ExecuteAsync)}", ActivityKind.Internal);
+        using var activity = _activitySource.StartActivity();
 
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);

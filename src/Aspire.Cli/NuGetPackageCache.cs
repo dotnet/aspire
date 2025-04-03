@@ -13,13 +13,13 @@ internal interface INuGetPackageCache
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
 {
-    private readonly ActivitySource _activitySource = new(nameof(Aspire.Cli.NuGetPackageCache), "1.0.0");
+    private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 
     private const int SearchPageSize = 100;
 
     public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(FileInfo projectFile, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(GetPackagesAsync), ActivityKind.Client);
+        using var activity = _activitySource.StartActivity();
 
         logger.LogDebug("Getting integrations from NuGet");
 

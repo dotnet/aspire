@@ -10,13 +10,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli;
 
 public class Program
 {
-    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Aspire.Cli.Program));
+    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
     private static IHost BuildApplication(string[] args)
     {
@@ -30,14 +32,22 @@ public class Program
             logging.IncludeScopes = true;
             });
 
-        var otelBuilder = builder.Services.AddOpenTelemetry()
-                                          .WithTracing(tracing => {
-                                            tracing.AddSource(
-                                                nameof(Aspire.Cli.NuGetPackageCache),
-                                                nameof(Aspire.Cli.Backchannel.AppHostBackchannel),
-                                                nameof(Aspire.Cli.DotNetCliRunner),
-                                                nameof(Aspire.Cli.Program));
-                                            });
+        var otelBuilder = builder.Services
+            .AddOpenTelemetry()
+            .WithTracing(tracing => {
+                tracing.AddSource(
+                    nameof(NuGetPackageCache),
+                    nameof(AppHostBackchannel),
+                    nameof(DotNetCliRunner),
+                    nameof(Program),
+                    nameof(NewCommand),
+                    nameof(RunCommand),
+                    nameof(AddCommand),
+                    nameof(PublishCommand)
+                    );
+
+                tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
+            });
 
         if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
         {
@@ -84,7 +94,7 @@ public class Program
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
         
-        using var activity = s_activitySource.StartActivity(nameof(Main), ActivityKind.Internal);
+        using var activity = s_activitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
         await app.StopAsync().ConfigureAwait(false);
