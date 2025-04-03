@@ -11,6 +11,12 @@ internal sealed class PathBaseEnforcementMiddleware(RequestDelegate next, IOptio
 {
     public Task InvokeAsync(HttpContext context)
     {
+        if (context.Request.Headers["X-Original-Prefix"].Count > 0)
+        {
+            // Don't enforce if the PathBase is being set via a reverse proxy.
+            return Task.CompletedTask;
+        }
+
         // Middleware should not be added if PathBase is not set.
         Debug.Assert(dashboardOptions.CurrentValue.PathBase is not null);
 

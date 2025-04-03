@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+</Project>

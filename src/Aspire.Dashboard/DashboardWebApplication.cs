@@ -289,9 +289,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .Select(c => c.Name)
             .ToArray();
 
+        // TODO: Figure out new configuration keys to expose to enable forwarded headers in the dashboard.
+        //       Other containers often expose multiple headers to control aspects of the app hosted behind a reverse proxy,
+        //       e.g. https://www.keycloak.org/server/reverseproxy
+        _app.UseForwardedHeaders(new()
+        {
+            ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
+        });
+
+        // TODO: Revisit whether this is needed. It provides the ability to use a path base when forwarded headers don't set it,
+        //       e.g. when not using a reverse-proxy but instead just configuring an app host project to use a path base.
         if (dashboardOptions.PathBase is not null)
         {
             _app.UsePathBase(dashboardOptions.PathBase);
+
             if (_app.Environment.IsDevelopment())
             {
                 // In development we want to ensure that requests outside of the path base return a 404 to mimic what would

@@ -46,11 +46,18 @@
 @code {
     private string pathBase = "/";
 
+    [CascadingParameter]
+    public required HttpContext HttpContext { get; set; }
+
     protected override void OnInitialized()
     {
-        if (DashboardOptions.Value.PathBase is not null)
+        if (HttpContext.Request.PathBase.HasValue)
         {
-            pathBase = DashboardOptions.Value.PathBase;
+            pathBase = HttpContext.Request.PathBase;
+            if (!pathBase.EndsWith('/'))
+            {
+                pathBase += '/';
+            }
         }
     }
 }
