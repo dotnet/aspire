@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using Aspire.Cli.Utils;
 using Semver;
@@ -24,7 +23,6 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
 
         var templateArgument = new Argument<string>("template");
-        templateArgument.Validators.Add(ValidateProjectTemplate);
         templateArgument.Arity = ArgumentArity.ZeroOrOne;
         Arguments.Add(templateArgument);
 
@@ -41,7 +39,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(templateVersionOption);
     }
 
-    private static void ValidateProjectTemplate(ArgumentResult result)
+    private static async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -50,31 +48,28 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        string[] validTemplates = [
-            "aspire-starter",
-            "aspire",
-            "aspire-apphost",
-            "aspire-servicedefaults",
-            "aspire-mstest",
-            "aspire-nunit",
-            "aspire-xunit"
+        (string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates = [
+            ("aspire-starter", "Aspire Starter App", "src") ,
+            ("aspire", "Aspire Empty App", "src"),
+            ("aspire-apphost", "Aspire App Host", null),
+            ("aspire-servicedefaults", "Aspire Service Defaults", null),
+            ("aspire-mstest", "Aspire Test Project (MSTest)", null),
+            ("aspire-nunit", "Aspire Test Project (NUnit)", null),
+            ("aspire-xunit", "Aspire Test Project (xUnit)", null)
             ];
 
-        var value = result.GetValueOrDefault<string>();
-
-        if (value is null)
+        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
         {
-            // This is OK, for now we will use the default
-            // template of aspire-starter, but we might
-            // be able to do more intelligent selection in the
-            // future based on what is already in the working directory.
-            return;
+            return template;
         }
-
-        if (value is { } templateName && !validTemplates.Contains(templateName))
+        else
         {
-            result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
-            return;
+            return await PromptUtils.PromptForSelectionAsync(
+                "Select a project template:",
+                validTemplates,
+                t => $"{t.TemplateName} ({t.TemplateDescription})",
+                cancellationToken
+                );
         }
     }
 
@@ -91,13 +86,13 @@ internal sealed class NewCommand : BaseCommand
         return name;
     }
 
-    private static async Task<string> GetOutputPathAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private static async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
             outputPath = await PromptUtils.PromptForStringAsync(
                 "Enter the output path:",
-                defaultValue: Path.Combine(Environment.CurrentDirectory, "src"),
+                defaultValue: Path.Combine(Environment.CurrentDirectory, pathAppendage ?? string.Empty),
                 cancellationToken: cancellationToken
                 );
         }
@@ -134,8 +129,9 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = _activitySource.StartActivity();
 
+        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var name = await GetProjectNameAsync(parseResult, cancellationToken);
-        var outputPath = await GetOutputPathAsync(parseResult, cancellationToken);
+        var outputPath = await GetOutputPathAsync(parseResult, template.PathAppendage, cancellationToken);
         var version = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
         var source = parseResult.GetValue<string?>("--source");
 
@@ -156,8 +152,6 @@ internal sealed class NewCommand : BaseCommand
 
         AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
-        var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
-
         int newProjectExitCode = await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
@@ -165,7 +159,7 @@ internal sealed class NewCommand : BaseCommand
                 ":rocket:  Creating new Aspire project...",
                 async context => {
                     return await _runner.NewProjectAsync(
-                        templateName,
+                        template.TemplateName,
                         name,
                         outputPath,
                         cancellationToken);
