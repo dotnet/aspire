@@ -477,7 +477,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(FileInfo projectFilePath, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -510,7 +510,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         var result = await ExecuteAsync(
             args: cliArgs.ToArray(),
             env: null,
-            workingDirectory: projectFilePath.Directory!,
+            workingDirectory: workingDirectory!,
             backchannelCompletionSource: null,
             streamsCallback: (_, output, _) => {
                 // We need to read the output of the streams
@@ -550,6 +550,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 foreach (var packageResult in sourcePackagesArray.EnumerateArray())
                 {
                     var id = packageResult.GetProperty("id").GetString();
+
+                    // var version = prerelease switch {
+                    //     true => packageResult.GetProperty("version").GetString(),
+                    //     false => packageResult.GetProperty("latestVersion").GetString()
+                    // };
+
                     var version = packageResult.GetProperty("latestVersion").GetString();
 
                     foundPackages.Add(new NuGetPackage
