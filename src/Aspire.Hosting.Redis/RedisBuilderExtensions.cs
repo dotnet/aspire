@@ -245,17 +245,20 @@ public static class RedisBuilderExtensions
 
                     foreach (var redisInstance in redisInstances)
                     {
-                        // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
-                        context.EnvironmentVariables.Add($"RI_REDIS_PORT{counter}", redisInstance.PrimaryEndpoint.TargetPort!.Value);
-                        context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
-                        if (redisInstance.PasswordParameter is not null)
+                        if (redisInstance.PrimaryEndpoint.IsAllocated)
                         {
-                            context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter.Value);
-                        }
+                            // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                            // This will need to be refactored once updated service discovery APIs are available
+                            context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
+                            context.EnvironmentVariables.Add($"RI_REDIS_PORT{counter}", redisInstance.PrimaryEndpoint.TargetPort!.Value);
+                            context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
+                            if (redisInstance.PasswordParameter is not null)
+                            {
+                                context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter.Value);
+                            }
 
-                        counter++;
+                            counter++;
+                        }
                     }
                 });
 
