@@ -242,11 +242,12 @@ jobs:
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
+          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
           -bl:${{ github.workspace }}/testresults/test.binlog
           --no-restore
           --no-build
           --
-          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
+          --report-trx
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory testresults
