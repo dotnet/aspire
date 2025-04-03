@@ -195,7 +195,7 @@ public static partial class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
-        builder.WithAnnotation(new CreationScriptAnnotation(script));
+        builder.WithAnnotation(new SqlServerCreateDatabaseScriptAnnotation(script));
 
         return builder;
     }
@@ -204,7 +204,7 @@ public static partial class SqlServerBuilderExtensions
     {
         try
         {
-            var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+            var scriptAnnotation = sqlDatabase.Annotations.OfType<SqlServerCreateDatabaseScriptAnnotation>().LastOrDefault();
 
             if (scriptAnnotation?.Script == null)
             {
