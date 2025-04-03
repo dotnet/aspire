@@ -22,6 +22,10 @@ namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const UnixFileMode MountFilePermissions =
+       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
     [Fact]
     [RequiresDocker]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/7177")]
@@ -449,7 +453,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    File.SetUnixFileMode(bindMountPath, MountFilePermissions);
+                }
 
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }
@@ -494,7 +504,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync();
 
                 var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name,KnownResourceStates.Running).WaitAsync(cts.Token);
+                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
                 try
                 {
