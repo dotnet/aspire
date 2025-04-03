@@ -130,7 +130,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
-            _ => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"])
+            DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
         };
     }
 
