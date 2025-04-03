@@ -221,7 +221,6 @@ jobs:
           TestsRunningOutsideOfRepo: true
         run: >
           dotnet exec ${{ env.TEST_ASSEMBLY_NAME }}.dll
-          '@.runsettings'
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump

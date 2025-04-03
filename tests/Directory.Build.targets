@@ -8,7 +8,6 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
@@ -18,11 +17,10 @@
     <!-- this is for pipeline tests -->
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
 
-    <TestingPlatformCommandLineArguments Condition="'$(RunSettingsFilePath)'!=''">$(TestingPlatformCommandLineArguments) @"$(RunSettingsFilePath)"</TestingPlatformCommandLineArguments>
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --filter-not-trait "category=failing"</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

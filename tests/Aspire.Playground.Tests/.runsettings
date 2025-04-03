@@ -1,4 +1,0 @@
---show-live-output on
-
-# Filter out failing (wrong framework, platform, runtime or activeissue) tests
---filter-not-trait "category=failing"
