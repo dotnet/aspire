@@ -7,6 +7,16 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public static class ApplicationsSelectHelpers
 {
+    public static string GetConsoleLogsName(this ResourceViewModel resource, IEnumerable<ResourceViewModel> resources)
+    {
+       return IsReplica(resource, resources)
+            ? resource.Name
+            : resource.DisplayName;
+    }
+
+    private static bool IsReplica(ResourceViewModel resource, IEnumerable<ResourceViewModel> resources)
+        => resources.Count(r => string.Equals(resource.DisplayName, r.DisplayName, StringComparisons.ResourceName)) > 1;
+
     public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallback)
     {
         if (name is null)

@@ -575,7 +575,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName, _resourceByName.Values);
     }
 
     private static string GetUrlsTooltip(ResourceViewModel resource)

@@ -182,7 +182,8 @@
                                                                      OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context.Resource, buttonId))"
                                                                      Resource="context.Resource"
                                                                      GetResourceName="GetResourceName"
-                                                                     MaxHighlightedCount="_maxHighlightedCount" />
+                                                                     MaxHighlightedCount="_maxHighlightedCount"
+                                                                     ResourceByName="@_resourceByName" />
                                                 </div>
                                             </AspireTemplateColumn>
                                         </ChildContent>

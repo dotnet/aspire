@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -17,7 +18,7 @@ public sealed class DashboardCommandExecutor(
     IStringLocalizer<Dashboard.Resources.Resources> loc,
     NavigationManager navigationManager)
 {
-    public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
+    public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName, IEnumerable<ResourceViewModel> resources)
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
         {
@@ -91,7 +92,7 @@ public sealed class DashboardCommandExecutor(
             toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
             toastParameters.Content.Details = response.ErrorMessage;
             toastParameters.PrimaryAction = loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)];
-            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
+            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.GetConsoleLogsName(resources))));
         }
 
         if (!toastClosed)
