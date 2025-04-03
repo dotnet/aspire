@@ -21,7 +21,7 @@ public class DistributedApplicationExecutionContextOptions
     /// </summary>
     /// <param name="operation">Indicates whether the AppHost is running in Publish mode or Run mode.</param>
     /// <param name="publisherName">The publisher name if in Publish mode.</param>
-    public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation, string? publisherName = null)
+    public DistributedApplicationExecutionContextOptions(DistributedApplicationOperation operation, string? publisherName)
     {
         this.Operation = operation;
         this.PublisherName = publisherName;
