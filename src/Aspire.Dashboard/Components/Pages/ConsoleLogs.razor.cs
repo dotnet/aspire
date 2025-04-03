@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
@@ -183,17 +184,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // Set loading task result if the selected resource is already in the snapshot or there is no selected resource.
             if (ResourceName != null)
             {
-                if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+                if (TryGetResourceByName(ResourceName, out var selectedResource))
                 {
                     SetSelectedResourceOption(selectedResource);
-                }
-                else
-                {
-                    var resourcesWithDisplayName = _resourceByName.Values.Where(r => string.Equals(ResourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
-                    if (resourcesWithDisplayName.Count == 1)
-                    {
-                        SetSelectedResourceOption(resourcesWithDisplayName.Single());
-                    }
                 }
             }
             else
@@ -250,14 +243,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             option =>
             {
                 var typeDetails = option.Id;
+                // Never match the replica parent or _noSelection.
                 if (typeDetails is null || typeDetails.Type is OtlpApplicationType.ResourceGrouping)
                 {
                     return false;
                 }
 
-                return string.Equals(ResourceName, typeDetails.Type is OtlpApplicationType.Instance
+                // If the resource has multiple replicas, using the display name is not allowed. In this case,
+                // we must compare against the replica id. Otherwise, we can use the display name.
+                var optionName = typeDetails.Type is OtlpApplicationType.Instance
                     ? option.Id?.InstanceId
-                    : option.Name, StringComparisons.ResourceName);
+                    : option.Name;
+                return string.Equals(ResourceName, optionName, StringComparisons.ResourceName);
             })
             ?? _noSelection;
     }
@@ -733,6 +730,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        return new ConsoleLogsPageState(PageViewModel.SelectedOption.Id is not null ? PageViewModel.SelectedOption.Name : null);
+        var selectedResourceName = PageViewModel.SelectedOption.Id is not null
+            ? PageViewModel.SelectedOption.Name
+            // _noSelection, which doesn't have a resource attached to it
+            : null;
+        return new ConsoleLogsPageState(selectedResourceName);
+    }
+
+    private bool TryGetResourceByName(string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (_resourceByName.TryGetValue(resourceName, out resource))
+        {
+            return true;
+        }
+
+        var resourcesWithDisplayName = _resourceByName.Values.Where(r => string.Equals(resourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
+        if (resourcesWithDisplayName.Count == 1)
+        {
+            resource = resourcesWithDisplayName.Single();
+            return true;
+        }
+
+        return false;
     }
 }
