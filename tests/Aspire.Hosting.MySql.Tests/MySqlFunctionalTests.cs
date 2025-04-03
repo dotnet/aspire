@@ -28,7 +28,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnMySqlBlocksDependentResources()
     {
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
+        var ct = cts.Token;
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -66,7 +67,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyMySqlResource()
     {
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var ct = cts.Token;
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -120,7 +122,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var ct = cts.Token;
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
@@ -297,7 +300,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var ct = cts.Token;
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -381,7 +385,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/7340")]
     public async Task VerifyEfMySql()
     {
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var ct = cts.Token;
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -454,7 +459,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         // it generates and mounts a config.user.inc.php file instead of using environment variables.
         // For this reason we need to test with and without multiple instances to cover both scenarios.
 
-        var ct = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2).Token;
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var ct = cts.Token;
 
         // Use the same path for both runs
         var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
