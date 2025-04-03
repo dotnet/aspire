@@ -225,6 +225,7 @@ jobs:
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
+          --show-live-output on
           ${{ inputs.extraTestArgs }}
 
       - name: Run tests

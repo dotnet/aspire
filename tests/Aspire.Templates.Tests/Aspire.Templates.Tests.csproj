@@ -24,8 +24,6 @@
       gets built independently on helix.
     -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
-
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --show-live-output on</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />

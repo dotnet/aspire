@@ -32,7 +32,6 @@
       gets built independently on helix.
     -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --show-live-output on</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SkipUnstableEmulators)' == 'true'">

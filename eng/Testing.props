@@ -8,6 +8,8 @@
     <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">10m</BlameHangTimeout>
     <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crash-dump</_BlameArgs>
 
+    <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --show-live-output on</TestRunnerAdditionalArguments>
+
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == ''">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
   </PropertyGroup>

@@ -22,7 +22,6 @@
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --show-live-output on</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
