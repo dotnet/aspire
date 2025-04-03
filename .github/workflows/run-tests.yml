@@ -13,7 +13,7 @@ on:
         # relative the repo root
         required: false
         type: string
-      testSessionTimeoutMs:
+      testSessionTimeout:
         required: false
         type: string
         default: "600000"
@@ -226,6 +226,7 @@ jobs:
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --show-live-output on
+          --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
       - name: Run tests
@@ -252,6 +253,7 @@ jobs:
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory testresults
+          --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
       # Save the result of the previous steps - success or failure

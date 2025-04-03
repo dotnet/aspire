@@ -100,7 +100,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
@@ -117,7 +117,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
