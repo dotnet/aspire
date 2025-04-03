@@ -236,9 +236,11 @@ internal sealed class DockerComposePublishingContext(
                         {
                             Condition = waitAnnotation.WaitType switch
                             {
-                                WaitType.WaitUntilHealthy => "service_healthy",
+                                // REVIEW: This only works if the target service has health checks,
+                                // revisit this when we have a way to add health checks to the compose service
+                                // WaitType.WaitUntilHealthy => "service_healthy",
                                 WaitType.WaitForCompletion => "service_completed_successfully",
-                                _ => "service_healthy",
+                                _ => "service_started",
                             },
                         };
                     }

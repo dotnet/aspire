@@ -6,13 +6,13 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL;
 using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
-using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 
 #if NET9_0_OR_GREATER
 using Microsoft.Extensions.DependencyInjection;
+#else
+using Npgsql;
 #endif
 
 namespace Microsoft.Extensions.Hosting;
@@ -121,51 +121,25 @@ public static partial class AspireAzureEFPostgreSqlExtensions
 
     private static void ConfigureDbContextOptionsBuilder(AzureNpgsqlEntityFrameworkCorePostgreSQLSettings settings, DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-        // The connection string requires the username to be provided. Since it will depend on the Managed Identity that is used
-        // we attempt to get the username from the access token.
-
-        var credential = settings.Credential ?? new DefaultAzureCredential();
-
 #pragma warning disable EF1001 // Internal EF Core API usage.
 
         // Get the connection string from the Npgsql options extension in case it was set using UseNpgsql(connStr) and Enrich()
-        var extensionsConnectionString = dbContextOptionsBuilder.Options.GetExtension<NpgsqlOptionsExtension>()?.ConnectionString;
+        var connectionString = settings.ConnectionString ?? dbContextOptionsBuilder.Options.GetExtension<NpgsqlOptionsExtension>()?.ConnectionString;
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString ?? extensionsConnectionString);
-
-        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
+#if NET9_0_OR_GREATER
+        dbContextOptionsBuilder.UseNpgsql(options =>
         {
-            // Ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
-            var token = credential.GetToken(ManagedIdentityTokenCredentialHelpers.ManagementTokenRequestContext, default);
+            options.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.ConfigureEntraIdAuthentication(settings.Credential));
+        });
+#else
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 
-            if (ManagedIdentityTokenCredentialHelpers.TryGetUsernameFromToken(token.Token, out var username))
-            {
-                dataSourceBuilder.ConnectionStringBuilder.Username = username;
-            }
-            else
-            {
-                // Otherwise check using the PostgresSql scope
-                token = credential.GetToken(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default);
-
-                if (ManagedIdentityTokenCredentialHelpers.TryGetUsernameFromToken(token.Token, out username))
-                {
-                    dataSourceBuilder.ConnectionStringBuilder.Username = username;
-                }
-            }
-
-            // If we still don't have a username, we let Npgsql handle the error when trying to connect.
-        }
-
-        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
+        if (dataSourceBuilder.ConfigureEntraIdAuthentication(settings.Credential))
         {
-            dataSourceBuilder.UsePasswordProvider(
-                passwordProvider: _ => credential.GetToken(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default).Token,
-                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(ManagedIdentityTokenCredentialHelpers.DatabaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
-            );
-
             dbContextOptionsBuilder.UseNpgsql(dataSourceBuilder.Build());
         }
+#endif
     }
 }

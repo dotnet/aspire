@@ -1,46 +1,36 @@
 ﻿@page "/"
-@using OpenAI
-@using OpenAI.Chat
-@inject OpenAIClient aiClient
+@using Microsoft.Extensions.AI
+@inject IChatClient chatClient
 @inject ILogger<Home> logger
-@inject IConfiguration configuration
 
-    <div class="storybox" style="margin: 25%">
-        @foreach (var message in chatMessages.OfType<AssistantChatMessage>())
-        {
-            <p style="font-size: 3em;">@message.Content[0].Text</p>
-        }
+<div class="storybox" style="margin: 25%">
+    @foreach (var message in chatMessages.Where(m => m.Role == ChatRole.Assistant))
+    {
+        <p style="font-size: 3em;">@message.Text</p>
+    }
 
-        <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
-    </div>
+    <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
+</div>
 
 @code {
-    private ChatClient? chatClient = null;
-    private List<ChatMessage> chatMessages = new List<ChatMessage>();
+    private List<ChatMessage> chatMessages = new List<ChatMessage>
+    {
+        new(ChatRole.System, "Pick a random topic and write a sentence of a fictional story about it.")
+    };
 
     private async Task GenerateNextParagraph()
     {
-        if (chatClient == null)
-        {
-            chatClient = aiClient.GetChatClient(configuration["OpenAI:DeploymentName"] ?? throw new ApplicationException("No OpenAI:DeploymentName."));
-            chatMessages.Add(new SystemChatMessage("Pick a random topic and write a sentence of a fictional story about it."));
-        }
-
         if (chatMessages.Count > 1)
         {
-            chatMessages.Add(new UserChatMessage("Write the next sentence in the story."));
+            chatMessages.Add(new ChatMessage(ChatRole.User, "Write the next sentence in the story."));
         }
 
-        var result = await chatClient.CompleteChatAsync(chatMessages);
-
-        chatMessages.Add(new AssistantChatMessage(result.Value.Content[0].Text));
-
-        this.StateHasChanged();
+        var response = await chatClient.GetResponseAsync(chatMessages);
+        chatMessages.AddMessages(response);
     }
 
     protected override async Task OnInitializedAsync()
     {
         await GenerateNextParagraph();
-        await base.OnInitializedAsync();
     }
 }

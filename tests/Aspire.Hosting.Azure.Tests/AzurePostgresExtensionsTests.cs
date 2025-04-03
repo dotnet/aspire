@@ -146,6 +146,20 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, postgresRolesManifest.BicepText);
     }
 
+    [Fact]
+    public async Task AddAzurePostgresFlexibleServer_WithPasswordAuthentication_NoKeyVaultWithContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().RunAsContainer();
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(true, true, null)]
     [InlineData(true, true, "mykeyvault")]

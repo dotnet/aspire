@@ -4,7 +4,6 @@
 using Aspire.TestUtilities;
 using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -63,7 +62,7 @@ public class EnrichMySqlTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

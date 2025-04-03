@@ -48,6 +48,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
             var param0 = builder.AddParameter("param0");
             var param1 = builder.AddParameter("param1", secret: true);
             var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
+            var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
             var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
             // Add a container to the application
@@ -57,6 +58,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
                 .WithEnvironment("param0", param0)
                 .WithEnvironment("param1", param1)
                 .WithEnvironment("param2", param2)
+                .WithEnvironment("param3", param3)
                 .WithReference(cs)
                 .WithVolume("logs", "/logs")
                 .WithArgs("--cs", cs.Resource);

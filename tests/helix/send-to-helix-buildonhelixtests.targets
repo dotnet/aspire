@@ -37,6 +37,8 @@
       <!-- Using `dotnet test` for the project directly here -->
       <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
+
+      <_TestRunCommandArguments Include="--filter &quot;quarantined!=true&quot;" />
     </ItemGroup>
 
     <PropertyGroup>

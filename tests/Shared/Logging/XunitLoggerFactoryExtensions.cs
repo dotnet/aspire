@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit.Sdk;
+using Xunit;
 
 namespace Microsoft.Extensions.Logging;
 
