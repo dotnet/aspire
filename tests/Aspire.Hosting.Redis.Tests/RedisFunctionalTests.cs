@@ -138,7 +138,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
-        await app.WaitForHealthyAsync(redisInsightBuilder).WaitAsync(cts.Token);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
         var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
 
@@ -457,7 +458,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForHealthyAsync(redisInsightBuilder1).WaitAsync(cts.Token);
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceAsync(redisInsightBuilder1.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
                 try
                 {
@@ -491,7 +493,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForHealthyAsync(redisInsightBuilder2).WaitAsync(cts.Token);
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name,KnownResourceStates.Running).WaitAsync(cts.Token);
 
                 try
                 {
