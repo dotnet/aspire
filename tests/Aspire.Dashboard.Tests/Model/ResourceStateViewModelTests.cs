@@ -19,7 +19,7 @@ public class ResourceStateViewModelTests
     // Resource is no longer running
     [InlineData(
         /* state */ "Container", KnownResourceState.Exited, null, null,null,
-        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:Container", "Warning", Color.Warning, "Exited")]
+        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:Container", "RecordStop", Color.Info, "Exited")]
     [InlineData(
         /* state */ "Container", KnownResourceState.Exited, 3, null, null,
         /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExitedUnexpectedly)}:Container+3", "ErrorCircle", Color.Error, "Exited")]
@@ -31,7 +31,7 @@ public class ResourceStateViewModelTests
         /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:Container", "RecordStop", Color.Info, "Finished")]
     [InlineData(
         /* state */ "CustomResource", KnownResourceState.Finished, null, null, null,
-        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:Container", "RecordStop", Color.Info, "Finished")]
+        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceExited)}:CustomResource", "RecordStop", Color.Info, "Finished")]
     [InlineData(
         /* state */ "Container", KnownResourceState.Unknown, null, null, null,
         /* expected output */ "Unknown", "CircleHint", Color.Info, "Unknown")]
