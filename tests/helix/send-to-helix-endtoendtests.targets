@@ -21,13 +21,7 @@
            Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
     <ItemGroup>
-      <!--
-        Some test projects may not have tests with the scenario being tested, in that case we don't want to fail.
-        For example, EndToEnd.Tests (at time of writing) doesn't have tests matching scenario=cosmos
-        Note: exit codes are documented here:
-        https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
-      -->
-      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot; --filter-trait &quot;scenario=$(_TestScenarioEnvVar)&quot; --ignore-exit-code 8" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot; --filter-trait &quot;scenario=$(_TestScenarioEnvVar)&quot;" />
     </ItemGroup>
 
     <PropertyGroup>
