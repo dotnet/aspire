@@ -59,18 +59,8 @@ steps:
   # Non-helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
-    - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
-                chmod +x ubuntu-create-dotnet-devcert.sh &&
-                ./ubuntu-create-dotnet-devcert.sh
-        displayName: Install devcerts
-
-    - ${{ if eq(parameters.isWindows, 'true') }}:
-      - script: dotnet dev-certs https
-        displayName: Install dev-certs
+    - script: ${{ parameters.dotnetScript }} dev-certs https --trust --verbose
+      displayName: Install dev-certs
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: |
@@ -93,6 +83,7 @@ steps:
         DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
         DCP_PRESERVE_EXECUTABLE_LOGS: 1
         DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+        SSL_CERT_DIR: $HOME/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
       displayName: Run non-helix tests
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
