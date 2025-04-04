@@ -24,10 +24,10 @@ internal sealed class RunCommand : BaseCommand
 
         _runner = runner;
 
-        var projectArgument = new Argument<FileInfo?>("project");
-        projectArgument.Description = "The path to the Aspire app host project file.";
-        projectArgument.Validators.Add(ProjectFileHelper.ValidateProjectArgument);
-        Arguments.Add(projectArgument);
+        var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = "The path to the Aspire app host project file.";
+        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
+        Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
         watchOption.Description = "Start .NET project resources in watch mode.";
@@ -38,7 +38,7 @@ internal sealed class RunCommand : BaseCommand
     {
         using var activity = _activitySource.StartActivity();
 
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("project");
+        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
         
         if (effectiveAppHostProjectFile is null)
