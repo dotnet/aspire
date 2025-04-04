@@ -7,10 +7,10 @@
     <IncludeTestUtilities>false</IncludeTestUtilities>
 
     <!-- Only run on GHA or Helix Linux; no docker support on Windows yet -->
-    <RunsOnGithubActionsWindows>false</RunsOnGithubActionsWindows>
-    <RunsOnHelixWindows>false</RunsOnHelixWindows>
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <!-- Don't run tests on AzDO Windows -->
-    <RunsOnAzdo Condition="'$(OS)' == 'Windows_NT'">false</RunsOnAzdo>
+    <RunOnAzdoCI Condition="'$(OS)' == 'Windows_NT'">false</RunOnAzdoCI>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 

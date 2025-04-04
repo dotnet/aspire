@@ -3,19 +3,21 @@
   <!--
       Environment variables:
         - IsGitHubActionsRunner:       indicates whether tests are currently run on GitHub Actions; computed, overridable
-        - IsAzdoRunner:                indicates whether tests are currently run on Azure DevOps; computed, overridable
-        - IsHelix:                     indicates whether tests are currently run on Helix; computed, overridable
+        - IsAzdoCIRunner:              indicates whether tests are currently run on Azure DevOps; computed, overridable
+        - IsAzdoHelixRunner:           indicates whether tests are currently run on Helix; computed, overridable
 
       Project capabilities:
         - IsTestProject:               indicates whether the project is a test project; default is false; computed, overridable
         - IncludeTestUtilities:        indicates whether the test project must not include the TestUtilities project reference; default is false; overridable
-        - RunsOnGithubActions:         indicates whether tests should run on GitHub Actions (either Windows or Linux); computed
-        - RunsOnGithubActionsWindows:  indicates whether tests should run on Windows in GitHub Actions; default is true; overridable
-        - RunsOnGithubActionsLinux:    indicates whether tests should run on Linux in GitHub Actions; default is true; overridable
-        - RunsOnAzdo:                  indicates whether tests should run on Azure DevOps; default is true; overridable
-        - RunsOnHelix:                 indicates whether tests should run on Helix (either Windows or Linux); computed
-        - RunsOnHelixWindows:          indicates whether tests should run on Windows in Helix; default is true; overridable
-        - RunsOnHelixLinux:            indicates whether tests should run on Linux in Helix; default is true; overridable
+
+      Project requirements:
+        - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux); computed
+        - RunOnGithubActionsWindows:   indicates whether tests should run on Windows in GitHub Actions; default is true; overridable
+        - RunOnGithubActionsLinux:     indicates whether tests should run on Linux in GitHub Actions; default is true; overridable
+        - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps; default is true; overridable
+        - RunOnAzdoHelix:              indicates whether tests should run on Helix (either Windows or Linux); computed
+        - RunOnAzdoHelixWindows:       indicates whether tests should run on Windows in Helix; default is true; overridable
+        - RunOnAzdoHelixLinux:         indicates whether tests should run on Linux in Helix; default is true; overridable
     -->
 
   <PropertyGroup>
@@ -23,21 +25,21 @@
     <IsGitHubActionsRunner Condition=" '$(IsGitHubActionsRunner)' == '' and '$(GITHUB_ACTIONS)' == 'true' ">true</IsGitHubActionsRunner>
 
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
-    <IsAzdoRunner Condition=" '$(IsAzdoRunner)' == '' and '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoRunner>
+    <IsAzdoCIRunner Condition=" '$(IsAzdoCIRunner)' == '' and '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
     <!-- See https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Helix/Sdk/Readme.md#common-helix-client-environment-variables -->
-    <IsHelix Condition=" '$(IsHelix)' == '' and '$(HELIX_CORRELATION_ID)' != '' ">true</IsHelix>
+    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(HELIX_CORRELATION_ID)' != '' ">true</IsAzdoHelixRunner>
   </PropertyGroup>
 
   <PropertyGroup>
-    <RunsOnGithubActions>false</RunsOnGithubActions>
-    <RunsOnGithubActions Condition=" '$(RunsOnGithubActionsWindows)' == 'true' or '$(RunsOnGithubActionsLinux)' == 'true' ">true</RunsOnGithubActions>
+    <RunOnGithubActions>false</RunOnGithubActions>
+    <RunOnGithubActions Condition=" '$(RunOnGithubActionsWindows)' == 'true' or '$(RunOnGithubActionsLinux)' == 'true' ">true</RunOnGithubActions>
 
-    <RunsOnHelix>false</RunsOnHelix>
-    <RunsOnHelix Condition=" '$(RunsOnHelixWindows)' == 'true' or '$(RunsOnHelixLinux)' == 'true' ">true</RunsOnHelix>
+    <RunOnAzdoHelix>false</RunOnAzdoHelix>
+    <RunOnAzdoHelix Condition=" '$(RunOnAzdoHelixWindows)' == 'true' or '$(RunOnAzdoHelixLinux)' == 'true' ">true</RunOnAzdoHelix>
 
     <!-- If a test is run on Helix, then we don't run the test on AzDO -->
-    <RunsOnAzdo Condition=" '$(RunsOnHelix)' == 'true' ">false</RunsOnAzdo>
+    <RunOnAzdoCI Condition=" '$(RunOnAzdoHelix)' == 'true' ">false</RunOnAzdoCI>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(SkipTests)' == '' and '$(IsTestProject)' == 'true' ">
@@ -45,13 +47,13 @@
     <SkipTests>true</SkipTests>
 
     <!-- Only run tests if the build is running on GitHub Actions  -->
-    <SkipTests Condition=" '$(IsGitHubActionsRunner)' == 'true' and '$(RunsOnGithubActions)' == 'true' ">false</SkipTests>
+    <SkipTests Condition=" '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">false</SkipTests>
 
     <!-- Only run tests if the build is running on Helix infra  -->
-    <SkipTests Condition=" '$(IsHelix)' == 'true' and '$(RunsOnHelix)' == 'true' ">false</SkipTests>
+    <SkipTests Condition=" '$(IsAzdoHelixRunner)' == 'true' and '$(RunOnAzdoHelix)' == 'true' ">false</SkipTests>
 
     <!-- Otherwise, run tests on AzDO CI agents -->
-    <SkipTests Condition=" '$(IsAzdoRunner)' == 'true' and '$(RunsOnAzdo)' == 'true' ">false</SkipTests>
+    <SkipTests Condition=" '$(IsAzdoCIRunner)' == 'true' and '$(RunOnAzdoCI)' == 'true' ">false</SkipTests>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(IncludeTestUtilities)' == 'true' ">
@@ -65,27 +67,27 @@
     <PropertyGroup>
       <_IsGitHubActionsRunner Condition="'$(IsGitHubActionsRunner)' == ''">false</_IsGitHubActionsRunner>
       <_IsGitHubActionsRunner Condition="'$(IsGitHubActionsRunner)' != ''">$(IsGitHubActionsRunner)</_IsGitHubActionsRunner>
-      <_IsAzdoRunner Condition="'$(IsAzdoRunner)' == ''">false</_IsAzdoRunner>
-      <_IsAzdoRunner Condition="'$(IsAzdoRunner)' != ''">$(IsAzdoRunner)</_IsAzdoRunner>
-      <_IsHelix Condition="'$(IsHelix)' == ''">false</_IsHelix>
-      <_IsHelix Condition="'$(IsHelix)' != ''">$(IsHelix)</_IsHelix>
+      <_IsAzdoCIRunner Condition="'$(IsAzdoCIRunner)' == ''">false</_IsAzdoCIRunner>
+      <_IsAzdoCIRunner Condition="'$(IsAzdoCIRunner)' != ''">$(IsAzdoCIRunner)</_IsAzdoCIRunner>
+      <_IsAzdoHelixRunner Condition="'$(IsAzdoHelixRunner)' == ''">false</_IsAzdoHelixRunner>
+      <_IsAzdoHelixRunner Condition="'$(IsAzdoHelixRunner)' != ''">$(IsAzdoHelixRunner)</_IsAzdoHelixRunner>
     </PropertyGroup>
     <ItemGroup>
       <_Runner Include=" - GitHub Actions: $(_IsGitHubActionsRunner)" />
-      <_Runner Include=" - Azure DevOps: $(_IsAzdoRunner)" />
-      <_Runner Include=" - Helix: $(_IsHelix)" />
-      <_Capability Include=" - GitHub Actions: $(RunsOnGithubActions) (Windows: $(RunsOnGithubActionsWindows) / Linux: $(RunsOnGithubActionsLinux))" />
-      <_Capability Include=" - Azure DevOps: $(RunsOnAzdo)" />
-      <_Capability Include=" - Helix: $(RunsOnHelix) (Windows: $(RunsOnHelixWindows) / Linux: $(RunsOnHelixLinux))" />
+      <_Runner Include=" - Azure DevOps: $(_IsAzdoCIRunner)" />
+      <_Runner Include=" - Helix: $(_IsAzdoHelixRunner)" />
+      <_Requirement Include=" - GitHub Actions: $(RunOnGithubActions) (Windows: $(RunOnGithubActionsWindows) / Linux: $(RunOnGithubActionsLinux))" />
+      <_Requirement Include=" - Azure DevOps: $(RunOnAzdoCI)" />
+      <_Requirement Include=" - Helix: $(RunOnAzdoHelix) (Windows: $(RunOnAzdoHelixWindows) / Linux: $(RunOnAzdoHelixLinux))" />
     </ItemGroup>
 
     <PropertyGroup>
       <_NewLine>%0D%0A</_NewLine>
       <_RunnerList>@(_Runner, '%0D%0A')</_RunnerList>
-      <_CapabilityList>@(_Capability, '$(_NewLine)')</_CapabilityList>
+      <_RequirementList>@(_Requirement, '$(_NewLine)')</_RequirementList>
     </PropertyGroup>
 
-    <Message Text="Project: $(MSBuildProjectName)$(_NewLine)Runner Context:$(_NewLine)$(_RunnerList)$(_NewLine)Capabilities:$(_NewLine)$(_CapabilityList)" />
+    <Message Text="Project: $(MSBuildProjectName)$(_NewLine)Runner Context:$(_NewLine)$(_RunnerList)$(_NewLine)Runner support:$(_NewLine)$(_RequirementList)" />
   </Target>
 
 </Project>

@@ -3,11 +3,11 @@
     <IncludeTestUtilities>true</IncludeTestUtilities>
 
     <!-- By default any test can run on all test platforms -->
-    <RunsOnGithubActionsWindows>true</RunsOnGithubActionsWindows>
-    <RunsOnGithubActionsLinux>true</RunsOnGithubActionsLinux>
-    <RunsOnAzdo>true</RunsOnAzdo>
-    <RunsOnHelixWindows>true</RunsOnHelixWindows>
-    <RunsOnHelixLinux>true</RunsOnHelixLinux>
+    <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
+    <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+    <RunOnAzdoCI>true</RunOnAzdoCI>
+    <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>true</RunOnAzdoHelixLinux>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(UseVSTestRunner)' != 'true'">

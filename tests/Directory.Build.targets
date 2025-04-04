@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build"
-          Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and '$(RunsOnHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+          Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
@@ -66,7 +66,7 @@
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
     <ItemGroup>
-      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunsOnGithubActions)" />
+      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActions)" />
     </ItemGroup>
   </Target>
 
