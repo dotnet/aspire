@@ -23,7 +23,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
     {
         using var activity = _activitySource.StartActivity();
 
-        string[] cliArgs = ["msbuild", "-getproperty:IsAspireHost,AspireHostingSDKVersion"];
+        string[] cliArgs = ["msbuild", "-getproperty:IsAspireHost,AspireHostingSDKVersion", projectFile.FullName];
 
         string? stdout = null;
         string? stderr = null;
