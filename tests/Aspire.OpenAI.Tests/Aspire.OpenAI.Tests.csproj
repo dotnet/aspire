@@ -17,6 +17,4 @@
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
   </ItemGroup>
 
-  <Import Project="..\..\src\Components\Aspire.OpenAI\MEAIPackageOverrides.targets" />
-
 </Project>
