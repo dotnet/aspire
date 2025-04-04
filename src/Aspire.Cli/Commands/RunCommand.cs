@@ -30,7 +30,7 @@ internal sealed class RunCommand : BaseCommand
         Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
-        watchOption.Description = "Start .NET project resources in watch mode.";
+        watchOption.Description = "Start project resources in watch mode.";
         Options.Add(watchOption);
     }
 
