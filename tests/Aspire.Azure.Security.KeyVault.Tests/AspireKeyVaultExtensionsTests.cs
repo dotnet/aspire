@@ -216,7 +216,7 @@ public class AspireKeyVaultExtensionsTests
         ]);
 
         builder
-            .AddAzureKeyVaultClient(connectionName)
+            .AddExtendedAzureKeyVaultClient(connectionName)
             .AddKeyClient()
             .AddCertificateClient();
 
@@ -254,7 +254,7 @@ public class AspireKeyVaultExtensionsTests
         ]);
 
         builder
-            .AddKeyedAzureKeyVaultClient(secretClientName)
+            .AddExtendedKeyedAzureKeyVaultClient(secretClientName)
             .AddKeyedKeyClient(keyClientName)
             .AddKeyedCertificateClient(certClientName);
 
@@ -299,7 +299,7 @@ public class AspireKeyVaultExtensionsTests
 
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureKeyVaultClient("secrets")
+        var action = () => builder.AddExtendedKeyedAzureKeyVaultClient("secrets")
                                    .AddKeyedCertificateClient(name);
 
         var exception = isNull
@@ -318,7 +318,7 @@ public class AspireKeyVaultExtensionsTests
 
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureKeyVaultClient("secrets")
+        var action = () => builder.AddExtendedKeyedAzureKeyVaultClient("secrets")
                                    .AddKeyedCertificateClient(name);
 
         var exception = isNull
