@@ -169,6 +169,11 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
+                // Write a fake parameter for the container app environment
+                // so azd knows the Dashboard URL - see https://github.com/dotnet/aspire/issues/8449.
+                // This is temporary until a real fix can be made in azd.
+                AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
+
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
@@ -709,7 +714,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
-                if (value is IKeyVaultSecretReference vaultSecretReference)
+                if (value is IAzureKeyVaultSecretReference vaultSecretReference)
                 {
                     if (parent is null)
                     {
@@ -792,7 +797,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 return secret.Properties.SecretUri;
             }
 
-            private BicepValue<string> AllocateKeyVaultSecretUriReference(IKeyVaultSecretReference secretOutputReference)
+            private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
             {
                 if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
                 {

@@ -56,17 +56,17 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(IncludeTestPackages)' == 'true'">
-    <Using Include="Xunit.Abstractions" />
+    <Using Include="Xunit.v3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'" Label="Test packages">
     <!-- in-repo-builds use Arcade which adds these package references for test projects implicitly.
          But when they are built without Arcade outside the repo, these need to be added
          explicitly. -->
-    <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.core" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.core" />
     <PackageReference Include="xunit.analyzers" />
-    <PackageReference Include="xunit.assert" />
+    <PackageReference Include="xunit.v3.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
@@ -87,9 +87,6 @@
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="DefaultTargetFramework" />
-    <PropertyForHelixRun Include="XunitVersion" />
-    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
     <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
     <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
     <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />

@@ -1148,8 +1148,13 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
         var openAI = builder.AddAzureOpenAI("openAI")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName)
-            .AddDeployment(new AzureOpenAIDeployment("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+        openAI.AddDeployment("mymodel", "gpt-35-turbo", "0613")
+            .WithProperties(d =>
+            {
+                d.SkuName = "Basic";
+                d.SkuCapacity = 4;
+            });
 
         var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(openAI.Resource);
 

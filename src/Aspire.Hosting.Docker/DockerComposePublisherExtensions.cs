@@ -3,7 +3,9 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-namespace Aspire.Hosting.Docker;
+using Aspire.Hosting.Docker;
+
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions for adding a Docker Compose publisher to the application model.

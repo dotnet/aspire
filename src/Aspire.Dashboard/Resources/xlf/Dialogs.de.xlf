@@ -64,22 +64,22 @@
       </trans-unit>
       <trans-unit id="FilterDialogDisableAll">
         <source>Disable all</source>
-        <target state="new">Disable all</target>
+        <target state="translated">Alle deaktivieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogDisableFilterButtonText">
         <source>Disable filter</source>
-        <target state="new">Disable filter</target>
+        <target state="translated">Filter deaktivieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogEnableAll">
         <source>Enable all</source>
-        <target state="new">Enable all</target>
+        <target state="translated">Alle aktivieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogEnableFilterButtonText">
         <source>Enable filter</source>
-        <target state="new">Enable filter</target>
+        <target state="translated">Filter aktivieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">

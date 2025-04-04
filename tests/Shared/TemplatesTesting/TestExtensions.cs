@@ -4,19 +4,17 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Playwright;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;
 
 public static class TestExtensions
 {
-    public static async Task<IPage> NewPageWithLoggingAsync(this IBrowserContext context, ITestOutputHelper testOutput)
+    public static async Task<WrapperForIPage> NewPageWithLoggingAsync(this IBrowserContext context, ITestOutputHelper testOutput)
     {
         var page = await context.NewPageAsync();
-        page.Console += (_, e) => testOutput.WriteLine($"[browser-console] {e.Text}");
-        page.Crash += (_, _) => testOutput.WriteLine("******************* browser-crash *******************");
-        page.PageError += (_, e) => testOutput.WriteLine($"[browser-page-error] *********** {e}");
-        return page;
+        return new WrapperForIPage(page, testOutput);
     }
 
     public static bool TryGetHasExited(this Process process)

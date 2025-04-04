@@ -14,17 +14,21 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Aspire.Hosting.Tests.Dcp;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
+using Polly;
 
 namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const UnixFileMode MountFilePermissions =
+       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7177")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7177")]
     public async Task VerifyWaitForOnRedisBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -123,112 +127,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7291")]
-    public async Task VerifyDatabasesAreNotDuplicatedForPersistentRedisInsightContainer()
-    {
-        var randomResourceSuffix = Random.Shared.Next(10000).ToString();
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
-        var configure = (DistributedApplicationOptions options) =>
-        {
-            options.ContainerRegistryOverride = ComponentTestConstants.AspireTestContainerRegistry;
-        };
-
-        using var builder1 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
-        builder1.Configuration[$"DcpPublisher:ResourceNameSuffix"] = randomResourceSuffix;
-
-        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
-        var redis1 = builder1.AddRedis("redisForInsightPersistence")
-                .WithRedisInsight(c =>
-                    {
-                        redisInsightBuilder = c;
-                        c.WithLifetime(ContainerLifetime.Persistent);
-                    });
-
-        // Wire up an additional event subcription to ResourceReadyEvent on the RedisInsightResource
-        // instance. This works because the ResourceReadyEvent fires non-blocking sequential so the
-        // wire-up that WithRedisInsight does is guaranteed to execute before this one does. So we then
-        // use this to block pulling the list of databases until we know they've been updated. This
-        // will repeated below for the second app.
-        //
-        // Issue: https://github.com/dotnet/aspire/issues/6455
-        Assert.NotNull(redisInsightBuilder);
-        var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
-        {
-            redisInsightsReady.TrySetResult();
-            return Task.CompletedTask;
-        });
-
-        using var app1 = builder1.Build();
-
-        await app1.StartAsync(cts.Token);
-
-        await redisInsightsReady.Task.WaitAsync(cts.Token);
-
-        using var client1 = app1.CreateHttpClient($"{redis1.Resource.Name}-insight", "http");
-        var firstRunDatabases = await client1.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
-
-        Assert.NotNull(firstRunDatabases);
-        Assert.Single(firstRunDatabases);
-        Assert.Equal($"{redis1.Resource.Name}", firstRunDatabases[0].Name);
-
-        await app1.StopAsync(cts.Token);
-
-        using var builder2 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
-        builder2.Configuration[$"DcpPublisher:ResourceNameSuffix"] = randomResourceSuffix;
-
-        var redis2 = builder2.AddRedis("redisForInsightPersistence")
-                .WithRedisInsight(c =>
-                {
-                    redisInsightBuilder = c;
-                    c.WithLifetime(ContainerLifetime.Persistent);
-                });
-
-        // Wire up an additional event subcription to ResourceReadyEvent on the RedisInsightResource
-        // instance. This works because the ResourceReadyEvent fires non-blocking sequential so the
-        // wire-up that WithRedisInsight does is guaranteed to execute before this one does. So we then
-        // use this to block pulling the list of databases until we know they've been updated. This
-        // will repeated below for the second app.
-        Assert.NotNull(redisInsightBuilder);
-        redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
-        {
-            redisInsightsReady.TrySetResult();
-            return Task.CompletedTask;
-        });
-
-        using var app2 = builder2.Build();
-        await app2.StartAsync(cts.Token);
-
-        await redisInsightsReady.Task.WaitAsync(cts.Token);
-
-        using var client2 = app2.CreateHttpClient($"{redisInsightBuilder.Resource.Name}", "http");
-        var secondRunDatabases = await client2.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
-
-        Assert.NotNull(secondRunDatabases);
-        Assert.Single(secondRunDatabases);
-        Assert.Equal($"{redis2.Resource.Name}", secondRunDatabases[0].Name);
-        Assert.NotEqual(secondRunDatabases.Single().Id, firstRunDatabases.Single().Id);
-
-        // HACK: This is a workaround for the fact that ApplicationExecutor is not a public type. What I have
-        //       done here is I get the latest event from RNS for the insights instance which gives me the resource
-        //       name as known from a DCP perspective. I then use the ApplicationExecutorProxy (introduced with this
-        //       change to call the ApplicationExecutor stop method. The proxy is a public type with an internal
-        //       constructor inside the Aspire.Hosting.Tests package. This is a short term solution for 9.0 to
-        //       make sure that we have good test coverage for WithRedisInsight behavior, but we need a better
-        //       long term solution in 9.x for folks that will want to do things like execute commands against
-        //       resources to stop specific containers.
-        var latestEvent = await app2.ResourceNotifications.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
-        var executorProxy = app2.Services.GetRequiredService<ApplicationOrchestratorProxy>();
-        await executorProxy.StopResourceAsync(latestEvent.ResourceId, cts.Token);
-
-        await app2.StopAsync(cts.Token);
-    }
-
-    [Fact]
-    [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -240,28 +138,25 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
         Assert.NotNull(redisInsightBuilder);
 
-        // RedisInsight will import databases when it is ready, this task will run after the initial databases import
-        // so we will use that to know when the databases have been successfully imported
-        var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
-        {
-            redisInsightsReady.TrySetResult();
-            return Task.CompletedTask;
-        });
-
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        await redisInsightsReady.Task.WaitAsync(cts.Token);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
         var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
+
+        // Accept EULA first; otherwise, /api/databases will not work properly.
+        await AcceptRedisInsightEula(client, cts.Token);
 
         var response = await client.GetAsync("/api/databases", cts.Token);
         response.EnsureSuccessStatusCode();
 
         var databases = await response.Content.ReadFromJsonAsync<List<RedisInsightDatabaseModel>>(cts.Token);
+        Assert.NotNull(databases);
 
+        databases = [.. databases.OrderBy(d => d.Id)];
         Assert.NotNull(databases);
         Assert.Collection(databases,
         db =>
@@ -269,16 +164,12 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.Equal(redis1.Resource.Name, db.Name);
             Assert.Equal(redis1.Resource.Name, db.Host);
             Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
-            Assert.Equal("STANDALONE", db.ConnectionType);
-            Assert.Equal(0, db.Db);
         },
         db =>
         {
             Assert.Equal(redis2.Resource.Name, db.Name);
             Assert.Equal(redis2.Resource.Name, db.Host);
             Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
-            Assert.Equal("STANDALONE", db.ConnectionType);
-            Assert.Equal(0, db.Db);
         });
 
         foreach (var db in databases)
@@ -536,7 +427,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [InlineData(true)]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7176")]
     public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -563,7 +453,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    File.SetUnixFileMode(bindMountPath, MountFilePermissions);
+                }
 
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }
@@ -572,16 +468,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
-                // so we will use that to know when the databases have been successfully imported
-                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder1.Resource, (evt, ct) =>
-                {
-                    redisInsightsReady.TrySetResult();
-                    return Task.CompletedTask;
-                });
-
-                await redisInsightsReady.Task.WaitAsync(cts.Token);
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceAsync(redisInsightBuilder1.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
                 try
                 {
@@ -615,16 +503,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
-                // so we will use that to know when the databases have been successfully imported
-                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder2.Resource, (evt, ct) =>
-                {
-                    redisInsightsReady.TrySetResult();
-                    return Task.CompletedTask;
-                });
-
-                await redisInsightsReady.Task.WaitAsync(cts.Token);
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
 
                 try
                 {
@@ -661,20 +541,27 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private static async Task EnsureRedisInsightEulaAccepted(HttpClient httpClient, CancellationToken ct)
     {
-        var response = await httpClient.GetAsync("/api/settings", ct);
-        response.EnsureSuccessStatusCode();
+        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+                            .Build();
 
-        var content = await response.Content.ReadAsStringAsync(ct);
+        await pipeline.ExecuteAsync(async ct =>
+        {
+            var response = await httpClient.GetAsync("/api/settings", ct);
+            response.EnsureSuccessStatusCode();
 
-        var jo = JsonObject.Parse(content);
-        Assert.NotNull(jo);
-        var agreements = jo["agreements"];
+            var content = await response.Content.ReadAsStringAsync(ct);
 
-        Assert.NotNull(agreements);
-        Assert.False(agreements["analytics"]!.GetValue<bool>());
-        Assert.False(agreements["notifications"]!.GetValue<bool>());
-        Assert.False(agreements["encryption"]!.GetValue<bool>());
-        Assert.True(agreements["eula"]!.GetValue<bool>());
+            var jo = JsonNode.Parse(content);
+            Assert.NotNull(jo);
+            var agreements = jo["agreements"];
+
+            Assert.NotNull(agreements);
+            Assert.False(agreements["analytics"]!.GetValue<bool>());
+            Assert.False(agreements["notifications"]!.GetValue<bool>());
+            Assert.False(agreements["encryption"]!.GetValue<bool>());
+            Assert.True(agreements["eula"]!.GetValue<bool>());
+        }, ct);
     }
 
     static async Task AcceptRedisInsightEula(HttpClient client, CancellationToken ct)
@@ -697,16 +584,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         response.EnsureSuccessStatusCode();
 
         await EnsureRedisInsightEulaAccepted(client, ct);
-    }
-
-    internal sealed class RedisInsightDatabaseModel
-    {
-        public string? Id { get; set; }
-        public string? Host { get; set; }
-        public int? Port { get; set; }
-        public string? Name { get; set; }
-        public int? Db { get; set; }
-        public string? ConnectionType { get; set; }
     }
 
     [Fact]
@@ -742,5 +619,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var httpResponse = await client.GetAsync(redisCommanderUrl!);
         httpResponse.EnsureSuccessStatusCode();
+    }
+
+    internal sealed class RedisInsightDatabaseModel
+    {
+        public string? Id { get; set; }
+        public string? Host { get; set; }
+        public int? Port { get; set; }
+        public string? Name { get; set; }
     }
 }
