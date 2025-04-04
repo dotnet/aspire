@@ -23,9 +23,9 @@ internal sealed class RunCommand : BaseCommand
 
         _runner = runner;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
-        Options.Add(projectOption);
+        var projectArgument = new Argument<FileInfo?>("project");
+        projectArgument.Validators.Add(ProjectFileHelper.ValidateProjectArgument);
+        Arguments.Add(projectArgument);
 
         var watchOption = new Option<bool>("--watch", "-w");
         Options.Add(watchOption);
@@ -35,7 +35,7 @@ internal sealed class RunCommand : BaseCommand
     {
         using var activity = _activitySource.StartActivity();
 
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("project");
         var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
         
         if (effectiveAppHostProjectFile is null)
