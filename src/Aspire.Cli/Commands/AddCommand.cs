@@ -15,28 +15,34 @@ internal sealed class AddCommand : BaseCommand
     private readonly DotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public AddCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache) : base("add", "Add an integration or other resource to the Aspire project.")
+    public AddCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+        : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
 
-        var resourceArgument = new Argument<string>("resource");
-        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(resourceArgument);
+        var integrationArgument = new Argument<string>("integration");
+        integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
+        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
+        Arguments.Add(integrationArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = "The path to the project file to add the integration to.";
         projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
+        versionOption.Description = "The version of the integration to add.";
         Options.Add(versionOption);
 
         var prereleaseOption = new Option<bool>("--prerelease");
+        prereleaseOption.Description = "Include pre-release versions of the integration when searching.";
         Options.Add(prereleaseOption);
 
         var sourceOption = new Option<string?>("--source", "-s");
+        sourceOption.Description = "The NuGet source to use for the integration.";
         Options.Add(sourceOption);
     }
 
@@ -46,7 +52,7 @@ internal sealed class AddCommand : BaseCommand
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("resource");
+            var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);

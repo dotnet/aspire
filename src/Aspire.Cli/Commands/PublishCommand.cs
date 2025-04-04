@@ -15,19 +15,23 @@ internal sealed class PublishCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(PublishCommand));
     private readonly DotNetCliRunner _runner;
 
-    public PublishCommand(DotNetCliRunner runner) : base("publish", "Generates deployment artifacts for an Aspire app host project.")
+    public PublishCommand(DotNetCliRunner runner)
+        : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         _runner = runner;
 
         var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = "The path to the Aspire app host project file.";
         projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
         Options.Add(projectOption);
 
         var publisherOption = new Option<string>("--publisher", "-p");
+        publisherOption.Description = "The name of the publisher to use.";
         Options.Add(publisherOption);
 
         var outputPath = new Option<string>("--output-path", "-o");
+        outputPath.Description = "The output path for the generated artifacts.";
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
     }
