@@ -226,7 +226,7 @@ internal sealed class PublishCommand : BaseCommand
                     // stop the app host.
                     await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
                     var exitCode = await pendingRun;
-                    return exitCode; // shoudl be zero for orderly shutdown but we pass it along anyway.
+                    return exitCode; // should be zero for orderly shutdown but we pass it along anyway.
                 }
             });
 
