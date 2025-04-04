@@ -60,12 +60,12 @@ internal static class ProjectFileHelper
 
             if (csprojFiles.Length > 1)
             {
-                result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
+                result.AddError("The project argument was not specified and multiple *.csproj files were detected.");
                 return;
             }
             else if (csprojFiles.Length == 0)
             {
-                result.AddError("The --project option was not specified and no *.csproj files were detected.");
+                result.AddError("The project argument was not specified and no *.csproj files were detected.");
                 return;
             }
 
