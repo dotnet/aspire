@@ -82,6 +82,7 @@ public partial class TraceDetailsTests : DashboardTestContext
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8546")]
     public async Task Render_ChangeTrace_RowsRendered()
     {
         // Arrange
