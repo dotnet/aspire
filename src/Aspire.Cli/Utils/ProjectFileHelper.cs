@@ -47,6 +47,38 @@ internal static class ProjectFileHelper
         };
     }
 
+    internal static void ValidateProjectArgument(ArgumentResult result)
+    {
+        var value = result.GetValueOrDefault<FileInfo?>();
+
+        if (value is null)
+        {
+            // Having no value here is fine, but there has to
+            // be a single csproj file in the current
+            // working directory.
+            var csprojFiles = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
+
+            if (csprojFiles.Length > 1)
+            {
+                result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
+                return;
+            }
+            else if (csprojFiles.Length == 0)
+            {
+                result.AddError("The --project option was not specified and no *.csproj files were detected.");
+                return;
+            }
+
+            return;
+        }
+
+        if (!File.Exists(value.FullName))
+        {
+            result.AddError("The specified project file does not exist.");
+            return;
+        }
+    }
+
     internal static void ValidateProjectOption(OptionResult result)
     {
         var value = result.GetValueOrDefault<FileInfo?>();
