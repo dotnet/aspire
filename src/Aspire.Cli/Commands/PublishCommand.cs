@@ -125,7 +125,7 @@ internal sealed class PublishCommand : BaseCommand
                 .HighlightStyle(Style.Parse("darkmagenta"))
                 .AddChoices(publishers!);
 
-            publisher = AnsiConsole.Prompt(publisherPrompt);
+            publisher = await AnsiConsole.PromptAsync(publisherPrompt, cancellationToken);
         }
 
         AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
@@ -144,7 +144,7 @@ internal sealed class PublishCommand : BaseCommand
                 
                 var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
 
-                var launchingAppHostTask = context.AddTask("Launching apphost");
+                var launchingAppHostTask = context.AddTask(":play_button: Launching apphost");
                 launchingAppHostTask.IsIndeterminate();
                 launchingAppHostTask.StartTask();
 
@@ -159,6 +159,7 @@ internal sealed class PublishCommand : BaseCommand
 
                 var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
 
+                launchingAppHostTask.Description = $":check_mark: Launching apphost";
                 launchingAppHostTask.Value = 100;
                 launchingAppHostTask.StopTask();
 
@@ -176,37 +177,67 @@ internal sealed class PublishCommand : BaseCommand
                         progressTasks.Add(publishingActivity.Id, progressTask);
                     }
 
-                    progressTask.Description = $"{publishingActivity.StatusText}";
+                    progressTask.Description = $":play_button: {publishingActivity.StatusText}";
 
-                    if (publishingActivity.IsComplete)
+                    if (publishingActivity.IsComplete && !publishingActivity.IsError)
                     {
+                        progressTask.Description = $":check_mark: {publishingActivity.StatusText}";
                         progressTask.Value = 100;
                         progressTask.StopTask();
                     }
                     else if (publishingActivity.IsError)
                     {
-                        progressTask.Value = 100;
-                        progressTask.StopTask();
+                        progressTask.Description = $"[red bold]:cross_mark: {publishingActivity.StatusText}[/]";
+                        progressTask.Value = 0;
+                        break;
+                    }
+                    else
+                    {
+                        // Keep going man!
                     }
                 }
+
+                await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
 
                 // When we are running in publish mode we don't want the app host to
                 // stop itself while we might still be streaming data back across
                 // the RPC backchannel. So we need to take responsibility for stopping
                 // the app host. If the CLI exits/crashes without explicitly stopping
                 // the app host the orphan detector in the app host will kick in.
-                await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                return await pendingRun;
+                if (progressTasks.Any(kvp => !kvp.Value.IsFinished))
+                {
+                    // Depending on the failure the publisher may return a zero
+                    // exit code.
+                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                    var exitCode = await pendingRun;
+
+                    // If we are in the state where we've detected an error because there
+                    // is an incomplete task then we stop the app host, but depending on
+                    // where/how the failure occured, we might still get a zero exit
+                    // code. If we get a non-zero exit code we want to return that
+                    // as it might be useful for diagnostic purposes, however if we don't
+                    // get a non-zero exit code we want to return our built-in exit code
+                    // for failed artifact build.
+                    return exitCode == 0 ? ExitCodeConstants.FailedToBuildArtifacts : exitCode;
+                }
+                else
+                {
+                    // If we are here then all the tasks are finished and we can
+                    // stop the app host.
+                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                    var exitCode = await pendingRun;
+                    return exitCode; // should be zero for orderly shutdown but we pass it along anyway.
+                }
             });
 
         if (exitCode != 0)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The build failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.[/]");
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         else
         {
-            AnsiConsole.MarkupLine($"[green bold]:thumbs_up:  The build completed successfully to: {fullyQualifiedOutputPath}[/]");
+            AnsiConsole.MarkupLine($"[green bold]:thumbs_up: Successfully published artifacts to: {fullyQualifiedOutputPath}[/]");
             return ExitCodeConstants.Success;
         }
     }

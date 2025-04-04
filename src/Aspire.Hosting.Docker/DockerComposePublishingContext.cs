@@ -261,7 +261,7 @@ internal sealed class DockerComposePublishingContext(
                                                 $"{resourceInstance.Name}:latest");
 
                 containerImageName = $"${{{imageEnvName}}}";
-                return false;
+                return true;
             }
 
             return resourceInstance.TryGetContainerImageName(out containerImageName);

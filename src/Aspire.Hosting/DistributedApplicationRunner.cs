@@ -67,6 +67,11 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                 logger.LogError(ex, "Failed to publish the distributed application.");
                 publishingActivity.IsError = true;
                 await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
+
+                if (!backchannelService.IsBackchannelExpected)
+                {
+                     lifetime.StopApplication();
+                }
             }
         }
     }
