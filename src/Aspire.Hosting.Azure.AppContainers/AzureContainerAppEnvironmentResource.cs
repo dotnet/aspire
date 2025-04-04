@@ -16,42 +16,42 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// <summary>
     /// Gets the unique identifier of the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);
+    private BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);
 
     /// <summary>
     /// Gets the default domain associated with the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
+    private BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
-    public BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
+    private BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
 
     /// <summary>
     /// Gets the managed identity ID associated with the Azure Container Registry.
     /// </summary>
-    public BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
+    private BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
     /// <summary>
     /// Gets the unique identifier of the Log Analytics workspace.
     /// </summary>
-    public BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
+    private BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
 
     /// <summary>
     /// Gets the principal name of the managed identity.
     /// </summary>
-    public BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
+    private BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
 
     /// <summary>
     /// Gets the principal ID of the managed identity.
     /// </summary>
-    public BicepOutputReference PrincipalId => new("MANAGED_IDENTITY_PRINCIPAL_ID", this);
+    private BicepOutputReference PrincipalId => new("MANAGED_IDENTITY_PRINCIPAL_ID", this);
 
     /// <summary>
     /// Gets the name of the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
+    private BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
     internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
 
