@@ -125,7 +125,7 @@ internal sealed class PublishCommand : BaseCommand
                 .HighlightStyle(Style.Parse("darkmagenta"))
                 .AddChoices(publishers!);
 
-            publisher = AnsiConsole.Prompt(publisherPrompt);
+            publisher = await AnsiConsole.PromptAsync(publisherPrompt, cancellationToken);
         }
 
         AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
