@@ -27,8 +27,7 @@
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
     <IsAzdoCIRunner Condition=" '$(IsAzdoCIRunner)' == '' and '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
-    <!-- See https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Helix/Sdk/Readme.md#common-helix-client-environment-variables -->
-    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(HELIX_CORRELATION_ID)' != '' ">true</IsAzdoHelixRunner>
+    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(RunHelixTests)' == 'true' ">true</IsAzdoHelixRunner>
   </PropertyGroup>
 
   <PropertyGroup>
