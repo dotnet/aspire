@@ -23,10 +23,10 @@ internal sealed class AddCommand : BaseCommand
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
 
-        var resourceArgument = new Argument<string>("resource");
-        resourceArgument.Description = "The name of the integration or resource to add (e.g. redis, postgres).";
-        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(resourceArgument);
+        var integrationArgument = new Argument<string>("integration");
+        integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
+        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
+        Arguments.Add(integrationArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the project file to add the integration to.";
@@ -52,7 +52,7 @@ internal sealed class AddCommand : BaseCommand
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("resource");
+            var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
