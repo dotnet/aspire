@@ -17,17 +17,20 @@ internal sealed class RunCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly DotNetCliRunner _runner;
 
-    public RunCommand(DotNetCliRunner runner) : base("run", "Run an Aspire app host in development mode.")
+    public RunCommand(DotNetCliRunner runner)
+        : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
 
         _runner = runner;
 
         var projectArgument = new Argument<FileInfo?>("project");
+        projectArgument.Description = "The path to the Aspire app host project file.";
         projectArgument.Validators.Add(ProjectFileHelper.ValidateProjectArgument);
         Arguments.Add(projectArgument);
 
         var watchOption = new Option<bool>("--watch", "-w");
+        watchOption.Description = "Start .NET project resources in watch mode.";
         Options.Add(watchOption);
     }
 
