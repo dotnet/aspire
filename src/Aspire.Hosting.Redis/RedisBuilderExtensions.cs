@@ -224,26 +224,22 @@ public static class RedisBuilderExtensions
 
             var resource = new RedisInsightResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
-                                      .WithImage(RedisContainerImageTags.RedisInsightImage, RedisContainerImageTags.RedisInsightTag)
-                                      .WithImageRegistry(RedisContainerImageTags.RedisInsightRegistry)
-                                      .WithHttpEndpoint(targetPort: 5540, name: "http")
-                                      .ExcludeFromManifest();
-
-            resourceBuilder.WithEnvironment(context =>
-            {
-                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
-
-                if (!redisInstances.Any())
+                .WithImage(RedisContainerImageTags.RedisInsightImage, RedisContainerImageTags.RedisInsightTag)
+                .WithImageRegistry(RedisContainerImageTags.RedisInsightRegistry)
+                .WithHttpEndpoint(targetPort: 5540, name: "http")
+                .WithEnvironment(context =>
                 {
-                    // No-op if there are no Redis resources present.
-                    return;
-                }
+                    var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
-                var counter = 1;
+                    if (!redisInstances.Any())
+                    {
+                        // No-op if there are no Redis resources present.
+                        return;
+                    }
 
-                foreach (var redisInstance in redisInstances)
-                {
-                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    var counter = 1;
+
+                    foreach (var redisInstance in redisInstances)
                     {
                         // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
                         context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
@@ -256,16 +252,14 @@ public static class RedisBuilderExtensions
 
                         counter++;
                     }
-                }
-            });
-
-            resourceBuilder.WithRelationship(builder.Resource, "RedisInsight");
+                })
+                .WithRelationship(builder.Resource, "RedisInsight")
+                .ExcludeFromManifest();
 
             configureContainer?.Invoke(resourceBuilder);
 
             return builder;
         }
-
     }
 
     /// <summary>

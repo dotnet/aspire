@@ -546,23 +546,22 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                             .Build();
 
         await pipeline.ExecuteAsync(async ct =>
-         {
-             var response = await httpClient.GetAsync("/api/settings", ct);
-             response.EnsureSuccessStatusCode();
+        {
+            var response = await httpClient.GetAsync("/api/settings", ct);
+            response.EnsureSuccessStatusCode();
 
-             var content = await response.Content.ReadAsStringAsync(ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
 
-             var jo = JsonObject.Parse(content);
-             Assert.NotNull(jo);
-             var agreements = jo["agreements"];
+            var jo = JsonNode.Parse(content);
+            Assert.NotNull(jo);
+            var agreements = jo["agreements"];
 
-             Assert.NotNull(agreements);
-             Assert.False(agreements["analytics"]!.GetValue<bool>());
-             Assert.False(agreements["notifications"]!.GetValue<bool>());
-             Assert.False(agreements["encryption"]!.GetValue<bool>());
-             Assert.True(agreements["eula"]!.GetValue<bool>());
-         }, ct);
-
+            Assert.NotNull(agreements);
+            Assert.False(agreements["analytics"]!.GetValue<bool>());
+            Assert.False(agreements["notifications"]!.GetValue<bool>());
+            Assert.False(agreements["encryption"]!.GetValue<bool>());
+            Assert.True(agreements["eula"]!.GetValue<bool>());
+        }, ct);
     }
 
     static async Task AcceptRedisInsightEula(HttpClient client, CancellationToken ct)
