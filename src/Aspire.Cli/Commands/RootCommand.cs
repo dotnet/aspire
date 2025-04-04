@@ -15,7 +15,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class RootCommand : BaseRootCommand
 {
     public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand)
-        : base("Use the Aspire command-line interface to create, run, and publish Aspire-based applications.")
+        : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = "Enable debug logging to the console.";

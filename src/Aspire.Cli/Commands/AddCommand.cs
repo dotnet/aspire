@@ -16,7 +16,7 @@ internal sealed class AddCommand : BaseCommand
     private readonly INuGetPackageCache _nuGetPackageCache;
 
     public AddCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
-        : base("add", "Add an integration or other resource to the Aspire project.")
+        : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
