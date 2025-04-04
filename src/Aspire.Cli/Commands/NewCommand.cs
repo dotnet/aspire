@@ -15,7 +15,8 @@ internal sealed class NewCommand : BaseCommand
     private readonly DotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public NewCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache) : base("new", "Create a new Aspire sample project.")
+    public NewCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+        : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
@@ -23,19 +24,24 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
 
         var templateArgument = new Argument<string>("template");
+        templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
         templateArgument.Arity = ArgumentArity.ZeroOrOne;
         Arguments.Add(templateArgument);
 
         var nameOption = new Option<string>("--name", "-n");
+        nameOption.Description = "The name of the project to create.";
         Options.Add(nameOption);
 
         var outputOption = new Option<string?>("--output", "-o");
+        outputOption.Description = "The output path for the project.";
         Options.Add(outputOption);
         
         var sourceOption = new Option<string?>("--source", "-s");
+        sourceOption.Description = "The NuGet source to use for the project templates.";
         Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
+        templateVersionOption.Description = "The version of the project templates to use.";
         Options.Add(templateVersionOption);
     }
 
