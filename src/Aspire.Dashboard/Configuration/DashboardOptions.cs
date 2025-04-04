@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Hosting;
@@ -11,13 +12,25 @@ namespace Aspire.Dashboard.Configuration;
 
 public sealed class DashboardOptions
 {
+    public const string Dashboard = "Dashboard";
+
     public string? ApplicationName { get; set; }
     public string? PathBase { get; set; }
+    public ReverseProxyOptions ReverseProxy { get; set; } = new();
     public OtlpOptions Otlp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public UIOptions UI { get; set; } = new();
+}
+
+public sealed class ReverseProxyOptions
+{
+    public bool ForwardHeaders { get; set; }
+    public int? ForwardLimit { get; set; } = 1;
+    public IList<IPAddress> KnownProxies { get; set; } = [IPAddress.IPv6Loopback];
+    public IList<Microsoft.AspNetCore.HttpOverrides.IPNetwork> KnownNetworks { get; set; } = [new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Loopback, 8)];
+    public IList<string> AllowedHosts { get; set; } = [];
 }
 
 // Don't set values after validating/parsing options.
@@ -305,4 +318,14 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+/// <summary>
+/// Defines the forwarded headers that should be accepted by the dashboard.
+/// </summary>
+public enum ForwardedHeadersKind
+{
+    Disabled,
+    Forwarded,
+    XForwarded
 }

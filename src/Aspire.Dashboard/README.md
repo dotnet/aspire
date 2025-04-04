@@ -63,7 +63,7 @@ Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following con
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimType` specifies the (optional) claim that be present for authorized users. Defaults to empty.
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimValue` specifies the (optional) value of the required claim. Only used if `Dashboard:Frontend:OpenIdConnect:RequireClaimType` is also specified. Defaults to empty.
 
-#### Memory limits
+### Memory limits
 
 - `Dashboard:Frontend:MaxConsoleLogCount` specifies the (optional) maximum number of console log messages to keep in memory. Defaults to 10,000. When the limit is reached, the oldest messages are removed.
 
@@ -107,7 +107,7 @@ The resource service client supports API keys. Set `Dashboard:ResourceServiceCli
 
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
-#### Telemetry Limits
+### Telemetry Limits
 
 Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard has limits on the count and size of stored telemetry. When a count limit is reached, new telemetry is added, and the oldest telemetry is removed. When a size limit is reached, data is truncated to the limit.
 
@@ -120,8 +120,18 @@ Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard ha
 
 Limits are per-resource. For example, a `MaxLogCount` value of 10,000 configures the dashboard to store up to 10,000 log entries per-resource.
 
+### Reverse Proxy
+
+There are a number of settings that control how the dashboard works behind a reverse proxy. These settings are used when the dashboard is hosted in a container or behind a reverse proxy, such as YARP, Nginx, or Apache. These settings control the dashboard's configuration of the [ForwdwaredHeadersMiddleware](https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer#forwarded-headers)].
+
+- `Dashboard:ReverseProxy:ForwardHeaders` specifies whether to enable forwarding headers. This is required when the dashboard is hosted behind a reverse proxy. Defaults to `false`.
+- `Dashboard:ReverseProxy:AllowedHosts` specifies a list of allowed hosts. The allowed values from the `X-Forwarded-Host` header. If the list is empty,then all hosts are allowed. Defaults to empty.
+- `Dashboard:ReverseProxy:ForwardLimit` specifies the maximum number of entries in the headers that are processed. Set to null to disable the limit, but this should only be done if `KnownProxies` or `KnownNetworks` are configured. Setting a non-null value is a precaution (but not a guarantee) to protect against misconfigured proxies and malicious requests arriving from side-channels on the network. Defaults to `1`.
+- `Dashboard:ReverseProxy:KnownNetworks` specifies a list of address ranges of known networks to accept forwarded headers from. Provide IP ranges using Classless Interdomain Routing (CIDR) notation. If the list is empty, then all networks are allowed. Defaults to the local loopback network (e.g. `localhost`).
+- `Dashboard:ReverseProxy:KnownProxies` specifies a list of addresses of known proxies to accept forwarded headers from. Use `KnownProxies` to specify exact IP address matches. If the list is empty, then all proxies are allowed. Defaults to the local IPV6 loopback address.
+
 ### Other
 
 - `Dashboard:ApplicationName` specifies the application name to be displayed in the UI. This applies only when no resource service URL is specified. When a resource service exists, the service specifies the application name.
 
-- `Dashboard:PathBase` specifies the path base utilized by [PathMiddleware](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.usepathbaseextensions.usepathbase) to control how links are handled behind a reverse proxy
+- `Dashboard:PathBase` specifies the path base utilized by [PathBaseMiddleware](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.usepathbaseextensions.usepathbase) to control the path the dashboard is served from (intead of `/`). Note when running behind a reverse proxy and using the `Dashboard:ReverseProxy:ForwardHeaders` setting, the path base should be automatically set to the path base of the reverse proxy via the `X-Forwarded-Prefix` header so this setting need not be configured. Defaults to empty.

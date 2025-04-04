@@ -152,7 +152,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
 
-        var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
+        var dashboardConfigSection = builder.Configuration.GetSection(DashboardOptions.Dashboard);
         builder.Services.AddOptions<DashboardOptions>()
             .Bind(dashboardConfigSection)
             .ValidateOnStart();
@@ -175,6 +175,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         else
         {
             _validationFailures = Array.Empty<string>();
+        }
+
+        if (dashboardOptions.ReverseProxy.ForwardHeaders)
+        {
+            builder.Services.AddSingleton<IConfigureOptions<ForwardedHeadersOptions>, ConfigureForwardedHeadersOptions>();
         }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
@@ -289,14 +294,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .Select(c => c.Name)
             .ToArray();
 
-        // TODO: Figure out new configuration keys to expose to enable forwarded headers in the dashboard.
-        //       Other containers often expose multiple headers to control aspects of the app hosted behind a reverse proxy,
-        //       e.g. https://www.keycloak.org/server/reverseproxy
-        _app.UseForwardedHeaders(new()
-        {
-            ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
-        });
-
         // TODO: Revisit whether this is needed. It provides the ability to use a path base when forwarded headers don't set it,
         //       e.g. when not using a reverse-proxy but instead just configuring an app host project to use a path base.
         if (dashboardOptions.PathBase is not null)
@@ -310,6 +307,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 // ~/login requests through as that's what VS launches the browser to. In that case we redirect instead.
                 _app.UsePathBaseEnforcement();
             }
+        }
+
+        // Add this after PathBase so that it overrides it if the reverse proxy sets the path base.
+        if (dashboardOptions.ReverseProxy.ForwardHeaders)
+        {
+            _app.UseForwardedHeaders();
         }
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
