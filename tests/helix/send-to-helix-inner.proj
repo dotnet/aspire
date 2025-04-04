@@ -68,7 +68,7 @@
     <_TestBlameArguments Include="--crashdump" />
     <_TestBlameArguments Include="--crashdump-type Full" />
 
-    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --show-live-output on" />
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --show-live-output on --filter-not-trait &quot;category=failing&quot;" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 

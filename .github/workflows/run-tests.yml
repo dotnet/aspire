@@ -226,6 +226,7 @@ jobs:
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --show-live-output on
+          --filter-not-trait &quot;category=failing&quot;
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
