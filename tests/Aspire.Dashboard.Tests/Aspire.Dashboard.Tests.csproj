@@ -12,8 +12,8 @@
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
     <!-- Do not run tests in Helix at all -->
-    <RunsOnHelixWindows>false</RunsOnHelixWindows>
-    <RunsOnHelixLinux>false</RunsOnHelixLinux>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
   </PropertyGroup>
 
   <ItemGroup>

@@ -15,11 +15,11 @@ The Helix CI job builds `tests/helix/send-to-helix-ci.proj`, which in turns buil
 ## Controlling test runs on CI
 
 - Tests on pull-requests run in GitHub Actions. Individual test projects can be opted-out by setting appropriate MSBuild properties:
-  - `<RunsOnGithubActionsWindows>false</RunsOnGithubActionsWindows>` and/or
-  - `<RunsOnGithubActionsLinux>false</RunsOnGithubActionsLinux>`.
+  - `<RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>` and/or
+  - `<RunOnGithubActionsLinux>false</RunOnGithubActionsLinux>`.
 
 - Tests for rolling builds run on the build machine and Helix.
 Individual test projects can be opted-out by setting appropriate MSBuild properties:
-  - `<RunsOnAzdo>false</RunsOnAzdo>` and/or
-  - `<RunsOnHelixWindows>false</RunsOnHelixWindows>` and/or
-  - `<RunsOnHelixLinux>false</RunsOnHelixLinux>`.
+  - `<RunOnAzdoCI>false</RunOnAzdoCI>` and/or
+  - `<RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>` and/or
+  - `<RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>`.
