@@ -55,13 +55,13 @@ internal sealed class NewCommand : BaseCommand
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
         (string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates = [
-            ("aspire-starter", "Aspire Starter App", "src") ,
-            ("aspire", "Aspire Empty App", "src"),
-            ("aspire-apphost", "Aspire App Host", null),
-            ("aspire-servicedefaults", "Aspire Service Defaults", null),
-            ("aspire-mstest", "Aspire Test Project (MSTest)", null),
-            ("aspire-nunit", "Aspire Test Project (NUnit)", null),
-            ("aspire-xunit", "Aspire Test Project (xUnit)", null)
+            ("aspire-starter", "Aspire Starter App", "./src") ,
+            ("aspire", "Aspire Empty App", "./src"),
+            ("aspire-apphost", "Aspire App Host", "./"),
+            ("aspire-servicedefaults", "Aspire Service Defaults", "./"),
+            ("aspire-mstest", "Aspire Test Project (MSTest)", "./"),
+            ("aspire-nunit", "Aspire Test Project (NUnit)", "./"),
+            ("aspire-xunit", "Aspire Test Project (xUnit)", "./")
             ];
 
         if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
@@ -98,7 +98,7 @@ internal sealed class NewCommand : BaseCommand
         {
             outputPath = await PromptUtils.PromptForStringAsync(
                 "Enter the output path:",
-                defaultValue: Path.Combine(Environment.CurrentDirectory, pathAppendage ?? string.Empty),
+                defaultValue: pathAppendage ?? ".",
                 cancellationToken: cancellationToken
                 );
         }
