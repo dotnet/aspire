@@ -17,8 +17,10 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzurePublisherTests(ITestOutputHelper output)
 {
-    [Fact]
-    public async Task PublishAsync_GeneratesMainBicep()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PublishAsync_GeneratesMainBicep(bool useContext)
     {
         using var tempDirectory = new TempDirectory();
         using var tempDir = new TempDirectory();
@@ -72,12 +74,26 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var publisher = new AzurePublisher("azure",
-            options,
-            provisionerOptions,
-            NullLogger<AzurePublisher>.Instance);
+        if (useContext)
+        {
+            // tests the public AzurePublishingContext API
+            var context = new AzurePublishingContext(
+                options.CurrentValue,
+                provisionerOptions.Value,
+                NullLogger<AzurePublishingContext>.Instance);
 
-        await publisher.PublishAsync(model, default);
+            await context.WriteModelAsync(model, default);
+        }
+        else
+        {
+            // tests via the internal Publisher object
+            var publisher = new AzurePublisher("azure",
+                options,
+                provisionerOptions,
+                NullLogger<AzurePublisher>.Instance);
+
+            await publisher.PublishAsync(model, default);
+        }
 
         Assert.True(File.Exists(Path.Combine(tempDir.Path, "main.bicep")));
 
