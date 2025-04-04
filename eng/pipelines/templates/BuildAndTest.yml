@@ -144,10 +144,9 @@ steps:
   - ${{ if eq(parameters.runHelixTests, 'true') }}:
     - task: CopyFiles@2
       inputs:
-        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*.trx'
+        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*'
         TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
-        flattenFolders: true
         OverWrite: true
-      displayName: Gather helix trx files
+      displayName: Gather helix results
       continueOnError: true
       condition: always()
