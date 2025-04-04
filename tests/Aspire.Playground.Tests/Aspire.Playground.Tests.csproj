@@ -6,6 +6,10 @@
     <IsTestProject>true</IsTestProject>
     <ExcludeTestUtilities>true</ExcludeTestUtilities>
 
+    <!-- Setting it here as the tests/Directory.Build.props is not used on
+         helix when building the project. And xunitv3 requires this. -->
+    <OutputType>Exe</OutputType>
+
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <!-- no docker support on GHA/windows yet -->
