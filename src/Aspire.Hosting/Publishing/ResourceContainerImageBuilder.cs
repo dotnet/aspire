@@ -140,7 +140,7 @@ internal sealed class ResourceContainerImageBuilder(
             publishingActivity.IsComplete = true;
             await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
 
-            logger.LogError(
+            logger.LogDebug(
                 ".NET CLI completed with exit code: {ExitCode}",
                 process.ExitCode);
 

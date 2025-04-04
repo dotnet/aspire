@@ -24,7 +24,7 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
     public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _builder = TestDistributedApplicationBuilder.Create()
             .WithTestAndResourceLogging(new TestOutputWrapper(diagnosticMessageSink));
@@ -47,7 +47,7 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
         await WaitReadyStateAsync(cts.Token);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _builder?.Dispose();
 
@@ -114,6 +114,18 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 
     private sealed class TestOutputWrapper(IMessageSink messageSink) : ITestOutputHelper
     {
+        public string Output => string.Empty;
+
+        public void Write(string message)
+        {
+            messageSink.OnMessage(new DiagnosticMessage(message));
+        }
+
+        public void Write(string format, params object[] args)
+        {
+            messageSink.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
+        }
+
         public void WriteLine(string message)
         {
             messageSink.OnMessage(new DiagnosticMessage(message));

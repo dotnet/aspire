@@ -3,10 +3,6 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Docker;
-using Aspire.Hosting.Kubernetes;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("env");
@@ -50,6 +46,8 @@ builder.AddProject<Projects.Publishers_Frontend>("frontend")
        .WithEnvironment("P2", param2)
        .WithEnvironment("P3", param3)
        .WithReference(backend).WaitFor(backend);
+
+builder.AddDockerfile("mycontainer", "qots");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

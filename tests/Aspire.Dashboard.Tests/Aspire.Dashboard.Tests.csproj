@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
   </ItemGroup>
 

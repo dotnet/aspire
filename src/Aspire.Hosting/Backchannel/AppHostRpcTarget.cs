@@ -9,6 +9,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -19,13 +20,23 @@ internal class AppHostRpcTarget(
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
     IDistributedApplicationEventing eventing,
-    PublishingActivityProgressReporter activityReporter) 
+    PublishingActivityProgressReporter activityReporter,
+    IHostApplicationLifetime lifetime
+    ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
             var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            if (publishingActivity == null)
+            {
+                // If the publishing activity is null, it means that the activity has been removed.
+                // This can happen if the activity is complete or an error occurred.
+                yield break;
+            }
+
             yield return (
                 publishingActivity.Id,
                 publishingActivity.StatusMessage,
@@ -37,7 +48,7 @@ internal class AppHostRpcTarget(
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
-                break;
+                yield break;
             }
         }
     }
@@ -72,6 +83,13 @@ internal class AppHostRpcTarget(
                 endpointUris
                 );
         }
+    }
+
+    public Task RequestStopAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        lifetime.StopApplication();
+        return Task.CompletedTask;
     }
 
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)

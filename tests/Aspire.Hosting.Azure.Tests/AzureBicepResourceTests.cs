@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -237,6 +238,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
+    [Fact]
+    public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
+
+#pragma warning disable ASPIRECOSMOSDB001
+        builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("mykeyvault")]
@@ -264,16 +283,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
         db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
-        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kv = model.Resources.OfType<AzureKeyVaultResource>().Single();
+
+        Assert.Equal(kvName, kv.Name);
 
         var secrets = new Dictionary<string, string>
         {
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -533,9 +560,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -2875,9 +2902,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault, bool useObsoleteApis)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -2892,9 +2921,30 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
                     account.Properties.DisableLocalAuth = false;
                 }
-            })
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
-            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+            });
+
+        if (useObsoleteApis)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            openai.AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
+                .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            openai.AddDeployment("mymodel", "gpt-35-turbo", "0613")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+            openai.AddDeployment("embedding-model", "text-embedding-ada-002", "2")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+        }
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -3106,6 +3156,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ToString());
         Assert.Equal(expectedBicep, bicep);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class ProjectA : IProjectMetadata
     {

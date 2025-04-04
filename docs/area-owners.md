@@ -27,3 +27,6 @@ If you need to tag folks on an issue or PR, you will generally want to tag the o
 While not necessarily associated with a specific area, these community members have the power to assist with routing and fixing labels of issues and pull requests, and are generally knowledgeable about how the repo works:
 
 * @Kahbazi
+* @Alirexaa
+* @davidebbo
+* @afscrome

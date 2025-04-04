@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents a resource that represents an Azure Key Vault.
 /// </summary>
-public interface IKeyVaultResource : IResource, IAzureResource
+public interface IAzureKeyVaultResource : IResource, IAzureResource
 {
     /// <summary>
     /// Gets the output reference that represents the vault uri for the Azure Key Vault resource.
@@ -23,12 +23,12 @@ public interface IKeyVaultResource : IResource, IAzureResource
     /// <summary>
     /// Gets or sets the secret resolver function used to resolve secrets at runtime.
     /// </summary>
-    Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
+    Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
     /// <summary>
     /// Gets a secret reference for the specified secret name.
     /// </summary>
     /// <param name="secretName">The name of the secret.</param>
     /// <returns>A reference to the secret.</returns>
-    IKeyVaultSecretReference GetSecretReference(string secretName);
+    IAzureKeyVaultSecretReference GetSecretReference(string secretName);
 }
