@@ -14,13 +14,16 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand) : base("Aspire CLI")
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand)
+        : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
         var debugOption = new Option<bool>("--debug", "-d");
+        debugOption.Description = "Enable debug logging to the console.";
         debugOption.Recursive = true;
         Options.Add(debugOption);
         
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger", "-w");
+        waitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
