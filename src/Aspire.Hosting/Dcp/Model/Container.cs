@@ -295,11 +295,13 @@ internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFile
 
     // The default owner UID to use for created (or updated) file system entries. Defaults to 0 for root.
     [JsonPropertyName("defaultOwner")]
-    public int DefaultOwner { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultOwner { get; set; }
 
     // The default group GID to use for created (or updated) file system entries. Defaults to 0 for root.
     [JsonPropertyName("defaultGroup")]
-    public int DefaultGroup { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultGroup { get; set; }
 
     // The umask for created files and folders without explicit permissions set (defaults to 022 if null)
     [JsonPropertyName("umask")]

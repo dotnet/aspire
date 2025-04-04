@@ -706,8 +706,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="destinationPath">The destination (absolute) path in the container.</param>
     /// <param name="entries">The file system entries to create.</param>
-    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
     /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -741,7 +741,7 @@ public static class ContainerResourceBuilderExtensions
     ///     defaultOwner: 1000);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -769,8 +769,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="destinationPath">The destination (absolute) path in the container.</param>
     /// <param name="callback">The callback that will be invoked when the resource is being created.</param>
-    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
     /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -814,7 +814,7 @@ public static class ContainerResourceBuilderExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
