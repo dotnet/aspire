@@ -365,7 +365,7 @@ public static class AzureCosmosExtensions
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
     /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureCosmosDBResource will be stored.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
-    public static IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureCosmosDBResource> builder, IResourceBuilder<IKeyVaultResource> keyVaultBuilder)
+    public static IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureCosmosDBResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
