@@ -476,8 +476,8 @@ public class AddPostgresTests
 
         Assert.Equal("/pgadmin4", createServers.DestinationPath);
         Assert.Null(createServers.Umask);
-        Assert.Equal(0, createServers.DefaultOwner);
-        Assert.Equal(0, createServers.DefaultGroup);
+        Assert.Null(createServers.DefaultOwner);
+        Assert.Null(createServers.DefaultGroup);
 
         var entries = await createServers.Callback(new() { Model = pgadmin, ServiceProvider = app.Services }, CancellationToken.None);
 
@@ -547,8 +547,8 @@ public class AddPostgresTests
 
         Assert.Equal("/", createBookmarks.DestinationPath);
         Assert.Null(createBookmarks.Umask);
-        Assert.Equal(0, createBookmarks.DefaultOwner);
-        Assert.Equal(0, createBookmarks.DefaultGroup);
+        Assert.Null(createBookmarks.DefaultOwner);
+        Assert.Null(createBookmarks.DefaultGroup);
 
         var entries = await createBookmarks.Callback(new() { Model = pgweb, ServiceProvider = app.Services }, CancellationToken.None);
 
