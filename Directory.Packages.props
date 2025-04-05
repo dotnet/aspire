@@ -87,6 +87,7 @@
     <PackageVersion Include="KubernetesClient" Version="16.0.2" />
     <PackageVersion Include="JsonPatch.Net" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <PackageVersion Include="Microsoft.FeatureManagement" Version="4.0.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
