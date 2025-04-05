@@ -88,6 +88,20 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public IReadOnlyDictionary<string, string> Databases => _databases;
 
+    internal void SetPassword(ParameterResource password)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+
+        PasswordParameter = password;
+    }
+
+    internal void SetUserName(ParameterResource userName)
+    {
+        ArgumentNullException.ThrowIfNull(userName);
+
+        UserNameParameter = userName;
+    }
+
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);

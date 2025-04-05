@@ -31,7 +31,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the parameter that contains the Redis server password.
     /// </summary>
-    public ParameterResource? PasswordParameter { get; }
+    public ParameterResource? PasswordParameter { get; private set; }
 
     private ReferenceExpression BuildConnectionString()
     {
@@ -75,5 +75,12 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         }
 
         return BuildConnectionString().GetValueAsync(cancellationToken);
+    }
+
+    internal void SetPassword(ParameterResource password)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+
+        PasswordParameter = password;
     }
 }
