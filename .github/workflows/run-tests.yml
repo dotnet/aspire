@@ -225,7 +225,6 @@ jobs:
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
-          --show-live-output on
           --filter-not-trait "category=failing"
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}

@@ -16,9 +16,6 @@
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnHelix>
     <!-- this is for pipeline tests -->
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
-
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --filter-not-trait "category=failing" --show-live-output on</TestingPlatformCommandLineArguments>
-    <TestingPlatformCommandLineArguments Condition="'$(TrxFileNamePrefix)' != ''">$(TestingPlatformCommandLineArguments) --report-trx-filename  "$(TrxFileNamePrefix)_$(TargetFramework)_$([System.DateTime]::UtcNow.ToString('yyyyMMddhhmmss')).trx"</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>

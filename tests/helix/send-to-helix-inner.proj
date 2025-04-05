@@ -74,7 +74,7 @@
       So, ignore exit code 8 (zero tests ran)
       https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
     -->
-    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --show-live-output on --filter-not-trait &quot;category=failing&quot; --ignore-exit-code 8" />
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --filter-not-trait &quot;category=failing&quot; --ignore-exit-code 8" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
