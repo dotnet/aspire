@@ -253,7 +253,7 @@ jobs:
           --report-trx
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
-          --results-directory testresults
+          --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
