@@ -30,7 +30,7 @@ internal sealed class DockerComposePublishingContext(
     CancellationToken cancellationToken = default)
 {
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
-
+    public readonly DockerComposePublisherOptions PublisherOptions = publisherOptions;
     public readonly PortAllocator PortAllocator = new();
     private readonly Dictionary<string, (string Description, string? DefaultValue)> _env = [];
     private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
@@ -48,7 +48,7 @@ internal sealed class DockerComposePublishingContext(
         logger.StartGeneratingDockerCompose();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(publisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -58,7 +58,7 @@ internal sealed class DockerComposePublishingContext(
 
         await WriteDockerComposeOutputAsync(model).ConfigureAwait(false);
 
-        logger.FinishGeneratingDockerCompose(publisherOptions.OutputPath);
+        logger.FinishGeneratingDockerCompose(PublisherOptions.OutputPath);
     }
 
     public void AddEnv(string name, string description, string? defaultValue = null)
@@ -70,7 +70,7 @@ internal sealed class DockerComposePublishingContext(
     {
         var defaultNetwork = new Network
         {
-            Name = publisherOptions.ExistingNetworkName ?? "aspire",
+            Name = PublisherOptions.ExistingNetworkName ?? "aspire",
             Driver = "bridge",
         };
 
@@ -105,8 +105,8 @@ internal sealed class DockerComposePublishingContext(
         }
 
         var composeOutput = composeFile.ToYaml();
-        var outputFile = Path.Combine(publisherOptions.OutputPath!, "docker-compose.yaml");
-        Directory.CreateDirectory(publisherOptions.OutputPath!);
+        var outputFile = Path.Combine(PublisherOptions.OutputPath!, "docker-compose.yaml");
+        Directory.CreateDirectory(PublisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
 
         if (_env.Count == 0)
@@ -117,7 +117,7 @@ internal sealed class DockerComposePublishingContext(
 
         // Write a .env file with the environment variable names
         // that are used in the compose file
-        var envFile = Path.Combine(publisherOptions.OutputPath!, ".env");
+        var envFile = Path.Combine(PublisherOptions.OutputPath!, ".env");
         using var envWriter = new StreamWriter(envFile);
 
         foreach (var entry in _env)
@@ -200,7 +200,10 @@ internal sealed class DockerComposePublishingContext(
 
         public async Task<Service> BuildComposeServiceAsync(CancellationToken cancellationToken)
         {
-            await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+            if (composePublishingContext.PublisherOptions.BuildImages)
+            {
+                await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+            }
 
             if (!TryGetContainerImageName(resource, out var containerImageName))
             {
