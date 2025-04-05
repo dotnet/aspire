@@ -11,6 +11,9 @@ namespace Aspire.Hosting
     public static partial class AzureSearchExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureSearchResource> target, params global::Azure.Provisioning.Search.SearchBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -23,5 +26,7 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference ConnectionString { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }
