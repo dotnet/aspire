@@ -144,6 +144,29 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             }
         }
 
+        if (!options.ReverseProxy.ForwardHeaders)
+        {
+            // TODO: Ensure other properties are not set if ForwardHeaders is false.
+            if (options.ReverseProxy.ForwardLimit != 1)
+            {
+                
+            }
+        }
+
+        // Validate the path base if set to make sure it starts and ends with a forward slash.
+        if (options.PathBase is not null)
+        {
+            if (!options.PathBase.StartsWith('/'))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must start with a forward slash.");
+            }
+
+            if (!options.PathBase.EndsWith('/'))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must end with a forward slash.");
+            }
+        }
+
         return errorMessages.Count > 0
             ? ValidateOptionsResult.Fail(errorMessages)
             : ValidateOptionsResult.Success;

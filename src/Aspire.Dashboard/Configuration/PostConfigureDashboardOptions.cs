@@ -34,6 +34,11 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         }
 
         // Copy aliased config values to the strongly typed options.
+        if (_configuration[DashboardConfigNames.DashboardPathBase.ConfigKey] is { Length: > 0 } pathBase)
+        {
+            options.PathBase = pathBase;
+        }
+        
         if (_configuration.GetString(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey,
                                      DashboardConfigNames.Legacy.DashboardOtlpHttpUrlName.ConfigKey, fallbackOnEmpty: true) is { } otlpHttpUrl)
         {

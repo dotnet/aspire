@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TestShop.AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -82,7 +83,9 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 // dashboard launch experience, Refer to Directory.Build.props for the path to
 // the dashboard binary (defaults to the Aspire.Dashboard bin output in the
 // artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+var dashboard = builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.DashboardProxy>("dashboard-proxy")
+    .WithDashboardReference(dashboard, "/proxied-dashboard");
 #endif
 
 builder.Build().Run();

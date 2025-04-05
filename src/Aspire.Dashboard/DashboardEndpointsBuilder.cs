@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using Aspire.Dashboard.Utils; 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Localization;
@@ -30,7 +30,8 @@ public static class DashboardEndpointsBuilder
                 await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
                     httpContext,
                     CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
+                var pathBase = httpContext.Request.PathBase.HasValue ? httpContext.Request.PathBase.ToString() : "/";
+                httpContext.Response.Redirect(pathBase);
             });
 #endif
         }
