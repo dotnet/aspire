@@ -14,8 +14,6 @@
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
-
-    <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
   </PropertyGroup>
 
   <PropertyGroup>
