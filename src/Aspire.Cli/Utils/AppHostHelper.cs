@@ -62,4 +62,14 @@ internal static class AppHostHelper
 
         return appHostInformationResult;
     }
+    
+    internal static async Task<int> BuildAppHostAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        return await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots3)
+            .SpinnerStyle(Style.Parse("purple"))
+            .StartAsync(":hammer_and_wrench:  Building app host...", async context => {
+                return await runner.BuildAsync(projectFile, cancellationToken).ConfigureAwait(false);
+            });
+    }
 }

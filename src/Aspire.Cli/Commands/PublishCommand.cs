@@ -62,6 +62,14 @@ internal sealed class PublishCommand : BaseCommand
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
 
+        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+
+        if (buildExitCode != 0)
+        {
+            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+
         var publisher = parseResult.GetValue<string>("--publisher");
         var outputPath = parseResult.GetValue<string>("--output-path");
         var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
@@ -81,7 +89,7 @@ internal sealed class PublishCommand : BaseCommand
                     var pendingInspectRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
-                        false,
+                        true,
                         ["--operation", "inspect"],
                         null,
                         backchannelCompletionSource,

@@ -77,6 +77,49 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         }
     }
 
+    public async Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+        
+        string[] cliArgs = [
+            "msbuild",
+            $"-getProperty:{string.Join(",", properties)}",
+            $"-getItem:{string.Join(",", items)}",
+            projectFile.FullName
+            ];
+
+        string? stdout = null;
+        string? stderr = null;
+
+        var exitCode = await ExecuteAsync(
+            cliArgs,
+            null,
+            projectFile.Directory!,
+            null,
+            (_, output, error) => {
+                stdout = output.ReadToEnd();
+                stderr = error.ReadToEnd();
+            },
+            cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError(
+                "Failed to get items and properties from project. Exit code was: {ExitCode}. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                exitCode,
+                stderr,
+                stdout
+            );
+
+            return (exitCode, null);
+        }
+        else
+        {
+            var json = JsonDocument.Parse(stdout!);
+            return (exitCode, json);
+        }
+    }
+
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
