@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Updater;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -16,13 +17,16 @@ internal sealed class RunCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly DotNetCliRunner _runner;
+    private readonly IUpdaterService _updaterService;
 
-    public RunCommand(DotNetCliRunner runner)
+    public RunCommand(DotNetCliRunner runner, IUpdaterService updaterService)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
+        ArgumentNullException.ThrowIfNull(updaterService, nameof(updaterService));
 
         _runner = runner;
+        _updaterService = updaterService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -37,6 +41,8 @@ internal sealed class RunCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
+
+        var result = await _updaterService.CheckForCliUpdateAsync(cancellationToken);
 
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);

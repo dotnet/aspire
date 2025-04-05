@@ -5,7 +5,7 @@ namespace Aspire.Cli.Utils;
 
 internal static class VersionHelper
 {
-    public static string GetDefaultTemplateVersion()
+    public static string GetInformationalVersion()
     {
         // Write some code that gets the informational assembly version of the current assembly and returns it as a string.
         var assembly = typeof(VersionHelper).Assembly;

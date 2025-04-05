@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Updater;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,7 +44,8 @@ public class Program
                     nameof(NewCommand),
                     nameof(RunCommand),
                     nameof(AddCommand),
-                    nameof(PublishCommand)
+                    nameof(PublishCommand),
+                    nameof(UpdaterService)
                     );
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
@@ -70,6 +72,7 @@ public class Program
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
+        builder.Services.AddTransient<IUpdaterService, UpdaterService>();
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();

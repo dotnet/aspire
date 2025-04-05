@@ -116,7 +116,7 @@ internal sealed class NewCommand : BaseCommand
         {
             version = await PromptUtils.PromptForStringAsync(
                 "Project templates version:",
-                defaultValue: VersionHelper.GetDefaultTemplateVersion(),
+                defaultValue: VersionHelper.GetInformationalVersion(),
                 validator: (string value) => {
                     if (SemVersion.TryParse(value, out var parsedVersion))
                     {
