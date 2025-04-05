@@ -11,4 +11,5 @@ using Azure.Data.AppConfiguration;
 [assembly: LoggingCategories(
     "Azure",
     "Azure.Core",
-    "Azure.Identity")]
+    "Azure.Identity",
+    "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh")]
