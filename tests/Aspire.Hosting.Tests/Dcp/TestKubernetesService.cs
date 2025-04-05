@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Text;
 using k8s.Models;
 using k8s.Autorest;
+using Json.Patch;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -168,6 +169,54 @@ internal sealed class TestKubernetesService : IKubernetesService
 
     public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource
     {
+        // Not a complete implementation, but Aspire is using patching only to stop resources,
+        // so this is good enough.
+
+        if (patch.Type == V1Patch.PatchType.JsonPatch)
+        {
+            Json.Patch.JsonPatch jsonPatch = (Json.Patch.JsonPatch)patch.Content;
+
+            var res = CreatedResources.OfType<T>().FirstOrDefault(r =>
+                r.Metadata.Name == obj.Metadata.Name &&
+                string.Equals(r.Metadata.NamespaceProperty, obj.Metadata.NamespaceProperty)
+            );
+            if (res == null)
+            {
+                throw new ArgumentException($"Resource '{obj.Metadata.NamespaceProperty}/{obj.Metadata.Name}' not found");
+            }
+
+            var result = jsonPatch.Apply<T, T>(res);
+
+            if (res is Executable exe && result is Executable eu)
+            {
+                if (eu.Spec.Stop == true)
+                {
+                    exe.Spec.Stop = true;
+                    if (exe.Status is null)
+                    {
+                        exe.Status = new ExecutableStatus();
+                    }
+                    exe.Status.State = ExecutableState.Finished;
+                }
+            }
+
+            if (res is Container ctr && result is Container cu)
+            {
+                if (cu.Spec.Stop == true)
+                {
+                    ctr.Spec.Stop = true;
+                    if (ctr.Status is null)
+                    {
+                        ctr.Status = new ContainerStatus();
+                    }
+                    ctr.Status.State = ContainerState.Exited;
+                }
+            }
+
+            return Task.FromResult(res);
+        }
+
+        // Fall back to doing noting.
         return Task.FromResult(obj);
     }
 

@@ -906,7 +906,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                     foreach (var er in executables)
                     {
-                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable) er.DcpResource, s))).ConfigureAwait(false);
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable)er.DcpResource, s))).ConfigureAwait(false);
                     }
 
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
@@ -1176,7 +1176,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             {
                 // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
                 // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
-                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container) cr.DcpResource, s))).ConfigureAwait(false);
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container)cr.DcpResource, s))).ConfigureAwait(false);
 
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
@@ -1430,21 +1430,53 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     public async Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {
-        var appResource = (AppResource)resourceReference;
+        _logger.LogDebug("Stopping resource '{ResourceName}'...", resourceReference.DcpResourceName);
 
-        V1Patch patch;
-        switch (appResource.DcpResource)
+        var result = await DeleteResourceRetryPipeline.ExecuteAsync(async (resourceName, attemptCancellationToken) =>
         {
-            case Container c:
-                patch = CreatePatch(c, obj => obj.Spec.Stop = true);
-                await _kubernetesService.PatchAsync(c, patch, cancellationToken).ConfigureAwait(false);
-                break;
-            case Executable e:
-                patch = CreatePatch(e, obj => obj.Spec.Stop = true);
-                await _kubernetesService.PatchAsync(e, patch, cancellationToken).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
+            var appResource = (AppResource)resourceReference;
+
+            V1Patch patch;
+            switch (appResource.DcpResource)
+            {
+                case Container c:
+                    patch = CreatePatch(c, obj => obj.Spec.Stop = true);
+                    await _kubernetesService.PatchAsync(c, patch, attemptCancellationToken).ConfigureAwait(false);
+                    var cu = await _kubernetesService.GetAsync<Container>(c.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    if (cu.Status?.State == ContainerState.Exited)
+                    {
+                        _logger.LogDebug("Container '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Container '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
+                        return false;
+                    }
+
+                case Executable e:
+                    patch = CreatePatch(e, obj => obj.Spec.Stop = true);
+                    await _kubernetesService.PatchAsync(e, patch, attemptCancellationToken).ConfigureAwait(false);
+                    var eu = await _kubernetesService.GetAsync<Executable>(e.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    if (eu.Status?.State == ExecutableState.Finished || eu.Status?.State == ExecutableState.Terminated)
+                    {
+                        _logger.LogDebug("Executable '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Executable '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
+                        return false;
+                    }
+
+                default:
+                    throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
+            }
+        }, resourceReference.DcpResourceName, cancellationToken).ConfigureAwait(false);
+
+        if (!result)
+        {
+            throw new InvalidOperationException($"Failed to stop resource '{resourceReference.DcpResourceName}'.");
         }
     }
 
@@ -1509,7 +1541,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             _logger.LogDebug("Ensuring '{ResourceName}' is deleted.", resourceName);
 
-            var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (resourceName, attemptCancellationToken) =>
+            var result = await DeleteResourceRetryPipeline.ExecuteAsync(async (resourceName, attemptCancellationToken) =>
             {
                 string? uid = null;
 
