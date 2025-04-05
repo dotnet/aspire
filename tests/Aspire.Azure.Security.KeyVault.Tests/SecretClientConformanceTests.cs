@@ -12,10 +12,10 @@ using Xunit;
 
 namespace Aspire.Azure.Security.KeyVault.Tests;
 
-public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyVaultSettings>
+public class SecretClientConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyVaultSettings>
 {
     // Roles: Key Vault Secrets User
-    public const string VaultUri = "https://aspiretests.vault.azure.net/";
+    private const string VaultUri = ConformanceConstants.VaultUri;
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
