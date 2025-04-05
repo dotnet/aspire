@@ -14,6 +14,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerDatabaseResource> builder, string script) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
