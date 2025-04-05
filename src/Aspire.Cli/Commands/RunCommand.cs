@@ -80,12 +80,13 @@ internal sealed class RunCommand : BaseCommand
 
         var watch = parseResult.GetValue<bool>("--watch");
 
-        await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(":hammer_and_wrench:  Building app host...", async context => {
-                await _runner.BuildAsync(effectiveAppHostProjectFile, cancellationToken).ConfigureAwait(false);
-            });
+        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+
+        if (buildExitCode != 0)
+        {
+            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
 
         var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
 
