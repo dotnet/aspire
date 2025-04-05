@@ -100,7 +100,7 @@ public static class KafkaBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-kafka-ui";
+            containerName ??= "kafka-ui";
 
             var kafkaUi = new KafkaUIContainerResource(containerName);
             var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
