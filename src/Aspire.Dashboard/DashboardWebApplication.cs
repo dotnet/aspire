@@ -275,11 +275,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddAntiforgery(options =>
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
-
-            if (_dashboardOptionsMonitor?.CurrentValue.PathBase is not null)
-            {
-                options.Cookie.Path = _dashboardOptionsMonitor.CurrentValue.PathBase.TrimEnd('/');
-            }
         });
 
         _app = builder.Build();
@@ -386,7 +381,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
                 if (!client.IsEnabled)
                 {
-                    context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
+                    var targetPath = TargetLocationInterceptor.StructuredLogsPath;
+                    if (context.Request.PathBase.HasValue)
+                    {
+                        targetPath = context.Request.PathBase + targetPath;
+                    }
+                    context.Response.Redirect(targetPath);
                     return;
                 }
             }
@@ -437,6 +437,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
+        // Important to explicitly put the authn/z middleware calls *after* the path base impacting middleware so cookies are written
+        // to the right path.
+        _app.UseAuthentication();
         _app.UseAuthorization();
 
         _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
@@ -745,9 +748,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 authentication.AddCookie(options =>
                 {
                     options.Cookie.Name = DashboardAuthCookieName;
-                    if (dashboardOptions.PathBase is not null)
+                    if (dashboardOptions.PathBase is not null || dashboardOptions.ReverseProxy.ForwardHeaders)
                     {
-                        options.Cookie.Path = dashboardOptions.PathBase.TrimEnd('/');
+                        options.AdjustForPathBase();
                     }
                 });
 
@@ -797,11 +800,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         return Task.CompletedTask;
                     };
                     options.Cookie.Name = DashboardAuthCookieName;
-                    if (dashboardOptions.PathBase is not null)
+                    if (dashboardOptions.PathBase is not null || dashboardOptions.ReverseProxy.ForwardHeaders)
                     {
-                        options.Cookie.Path = dashboardOptions.PathBase.TrimEnd('/');
+                        options.AdjustForPathBase();
                     }
                 });
+
                 break;
             case FrontendAuthMode.Unsecured:
                 authentication.AddScheme<AuthenticationSchemeOptions, UnsecuredAuthenticationHandler>(FrontendAuthenticationDefaults.AuthenticationSchemeUnsecured, o => { });
