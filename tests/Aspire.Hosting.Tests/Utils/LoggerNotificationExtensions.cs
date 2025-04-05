@@ -28,7 +28,7 @@ public static class LoggerNotificationExtensions
         return WaitForTextAsync(app, (log) => log.Contains(logText), resourceName, cancellationToken);
     }
 
-    public static async Task WaitForHealthyAsync<T>(this DistributedApplication app, IResourceBuilder<T> resource, CancellationToken cancellationToken = default) where T: IResource
+    public static async Task WaitForHealthyAsync<T>(this DistributedApplication app, IResourceBuilder<T> resource, CancellationToken cancellationToken = default) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(resource);
@@ -51,6 +51,16 @@ public static class LoggerNotificationExtensions
 
         return app.WaitForTextAsync((log) => logTexts.Any(x => log.Contains(x)), resourceName, cancellationToken);
     }
+
+    /// <summary>
+    /// Waits for the specified text to be logged.
+    /// </summary>
+    /// <param name="app">The <see cref="DistributedApplication" /> instance to watch.</param>
+    /// <param name="predicate">A predicate checking the text to wait for.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    public static Task WaitForTextAsync(this DistributedApplication app, Predicate<string> predicate, CancellationToken cancellationToken = default)
+        => app.WaitForTextAsync(predicate, resourceName: null, cancellationToken);
 
     /// <summary>
     /// Waits for the specified text to be logged.
