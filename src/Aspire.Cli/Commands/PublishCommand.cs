@@ -152,7 +152,7 @@ internal sealed class PublishCommand : BaseCommand
                 
                 var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
 
-                var launchingAppHostTask = context.AddTask(":play_button: Launching apphost");
+                var launchingAppHostTask = context.AddTask(":play_button:  Launching apphost");
                 launchingAppHostTask.IsIndeterminate();
                 launchingAppHostTask.StartTask();
 
@@ -167,7 +167,7 @@ internal sealed class PublishCommand : BaseCommand
 
                 var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
 
-                launchingAppHostTask.Description = $":check_mark: Launching apphost";
+                launchingAppHostTask.Description = $":check_mark:  Launching apphost";
                 launchingAppHostTask.Value = 100;
                 launchingAppHostTask.StopTask();
 
@@ -175,8 +175,12 @@ internal sealed class PublishCommand : BaseCommand
 
                 var progressTasks = new Dictionary<string, ProgressTask>();
 
+                (string Id, string StatusText, bool IsComplete, bool IsError)? lastPublishingActivity = null;
+
                 await foreach (var publishingActivity in publishingActivities)
                 {
+                    lastPublishingActivity = publishingActivity;
+
                     if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
                     {
                         progressTask = context.AddTask(publishingActivity.Id);
@@ -185,17 +189,17 @@ internal sealed class PublishCommand : BaseCommand
                         progressTasks.Add(publishingActivity.Id, progressTask);
                     }
 
-                    progressTask.Description = $":play_button: {publishingActivity.StatusText}";
+                    progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
 
                     if (publishingActivity.IsComplete && !publishingActivity.IsError)
                     {
-                        progressTask.Description = $":check_mark: {publishingActivity.StatusText}";
+                        progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
                         progressTask.Value = 100;
                         progressTask.StopTask();
                     }
                     else if (publishingActivity.IsError)
                     {
-                        progressTask.Description = $"[red bold]:cross_mark: {publishingActivity.StatusText}[/]";
+                        progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
                         progressTask.Value = 0;
                         break;
                     }
@@ -204,8 +208,6 @@ internal sealed class PublishCommand : BaseCommand
                         // Keep going man!
                     }
                 }
-
-                await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
 
                 // When we are running in publish mode we don't want the app host to
                 // stop itself while we might still be streaming data back across
