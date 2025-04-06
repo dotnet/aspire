@@ -67,7 +67,7 @@ public class Program
 
         // Shared services.
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
-        builder.Services.AddTransient<AppHostBackchannel>();
+        builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
 
