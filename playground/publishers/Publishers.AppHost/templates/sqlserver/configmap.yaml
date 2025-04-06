@@ -1,0 +1,10 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "sqlserver-config"
+  labels:
+    app: "aspire"
+    component: "sqlserver"
+data:
+  ACCEPT_EULA: "{{ .Values.config.sqlserver.ACCEPT_EULA }}"

@@ -1,0 +1,15 @@
+---
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "pg-service"
+spec:
+  type: "ClusterIP"
+  selector:
+    app: "aspire"
+    component: "pg"
+  ports:
+    - name: "tcp"
+      protocol: "TCP"
+      port: "5432"
+      targetPort: "5432"

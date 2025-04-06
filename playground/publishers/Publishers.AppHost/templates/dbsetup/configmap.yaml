@@ -1,0 +1,15 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "dbsetup-config"
+  labels:
+    app: "aspire"
+    component: "dbsetup"
+data:
+  ASPNETCORE_URLS: "{{ .Values.config.dbsetup.ASPNETCORE_URLS }}"
+  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "{{ .Values.config.dbsetup.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES }}"
+  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "{{ .Values.config.dbsetup.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES }}"
+  OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "{{ .Values.config.dbsetup.OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY }}"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "{{ .Values.config.dbsetup.ASPNETCORE_FORWARDEDHEADERS_ENABLED }}"
+  HTTP_PORTS: "{{ .Values.config.dbsetup.HTTP_PORTS }}"
