@@ -1,0 +1,35 @@
+---
+apiVersion: "apps/v1"
+kind: "StatefulSet"
+metadata:
+  name: "pg-statefulset"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "pg"
+    spec:
+      containers:
+        - image: "docker.io/library/postgres:17.2"
+          name: "pg"
+          envFrom:
+            - configMapRef:
+                name: "pg-config"
+            - secretRef:
+                name: "pg-secrets"
+          ports:
+            - name: "tcp"
+              protocol: "TCP"
+              containerPort: "5432"
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "pg"
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy: {}
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 0
+    type: "RollingUpdate"

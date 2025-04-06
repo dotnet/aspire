@@ -1,0 +1,12 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "pg-config"
+  labels:
+    app: "aspire"
+    component: "pg"
+data:
+  POSTGRES_HOST_AUTH_METHOD: "{{ .Values.config.pg.POSTGRES_HOST_AUTH_METHOD }}"
+  POSTGRES_INITDB_ARGS: "{{ .Values.config.pg.POSTGRES_INITDB_ARGS }}"
+  POSTGRES_USER: "{{ .Values.config.pg.POSTGRES_USER }}"
