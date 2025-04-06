@@ -113,28 +113,37 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return publishingActivity;
     }
 
+    private readonly object _updateLock = new object();
+
     public async Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, CancellationToken cancellationToken)
     {
-        var lastStatus = publishingActivity.LastStatus ?? new PublishingActivityStatus
+        PublishingActivityStatus? lastStatus;
+        PublishingActivityStatus? newStatus;
+
+        lock (_updateLock)
         {
-            Activity = publishingActivity,
-            StatusText = string.Empty,
-            IsComplete = false,
-            IsError = false
-        };
+            lastStatus = publishingActivity.LastStatus ?? new PublishingActivityStatus
+            {
+                Activity = publishingActivity,
+                StatusText = string.Empty,
+                IsComplete = false,
+                IsError = false
+            };
+            
+            newStatus = statusUpdate(lastStatus);
+            publishingActivity.LastStatus = newStatus;
+        }
 
-        publishingActivity.LastStatus = statusUpdate(lastStatus);
-
-        if (lastStatus == publishingActivity.LastStatus)
+        if (lastStatus == newStatus)
         {
             throw new DistributedApplicationException(
                 $"The status of the publishing activity '{publishingActivity.Id}' was not updated. The status update function must return a new instance of the status."
                 );
         }
 
-        await ActivityStatusUpdated.Writer.WriteAsync(publishingActivity.LastStatus, cancellationToken).ConfigureAwait(false);
+        await ActivityStatusUpdated.Writer.WriteAsync(newStatus, cancellationToken).ConfigureAwait(false);
 
-        if (publishingActivity.IsPrimary && (publishingActivity.LastStatus.IsComplete || publishingActivity.LastStatus.IsError))
+        if (publishingActivity.IsPrimary && (newStatus.IsComplete || newStatus.IsError))
         {
             // If the activity is complete or an error and it is the primary activity,
             // we can stop listening for updates.
