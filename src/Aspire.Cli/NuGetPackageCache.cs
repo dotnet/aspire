@@ -11,7 +11,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner) : INuGetPackageCache
 {
     private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 

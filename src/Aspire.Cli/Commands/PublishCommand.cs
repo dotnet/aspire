@@ -13,9 +13,9 @@ namespace Aspire.Cli.Commands;
 internal sealed class PublishCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(PublishCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
 
-    public PublishCommand(DotNetCliRunner runner)
+    public PublishCommand(IDotNetCliRunner runner)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));

@@ -12,10 +12,10 @@ namespace Aspire.Cli.Commands;
 internal sealed class AddCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public AddCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
