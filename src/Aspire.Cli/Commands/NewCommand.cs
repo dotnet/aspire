@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using Aspire.Cli.Interactivity;
 using Aspire.Cli.Utils;
 using Semver;
 using Spectre.Console;
@@ -14,14 +15,17 @@ internal sealed class NewCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IInteractivityService _interactivityService;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractivityService interactivityService)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
+        ArgumentNullException.ThrowIfNull(interactivityService, nameof(interactivityService));
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
+        _interactivityService = interactivityService;
 
         var templateArgument = new Argument<string>("template");
         templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
@@ -45,7 +49,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(templateVersionOption);
     }
 
-    private static async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -70,7 +74,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await PromptUtils.PromptForSelectionAsync(
+            return await _interactivityService.PromptForSelectionAsync(
                 "Select a project template:",
                 validTemplates,
                 t => $"{t.TemplateName} ({t.TemplateDescription})",
@@ -79,12 +83,12 @@ internal sealed class NewCommand : BaseCommand
         }
     }
 
-    private static async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--name") is not { } name)
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
-            name = await PromptUtils.PromptForStringAsync("Enter the project name:",
+            name = await _interactivityService.PromptForStringAsync("Enter the project name:",
                 defaultValue: defaultName,
                 cancellationToken: cancellationToken);
         }
@@ -92,11 +96,11 @@ internal sealed class NewCommand : BaseCommand
         return name;
     }
 
-    private static async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
+    private async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await PromptUtils.PromptForStringAsync(
+            outputPath = await _interactivityService.PromptForStringAsync(
                 "Enter the output path:",
                 defaultValue: pathAppendage ?? ".",
                 cancellationToken: cancellationToken
@@ -106,7 +110,7 @@ internal sealed class NewCommand : BaseCommand
         return Path.GetFullPath(outputPath);
     }
 
-    private static async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--version") is { } version)
         {
@@ -114,7 +118,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            version = await PromptUtils.PromptForStringAsync(
+            version = await _interactivityService.PromptForStringAsync(
                 "Project templates version:",
                 defaultValue: VersionHelper.GetDefaultTemplateVersion(),
                 validator: (string value) => {
@@ -141,53 +145,47 @@ internal sealed class NewCommand : BaseCommand
         var version = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
         var source = parseResult.GetValue<string?>("--source");
 
-        var templateInstallResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":ice:  Getting latest templates...",
-                async context => {
-                    return await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken);
-                });
+        var templateInstallResult = await _interactivityService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
+            ":ice:  Getting latest templates...",
+            async () => {
+                return await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken);
+            });
 
         if (templateInstallResult.ExitCode != 0)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
+            _interactivityService.WriteLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
             return ExitCodeConstants.FailedToInstallTemplates;
         }
 
-        AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
+        _interactivityService.WriteLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
-        int newProjectExitCode = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":rocket:  Creating new Aspire project...",
-                async context => {
-                    return await _runner.NewProjectAsync(
+        var newProjectExitCode = await _interactivityService.ShowStatusAsync(
+            ":rocket:  Creating new Aspire project...",
+            async () => {
+                return await _runner.NewProjectAsync(
                         template.TemplateName,
                         name,
                         outputPath,
                         cancellationToken);
-                });
+            });
 
         if (newProjectExitCode != 0)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
+            _interactivityService.WriteLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
             return ExitCodeConstants.FailedToCreateNewProject;
         }
 
         try
         {
-            await CertificatesHelper.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            await CertificatesHelper.EnsureCertificatesTrustedAsync(_interactivityService, _runner, cancellationToken);
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+            _interactivityService.WriteLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
             return ExitCodeConstants.FailedToTrustCertificates;
         }
 
-        AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
+        _interactivityService.WriteLine($":thumbs_up: Project created successfully in {outputPath}.");
 
         return ExitCodeConstants.Success;
     }

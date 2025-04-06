@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Interactivity;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -16,13 +17,16 @@ internal sealed class RunCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly IDotNetCliRunner _runner;
+    private readonly IInteractivityService _interactivityService;
 
-    public RunCommand(IDotNetCliRunner runner)
+    public RunCommand(IDotNetCliRunner runner, IInteractivityService interactivityService)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
+        ArgumentNullException.ThrowIfNull(interactivityService, nameof(interactivityService));
 
         _runner = runner;
+        _interactivityService = interactivityService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -63,7 +67,7 @@ internal sealed class RunCommand : BaseCommand
 
         try
         {
-            await CertificatesHelper.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            await CertificatesHelper.EnsureCertificatesTrustedAsync(_interactivityService, _runner, cancellationToken);
         }
         catch (Exception ex)
         {
