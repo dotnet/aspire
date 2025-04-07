@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -285,6 +288,89 @@ public class WithUrlsTests
             && u.DisplayOrder == 1000);
 
         await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task EndpointUrlsAreInitiallyInactive()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithUrlForEndpoint("http", u => u.Url = "https://example.com");
+
+        var httpEndpoint = servicea.Resource.GetEndpoint("http");
+
+        var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
+        var cts = new CancellationTokenSource();
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            {
+                if (notification.Snapshot.Urls.Length > 0 && initialUrlSnapshot == default)
+                {
+                    initialUrlSnapshot = notification.Snapshot.Urls;
+                    break;
+                }
+            }
+        });
+
+        await app.StartAsync();
+
+        await watchTask;
+        cts.Cancel();
+
+        await app.StopAsync();
+
+        Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
+    }
+
+    [Fact]
+    public async Task NonEndpointUrlsAreInactiveUntilResourceRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddProject<Projects.ServiceA>("servicea")
+            .WithUrl("https://example.com");
+
+        var app = await builder.BuildAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
+        ImmutableArray<UrlSnapshot> urlSnapshotAfterRunning = default;
+        var cts = new CancellationTokenSource();
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            {
+                if (notification.Snapshot.Urls.Length > 0 && initialUrlSnapshot == default)
+                {
+                    initialUrlSnapshot = notification.Snapshot.Urls;
+                    continue;
+                }
+
+                if (string.Equals(notification.Snapshot.State?.Text, KnownResourceStates.Running))
+                {
+                    if (notification.Snapshot.Urls.Length > 0 && urlSnapshotAfterRunning == default)
+                    {
+                        urlSnapshotAfterRunning = notification.Snapshot.Urls;
+                        break;
+                    }
+                }
+            }
+        });
+
+        await app.StartAsync();
+
+        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await watchTask;
+        cts.Cancel();
+
+        await app.StopAsync();
+
+        Assert.All(initialUrlSnapshot, s => Assert.True(s.IsInactive));
+        Assert.Single(urlSnapshotAfterRunning, s => !s.IsInactive && s.Url == "https://example.com");
     }
 
     [Fact]
