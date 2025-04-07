@@ -36,6 +36,7 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        (bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatabilityCheck = null;
         try
         {
             using var activity = _activitySource.StartActivity();
@@ -73,9 +74,9 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToTrustCertificates;
             }
 
-            var appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatabilityCheck.IsCompatableAppHost)
+            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -211,7 +212,10 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (AppHostIncompatibleException ex)
         {
-            return InteractionUtils.DisplayIncompatibleVersionError(ex);
+            return InteractionUtils.DisplayIncompatibleVersionError(
+                ex,
+                appHostCompatabilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                );
         }
     }
 }

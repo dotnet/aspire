@@ -44,9 +44,16 @@ internal static class InteractionUtils
         return await AnsiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public static int DisplayIncompatibleVersionError(AppHostIncompatibleException ex)
+    public static int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The app host is not compatible. {ex.Message}[/]");
+        var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
+        
+        AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The app host is not compatible. Consider upgrading the app host or Aspire CLI.[/]");
+        Console.WriteLine();
+        AnsiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
+        AnsiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
+        AnsiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
+        Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
 }
