@@ -76,19 +76,22 @@ internal sealed class RunCommand : BaseCommand
 
             appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
+            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
             var watch = parseResult.GetValue<bool>("--watch");
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
-
-            if (buildExitCode != 0)
+            if (!watch)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+
+                if (buildExitCode != 0)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
 
             var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
@@ -96,7 +99,7 @@ internal sealed class RunCommand : BaseCommand
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
-                true,
+                !watch,
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
