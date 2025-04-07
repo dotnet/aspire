@@ -38,213 +38,225 @@ internal sealed class PublishCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        (bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatabilityCheck = null;
 
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-        
-        if (effectiveAppHostProjectFile is null)
+        try
         {
-            return ExitCodeConstants.FailedToFindProject;
-        }
+            using var activity = _activitySource.StartActivity();
 
-        var env = new Dictionary<string, string>();
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            
+            if (effectiveAppHostProjectFile is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
 
-        if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
-        {
-            env[KnownConfigNames.WaitForDebugger] = "true";
-        }
+            var env = new Dictionary<string, string>();
 
-        var appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
+            {
+                env[KnownConfigNames.WaitForDebugger] = "true";
+            }
 
-        if (!appHostCompatabilityCheck.IsCompatableAppHost)
-        {
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
+            appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
+            {
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
 
-        if (buildExitCode != 0)
-        {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
-            return ExitCodeConstants.FailedToBuildArtifacts;
-        }
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-        var publisher = parseResult.GetValue<string>("--publisher");
-        var outputPath = parseResult.GetValue<string>("--output-path");
-        var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+            if (buildExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
 
-        var publishersResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync<(int ExitCode, string[]? Publishers)>(
-                publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
-                async context => {
+            var publisher = parseResult.GetValue<string>("--publisher");
+            var outputPath = parseResult.GetValue<string>("--output-path");
+            var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-                    using var getPublishersActivity = _activitySource.StartActivity(
-                        $"{nameof(ExecuteAsync)}-Action-GetPublishers",
-                        ActivityKind.Client);
+            var publishersResult = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .SpinnerStyle(Style.Parse("purple"))
+                .StartAsync<(int ExitCode, string[]? Publishers)>(
+                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                    async context => {
 
+                        using var getPublishersActivity = _activitySource.StartActivity(
+                            $"{nameof(ExecuteAsync)}-Action-GetPublishers",
+                            ActivityKind.Client);
+
+                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                        var pendingInspectRun = _runner.RunAsync(
+                            effectiveAppHostProjectFile,
+                            false,
+                            true,
+                            ["--operation", "inspect"],
+                            null,
+                            backchannelCompletionSource,
+                            cancellationToken).ConfigureAwait(false);
+
+                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                        var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
+                        
+                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                        var exitCode = await pendingInspectRun;
+
+                        return (exitCode, publishers);
+
+                    }).ConfigureAwait(false);
+
+            if (publishersResult.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            var publishers = publishersResult.Publishers;
+            if (publishers is null || publishers.Length == 0)
+            {
+                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            if (publishers?.Contains(publisher) != true)
+            {
+                if (publisher is not null)
+                {
+                    AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                }
+
+                var publisherPrompt = new SelectionPrompt<string>()
+                    .Title("Select a publisher:")
+                    .UseConverter(p => p)
+                    .PageSize(10)
+                    .EnableSearch()
+                    .HighlightStyle(Style.Parse("darkmagenta"))
+                    .AddChoices(publishers!);
+
+                publisher = await AnsiConsole.PromptAsync(publisherPrompt, cancellationToken);
+            }
+
+            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
+
+            var exitCode = await AnsiConsole.Progress()
+                .AutoRefresh(true)
+                .Columns(
+                    new TaskDescriptionColumn() { Alignment = Justify.Left },
+                    new ProgressBarColumn() { Width = 10 },
+                    new ElapsedTimeColumn())
+                .StartAsync(async context => {
+
+                    using var generateArtifactsActivity = _activitySource.StartActivity(
+                        $"{nameof(ExecuteAsync)}-Action-GenerateArtifacts",
+                        ActivityKind.Internal);
+                    
                     var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
-                    var pendingInspectRun = _runner.RunAsync(
+
+                    var launchingAppHostTask = context.AddTask(":play_button:  Launching apphost");
+                    launchingAppHostTask.IsIndeterminate();
+                    launchingAppHostTask.StartTask();
+
+                    var pendingRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         true,
-                        ["--operation", "inspect"],
-                        null,
+                        ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
+                        env,
                         backchannelCompletionSource,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken);
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-                    var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
-                    
-                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                    var exitCode = await pendingInspectRun;
 
-                    return (exitCode, publishers);
+                    launchingAppHostTask.Description = $":check_mark:  Launching apphost";
+                    launchingAppHostTask.Value = 100;
+                    launchingAppHostTask.StopTask();
 
-                }).ConfigureAwait(false);
+                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
-        if (publishersResult.ExitCode != 0)
-        {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
-            return ExitCodeConstants.FailedToBuildArtifacts;
-        }
+                    var progressTasks = new Dictionary<string, ProgressTask>();
 
-        var publishers = publishersResult.Publishers;
-        if (publishers is null || publishers.Length == 0)
-        {
-            AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
-            return ExitCodeConstants.FailedToBuildArtifacts;
-        }
-
-        if (publishers?.Contains(publisher) != true)
-        {
-            if (publisher is not null)
-            {
-                AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
-            }
-
-            var publisherPrompt = new SelectionPrompt<string>()
-                .Title("Select a publisher:")
-                .UseConverter(p => p)
-                .PageSize(10)
-                .EnableSearch()
-                .HighlightStyle(Style.Parse("darkmagenta"))
-                .AddChoices(publishers!);
-
-            publisher = await AnsiConsole.PromptAsync(publisherPrompt, cancellationToken);
-        }
-
-        AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
-
-        var exitCode = await AnsiConsole.Progress()
-            .AutoRefresh(true)
-            .Columns(
-                new TaskDescriptionColumn() { Alignment = Justify.Left },
-                new ProgressBarColumn() { Width = 10 },
-                new ElapsedTimeColumn())
-            .StartAsync(async context => {
-
-                using var generateArtifactsActivity = _activitySource.StartActivity(
-                    $"{nameof(ExecuteAsync)}-Action-GenerateArtifacts",
-                    ActivityKind.Internal);
-                
-                var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
-
-                var launchingAppHostTask = context.AddTask(":play_button:  Launching apphost");
-                launchingAppHostTask.IsIndeterminate();
-                launchingAppHostTask.StartTask();
-
-                var pendingRun = _runner.RunAsync(
-                    effectiveAppHostProjectFile,
-                    false,
-                    true,
-                    ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
-                    env,
-                    backchannelCompletionSource,
-                    cancellationToken);
-
-                var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-
-                launchingAppHostTask.Description = $":check_mark:  Launching apphost";
-                launchingAppHostTask.Value = 100;
-                launchingAppHostTask.StopTask();
-
-                var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-
-                var progressTasks = new Dictionary<string, ProgressTask>();
-
-                await foreach (var publishingActivity in publishingActivities)
-                {
-                    if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                    await foreach (var publishingActivity in publishingActivities)
                     {
-                        progressTask = context.AddTask(publishingActivity.Id);
-                        progressTask.StartTask();
-                        progressTask.IsIndeterminate();
-                        progressTasks.Add(publishingActivity.Id, progressTask);
+                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                        {
+                            progressTask = context.AddTask(publishingActivity.Id);
+                            progressTask.StartTask();
+                            progressTask.IsIndeterminate();
+                            progressTasks.Add(publishingActivity.Id, progressTask);
+                        }
+
+                        progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
+
+                        if (publishingActivity.IsComplete && !publishingActivity.IsError)
+                        {
+                            progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
+                            progressTask.Value = 100;
+                            progressTask.StopTask();
+                        }
+                        else if (publishingActivity.IsError)
+                        {
+                            progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
+                            progressTask.Value = 0;
+                            break;
+                        }
+                        else
+                        {
+                            // Keep going man!
+                        }
                     }
 
-                    progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
+                    // When we are running in publish mode we don't want the app host to
+                    // stop itself while we might still be streaming data back across
+                    // the RPC backchannel. So we need to take responsibility for stopping
+                    // the app host. If the CLI exits/crashes without explicitly stopping
+                    // the app host the orphan detector in the app host will kick in.
+                    if (progressTasks.Any(kvp => !kvp.Value.IsFinished))
+                    {
+                        // Depending on the failure the publisher may return a zero
+                        // exit code.
+                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                        var exitCode = await pendingRun;
 
-                    if (publishingActivity.IsComplete && !publishingActivity.IsError)
-                    {
-                        progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
-                        progressTask.Value = 100;
-                        progressTask.StopTask();
-                    }
-                    else if (publishingActivity.IsError)
-                    {
-                        progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
-                        progressTask.Value = 0;
-                        break;
+                        // If we are in the state where we've detected an error because there
+                        // is an incomplete task then we stop the app host, but depending on
+                        // where/how the failure occured, we might still get a zero exit
+                        // code. If we get a non-zero exit code we want to return that
+                        // as it might be useful for diagnostic purposes, however if we don't
+                        // get a non-zero exit code we want to return our built-in exit code
+                        // for failed artifact build.
+                        return exitCode == 0 ? ExitCodeConstants.FailedToBuildArtifacts : exitCode;
                     }
                     else
                     {
-                        // Keep going man!
+                        // If we are here then all the tasks are finished and we can
+                        // stop the app host.
+                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                        var exitCode = await pendingRun;
+                        return exitCode; // should be zero for orderly shutdown but we pass it along anyway.
                     }
-                }
+                });
 
-                // When we are running in publish mode we don't want the app host to
-                // stop itself while we might still be streaming data back across
-                // the RPC backchannel. So we need to take responsibility for stopping
-                // the app host. If the CLI exits/crashes without explicitly stopping
-                // the app host the orphan detector in the app host will kick in.
-                if (progressTasks.Any(kvp => !kvp.Value.IsFinished))
-                {
-                    // Depending on the failure the publisher may return a zero
-                    // exit code.
-                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                    var exitCode = await pendingRun;
-
-                    // If we are in the state where we've detected an error because there
-                    // is an incomplete task then we stop the app host, but depending on
-                    // where/how the failure occured, we might still get a zero exit
-                    // code. If we get a non-zero exit code we want to return that
-                    // as it might be useful for diagnostic purposes, however if we don't
-                    // get a non-zero exit code we want to return our built-in exit code
-                    // for failed artifact build.
-                    return exitCode == 0 ? ExitCodeConstants.FailedToBuildArtifacts : exitCode;
-                }
-                else
-                {
-                    // If we are here then all the tasks are finished and we can
-                    // stop the app host.
-                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                    var exitCode = await pendingRun;
-                    return exitCode; // should be zero for orderly shutdown but we pass it along anyway.
-                }
-            });
-
-        if (exitCode != 0)
-        {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.[/]");
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            if (exitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[green bold]:thumbs_up: Successfully published artifacts to: {fullyQualifiedOutputPath}[/]");
+                return ExitCodeConstants.Success;
+            }
         }
-        else
+        catch (AppHostIncompatibleException ex)
         {
-            AnsiConsole.MarkupLine($"[green bold]:thumbs_up: Successfully published artifacts to: {fullyQualifiedOutputPath}[/]");
-            return ExitCodeConstants.Success;
+            return InteractionUtils.DisplayIncompatibleVersionError(
+                ex,
+                appHostCompatabilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                );
         }
     }
 }

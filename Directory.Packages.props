@@ -6,7 +6,6 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <TestcontainersPackageVersion>4.3.0</TestcontainersPackageVersion>
     <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
     <!-- The Npgsql version used when using Npgsql EF Core on net8. The major versions need to match between Npgsql and EF Core. -->
     <Npgsql8Version>8.0.6</Npgsql8Version>
@@ -125,26 +124,6 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.25072.1" />
-    <!-- unit test dependencies -->
-    <PackageVersion Include="bUnit" Version="1.36.0" /> <!-- Can't update passed to 1.37.x versions as those lift up LTS versions when targeting net8 -->
-    <PackageVersion Include="JsonSchema.Net" Version="7.3.3" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
-    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitV3Extensions" Version="$(MicrosoftDotNetXUnitV3ExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.50.0" />
-    <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />
