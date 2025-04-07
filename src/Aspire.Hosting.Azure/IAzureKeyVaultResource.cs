@@ -30,5 +30,5 @@ public interface IAzureKeyVaultResource : IResource, IAzureResource
     /// </summary>
     /// <param name="secretName">The name of the secret.</param>
     /// <returns>A reference to the secret.</returns>
-    IAzureKeyVaultSecretReference GetSecretReference(string secretName);
+    IAzureKeyVaultSecretReference GetSecret(string secretName);
 }
