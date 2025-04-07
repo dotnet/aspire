@@ -318,12 +318,52 @@ public class WithUrlsTests
 
         await app.StartAsync();
 
-        await watchTask;
+        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
         await app.StopAsync();
 
         Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
+    }
+
+    [Fact]
+    public async Task MultipleUrlsForSingleEndpointAreIncludedInUrlSnapshot()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+        var httpEndpoint = servicea.Resource.GetEndpoint("http");
+        servicea.WithUrl($"{httpEndpoint}/one", "Example 1");
+        servicea.WithUrl($"{httpEndpoint}/two", "Example 2");
+
+        var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
+        var cts = new CancellationTokenSource();
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            {
+                if (notification.Snapshot.Urls.Length > 0 && initialUrlSnapshot == default)
+                {
+                    initialUrlSnapshot = notification.Snapshot.Urls;
+                    break;
+                }
+            }
+        });
+
+        await app.StartAsync();
+
+        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        cts.Cancel();
+
+        await app.StopAsync();
+
+        Assert.Collection(initialUrlSnapshot,
+            s => Assert.True(s.Name == httpEndpoint.EndpointName && s.DisplayProperties.DisplayName == ""), // <-- this is the default URL added for the endpoint
+            s => Assert.True(s.Name == httpEndpoint.EndpointName && s.Url.EndsWith("/one") && s.DisplayProperties.DisplayName == "Example 1"),
+            s => Assert.True(s.Name == httpEndpoint.EndpointName && s.Url.EndsWith("/two") && s.DisplayProperties.DisplayName == "Example 2")
+        );
     }
 
     [Fact]
@@ -364,7 +404,7 @@ public class WithUrlsTests
         await app.StartAsync();
 
         await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await watchTask;
+        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
         await app.StopAsync();
