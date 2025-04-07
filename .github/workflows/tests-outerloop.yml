@@ -4,7 +4,7 @@ name: Outerloop Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 14 * * *' # 6am PST (14:00 UTC)
+    - cron: '0 */2 * * *' # Every 2 hours
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,7 +47,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -projects ${{ github.workspace }}/tests/Shared/SolutionTests.proj -restore -build -test -c Release /p:RunQuarantinedTests=true /bl:${{ github.workspace }}/artifacts/log/Release/test-quarantined.binlog
+          ${{ env.BUILD_SCRIPT }} -projects ${{ github.workspace }}/tests/Shared/SolutionTests.proj -ci -restore -build -test -c Release /p:RunQuarantinedTests=true /bl:${{ github.workspace }}/artifacts/log/Release/test-quarantined.binlog
 
       - name: Keep only relevant test logs
         if: always()

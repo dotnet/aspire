@@ -2,45 +2,50 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using Aspire.Cli.Utils;
+using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource("Aspire.Cli");
+    private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly DotNetCliRunner _runner;
+    private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public NewCommand(DotNetCliRunner runner) : base("new", "Create a new Aspire sample project.")
+    public NewCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+        : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
+        ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
         _runner = runner;
+        _nuGetPackageCache = nuGetPackageCache;
 
         var templateArgument = new Argument<string>("template");
-        templateArgument.Validators.Add(ValidateProjectTemplate);
+        templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
         templateArgument.Arity = ArgumentArity.ZeroOrOne;
         Arguments.Add(templateArgument);
 
         var nameOption = new Option<string>("--name", "-n");
+        nameOption.Description = "The name of the project to create.";
         Options.Add(nameOption);
 
         var outputOption = new Option<string?>("--output", "-o");
+        outputOption.Description = "The output path for the project.";
         Options.Add(outputOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        Options.Add(prereleaseOption);
         
         var sourceOption = new Option<string?>("--source", "-s");
+        sourceOption.Description = "The NuGet source to use for the project templates.";
         Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
+        templateVersionOption.Description = "The version of the project templates to use.";
         Options.Add(templateVersionOption);
     }
 
-    private static void ValidateProjectTemplate(ArgumentResult result)
+    private static async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -49,55 +54,91 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        string[] validTemplates = [
-            "aspire-starter",
-            "aspire",
-            "aspire-apphost",
-            "aspire-servicedefaults",
-            "aspire-mstest",
-            "aspire-nunit",
-            "aspire-xunit"
+        (string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates = [
+            ("aspire-starter", "Aspire Starter App", "./src") ,
+            ("aspire", "Aspire Empty App", "./src"),
+            ("aspire-apphost", "Aspire App Host", "./"),
+            ("aspire-servicedefaults", "Aspire Service Defaults", "./"),
+            ("aspire-mstest", "Aspire Test Project (MSTest)", "./"),
+            ("aspire-nunit", "Aspire Test Project (NUnit)", "./"),
+            ("aspire-xunit", "Aspire Test Project (xUnit)", "./")
             ];
 
-        var value = result.GetValueOrDefault<string>();
-
-        if (value is null)
+        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
         {
-            // This is OK, for now we will use the default
-            // template of aspire-starter, but we might
-            // be able to do more intelligent selection in the
-            // future based on what is already in the working directory.
-            return;
+            return template;
+        }
+        else
+        {
+            return await InteractionUtils.PromptForSelectionAsync(
+                "Select a project template:",
+                validTemplates,
+                t => $"{t.TemplateName} ({t.TemplateDescription})",
+                cancellationToken
+                );
+        }
+    }
+
+    private static async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (parseResult.GetValue<string>("--name") is not { } name)
+        {
+            var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
+            name = await InteractionUtils.PromptForStringAsync("Enter the project name:",
+                defaultValue: defaultName,
+                cancellationToken: cancellationToken);
         }
 
-        if (value is { } templateName && !validTemplates.Contains(templateName))
+        return name;
+    }
+
+    private static async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
+    {
+        if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            result.AddError($"The specified template '{templateName}' is not valid. Valid templates are [{string.Join(", ", validTemplates)}].");
-            return;
+            outputPath = await InteractionUtils.PromptForStringAsync(
+                "Enter the output path:",
+                defaultValue: pathAppendage ?? ".",
+                cancellationToken: cancellationToken
+                );
+        }
+
+        return Path.GetFullPath(outputPath);
+    }
+
+    private static async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (parseResult.GetValue<string>("--version") is { } version)
+        {
+            return version;
+        }
+        else
+        {
+            version = await InteractionUtils.PromptForStringAsync(
+                "Project templates version:",
+                defaultValue: VersionHelper.GetDefaultTemplateVersion(),
+                validator: (string value) => {
+                    if (SemVersion.TryParse(value, out var parsedVersion))
+                    {
+                        return ValidationResult.Success();
+                    }
+
+                    return ValidationResult.Error("Invalid version format. Please enter a valid version.");
+                },
+                cancellationToken);
+
+            return version;
         }
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity($"{nameof(ExecuteAsync)}", ActivityKind.Internal);
+        using var activity = _activitySource.StartActivity();
 
-        var templateVersion = parseResult.GetValue<string>("--version");
-        var prerelease = parseResult.GetValue<bool>("--prerelease");
-
-        if (templateVersion is not null && prerelease)
-        {
-            AnsiConsole.MarkupLine("[red bold]:thumbs_down:  The --version and --prerelease options are mutually exclusive.[/]");
-            return ExitCodeConstants.FailedToCreateNewProject;
-        }
-        else if (prerelease)
-        {
-            templateVersion = "*-*";
-        }
-        else if (templateVersion is null)
-        {
-            templateVersion = VersionHelper.GetDefaultTemplateVersion();
-        }
-
+        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+        var name = await GetProjectNameAsync(parseResult, cancellationToken);
+        var outputPath = await GetOutputPathAsync(parseResult, template.PathAppendage, cancellationToken);
+        var version = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
         var source = parseResult.GetValue<string?>("--source");
 
         var templateInstallResult = await AnsiConsole.Status()
@@ -106,7 +147,7 @@ internal sealed class NewCommand : BaseCommand
             .StartAsync(
                 ":ice:  Getting latest templates...",
                 async context => {
-                    return await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", templateVersion!, source, true, cancellationToken);
+                    return await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken);
                 });
 
         if (templateInstallResult.ExitCode != 0)
@@ -117,23 +158,6 @@ internal sealed class NewCommand : BaseCommand
 
         AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
-        var templateName = parseResult.GetValue<string>("template") ?? "aspire-starter";
-
-        if (parseResult.GetValue<string>("--output") is not { } outputPath)
-        {
-            outputPath = Environment.CurrentDirectory;
-        }
-        else
-        {
-            outputPath = Path.GetFullPath(outputPath);
-        }
-
-        if (parseResult.GetValue<string>("--name") is not { } name)
-        {
-            var outputPathDirectoryInfo = new DirectoryInfo(outputPath);
-            name = outputPathDirectoryInfo.Name;
-        }
-
         int newProjectExitCode = await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
@@ -141,11 +165,11 @@ internal sealed class NewCommand : BaseCommand
                 ":rocket:  Creating new Aspire project...",
                 async context => {
                     return await _runner.NewProjectAsync(
-                templateName,
-                name,
-                outputPath,
-                cancellationToken);
-            });
+                        template.TemplateName,
+                        name,
+                        outputPath,
+                        cancellationToken);
+                });
 
         if (newProjectExitCode != 0)
         {

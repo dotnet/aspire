@@ -46,7 +46,6 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4650")]
     public async Task HttpClientGetTest()
     {
         // Wait for the application to be ready

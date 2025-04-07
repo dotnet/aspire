@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents a reference to a secret in an Azure Key Vault resource.
 /// </summary>
-public interface IKeyVaultSecretReference : IValueProvider, IManifestExpressionProvider
+public interface IAzureKeyVaultSecretReference : IValueProvider, IManifestExpressionProvider
 {
     /// <summary>
     /// Gets the name of the secret.
@@ -18,5 +18,5 @@ public interface IKeyVaultSecretReference : IValueProvider, IManifestExpressionP
     /// <summary>
     /// Gets the Azure Key Vault resource.
     /// </summary>
-    IKeyVaultResource Resource { get; }
+    IAzureKeyVaultResource Resource { get; }
 }
