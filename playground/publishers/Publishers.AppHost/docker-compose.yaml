@@ -22,6 +22,9 @@ services:
     ports:
       - "8002:8001"
       - "8004:8003"
+    depends_on:
+      pg:
+        condition: "service_started"
     networks:
       - "aspire"
   api:
@@ -37,6 +40,11 @@ services:
     ports:
       - "8006:8005"
       - "8008:8007"
+    depends_on:
+      pg:
+        condition: "service_started"
+      dbsetup:
+        condition: "service_completed_successfully"
     networks:
       - "aspire"
   sqlserver:
@@ -70,6 +78,13 @@ services:
     ports:
       - "8011:8010"
       - "8013:8012"
+    depends_on:
+      api:
+        condition: "service_started"
+    networks:
+      - "aspire"
+  mycontainer:
+    image: "${MYCONTAINER_IMAGE}"
     networks:
       - "aspire"
 networks:
