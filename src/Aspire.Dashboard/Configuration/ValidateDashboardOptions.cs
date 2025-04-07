@@ -146,10 +146,22 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
 
         if (!options.ReverseProxy.ForwardHeaders)
         {
-            // TODO: Ensure other properties are not set if ForwardHeaders is false.
-            if (options.ReverseProxy.ForwardLimit != 1)
+            // Ensure other properties are not set if ForwardHeaders is false.
+            if (options.ReverseProxy.ForwardLimit != ReverseProxyOptions.DefaultForwardLimit)
             {
-                
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.ForwardLimit)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.KnownProxies.Count == 1 && options.ReverseProxy.KnownProxies[0] == ReverseProxyOptions.DefaultKnownProxy)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.KnownProxies)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.KnownNetworks.Count == 1 && options.ReverseProxy.KnownNetworks[0] == ReverseProxyOptions.DefaultKnownNetwork)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.KnownNetworks)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.AllowedHosts.Count > 0)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.AllowedHosts)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
             }
         }
 

@@ -26,10 +26,14 @@ public sealed class DashboardOptions
 
 public sealed class ReverseProxyOptions
 {
+    internal const int DefaultForwardLimit = 1;
+    internal static IPAddress DefaultKnownProxy { get; } = IPAddress.IPv6Loopback;
+    internal static Microsoft.AspNetCore.HttpOverrides.IPNetwork DefaultKnownNetwork { get; } = new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.IPv6Loopback, 8);
+
     public bool ForwardHeaders { get; set; }
-    public int? ForwardLimit { get; set; } = 1;
-    public IList<IPAddress> KnownProxies { get; set; } = [IPAddress.IPv6Loopback];
-    public IList<Microsoft.AspNetCore.HttpOverrides.IPNetwork> KnownNetworks { get; set; } = [new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Loopback, 8)];
+    public int? ForwardLimit { get; set; } = DefaultForwardLimit;
+    public IList<IPAddress> KnownProxies { get; set; } = [DefaultKnownProxy];
+    public IList<Microsoft.AspNetCore.HttpOverrides.IPNetwork> KnownNetworks { get; set; } = [DefaultKnownNetwork];
     public IList<string> AllowedHosts { get; set; } = [];
 }
 
