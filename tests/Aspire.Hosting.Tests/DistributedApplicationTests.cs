@@ -187,7 +187,7 @@ public class DistributedApplicationTests
         Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5156", u.Url);
-            Assert.False(u.IsInactive);
+            Assert.Equal("http", u.Name);
         });
 
         // Dependent resource should now run.
@@ -195,7 +195,7 @@ public class DistributedApplicationTests
         Assert.Collection(dependentResourceRunningEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
-            Assert.False(u.IsInactive);
+            Assert.Equal("http", u.Name);
         });
 
         logger.LogInformation("Stop resource.");
@@ -257,7 +257,7 @@ public class DistributedApplicationTests
         Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
-            Assert.False(u.IsInactive);
+            Assert.Equal("http", u.Name);
         });
 
         logger.LogInformation("Stop resource.");
