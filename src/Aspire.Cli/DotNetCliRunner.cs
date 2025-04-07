@@ -472,7 +472,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             {
                 logger.LogError(
                     ex,
-                    "AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {RequiredCapability} capability.",
+                    "The app host is incompatible with the CLI and must be updated to a version that supports the {RequiredCapability} capability.",
                     ex.RequiredCapability
                     );
 
