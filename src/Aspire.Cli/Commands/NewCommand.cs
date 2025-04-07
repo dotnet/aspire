@@ -70,7 +70,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await PromptUtils.PromptForSelectionAsync(
+            return await InteractionUtils.PromptForSelectionAsync(
                 "Select a project template:",
                 validTemplates,
                 t => $"{t.TemplateName} ({t.TemplateDescription})",
@@ -84,7 +84,7 @@ internal sealed class NewCommand : BaseCommand
         if (parseResult.GetValue<string>("--name") is not { } name)
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
-            name = await PromptUtils.PromptForStringAsync("Enter the project name:",
+            name = await InteractionUtils.PromptForStringAsync("Enter the project name:",
                 defaultValue: defaultName,
                 cancellationToken: cancellationToken);
         }
@@ -96,7 +96,7 @@ internal sealed class NewCommand : BaseCommand
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await PromptUtils.PromptForStringAsync(
+            outputPath = await InteractionUtils.PromptForStringAsync(
                 "Enter the output path:",
                 defaultValue: pathAppendage ?? ".",
                 cancellationToken: cancellationToken
@@ -114,7 +114,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            version = await PromptUtils.PromptForStringAsync(
+            version = await InteractionUtils.PromptForStringAsync(
                 "Project templates version:",
                 defaultValue: VersionHelper.GetDefaultTemplateVersion(),
                 validator: (string value) => {

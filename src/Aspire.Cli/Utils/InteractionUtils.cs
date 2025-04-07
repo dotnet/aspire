@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
 
-internal static class PromptUtils
+internal static class InteractionUtils
 {
     public static async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
@@ -41,5 +42,11 @@ internal static class PromptUtils
             .HighlightStyle(Style.Parse("darkmagenta"));
 
         return await AnsiConsole.PromptAsync(prompt, cancellationToken);
+    }
+
+    public static int DisplayIncompatibleVersionError(AppHostIncompatibleException ex)
+    {
+        AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The app host is not compatible. {ex.Message}[/]");
+        return ExitCodeConstants.AppHostIncompatible;
     }
 }

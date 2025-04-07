@@ -468,6 +468,22 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                     // We don't want to spam the logs with our early connection attempts.
                 }
             }
+            catch (AppHostIncompatibleException ex)
+            {
+                logger.LogError(
+                    ex,
+                    "AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {RequiredCapability} capability.",
+                    ex.RequiredCapability
+                    );
+
+                // If the app host is incompatable then there is no point
+                // trying to reconnect, we should propogate the exception
+                // up to the code that needs to back channel so it can display
+                // and error message to the user.
+                backchannelCompletionSource.SetException(ex);
+
+                throw;
+            }
 
         } while (await timer.WaitForNextTickAsync(cancellationToken));
     }

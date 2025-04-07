@@ -106,6 +106,19 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         var stream = new NetworkStream(socket, true);
         var rpc = JsonRpc.Attach(stream, target);
 
+        var capabilties = await rpc.InvokeWithCancellationAsync<string[]>(
+            "GetCapabilitiesAsync",
+            Array.Empty<object>(),
+            cancellationToken);
+
+        if (!capabilties.Any(s => s == "baseline.v0"))
+        {
+            throw new AppHostIncompatibleException(
+                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the baseline.v0 capability.",
+                "baseline.v0"
+                );
+        }
+
         _rpcTaskCompletionSource.SetResult(rpc);
     }
 
@@ -144,5 +157,21 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         {
             yield return state;
         }
+    }
+
+    public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
+
+        logger.LogDebug("Requesting capabilities");
+
+        var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+            "GetCapabilitiesAsync",
+            Array.Empty<object>(),
+            cancellationToken).ConfigureAwait(false);
+
+        return capabilities;
     }
 }
