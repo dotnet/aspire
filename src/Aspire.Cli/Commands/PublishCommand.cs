@@ -175,12 +175,8 @@ internal sealed class PublishCommand : BaseCommand
 
                 var progressTasks = new Dictionary<string, ProgressTask>();
 
-                (string Id, string StatusText, bool IsComplete, bool IsError)? lastPublishingActivity = null;
-
                 await foreach (var publishingActivity in publishingActivities)
                 {
-                    lastPublishingActivity = publishingActivity;
-
                     if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
                     {
                         progressTask = context.AddTask(publishingActivity.Id);
