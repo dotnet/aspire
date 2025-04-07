@@ -63,9 +63,9 @@
                 }
 
                 <div>
-                    <ResourceFilters ResourceStates="@ResourceStatesToVisibility"
-                                     ResourceTypes="@ResourceTypesToVisibility"
-                                     ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
+                                     ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
+                                     ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
                                      OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                                      OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </div>
@@ -79,9 +79,9 @@
                            FixedPlacement="true"
                            Class="resources-filter-popup">
                 <Body>
-                    <ResourceFilters ResourceStates="@ResourceStatesToVisibility"
-                                     ResourceTypes="@ResourceTypesToVisibility"
-                                     ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
+                                     ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
+                                     ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
                                      OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                                      OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>

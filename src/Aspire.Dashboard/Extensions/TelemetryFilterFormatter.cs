@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Web;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Dashboard.Extensions;
 
@@ -25,7 +25,7 @@ public static class TelemetryFilterFormatter
             _ => null
         };
 
-        var filterString = $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
+        var filterString = $"{StringUtils.Escape(filter.Field)}:{condition}:{StringUtils.Escape(filter.Value)}";
         if (!filter.Enabled)
         {
             filterString += $":{DisabledText}";
@@ -47,7 +47,7 @@ public static class TelemetryFilterFormatter
             return null;
         }
 
-        var field = Unescape(parts[0]);
+        var field = StringUtils.Unescape(parts[0]);
 
         FilterCondition? condition = parts[1] switch
         {
@@ -67,7 +67,7 @@ public static class TelemetryFilterFormatter
             return null;
         }
 
-        var value = Unescape(parts[2]);
+        var value = StringUtils.Unescape(parts[2]);
 
         var enabled = parts is not [_, _, _, DisabledText];
 
@@ -78,16 +78,6 @@ public static class TelemetryFilterFormatter
             Value = value,
             Enabled = enabled
         };
-    }
-
-    private static string Escape(string value)
-    {
-        return HttpUtility.UrlEncode(value);
-    }
-
-    private static string Unescape(string value)
-    {
-        return HttpUtility.UrlDecode(value);
     }
 
     public static List<TelemetryFilter> DeserializeFiltersFromString(string filtersString)

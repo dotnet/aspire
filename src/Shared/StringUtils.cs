@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Web;
 
 namespace Aspire.Hosting.Utils;
 
@@ -20,5 +21,15 @@ internal static class StringUtils
             uri = null;
             return false;
         }
+    }
+
+    public static string Escape(string value)
+    {
+        return HttpUtility.UrlEncode(value);
+    }
+
+    public static string Unescape(string value)
+    {
+        return HttpUtility.UrlDecode(value);
     }
 }
