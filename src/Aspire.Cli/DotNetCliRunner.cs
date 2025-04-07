@@ -126,7 +126,9 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
         if (watch && noBuild)
         {
-            throw new InvalidOperationException("Cannot use --watch and --no-build at the same time.");
+            var ex = new InvalidOperationException("Cannot use --watch and --no-build at the same time.");
+            backchannelCompletionSource?.SetException(ex);
+            throw ex;
         }
 
         var watchOrRunCommand = watch ? "watch" : "run";

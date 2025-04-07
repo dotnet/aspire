@@ -93,7 +93,7 @@ internal sealed class RunCommand : BaseCommand
         var pendingRun = _runner.RunAsync(
             effectiveAppHostProjectFile,
             watch,
-            true,
+            !watch, // If we aren't in watch mode we can no-build here, but watch doesn't support no-build.
             Array.Empty<string>(),
             env,
             backchannelCompletitionSource,
