@@ -191,7 +191,7 @@ internal sealed class PublishCommand : BaseCommand
 
                         if (publishingActivity.IsComplete && !publishingActivity.IsError)
                         {
-                            progressTask.Description = $":check_mark: {publishingActivity.StatusText}";
+                            progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
                             progressTask.Value = 100;
                             progressTask.StopTask();
                         }
