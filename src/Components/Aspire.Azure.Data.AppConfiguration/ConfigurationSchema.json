@@ -10,6 +10,9 @@
         },
         "Azure.Identity": {
           "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh": {
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }
