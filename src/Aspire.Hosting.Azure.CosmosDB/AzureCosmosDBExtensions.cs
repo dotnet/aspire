@@ -370,7 +370,7 @@ public static class AzureCosmosExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference(
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret(
             $"connectionstrings--{azureResource.Name}");
 
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
