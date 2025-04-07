@@ -41,7 +41,7 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task WithUrlsCallsCallbackAfterEndpointsAllocated()
+    public async Task WithUrlsCallsCallbackAfterBeforeResourceStartedEvent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -52,7 +52,7 @@ public class WithUrlsTests
         var tcs = new TaskCompletionSource();
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
-            // Should not be called until after event handlers for AfterEndpointsAllocatedEvent
+            // Should not be called at this point
             Assert.False(called);
             return Task.CompletedTask;
         });
@@ -145,6 +145,36 @@ public class WithUrlsTests
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlInterpolatedStringAddsUrlAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpsEndpoint();
+        projectA.WithUrl($"{projectA.Resource.GetEndpoint("https")}/test", "Example");
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        var endpointUrl = urls.First(u => u.Endpoint is not null);
+        Assert.Collection(urls,
+            u => Assert.True(u.Url == endpointUrl.Url && u.DisplayText is null),
+            u => Assert.True(u.Url.EndsWith("/test") && u.DisplayText == "Example")
+        );
 
         await app.StopAsync();
     }
