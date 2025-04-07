@@ -189,6 +189,18 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
+        // Clear existing URLs
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            var existing = existingUrls.ToArray();
+            for (var i = existing.Length - 1; i >= 0; i--)
+            {
+                var url = existing[i];
+                resource.Annotations.Remove(url);
+            }
+        }
+
+        // Add URLs
         foreach (var url in urls)
         {
             resource.Annotations.Add(url);
