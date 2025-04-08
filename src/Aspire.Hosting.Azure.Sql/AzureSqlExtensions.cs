@@ -115,7 +115,7 @@ public static class AzureSqlExtensions
 
         if (azureResource.InnerResource is null)
         {
-            //AddPrincipalIdUserRole(builder.ApplicationBuilder, azureSqlDatabase);
+            AddPrincipalIdUserRole(builder.ApplicationBuilder, azureSqlDatabase);
 
             return builder.ApplicationBuilder.AddResource(azureSqlDatabase);
         }
@@ -297,84 +297,82 @@ public static class AzureSqlExtensions
         return admin;
     }
 
-    //private static void AddPrincipalIdUserRole(IDistributedApplicationBuilder builder, AzureSqlDatabaseResource azureSqlDatabase)
-    //{
-    //    var sqlDatabase = new SqlDatabase(azureSqlDatabase.Name);
-    //    var sqlServer = new SqlServer(azureSqlDatabase.Parent.Name);
+    private static void AddPrincipalIdUserRole(IDistributedApplicationBuilder builder, AzureSqlDatabaseResource azureSqlDatabase)
+    {
+        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        {
+            foreach (var identityResource in builder.Resources.Where(r => r is IAppIdentityResource).Cast<IAppIdentityResource>())
+            {
+                var sqlServer = azureSqlDatabase.Parent;
 
-    //    var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
-    //    var bicep = builder.AddBicepTemplateString(
-    //        scriptIdentifier,
-    //        $$"""
-    //            param location string = resourceGroup().location
+                var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
+                var bicep = builder.AddBicepTemplateString(
+                    scriptIdentifier,
+                    $$"""
+                param location string = resourceGroup().location
 
-    //            param sqlserver_outputs_name string
+                param sqlserver_name string
 
-    //            param sqldatabase_outputs_name string
+                param sqldatabase_name string
                 
-    //            param principalName string
+                param principalName string
 
-    //            resource sqlserver '{{sqlServer.ResourceType}}@{{sqlServer.ResourceVersion}}' existing = {
-    //                name: sqlserver_outputs_name
-    //            }
+                resource sqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
+                    name: sqlserver_name
+                }
 
-    //            resource sqldatabase '{{sqlDatabase.ResourceType}}@{{sqlDatabase.ResourceVersion}}' existing = {
-    //              name: sqldatabase_outputs_name
-    //            }
+                resource sqldatabase 'Microsoft.Sql/servers/databases@2021-11-01' existing = {
+                  name: sqldatabase_name
+                }
 
-    //            resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-    //              name: '{{scriptIdentifier}}'
-    //              location: location
-    //              kind: 'AzureCLI'
-    //              properties: {
-    //                azCliVersion: '2.37.0'
-    //                retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
-    //                timeout: 'PT5M' // Five minutes
-    //                cleanupPreference: 'OnSuccess'
-    //                environmentVariables: [
-    //                  {
-    //                    name: 'DBNAME'
-    //                    value: sqldatabase.name
-    //                  }
-    //                  {
-    //                    name: 'DBSERVER'
-    //                    value: sqlserver.properties.fullyQualifiedDomainName
-    //                  }
-    //                  {
-    //                    name: 'IDENTITY'
-    //                    secureValue: principalName
-    //                  }
-    //                ]
+                resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+                  name: '{{scriptIdentifier}}'
+                  location: location
+                  kind: 'AzureCLI'
+                  properties: {
+                    azCliVersion: '2.37.0'
+                    retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
+                    timeout: 'PT5M' // Five minutes
+                    cleanupPreference: 'OnSuccess'
+                    environmentVariables: [
+                      {
+                        name: 'DBNAME'
+                        value: sqldatabase.name
+                      }
+                      {
+                        name: 'DBSERVER'
+                        value: sqlserver.properties.fullyQualifiedDomainName
+                      }
+                      {
+                        name: 'IDENTITY'
+                        secureValue: principalName
+                      }
+                    ]
 
-    //                scriptContent: '''
-    //            wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
-    //            tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
+                    scriptContent: '''
+                wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
+                tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
                 
-    //            cat <<SCRIPT_END > ./script.sql
-    //            CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
-    //            ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
-    //            ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
-    //            SCRIPT_END
+                cat <<SCRIPT_END > ./script.sql
+                CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
+                ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
+                ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
+                SCRIPT_END
                 
-    //            ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
-    //                '''
-    //              }
-    //            }
-    //            """);
+                ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
+                    '''
+                  }
+                }
+                """);
 
-    //    bicep.WithParameter("sqldatabase_outputs_name", azureSqlDatabase.Name);
-    //    bicep.WithParameter("sqlserver_outputs_name", azureSqlDatabase.Parent.Name);
+                bicep.WithParameter("sqldatabase_outputs_name", azureSqlDatabase.Name);
+                bicep.WithParameter("sqlserver_outputs_name", azureSqlDatabase.Parent.Name);
+                bicep.WithParameter("principalName", identityResource.PrincipalName);
+            }
 
-    //    builder.Eventing.Subscribe<ConnectionStringAvailableEvent>((e, ct) =>
-    //    {
-    //        foreach (var identityResource in builder.Resources.Where(r => r is IAppIdentityResource).Cast<IAppIdentityResource>())
-    //        {
-    //            bicep.WithParameter("principalName", identityResource.PrincipalName);
-    //        }
-
-    //        return Task.CompletedTask;
-    //    });
-    //}
+            return Task.CompletedTask;
+        });
+    }
 
     /// <remarks>
     /// Workaround for issue using SqlServerAzureADAdministrator.
