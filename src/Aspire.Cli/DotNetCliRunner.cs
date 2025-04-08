@@ -488,7 +488,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An unexpected error occured while trying to connect to the backchannel.");
+                logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
                 backchannelCompletionSource.SetException(ex);
                 throw;
             }
