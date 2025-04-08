@@ -4,7 +4,6 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Utils;
-using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -43,6 +42,10 @@ internal sealed class NewCommand : BaseCommand
         var templateVersionOption = new Option<string?>("--version", "-v");
         templateVersionOption.Description = "The version of the project templates to use.";
         Options.Add(templateVersionOption);
+
+        var prereleaseOption = new Option<bool>("--prerelease");
+        prereleaseOption.Description = "Include prelease versions when searching for project templates.";
+        Options.Add(prereleaseOption);
     }
 
     private static async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -106,7 +109,7 @@ internal sealed class NewCommand : BaseCommand
         return Path.GetFullPath(outputPath);
     }
 
-    private static async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--version") is { } version)
         {
@@ -114,20 +117,15 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            version = await InteractionUtils.PromptForStringAsync(
-                "Project templates version:",
-                defaultValue: VersionHelper.GetDefaultTemplateVersion(),
-                validator: (string value) => {
-                    if (SemVersion.TryParse(value, out var parsedVersion))
-                    {
-                        return ValidationResult.Success();
-                    }
+            var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
 
-                    return ValidationResult.Error("Invalid version format. Please enter a valid version.");
-                },
-                cancellationToken);
+            var candidatePackages = await InteractionUtils.ShowStatusAsync(
+                "Searching for available project template versions...",
+                () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
+                );
 
-            return version;
+            var sekectedPackage = await InteractionUtils.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
+            return sekectedPackage.Version;
         }
     }
 
@@ -138,8 +136,9 @@ internal sealed class NewCommand : BaseCommand
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var name = await GetProjectNameAsync(parseResult, cancellationToken);
         var outputPath = await GetOutputPathAsync(parseResult, template.PathAppendage, cancellationToken);
-        var version = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
+        var prerelease = parseResult.GetValue<bool>("--prerelease");
         var source = parseResult.GetValue<string?>("--source");
+        var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
 
         var templateInstallResult = await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
