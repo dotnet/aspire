@@ -17,12 +17,12 @@
     2. **Define Paths and Script Content**:
       - Defines a combined runsheet JSON file path (_CombinedRunsheetFile) in the artifacts temporary directory.
       - Defines a PowerShell script (_Command) that:
-      - Finds all individual .runsheet.json files in the artifacts directory.
-      - Reads and merges their JSON content into a single combined JSON array.
-      - Writes the combined JSON to the combined runsheet file.
-      - Checks if running in GitHub Actions environment:
-        - If yes, outputs the combined JSON to GitHub Actions output (GITHUB_OUTPUT).
-        - If no, prints the combined JSON to the console.
+        - Finds all individual .runsheet.json files in the artifacts directory.
+        - Reads and merges their JSON content into a single combined JSON array.
+        - Writes the combined JSON to the combined runsheet file.
+        - Checks if running in GitHub Actions environment:
+          - If yes, outputs the combined JSON to GitHub Actions output (GITHUB_OUTPUT).
+          - If no, prints the combined JSON to the console.
 
     3. **Write and Execute the Script**:
       - Writes the defined PowerShell script content to a temporary script file (create-runsheet.ps1).
