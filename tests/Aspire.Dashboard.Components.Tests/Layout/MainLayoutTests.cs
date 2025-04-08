@@ -139,6 +139,7 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<GlobalState>();
         Services.Configure<DashboardOptions>(o => o.Otlp.AuthMode = OtlpAuthMode.Unsecured);
+        Services.AddSingleton<NavigationService>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 

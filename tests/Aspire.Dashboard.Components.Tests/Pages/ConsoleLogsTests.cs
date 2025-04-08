@@ -548,6 +548,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
         Services.AddSingleton<PauseManager>();
+        Services.AddSingleton<NavigationService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
