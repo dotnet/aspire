@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Provisioning;
-using Azure.Provisioning.AppService;
+using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure;
@@ -13,7 +13,7 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
     private BicepValue<string>? _kind;
     private BicepValue<string>? _azCliVersion;
     private BicepValue<TimeSpan>? _retentionInterval;
-    private BicepList<NameValuePair>? _environmentVariables;
+    private BicepList<ContainerAppEnvironmentVariable>? _environmentVariables;
 
     public SqlServerScriptProvisioningResource(string bicepIdentifier) : base(bicepIdentifier)
     {
@@ -58,7 +58,7 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
         set { Initialize(); _retentionInterval!.Assign(value); }
     }
 
-    public BicepList<NameValuePair> EnvironmentVariables
+    public BicepList<ContainerAppEnvironmentVariable> EnvironmentVariables
     {
         get { Initialize(); return _environmentVariables!; }
         set { Initialize(); _environmentVariables!.Assign(value); }
@@ -72,15 +72,6 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
         _scriptContent = DefineProperty<string>(nameof(ScriptContent), ["properties", "scriptContent"]);
         _azCliVersion = DefineProperty<string>(nameof(AZCliVersion), ["properties", "azCliVersion"]);
         _retentionInterval = DefineProperty<TimeSpan>(nameof(RetentionInterval), ["properties", "retentionInterval"], format: "P");
-        _environmentVariables = DefineListProperty<NameValuePair>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
-    }
-
-    public sealed class NameValuePair : AppServiceNameValuePair
-    {
-        public NameValuePair(string name, string value)
-        {
-            Name = name;
-            Value = value;
-        }
+        _environmentVariables = DefineListProperty<ContainerAppEnvironmentVariable>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Sql;
 
@@ -108,11 +109,35 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
         var infra = roleAssignmentContext.Infrastructure;
-        var postgres = (SqlServer)AddAsExistingResource(infra);
+        var sqlserver = (SqlServer)AddAsExistingResource(infra);
 
-        var principalId = roleAssignmentContext.PrincipalId;
+        //var principalId = roleAssignmentContext.PrincipalId;
         var principalName = roleAssignmentContext.PrincipalName;
 
-        AzureSqlExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, principalName);
+        //AzureSqlExtensions.AddActiveDirectoryAdministrator(infra, sqlserver, principalId, principalName);
+
+        foreach (var database in Databases.Keys)
+        {
+            var scriptResource = new SqlServerScriptProvisioningResource($"{infra.AspireResource.GetBicepIdentifier()}_{database}_sqlroles");
+
+            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBNAME", Value = database });
+            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
+            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "IDENTITY", Value = principalName });
+
+            scriptResource.ScriptContent = $$"""
+                    wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
+                    tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
+                        
+                    cat <<SCRIPT_END > ./script.sql
+                    CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
+                    ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
+                    ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
+                    SCRIPT_END
+                        
+                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
+                    """;
+
+            infra.Add(scriptResource);
+        }
     }
 }
