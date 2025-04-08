@@ -114,29 +114,39 @@ public sealed class AzurePublishingContext(
 
         var parameterMap = new Dictionary<ParameterResource, ProvisioningParameter>();
 
+        void MapParameter(object candidate)
+        {
+            if (candidate is ParameterResource p && !parameterMap.ContainsKey(p))
+            {
+                var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
+
+                var pp = new ProvisioningParameter(pid, typeof(string))
+                {
+                    IsSecure = p.Secret
+                };
+
+                if (!p.Secret && p.Default is not null)
+                {
+                    pp.Value = p.Value;
+                }
+
+                parameterMap[p] = pp;
+            }
+        }
+
         foreach (var resource in model.Resources.OfType<AzureBicepResource>())
         {
+            // Map parameters from existing resources
+            if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
+            {
+                Visit(existingAnnotation.ResourceGroup, MapParameter);
+                Visit(existingAnnotation.Name, MapParameter);
+            }
+
+            // Map parameters for the resource itself
             foreach (var parameter in resource.Parameters)
             {
-                Visit(parameter.Value, v =>
-                {
-                    if (v is ParameterResource p && !parameterMap.ContainsKey(p))
-                    {
-                        var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
-
-                        var pp = new ProvisioningParameter(pid, typeof(string))
-                        {
-                            IsSecure = p.Secret
-                        };
-
-                        if (!p.Secret && p.Default is not null)
-                        {
-                            pp.Value = p.Value;
-                        }
-
-                        parameterMap[p] = pp;
-                    }
-                });
+                Visit(parameter.Value, MapParameter);
             }
         }
 
@@ -183,7 +193,7 @@ public sealed class AzurePublishingContext(
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => parameterMap[p],
+                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), parameterMap[p].Value.Compile()),
                 _ => new IdentifierExpression(rg.BicepIdentifier)
             };
 
