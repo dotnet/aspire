@@ -55,7 +55,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// </summary>
     private BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
-    internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
+    internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentId => ContainerAppEnvironmentId;
 
@@ -78,18 +78,18 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
     }
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)
+    IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
         // REVIEW: Should we use the same naming algorithm as azd?
         var outputName = $"volumes_{resource.Name}_{volumeIndex}";
 
-        if (!VolumeNames.TryGetValue(outputName, out var outputReference))
+        if (!VolumeNames.TryGetValue(outputName, out var volumeName))
         {
-            outputReference = new BicepOutputReference(outputName, this);
+            volumeName = (resource, volume, volumeIndex, new BicepOutputReference(outputName, this));
 
-            VolumeNames[outputName] = outputReference;
+            VolumeNames[outputName] = volumeName;
         }
 
-        return outputReference;
+        return volumeName.outputReference;
     }
 }

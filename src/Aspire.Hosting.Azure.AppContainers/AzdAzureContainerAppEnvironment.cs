@@ -33,9 +33,9 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
         return SecretOutputExpression.GetSecretOutputKeyVault(resource);
     }
 
-    public IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)
+    public IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
-        return VolumeStorageExpression.GetVolumeStorage(resource, type, volumeIndex);
+        return VolumeStorageExpression.GetVolumeStorage(resource, volume.Type, volumeIndex);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
     /// <summary>
     /// Generates expressions for the volume storage account. That azd creates.
     /// </summary>
-    private sealed class VolumeStorageExpression(IResource resource, ContainerMountType type, string index) : IManifestExpressionProvider
+    private sealed class VolumeStorageExpression(IResource resource, ContainerMountType type, int index) : IManifestExpressionProvider
     {
         public string ValueExpression => type switch
         {
@@ -82,7 +82,7 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
             _ => throw new NotSupportedException()
         };
 
-        public static IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, string index) =>
+        public static IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, int index) =>
             new VolumeStorageExpression(resource, type, index);
     }
 }

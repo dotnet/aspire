@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppContainers;
@@ -212,6 +213,26 @@ public static class AzureContainerAppExtensions
                     infra.Add(containerAppStorage);
 
                     managedStorages[outputName] = containerAppStorage;
+
+                    if (appEnvResource.UseAzdNamingConvention)
+                    {
+                        var volumeName = output.volume.Type switch
+                        {
+                            ContainerMountType.BindMount => $"bm{output.index}",
+                            ContainerMountType.Volume => output.volume.Source ?? $"v{output.index}",
+                            _ => throw new NotSupportedException()
+                        };
+
+                        share.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
+                            60);
+
+                        containerAppStorage.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
+                            32);
+                    }
                 }
             }
 
@@ -220,7 +241,8 @@ public static class AzureContainerAppExtensions
             {
                 infra.Add(new ProvisioningOutput(key, typeof(string))
                 {
-                    Value = value.Name
+                    // use an expression here in case the resource's Name was set to a function expression above
+                    Value = new MemberExpression(new IdentifierExpression(value.BicepIdentifier), "name")
                 });
             }
 
