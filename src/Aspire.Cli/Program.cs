@@ -61,7 +61,7 @@ public class Program
                 var baseUrl = args[otelArgIndex + 1];
 
                 // If we have enough arguments we need to make sure its a valid URL.
-                if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) && (baseUri.Scheme == Uri.UriSchemeHttp || baseUri.Scheme == Uri.UriSchemeHttp))
+                if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) && (baseUri.Scheme == Uri.UriSchemeHttp || baseUri.Scheme == Uri.UriSchemeHttps))
                 {
                     otelBuilder.UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, baseUri);
                 }
