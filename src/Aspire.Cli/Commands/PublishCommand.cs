@@ -61,7 +61,7 @@ internal sealed class PublishCommand : BaseCommand
 
             appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatibilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
+            if (!appHostCompatibilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
