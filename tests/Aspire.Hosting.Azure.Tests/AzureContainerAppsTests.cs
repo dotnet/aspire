@@ -1629,9 +1629,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "env_outputs_volumes_api_v0": "{env.outputs.volumes_api_v0}",
-            "env_outputs_volumes_api_v1": "{env.outputs.volumes_api_v1}",
-            "env_outputs_volumes_api_bm0": "{env.outputs.volumes_api_bm0}",
+            "env_outputs_volumes_api_0": "{env.outputs.volumes_api_0}",
+            "env_outputs_volumes_api_1": "{env.outputs.volumes_api_1}",
+            "env_outputs_bindmounts_api_0": "{env.outputs.bindmounts_api_0}",
             "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
           }
@@ -1645,11 +1645,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param env_outputs_volumes_api_v0 string
+        param env_outputs_volumes_api_0 string
 
-        param env_outputs_volumes_api_v1 string
+        param env_outputs_volumes_api_1 string
 
-        param env_outputs_volumes_api_bm0 string
+        param env_outputs_bindmounts_api_0 string
 
         param env_outputs_azure_container_apps_environment_default_domain string
 
@@ -1691,17 +1691,17 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'v0'
                   storageType: 'AzureFile'
-                  storageName: env_outputs_volumes_api_v0
+                  storageName: env_outputs_volumes_api_0
                 }
                 {
                   name: 'v1'
                   storageType: 'AzureFile'
-                  storageName: env_outputs_volumes_api_v1
+                  storageName: env_outputs_volumes_api_1
                 }
                 {
                   name: 'bm0'
                   storageType: 'AzureFile'
-                  storageName: env_outputs_volumes_api_bm0
+                  storageName: env_outputs_bindmounts_api_0
                 }
               ]
             }
@@ -3371,7 +3371,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               parent: env_storageVolume
             }
 
-            resource shares_volumes_cache_v0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+            resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
               name: take('${toLower('cache')}-${toLower('Appdata')}', 60)
               properties: {
                 enabledProtocols: 'SMB'
@@ -3380,20 +3380,20 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               parent: storageVolumeFileService
             }
 
-            resource managedStorage_volumes_cache_v0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+            resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
               name: take('${toLower('cache')}-${toLower('Appdata')}', 32)
               properties: {
                 azureFile: {
                   accountName: env_storageVolume.name
                   accountKey: env_storageVolume.listKeys().keys[0].value
                   accessMode: 'ReadWrite'
-                  shareName: shares_volumes_cache_v0.name
+                  shareName: shares_volumes_cache_0.name
                 }
               }
               parent: env
             }
 
-            output volumes_cache_v0 string = managedStorage_volumes_cache_v0.name
+            output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
             output MANAGED_IDENTITY_NAME string = 'mi-${resourceToken}'
 
@@ -3519,8 +3519,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               parent: env_storageVolume
             }
 
-            resource shares_volumes_cache_v0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
-              name: take('sharesvolumescachev0-${uniqueString(resourceGroup().id)}', 63)
+            resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+              name: take('sharesvolumescache0-${uniqueString(resourceGroup().id)}', 63)
               properties: {
                 enabledProtocols: 'SMB'
                 shareQuota: 1024
@@ -3528,20 +3528,20 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               parent: storageVolumeFileService
             }
 
-            resource managedStorage_volumes_cache_v0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
-              name: take('managedstoragevolumescachev${uniqueString(resourceGroup().id)}', 24)
+            resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+              name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
               properties: {
                 azureFile: {
                   accountName: env_storageVolume.name
                   accountKey: env_storageVolume.listKeys().keys[0].value
                   accessMode: 'ReadWrite'
-                  shareName: shares_volumes_cache_v0.name
+                  shareName: shares_volumes_cache_0.name
                 }
               }
               parent: env
             }
 
-            output volumes_cache_v0 string = managedStorage_volumes_cache_v0.name
+            output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
             output MANAGED_IDENTITY_NAME string = env_mi.name
 
