@@ -64,12 +64,12 @@
     -->
   <Target Name="_AnnounceProjectTestCapabilities" BeforeTargets="RunTests" Condition="'$(IsTestProject)' == 'true'">
     <PropertyGroup>
-      <_IsGitHubActionsRunner Condition="'$(IsGitHubActionsRunner)' == ''">false</_IsGitHubActionsRunner>
-      <_IsGitHubActionsRunner Condition="'$(IsGitHubActionsRunner)' != ''">$(IsGitHubActionsRunner)</_IsGitHubActionsRunner>
-      <_IsAzdoCIRunner Condition="'$(IsAzdoCIRunner)' == ''">false</_IsAzdoCIRunner>
-      <_IsAzdoCIRunner Condition="'$(IsAzdoCIRunner)' != ''">$(IsAzdoCIRunner)</_IsAzdoCIRunner>
-      <_IsAzdoHelixRunner Condition="'$(IsAzdoHelixRunner)' == ''">false</_IsAzdoHelixRunner>
-      <_IsAzdoHelixRunner Condition="'$(IsAzdoHelixRunner)' != ''">$(IsAzdoHelixRunner)</_IsAzdoHelixRunner>
+      <_IsGitHubActionsRunner>$(IsGitHubActionsRunner)</_IsGitHubActionsRunner>
+      <_IsGitHubActionsRunner Condition="'$(_IsGitHubActionsRunner)' == ''">false</_IsGitHubActionsRunner>
+      <_IsAzdoCIRunner>$(IsAzdoCIRunner)</_IsAzdoCIRunner>
+      <_IsAzdoCIRunner Condition="'$(_IsAzdoCIRunner)' == ''">false</_IsAzdoCIRunner>
+      <_IsAzdoHelixRunner>$(IsAzdoHelixRunner)</_IsAzdoHelixRunner>
+      <_IsAzdoHelixRunner Condition="'$(_IsAzdoHelixRunner)' == ''">false</_IsAzdoHelixRunner>
     </PropertyGroup>
     <ItemGroup>
       <_Runner Include=" - GitHub Actions: $(_IsGitHubActionsRunner)" />
