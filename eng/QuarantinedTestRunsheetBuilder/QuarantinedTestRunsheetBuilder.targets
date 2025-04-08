@@ -1,0 +1,195 @@
+<Project>
+  <!--
+
+    This file is used to generate a list of tests to run on GitHub Actions.
+
+         .\build.cmd -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true [/bl /p:GITHUB_ACTIONS=true]
+
+    For the large part this is a copy of the Arcade SDK's implementations:
+      - https://github.com/dotnet/arcade/blob/b888df17/src/Microsoft.DotNet.Arcade.Sdk/tools/XUnit/XUnit.Runner.targets
+      - https://github.com/dotnet/arcade/blob/b888df17/src/Microsoft.DotNet.Arcade.Sdk/tools/VSTest.targets
+   -->
+
+  <!--
+    In short, this file automates the detection of quarantined tests and generates appropriate GitHub Actions runsheets to execute these tests separately,
+    ensuring quarantined tests are handled explicitly and systematically.
+
+    This MSBuild targets file automates the detection and handling of quarantined tests within a .NET project's CI pipeline.
+    Here's a high-level overview of its logic:
+
+    1. **Run Tests and Capture Output**:
+      - Executes test assemblies using the configured test runner.
+      - Captures the output into a log file (`ResultsStdOutPath`).
+
+    2. **Check for Errors**:
+      - If the test runner exits with a non-zero exit code (`_TestErrorCode`), it triggers an MSBuild `<Error>` task, indicating the test search failed.
+
+    3. **Detect Quarantined Tests**:
+      - Reads the captured test output log file.
+      - Checks if the log contains the phrase `"No test matches the given testcase filter"`. If found, it means there are no quarantined tests.
+
+    4. **Set Flags Based on Detection**:
+      - Sets a property `_HasQuarantinedTests` to `true` or `false` based on the presence or absence of quarantined tests.
+
+    5. **Generate Test Runsheets**:
+      - If quarantined tests are detected (`_HasQuarantinedTests` is `true`), it constructs JSON-formatted "runsheet" files for GitHub Actions.
+        These runsheets contain commands to execute quarantined tests specifically on Windows (`build.ps1`) or Linux (`build.sh`).
+        For example:
+
+          ```json
+          {
+            "project": "Aspire.Test",
+            "os": "windows-latest",
+            "command": "./eng/build.ps1 -restore -build -test -projects \"$(RelativeTestProjectPath)\" /bl:\"$(RelativeTestBinLog)\" -c $(Configuration) -ci /p:RunQuarantinedTests=true /p:CI=false"
+          }
+          ```
+
+    6. **Write Runsheets to Files**:
+      - Writes the generated JSON runsheets to the artifacts directory, separately for Windows and Linux environments, conditioned on the environment
+        variables (`RunOnGithubActionsWindows`, `RunOnGithubActionsLinux`).
+
+    NOTE: The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.
+
+    -->
+  <Target Name="RunTests"
+          Outputs="%(TestToRun.ResultsStdOutPath)"
+          Condition=" '$(SkipTests)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">
+
+    <PropertyGroup>
+      <_TestEnvironment>%(TestToRun.EnvironmentDisplay)</_TestEnvironment>
+      <_TestAssembly>%(TestToRun.Identity)</_TestAssembly>
+      <_TestRuntime>%(TestToRun.TestRuntime)</_TestRuntime>
+      <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
+      <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
+
+      <!-- Always use net472 for desktop to enable displaying source location from Portable PDBs in stack traces -->
+      <_TestRunnerTargetFramework>net472</_TestRunnerTargetFramework>
+      <_TestRunnerTargetFramework Condition="'$(_TestRuntime)' == 'Core'">netcoreapp2.0</_TestRunnerTargetFramework>
+      <_TestRunnerTargetFramework Condition="%(TestToRun.TargetFramework) == 'netcoreapp1.1' or %(TestToRun.TargetFramework) == 'netcoreapp1.0'">netcoreapp1.0</_TestRunnerTargetFramework>
+
+      <_TargetDir>$([System.IO.Path]::GetDirectoryName('$(_TestAssembly)'))\</_TargetDir>
+
+      <_TestRunnerCommand>&quot;$(DotNetTool)&quot; test $(_TestAssembly) --list-tests --logger:"console%3Bverbosity=normal" "--Framework:%(TestToRun.TargetFrameworkIdentifier),Version=%(TestToRun.TargetFrameworkVersion)"</_TestRunnerCommand>
+      <_TestRunnerCommand Condition="'$(VSTestRunSettingsFile)' != ''">$(_TestRunnerCommand) "--settings:$(VSTestRunSettingsFile)"</_TestRunnerCommand>
+      <_TestRunnerCommand Condition="'$(_TestRunnerAdditionalArguments)' != ''">$(_TestRunnerCommand) $(_TestRunnerAdditionalArguments)</_TestRunnerCommand>
+
+      <!--
+        Redirect std output of the runner.
+      -->
+      <_TestRunnerCommand Condition="'$(TestCaptureOutput)' != 'false'">$(_TestRunnerCommand) >> "%(TestToRun.ResultsStdOutPath)" 2>&amp;1</_TestRunnerCommand>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_OutputFiles Include="%(TestToRun.ResultsStdOutPath)" />
+    </ItemGroup>
+
+    <MakeDir Directories="@(_OutputFiles->'%(RootDir)%(Directory)')"/>
+    <Delete Files="@(_OutputFiles)" />
+
+    <!--
+      Add command line to the log.
+      -->
+    <Exec Command="echo === COMMAND LINE === > %(TestToRun.ResultsStdOutPath)
+                   echo $(_TestRunnerCommand) >> %(TestToRun.ResultsStdOutPath)" />
+
+    <Message Text="Searching for quarantined tests: $(_TestAssembly) [$(_TestEnvironment)]" Importance="high"/>
+    <Exec Command='$(_TestRunnerCommand)'
+          LogStandardErrorAsError="false"
+          WorkingDirectory="$(_TargetDir)"
+          IgnoreExitCode="true"
+          Timeout="$(_TestTimeout)"
+          ContinueOnError="WarnAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="_TestErrorCode" />
+    </Exec>
+
+    <!--
+      Report test status.
+      -->
+    <Message Text="Search complete: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '0'" Importance="high" />
+
+    <PropertyGroup>
+      <_ResultsFileToDisplay>%(TestToRun.ResultsStdOutPath)</_ResultsFileToDisplay>
+    </PropertyGroup>
+
+    <!--
+      Ideally we would set ContinueOnError="ErrorAndContinue" so that when a test fails in multi-targeted test project
+      we'll still run tests for all target frameworks. ErrorAndContinue doesn't work well on Linux though: https://github.com/Microsoft/msbuild/issues/3961.
+    -->
+    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' != '0'" File="VSTest" />
+
+    <!--
+      Read the test result and see if the string "No test matches the given testcase filter" is present.
+      This indicates that there are no quarantined tests to run.
+      -->
+    <ReadLinesFromFile File="$(_ResultsFileToDisplay)">
+      <Output TaskParameter="Lines" ItemName="FileLines" />
+    </ReadLinesFromFile>
+
+    <ItemGroup>
+      <_NoTestMatchesLines Include="@(FileLines)" Condition=" $([MSBuild]::ValueOrDefault(`%(FileLines.Identity)`, '').Contains(`No test matches the given testcase filter`)) " />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_HasQuarantinedTests>true</_HasQuarantinedTests>
+      <_HasQuarantinedTests Condition=" '@(_NoTestMatchesLines)' != '' ">false</_HasQuarantinedTests>
+    </PropertyGroup>
+
+    <Message Text="💡 Quarantined tests found in $(_TestAssembly) [$(_TestEnvironment)]" Condition=" '$(_HasQuarantinedTests)' == 'true' " Importance="high" />
+
+    <!--
+      Generate test runsheet, if there are quarantined tests.
+      -->
+    <PropertyGroup Condition=" '$(_HasQuarantinedTests)' == 'true' ">
+      <!--
+        We do not care whether the project is multi-targeting, we're only generating a command to kick off the testing sequence,
+        which in turn will run the tests for all the target frameworks.
+
+        So, instead of using "%(TestToRun.ResultsFilePathWithoutExtension)" (which looks something like "Aspire.Cli.Tests_net8.0_x64")
+        we use the project name (which looks something like "Aspire.Cli.Tests").
+        -->
+      <_TestRunsheet>$(MSBuildProjectName)</_TestRunsheet>
+      <_TestBinLog>$([MSBuild]::NormalizePath($(ArtifactsLogDir), '$(_TestRunsheet).binlog'))</_TestBinLog>
+
+      <_RelativeTestProjectPath>$([System.String]::Copy('$(MSBuildProjectFullPath)').Replace('$(RepoRoot)', '%24(pwd)/'))</_RelativeTestProjectPath>
+      <_RelativeTestBinLog>$([System.String]::Copy('$(_TestBinLog)').Replace('$(RepoRoot)', '%24(pwd)/'))</_RelativeTestBinLog>
+
+      <_TestRunnerWindows>./eng/build.ps1</_TestRunnerWindows>
+      <_TestRunnerLinux>./eng/build.sh</_TestRunnerLinux>
+      <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci /p:RunQuarantinedTests=true /p:CI=false</_TestCommand>
+
+      <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
+      <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>
+
+      <_TestRunsheetWindows>{ "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
+      <_TestRunsheetLinux>{ "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
+    </PropertyGroup>
+
+    <WriteLinesToFile
+            Condition=" '$(RunOnGithubActionsWindows)' == 'true' and  '$(_HasQuarantinedTests)' == 'true'"
+            File="$(ArtifactsTmpDir)/$(_TestRunsheet).win.runsheet.json"
+            Lines="$(_TestRunsheetWindows)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true" />
+
+    <WriteLinesToFile
+            Condition=" '$(RunOnGithubActionsLinux)' == 'true' and '$(_HasQuarantinedTests)' == 'true' "
+            File="$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json"
+            Lines="$(_TestRunsheetLinux)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true" />
+
+    <!--
+      On Linux there's a bug in MSBuild, which "normalises" all slashes (see https://github.com/dotnet/msbuild/issues/3468).
+      This is a workaround to replace `/"` with the required `\"`.
+      -->
+    <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).win.runsheet.json') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).win.runsheet.json'&quot; "
+          Condition=" '$(RunOnGithubActionsWindows)' == 'true' and '$(_HasQuarantinedTests)' == 'true' and '$(BuildOs)' != 'windows' " />
+    <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json'&quot; "
+          Condition=" '$(RunOnGithubActionsLinux)' == 'true' and '$(_HasQuarantinedTests)' == 'true' and '$(BuildOs)' != 'windows' " />
+
+    <!--
+      The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.
+      -->
+  </Target>
+
+</Project>
