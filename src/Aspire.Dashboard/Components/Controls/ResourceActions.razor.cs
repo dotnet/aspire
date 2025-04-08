@@ -57,7 +57,7 @@ public partial class ResourceActions : ComponentBase
     public required int MaxHighlightedCount { get; set; }
 
     [Parameter]
-    public required ConcurrentDictionary<string,ResourceViewModel> ResourceByName { get; set; }
+    public required ConcurrentDictionary<string, ResourceViewModel> ResourceByName { get; set; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
