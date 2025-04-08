@@ -66,9 +66,9 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packages = await AnsiConsole.Status().StartAsync(
+            var packages = await InteractionUtils.ShowStatusAsync(
                 "Searching for Aspire packages...",
-                context => _nuGetPackageCache.GetPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
+                () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
                 );
 
             var version = parseResult.GetValue<string?>("--version");
