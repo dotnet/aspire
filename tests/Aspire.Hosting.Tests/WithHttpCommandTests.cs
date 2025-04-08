@@ -161,7 +161,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData("get", true)]
     [InlineData("post", false)]
     [Theory]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8514")]
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
         // Arrange
@@ -263,7 +262,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8192")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
@@ -308,7 +306,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange

@@ -210,7 +210,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7930")]
     public async Task ArgsPropagateToAppHostConfiguration(bool genericEntryPoint, bool directArgs)
     {
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];

@@ -19,7 +19,6 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7923")]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -44,7 +43,6 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7923")]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -63,7 +61,6 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7923")]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
