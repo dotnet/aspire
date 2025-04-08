@@ -600,8 +600,8 @@ internal sealed class AzureContainerAppsInfrastructure(
                     {
                         var (index, volumeName) = volume.Type switch
                         {
-                            ContainerMountType.BindMount => ($"{bindMountIndex}", $"bm{bindMountIndex}"),
-                            ContainerMountType.Volume => ($"{volumeIndex}", $"v{volumeIndex}"),
+                            ContainerMountType.BindMount => (bindMountIndex, $"bm{bindMountIndex}"),
+                            ContainerMountType.Volume => (volumeIndex, $"v{volumeIndex}"),
                             _ => throw new NotSupportedException()
                         };
 
@@ -614,7 +614,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                             volumeIndex++;
                         }
 
-                        var volumeStorageParameter = AllocateVolumeStorageAccount(volume.Type, index);
+                        var volumeStorageParameter = AllocateVolumeStorageAccount(volume, index);
 
                         var containerAppVolume = new ContainerAppVolume
                         {
@@ -714,7 +714,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
-                if (value is IKeyVaultSecretReference vaultSecretReference)
+                if (value is IAzureKeyVaultSecretReference vaultSecretReference)
                 {
                     if (parent is null)
                     {
@@ -768,8 +768,8 @@ internal sealed class AzureContainerAppsInfrastructure(
                 throw new NotSupportedException("Unsupported value type " + value.GetType());
             }
 
-            private ProvisioningParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex) =>
-                AllocateParameter(_containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, type, volumeIndex));
+            private ProvisioningParameter AllocateVolumeStorageAccount(ContainerMountAnnotation volume, int volumeIndex) =>
+                AllocateParameter(_containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, volume, volumeIndex));
 
             private BicepValue<string> AllocateKeyVaultSecretUriReference(BicepSecretOutputReference secretOutputReference)
             {
@@ -797,7 +797,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 return secret.Properties.SecretUri;
             }
 
-            private BicepValue<string> AllocateKeyVaultSecretUriReference(IKeyVaultSecretReference secretOutputReference)
+            private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
             {
                 if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
                 {

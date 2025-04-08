@@ -3,23 +3,14 @@
 
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
 
-  <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(ExcludeTestUtilities)' != 'true' ">
-    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
-    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(PrepareForHelix)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
-
-    <RunTestsOnGithubActions Condition="'$(RunTestsOnGithubActions)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnGithubActions>
-    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestUtilityProject)' != 'true')">true</RunTestsOnHelix>
-    <!-- this is for pipeline tests -->
-    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestUtilityProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +19,7 @@
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build"
-          Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+          Condition=" '$(IsTestProject)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
@@ -44,7 +35,7 @@
 
   <!-- Used for running one helix job per test class -->
   <Target Name="ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
+          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
@@ -75,7 +66,7 @@
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
     <ItemGroup>
-      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunTestsOnGithubActions)" />
+      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActions)" />
     </ItemGroup>
   </Target>
 

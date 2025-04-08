@@ -26,7 +26,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
 
             // on ACA infrastructure, if there are no references to the resource,
             // then there won't be any roles created. So add a reference here.

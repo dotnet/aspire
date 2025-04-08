@@ -2,13 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <NoWarn>
-      $(NoWarn);
-      ASPIREHOSTINGPYTHON001;
-    </NoWarn>
-    <!-- required because DockerComposePublisherTests.PublishAsync_GeneratesValidDockerComposeFile needs
-    the TestingAppHost1 -->
-    <RunTestsOnHelix>false</RunTestsOnHelix>
+    <NoWarn>$(NoWarn);ASPIREHOSTINGPYTHON001;</NoWarn>
+
+    <!--
+      Do not run tests in Helix at all
+      required because DockerComposePublisherTests.PublishAsync_GeneratesValidDockerComposeFile needs the TestingAppHost1
+      -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
   </PropertyGroup>
 
   <ItemGroup>
