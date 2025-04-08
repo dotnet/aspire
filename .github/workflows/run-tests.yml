@@ -16,7 +16,7 @@ on:
       testSessionTimeoutMs:
         required: false
         type: string
-        default: "600000"
+        default: "900000"
       testHangTimeout:
         required: false
         type: string
@@ -47,6 +47,8 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
+    env:
+      DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -158,8 +160,8 @@ jobs:
           CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
-          /p:ArchiveTests=true
-          /bl:${{ github.workspace }}/artifacts/log/Debug/ArchiveTests.binlog
+          /p:PrepareForHelix=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -251,6 +253,7 @@ jobs:
           --results-directory testresults
           --no-restore
           --no-build
+          -bl:${{ github.workspace }}/testresults/test.binlog
           ${{ inputs.extraTestArgs }}
           --
           RunConfiguration.CollectSourceInformation=true

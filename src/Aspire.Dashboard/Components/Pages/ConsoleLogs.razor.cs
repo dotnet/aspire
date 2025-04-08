@@ -366,7 +366,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         Tooltip = command.DisplayDescription,
                         Icon = icon,
                         OnClick = () => ExecuteResourceCommandAsync(command),
-                        IsDisabled = command.State == CommandViewModelState.Disabled
+                        IsDisabled = command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(PageViewModel.SelectedResource!.Name, command.Name)
                     });
                 }
             }

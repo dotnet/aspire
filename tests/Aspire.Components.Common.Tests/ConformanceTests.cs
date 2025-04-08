@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.TestUtilities;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -88,23 +87,23 @@ public abstract class ConformanceTests<TService, TOptions>
     /// </summary>
     protected abstract void SetMetrics(TOptions options, bool enabled);
 
-    [ConditionalFact]
+    [Fact]
     public void OptionsTypeIsSealed()
     {
         if (typeof(TOptions) == typeof(object))
         {
-            throw new SkipTestException("Not implemented yet");
+            Assert.Skip("Not implemented yet");
         }
 
         if (!CheckOptionClassSealed)
         {
-            throw new SkipTestException("Opt-out of test");
+            Assert.Skip("Opt-out of test");
         }
 
         Assert.True(typeof(TOptions).IsSealed);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void HealthChecksRegistersHealthCheckService(bool enabled)
@@ -118,7 +117,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Equal(enabled, healthCheckService is not null);
     }
 
-    [ConditionalFact]
+    [Fact]
     public async Task EachKeyedComponentRegistersItsOwnHealthCheck()
     {
         SkipIfHealthChecksAreNotSupported();
@@ -132,16 +131,18 @@ public abstract class ConformanceTests<TService, TOptions>
 
         List<string> registeredNames = new();
         await healthCheckService.CheckHealthAsync(healthCheckRegistration =>
+#pragma warning disable xUnit1030 // Do not call ConfigureAwait(false) in test method
         {
             registeredNames.Add(healthCheckRegistration.Name);
             return false;
         }).ConfigureAwait(false);
+#pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
 
         Assert.Equal(2, registeredNames.Count);
         Assert.All(registeredNames, name => Assert.True(name.Contains(key1) || name.Contains(key2), $"{name} did not contain the key."));
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void TracingRegistersTraceProvider(bool enabled)
@@ -156,7 +157,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Equal(enabled, tracer is not null);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void MetricsRegistersMeterProvider(bool enabled)
@@ -170,7 +171,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Equal(enabled, meter is not null);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ServiceLifetimeIsAsExpected(bool useKey)
@@ -221,7 +222,7 @@ public abstract class ConformanceTests<TService, TOptions>
                 : serviceProvider.GetKeyedService<TService>(key);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void CanRegisterMultipleInstancesUsingDifferentKeys()
     {
         SkipIfKeyedRegistrationIsNotSupported();
@@ -237,7 +238,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.NotSame(serviceForKey1, serviceForKey2);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void WhenKeyedRegistrationIsUsedThenItsImpossibleToResolveWithoutKey()
     {
         SkipIfKeyedRegistrationIsNotSupported();
@@ -257,7 +258,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TService>);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true, true)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -306,7 +307,7 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(null)]
     [InlineData("key")]
     public async Task HealthCheckReportsExpectedStatus(string? key)
@@ -318,7 +319,9 @@ public abstract class ConformanceTests<TService, TOptions>
 
         HealthCheckService healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
+#pragma warning disable xUnit1030 // Do not call ConfigureAwait(false) in test method
         HealthReport healthReport = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
+#pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
 
         HealthStatus expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
 
@@ -358,7 +361,7 @@ public abstract class ConformanceTests<TService, TOptions>
     /// Ensures that when the connection information is missing, an exception isn't thrown before the host
     /// is built, so any exception can be logged with ILogger.
     /// </summary>
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionInformationIsDelayValidated(bool useKey)
@@ -378,7 +381,7 @@ public abstract class ConformanceTests<TService, TOptions>
                 : host.Services.GetRequiredKeyedService<TService>(key));
     }
 
-    [ConditionalFact]
+    [Fact]
     public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided_DisableTracing()
     {
         SkipIfNamedConfigNotSupported();
@@ -400,7 +403,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Null(host.Services.GetService<TracerProvider>());
     }
 
-    [ConditionalFact]
+    [Fact]
     public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided_DisableHealthChecks()
     {
         SkipIfNamedConfigNotSupported();
@@ -488,7 +491,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!HealthChecksAreSupported)
         {
-            throw new SkipTestException("Health checks aren't supported.");
+            Assert.Skip("Health checks aren't supported.");
         }
     }
 
@@ -496,7 +499,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (useKey && !SupportsKeyedRegistrations)
         {
-            throw new SkipTestException("Does not support Keyed Services");
+            Assert.Skip("Does not support Keyed Services");
         }
     }
 
@@ -504,7 +507,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!TracingIsSupported)
         {
-            throw new SkipTestException("Tracing is not supported.");
+            Assert.Skip("Tracing is not supported.");
         }
     }
 
@@ -512,7 +515,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!MetricsAreSupported)
         {
-            throw new SkipTestException("Metrics are not supported.");
+            Assert.Skip("Metrics are not supported.");
         }
     }
 
@@ -520,7 +523,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!CanCreateClientWithoutConnectingToServer && !CanConnectToServer)
         {
-            throw new SkipTestException("Unable to connect to the server.");
+            Assert.Skip("Unable to connect to the server.");
         }
     }
 
@@ -528,7 +531,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!CanConnectToServer)
         {
-            throw new SkipTestException("Unable to connect to the server.");
+            Assert.Skip("Unable to connect to the server.");
         }
     }
 
@@ -536,7 +539,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         if (!SupportsNamedConfig || ConfigurationSectionName is null)
         {
-            throw new SkipTestException("Named configuration is not supported.");
+            Assert.Skip("Named configuration is not supported.");
         }
     }
 

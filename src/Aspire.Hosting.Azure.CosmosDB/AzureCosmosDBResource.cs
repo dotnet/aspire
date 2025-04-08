@@ -41,7 +41,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
@@ -134,9 +134,9 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var builder = new ReferenceExpressionBuilder();
 
-        if (UseAccessKeyAuthentication)
+        if (UseAccessKeyAuthentication && !IsEmulator)
         {
-            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(childResourceName)));
+            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecret(GetKeyValueSecretName(childResourceName)));
         }
         else
         {

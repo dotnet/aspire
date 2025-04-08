@@ -25,7 +25,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var redis = builder.AddAzureRedis("redis-cache");
@@ -97,6 +97,20 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             """;
         output.WriteLine(redisRolesManifest.BicepText);
         Assert.Equal(expectedBicep, redisRolesManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureRedis_WithAccessKeyAuthentication_NoKeyVaultWithContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureRedis("redis").WithAccessKeyAuthentication().RunAsContainer();
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
     }
 
     [Theory]

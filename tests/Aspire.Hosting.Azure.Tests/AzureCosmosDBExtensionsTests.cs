@@ -106,16 +106,26 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
-    [Fact]
-    public void AzureCosmosDBHasCorrectConnectionStrings()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureCosmosDBHasCorrectConnectionStrings(bool useAccessKeyAuth)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos.WithAccessKeyAuthentication();
+        }
         var db1 = cosmos.AddCosmosDatabase("db1");
         var container1 = db1.AddContainer("container1", "id");
 
         var cosmos1 = builder.AddAzureCosmosDB("cosmos1").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos1.WithAccessKeyAuthentication();
+        }
         var db2 = cosmos1.AddCosmosDatabase("db2", "db");
         var container2 = db2.AddContainer("container2", "id", "container");
 
@@ -179,7 +189,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");

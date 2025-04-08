@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="ClearSignalsButtonTitle">
         <source>Remove data</source>
-        <target state="new">Remove data</target>
+        <target state="translated">Verileri kaldır</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -319,7 +319,7 @@
       </trans-unit>
       <trans-unit id="PauseButtonTitle">
         <source>Pause incoming data</source>
-        <target state="new">Pause incoming data</target>
+        <target state="translated">Gelen verileri duraklat</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -414,7 +414,7 @@
       </trans-unit>
       <trans-unit id="ResumeButtonTitle">
         <source>Resume incoming data</source>
-        <target state="new">Resume incoming data</target>
+        <target state="translated">Gelen verileri sürdür</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -544,7 +544,7 @@
       </trans-unit>
       <trans-unit id="TotalItemsFooterCapturePaused">
         <source>Capture paused</source>
-        <target state="new">Capture paused</target>
+        <target state="translated">Yakalama duraklatıldı</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
@@ -579,7 +579,7 @@
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="needs-review-translation">Toplam: &lt;strong&gt;{0} sonuç bulundu&lt;/strong&gt;</target>
+        <target state="translated">Toplam: &lt;strong&gt;{0} sonuç bulundu&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

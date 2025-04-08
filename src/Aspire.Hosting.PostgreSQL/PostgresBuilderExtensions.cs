@@ -419,7 +419,7 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
-        builder.WithAnnotation(new CreationScriptAnnotation(script));
+        builder.WithAnnotation(new PostgresCreateDatabaseScriptAnnotation(script));
 
         return builder;
     }
@@ -493,7 +493,7 @@ public static class PostgresBuilderExtensions
 
     private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
-        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<PostgresCreateDatabaseScriptAnnotation>().LastOrDefault();
 
         try
         {

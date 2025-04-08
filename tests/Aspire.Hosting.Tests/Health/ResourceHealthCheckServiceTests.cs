@@ -46,7 +46,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
 
         Assert.Contains(testSink.Writes, w => w.Message == "Resource 'resource' has no health checks to monitor.");
     }
@@ -96,7 +96,6 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8326")]
     public async Task ResourcesWithHealthCheck_CreationErrorIsReported()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -137,7 +136,6 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8103")]
     public async Task ResourcesWithHealthCheck_StopsAndRestartsMonitoringWithResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -655,7 +653,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var unhealthyEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Unhealthy).DefaultTimeout();
         Assert.Equal(HealthStatus.Unhealthy, unhealthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     private sealed class ParentResource(string name) : Resource(name)

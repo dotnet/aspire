@@ -39,7 +39,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(operation);
         if (addContainerAppsInfra)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var storage = builder.AddAzureStorage("storage");
@@ -125,7 +125,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task AppliesRoleAssignmentsInRunMode(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
@@ -216,7 +216,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task FindsAzureReferencesFromArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");

@@ -591,6 +591,9 @@ public class ProjectResourceTests
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://localhost:1234", arg));
+
+        // We don't yet process relationships set via the callbacks
+        Assert.False(project.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
     }
 
     [Theory]

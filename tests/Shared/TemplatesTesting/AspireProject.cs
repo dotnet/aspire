@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using Polly;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Templates.Tests;
@@ -26,7 +28,7 @@ public partial class AspireProject : IAsyncDisposable
     public string RootDir { get; init; }
     public string LogPath { get; init; }
     public TestTargetFramework TargetFramework { get; init; }
-    public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
+    public string AppHostProjectDirectory { get; set; }
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public string? DashboardUrl { get; private set; }
@@ -45,6 +47,7 @@ public partial class AspireProject : IAsyncDisposable
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
         TargetFramework = tfm ?? BuildEnvironment.DefaultTargetFramework;
+        AppHostProjectDirectory = Path.Combine(RootDir, $"{Id}.AppHost");
     }
 
     protected void InitPaths()
@@ -61,7 +64,10 @@ public partial class AspireProject : IAsyncDisposable
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
+    }
 
+    private static void GenerateNuGetConfig(string dir, TestTargetFramework tfm)
+    {
         string srcNuGetConfigPath = GetNuGetConfigPathFor(tfm);
         string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
         File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
@@ -74,14 +80,29 @@ public partial class AspireProject : IAsyncDisposable
         BuildEnvironment buildEnvironment,
         string extraArgs = "",
         TestTargetFramework? targetFramework = default,
-        bool addEndpointsHook = true)
+        bool addEndpointsHook = true,
+        string? overrideRootDir = null)
     {
-        string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        string rootDir;
+        string projectDir;
+        if (overrideRootDir is not null)
+        {
+            // This is case when we have multiple projects in a top level directory
+            // thus the *project* directory differs from the *root* directory
+            rootDir = overrideRootDir;
+            projectDir = Path.Combine(rootDir, id);
+        }
+        else
+        {
+            rootDir = projectDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        }
+
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
         Directory.CreateDirectory(logPath);
 
         var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
-        InitProjectDir(rootDir, tfmToUse);
+        InitProjectDir(projectDir, tfmToUse);
+        GenerateNuGetConfig(rootDir, tfmToUse);
 
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
@@ -91,7 +112,7 @@ public partial class AspireProject : IAsyncDisposable
             useDefaultArgs: true,
             buildEnv: buildEnvironment);
 
-        cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+        cmd.WithWorkingDirectory(Path.GetDirectoryName(projectDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));
 
         var tfmToUseString = tfmToUse.ToTFMString();
@@ -105,7 +126,7 @@ public partial class AspireProject : IAsyncDisposable
             throw new ToolCommandException($"`dotnet new {cmdString}` . Output: {res.Output}", res);
         }
 
-        foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
+        foreach (var csprojPath in Directory.EnumerateFiles(projectDir, "*.csproj", SearchOption.AllDirectories))
         {
             var csprojContent = File.ReadAllText(csprojPath);
             var matches = TargetFrameworkPropertyRegex().Matches(csprojContent);
@@ -124,7 +145,7 @@ public partial class AspireProject : IAsyncDisposable
             }
         }
 
-        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment, tfm: tfmToUse);
+        var project = new AspireProject(id, projectDir, testOutput, buildEnvironment, tfm: tfmToUse);
         if (addEndpointsHook)
         {
             File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
@@ -317,7 +338,7 @@ public partial class AspireProject : IAsyncDisposable
         return res;
     }
 
-    public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
+    public async Task<WrapperForIPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
     {
         string dashboardUrlToUse;
         if (Environment.GetEnvironmentVariable("DASHBOARD_URL_FOR_TEST") is string dashboardUrlForTest)
@@ -337,10 +358,32 @@ public partial class AspireProject : IAsyncDisposable
         cts.CancelAfter(TimeSpan.FromSeconds(DashboardAvailabilityTimeoutSecs));
         await WaitForDashboardToBeAvailableAsync(dashboardUrlToUse, _testOutput, cts.Token).ConfigureAwait(false);
 
-        var dashboardPage = await context.NewPageWithLoggingAsync(_testOutput);
-        await dashboardPage.GotoAsync(dashboardUrlToUse);
+        var dashboardPageWrapper = await context.NewPageWithLoggingAsync(_testOutput);
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = 3,
+                ShouldHandle = new PredicateBuilder().Handle<PlaywrightException>(ex =>
+                {
+                    return ex.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.OrdinalIgnoreCase) ||
+                            ex.Message.Contains("net::ERR_SOCKET_NOT_CONNECTED", StringComparison.OrdinalIgnoreCase);
+                }),
+                OnRetry = (args) =>
+                {
+                    _testOutput.WriteLine($"Reloading dashboard page due to {args.Outcome.Exception?.Message}");
+                    return ValueTask.CompletedTask;
+                },
+                Delay = TimeSpan.FromSeconds(1)
+            })
+            .Build();
 
-        return dashboardPage;
+        await pipeline.ExecuteAsync(async token =>
+        {
+            _testOutput.WriteLine($"Opening dashboard page at {dashboardUrlToUse}");
+            await dashboardPageWrapper.GotoAsync(dashboardUrlToUse);
+        }, cts.Token).ConfigureAwait(false);
+
+        return dashboardPageWrapper;
     }
 
     public Task WaitForDashboardToBeAvailableAsync(CancellationToken cancellationToken = default)

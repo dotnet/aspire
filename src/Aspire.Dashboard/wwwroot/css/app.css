@@ -659,6 +659,10 @@ fluent-switch.table-switch::part(label) {
     width: 85%;
 }
 
+.filter-button-container {
+    display: flex;
+}
+
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
 }

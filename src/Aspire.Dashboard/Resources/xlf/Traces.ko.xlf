@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="PauseInProgressText">
         <source>Traces capture paused at {0}</source>
-        <target state="new">Traces capture paused at {0}</target>
+        <target state="translated">추적 캡처가 {0}에 일시 중지됨</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesFullName">

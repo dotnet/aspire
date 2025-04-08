@@ -3,18 +3,69 @@
 
 using System.Text.Json;
 using Azure.Core;
+using Azure.Identity;
+using Npgsql;
 
 namespace Aspire;
 
-internal sealed class ManagedIdentityTokenCredentialHelpers
+internal static class ManagedIdentityTokenCredentialHelpers
 {
-    public const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
-    public const string AzureManagementScope = "https://management.azure.com/.default";
+    private const string AzureDatabaseForPostgresSqlScope = "https://ossrdbms-aad.database.windows.net/.default";
+    private const string AzureManagementScope = "https://management.azure.com/.default";
 
-    public static readonly TokenRequestContext DatabaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
-    public static readonly TokenRequestContext ManagementTokenRequestContext = new([AzureManagementScope]);
+    private static readonly TokenRequestContext s_databaseForPostgresSqlTokenRequestContext = new([AzureDatabaseForPostgresSqlScope]);
+    private static readonly TokenRequestContext s_managementTokenRequestContext = new([AzureManagementScope]);
 
-    public static bool TryGetUsernameFromToken(string jwtToken, out string? username)
+    public static bool ConfigureEntraIdAuthentication(this NpgsqlDataSourceBuilder dataSourceBuilder, TokenCredential? credential)
+    {
+        credential ??= new DefaultAzureCredential();
+        var configuredAuth = false;
+
+        // The connection string requires the username to be provided. Since it will depend on the Managed Identity that is used
+        // we attempt to get the username from the access token if it's not defined.
+
+        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Username))
+        {
+            // Ensure to use the management scope, so the token contains user names for all managed identity types - e.g. user and service principal
+            var token = credential.GetToken(s_managementTokenRequestContext, default);
+
+            if (TryGetUsernameFromToken(token.Token, out var username))
+            {
+                dataSourceBuilder.ConnectionStringBuilder.Username = username;
+                configuredAuth = true;
+            }
+            else
+            {
+                // Otherwise check using the PostgresSql scope
+                token = credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default);
+
+                if (TryGetUsernameFromToken(token.Token, out username))
+                {
+                    dataSourceBuilder.ConnectionStringBuilder.Username = username;
+                    configuredAuth = true;
+                }
+            }
+
+            // If we still don't have a username, we let Npgsql handle the error when trying to connect.
+            // The user will be hinted to provide a username by using the configureDataSourceBuilder callback.
+        }
+
+        if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
+        {
+            // The token is not cached since it is refreshed for each new physical connection, or when it has expired.
+
+            dataSourceBuilder.UsePasswordProvider(
+                passwordProvider: _ => credential.GetToken(s_databaseForPostgresSqlTokenRequestContext, default).Token,
+                passwordProviderAsync: async (_, ct) => (await credential.GetTokenAsync(s_databaseForPostgresSqlTokenRequestContext, default).ConfigureAwait(false)).Token
+            );
+
+            configuredAuth = true;
+        }
+
+        return configuredAuth;
+    }
+
+    private static bool TryGetUsernameFromToken(string jwtToken, out string? username)
     {
         username = null;
 
