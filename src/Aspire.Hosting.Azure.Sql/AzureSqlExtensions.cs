@@ -304,74 +304,89 @@ public static class AzureSqlExtensions
             return;
         }
 
-        foreach (var identityResource in builder.Resources.Where(r => r is IAppIdentityResource).Cast<IAppIdentityResource>())
+        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
         {
-            var sqlServer = azureSqlDatabase.Parent;
+            foreach (var resource in builder.Resources)
+            {
+                Console.WriteLine($"Resource: {resource.Name}");
 
-            var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
-            var bicep = builder.AddBicepTemplateString(
-                scriptIdentifier,
-                $$"""
-            param location string = resourceGroup().location
-
-            param sqlserver_name string
-
-            param sqldatabase_name string
-                
-            param principalName string
-
-            resource sqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
-                name: sqlserver_name
-            }
-
-            resource sqldatabase 'Microsoft.Sql/servers/databases@2021-11-01' existing = {
-                name: sqldatabase_name
-            }
-
-            resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-                name: '{{scriptIdentifier}}'
-                location: location
-                kind: 'AzureCLI'
-                properties: {
-                azCliVersion: '2.37.0'
-                retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
-                timeout: 'PT5M' // Five minutes
-                cleanupPreference: 'OnSuccess'
-                environmentVariables: [
-                    {
-                    name: 'DBNAME'
-                    value: sqldatabase.name
-                    }
-                    {
-                    name: 'DBSERVER'
-                    value: sqlserver.properties.fullyQualifiedDomainName
-                    }
-                    {
-                    name: 'IDENTITY'
-                    secureValue: principalName
-                    }
-                ]
-
-                scriptContent: '''
-            wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
-            tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
-                
-            cat <<SCRIPT_END > ./script.sql
-            CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
-            ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
-            ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
-            SCRIPT_END
-                
-            ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
-                '''
+                if (resource is IAppIdentityResource)
+                {
+                    Console.WriteLine($"  Identity: {resource.Name}");
                 }
-            }
-            """);
 
-            bicep.WithParameter("sqlserver_name", azureSqlDatabase.Name);
-            bicep.WithParameter("sqldatabase_name", azureSqlDatabase.Parent.Name);
-            bicep.WithParameter("principalName", identityResource.PrincipalName);
-        }
+                if (!resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var annotation))
+                {
+                    continue;
+                }
+
+                var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
+                var bicep = builder.AddBicepTemplateString(
+                    scriptIdentifier,
+                    $$"""
+                        param location string = resourceGroup().location
+
+                        param sqlserver_name string
+
+                        param sqldatabase_name string
+                        
+                        param principalName string
+
+                        resource sqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
+                            name: sqlserver_name
+                        }
+
+                        resource sqldatabase 'Microsoft.Sql/servers/databases@2021-11-01' existing = {
+                            name: sqldatabase_name
+                        }
+
+                        resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+                            name: '{{scriptIdentifier}}'
+                            location: location
+                            kind: 'AzureCLI'
+                            properties: {
+                            azCliVersion: '2.37.0'
+                            retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
+                            timeout: 'PT5M' // Five minutes
+                            cleanupPreference: 'OnSuccess'
+                            environmentVariables: [
+                                {
+                                name: 'DBNAME'
+                                value: sqldatabase.name
+                                }
+                                {
+                                name: 'DBSERVER'
+                                value: sqlserver.properties.fullyQualifiedDomainName
+                                }
+                                {
+                                name: 'IDENTITY'
+                                secureValue: principalName
+                                }
+                            ]
+
+                            scriptContent: '''
+                        wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
+                        tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
+                        
+                        cat <<SCRIPT_END > ./script.sql
+                        CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
+                        ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
+                        ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
+                        SCRIPT_END
+                        
+                        ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
+                            '''
+                            }
+                        }
+                        """);
+
+                bicep.WithParameter("sqlserver_name", azureSqlDatabase.Name);
+                bicep.WithParameter("sqldatabase_name", azureSqlDatabase.Parent.Name);
+                bicep.WithParameter("principalName", annotation.IdentityResource.PrincipalName);
+            }
+
+            return Task.CompletedTask;
+        });
     }
 
     /// <remarks>

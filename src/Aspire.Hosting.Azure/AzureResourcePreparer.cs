@@ -175,6 +175,8 @@ internal sealed class AzureResourcePreparer(
                         // attach the identity resource to compute resource so it can be used by the compute environment
                         resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
 
+                        Console.WriteLine($"  AppIdentityAnnotation: {resource.Name}");
+
                         appModel.Resources.Add(identityResource);
                         foreach (var roleAssignmentResource in roleAssignmentResources)
                         {
