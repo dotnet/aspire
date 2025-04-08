@@ -177,26 +177,26 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
+        // Source should be populated on non-started resources.
         Assert.Contains("TestProject.ServiceA.csproj", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5156", u.Url);
-            Assert.True(u.IsInactive);
-        });
         Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5254", u.Url);
-            Assert.True(u.IsInactive);
-        });
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5156", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceRunningEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentResourceRunningEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -239,26 +239,26 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
+        // Source should be populated on non-started resources.
         Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
-        Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
+        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
+        logger.LogInformation("Start explicit start resource.");
+        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
             Assert.True(u.IsInactive);
         });
-        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5254", u.Url);
-            Assert.True(u.IsInactive);
-        });
-
-        logger.LogInformation("Start explicit start resource.");
-        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
