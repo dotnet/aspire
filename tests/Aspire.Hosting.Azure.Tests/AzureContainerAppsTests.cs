@@ -3366,7 +3366,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
 
             resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
-              name: take('sharesvolumescache0-${uniqueString(resourceGroup().id)}', 63)
+              name: take('${toLower('cache')}-${toLower('data')}', 60)
               properties: {
                 enabledProtocols: 'SMB'
                 shareQuota: 1024
@@ -3375,7 +3375,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
 
             resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
-              name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
+              name: take('${toLower('cache')}-${toLower('data')}', 32)
               properties: {
                 azureFile: {
                   accountName: env_storageVolume.name
