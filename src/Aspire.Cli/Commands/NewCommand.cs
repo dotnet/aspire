@@ -124,8 +124,8 @@ internal sealed class NewCommand : BaseCommand
                 () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
-            var sekectedPackage = await InteractionUtils.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
-            return sekectedPackage.Version;
+            var selectedPackage = await InteractionUtils.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
+            return selectedPackage.Version;
         }
     }
 
