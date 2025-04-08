@@ -223,6 +223,9 @@ public static class AzureContainerAppExtensions
                             _ => throw new NotSupportedException()
                         };
 
+                        // Remove '.' and '-' characters from volumeName
+                        volumeName = volumeName.Replace(".", "").Replace("-", "");
+
                         share.Name = BicepFunction.Take(
                             BicepFunction.Interpolate(
                                 $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
