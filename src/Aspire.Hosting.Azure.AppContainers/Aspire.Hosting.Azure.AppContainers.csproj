@@ -18,7 +18,7 @@
     <PackageReference Include="Azure.Provisioning.OperationalInsights" />
     <PackageReference Include="Azure.Provisioning.KeyVault" />
     <PackageReference Include="Azure.Provisioning.Storage" />
-    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <PackageReference Include="Aspire.Hosting.Azure" VersionOverride="9.3.0-*" />
   </ItemGroup>
 
 </Project>
