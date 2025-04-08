@@ -189,7 +189,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
