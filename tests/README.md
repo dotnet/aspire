@@ -20,6 +20,7 @@ The Helix CI job builds `tests/helix/send-to-helix-ci.proj`, which in turns buil
 
 - Tests for rolling builds run on the build machine and Helix.
 Individual test projects can be opted-out by setting appropriate MSBuild properties:
-  - `<RunOnAzdoCI>false</RunOnAzdoCI>` and/or
+  - `<RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>` and/or
+  - `<RunOnAzdoCILinux>false</RunOnAzdoCILinux>` and/or
   - `<RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>` and/or
   - `<RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>`.

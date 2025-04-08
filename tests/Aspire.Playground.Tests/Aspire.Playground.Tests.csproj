@@ -6,11 +6,10 @@
     <IsTestProject>true</IsTestProject>
     <IncludeTestUtilities>false</IncludeTestUtilities>
 
-    <!-- Only run on GHA or Helix Linux; no docker support on Windows yet -->
+    <!-- Only run on Linux; no docker support on Windows yet -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
-    <!-- Don't run tests on AzDO Windows -->
-    <RunOnAzdoCI Condition="'$(OS)' == 'Windows_NT'">false</RunOnAzdoCI>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 

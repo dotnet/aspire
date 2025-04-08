@@ -14,7 +14,9 @@
         - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux); computed.
         - RunOnGithubActionsWindows:   indicates whether tests should run on Windows in GitHub Actions; default is true; overridable.
         - RunOnGithubActionsLinux:     indicates whether tests should run on Linux in GitHub Actions; default is true; overridable.
-        - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps; default is true; overridable.
+        - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps (either Windows or Linux); always false, if RunOnAzdoHelix=true; computed.
+        - RunOnAzdoCIWindows:          indicates whether tests should run on Windows in Azure DevOps; default is true; overridable.
+        - RunOnAzdoCILinux:            indicates whether tests should run on Linux in Azure DevOps; default is true; overridable.
         - RunOnAzdoHelix:              indicates whether tests should run on Helix (either Windows or Linux); computed.
         - RunOnAzdoHelixWindows:       indicates whether tests should run on Windows in Helix; default is true; overridable.
         - RunOnAzdoHelixLinux:         indicates whether tests should run on Linux in Helix; default is true; overridable.
@@ -37,6 +39,8 @@
     <RunOnAzdoHelix>false</RunOnAzdoHelix>
     <RunOnAzdoHelix Condition=" '$(RunOnAzdoHelixWindows)' == 'true' or '$(RunOnAzdoHelixLinux)' == 'true' ">true</RunOnAzdoHelix>
 
+    <RunOnAzdoCI>false</RunOnAzdoCI>
+    <RunOnAzdoCI Condition=" '$(RunOnAzdoCIWindows)' == 'true' or '$(RunOnAzdoCILinux)' == 'true' ">true</RunOnAzdoCI>
     <!-- If a test is run on Helix, then we don't run the test on AzDO -->
     <RunOnAzdoCI Condition=" '$(RunOnAzdoHelix)' == 'true' ">false</RunOnAzdoCI>
   </PropertyGroup>
@@ -76,7 +80,7 @@
       <_Runner Include=" - Azure DevOps: $(_IsAzdoCIRunner)" />
       <_Runner Include=" - Helix: $(_IsAzdoHelixRunner)" />
       <_Requirement Include=" - GitHub Actions: $(RunOnGithubActions) (Windows: $(RunOnGithubActionsWindows) / Linux: $(RunOnGithubActionsLinux))" />
-      <_Requirement Include=" - Azure DevOps: $(RunOnAzdoCI)" />
+      <_Requirement Include=" - Azure DevOps: $(RunOnAzdoCI) (Windows: $(RunOnAzdoCIWindows) / Linux: $(RunOnAzdoCILinux))" />
       <_Requirement Include=" - Helix: $(RunOnAzdoHelix) (Windows: $(RunOnAzdoHelixWindows) / Linux: $(RunOnAzdoHelixLinux))" />
     </ItemGroup>
 

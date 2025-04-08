@@ -2,11 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <!-- Only run on GHA or Helix Linux; no docker support on Windows yet -->
+    <!-- Only run on Linux; no docker support on Windows yet -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
-    <!-- Don't run tests on AzDO Windows -->
-    <RunOnAzdoCI Condition="'$(OS)' == 'Windows_NT'">false</RunOnAzdoCI>
 
     <!-- no docker support on helix/windows yet -->
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
