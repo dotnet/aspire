@@ -64,7 +64,7 @@ variables:
     value: ''
 
   # Use the build reason to decide whether to include helix_tests
-  - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+  - ${{ if or(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.DefinitionName'], 'azdo-tests')) }}:
     - name: testVariants
       value: '_pipeline_tests,_helix_tests'
   - ${{ else }}:
