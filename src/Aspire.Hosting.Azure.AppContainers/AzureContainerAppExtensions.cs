@@ -223,6 +223,9 @@ public static class AzureContainerAppExtensions
                             _ => throw new NotSupportedException()
                         };
 
+                        // Remove '.' and '-' characters from volumeName
+                        volumeName = volumeName.Replace(".", "").Replace("-", "");
+
                         share.Name = BicepFunction.Take(
                             BicepFunction.Interpolate(
                                 $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
@@ -253,11 +256,10 @@ public static class AzureContainerAppExtensions
                 identity.Name = BicepFunction.Interpolate($"mi-{resourceToken}");
                 containerRegistry.Name = new FunctionCallExpression(
                     new IdentifierExpression("replace"),
-                    new InterpolatedStringExpression(
-                        [
-                            new StringLiteralExpression("acr-"),
+                    new InterpolatedStringExpression([
+                        new StringLiteralExpression("acr-"),
                         new IdentifierExpression(resourceToken.BicepIdentifier)
-                        ]),
+                    ]),
                     new StringLiteralExpression("-"),
                     new StringLiteralExpression(""));
                 laWorkspace.Name = BicepFunction.Interpolate($"law-{resourceToken}");
