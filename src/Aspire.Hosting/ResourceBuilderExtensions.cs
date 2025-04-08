@@ -840,7 +840,7 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(async c =>
         {
-            var endpoint = url.ValueProviders.FirstOrDefault(v => v is EndpointReference) as EndpointReference;
+            var endpoint = url.ValueProviders.OfType<EndpointReference>().FirstOrDefault();
             var urlValue = await url.GetValueAsync(c.CancellationToken).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(urlValue))
             {
