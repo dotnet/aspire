@@ -325,8 +325,6 @@ public static class AzureSqlExtensions
                 var bicep = builder.AddBicepTemplateString(
                     scriptIdentifier,
                     $$"""
-                        param location string = resourceGroup().location
-
                         param sqlserver_name string
 
                         param sqldatabase_name string
