@@ -101,7 +101,11 @@ public class BuildEnvironment
                 sdkForTemplatePath = Path.GetDirectoryName(dotnetPath)!;
             }
 
-            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+#if RELEASE
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Release", "Shipping");
+#else
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Debug", "Shipping");
+#endif
 
             PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }

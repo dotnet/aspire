@@ -224,7 +224,7 @@ public static class AzureRedisExtensions
         ArgumentNullException.ThrowIfNull(keyVaultBuilder);
 
         var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{azureResource.Name}");
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
