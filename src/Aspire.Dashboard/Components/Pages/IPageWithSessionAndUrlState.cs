@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -27,6 +28,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
 
     public NavigationManager NavigationManager { get; }
     public ISessionStorage SessionStorage { get; }
+    public NavigationService NavigationService { get; }
 
     /// <summary>
     /// The view model containing live state, to be instantiated in OnInitialized.
@@ -92,7 +94,7 @@ public static class PageExtensions
     /// </returns>
     public static async Task<bool> InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
     {
-        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
+        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)) && !page.NavigationService.IsFirstPageLoad)
         {
             var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })

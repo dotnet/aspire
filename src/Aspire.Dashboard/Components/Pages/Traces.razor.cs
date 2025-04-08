@@ -76,6 +76,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
+    public required NavigationService NavigationService { get; init; }
+
+    [Inject]
     public required ISessionStorage SessionStorage { get; set; }
 
     [Inject]

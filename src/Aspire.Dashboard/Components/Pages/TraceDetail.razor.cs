@@ -57,6 +57,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required NavigationService NavigationService { get; init; }
+
     protected override void OnInitialized()
     {
         _gridColumns = [

@@ -58,6 +58,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
+    public required NavigationService NavigationService { get; init; }
+
+    [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
