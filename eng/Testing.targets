@@ -2,32 +2,32 @@
 
   <!--
       Environment variables:
-        - IsGitHubActionsRunner:       indicates whether tests are currently run on GitHub Actions; computed, overridable
-        - IsAzdoCIRunner:              indicates whether tests are currently run on Azure DevOps; computed, overridable
-        - IsAzdoHelixRunner:           indicates whether tests are currently run on Helix; computed, overridable
+        - IsGitHubActionsRunner:       indicates whether tests are currently run on GitHub Actions; computed, overridable. Locally this can be set by "/p:GITHUB_ACTIONS=true".
+        - IsAzdoCIRunner:              indicates whether tests are currently run on Azure DevOps; computed, overridable. Locally this can be set by "/p:SYSTEM_TEAMPROJECT=foo".
+        - IsAzdoHelixRunner:           indicates whether tests are currently run on Helix; computed, overridable. Locally this can be set by "/p:PrepareForHelix=true".
 
       Project capabilities:
-        - IsTestProject:               indicates whether the project is a test project; default is false; computed, overridable
-        - IncludeTestUtilities:        indicates whether the test project must not include the TestUtilities project reference; default is false; overridable
+        - IsTestProject:               indicates whether the project is a test project; default is false; computed, overridable.
+        - IncludeTestUtilities:        indicates whether the test project must not include the TestUtilities project reference; default is false; overridable.
 
       Project requirements:
-        - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux); computed
-        - RunOnGithubActionsWindows:   indicates whether tests should run on Windows in GitHub Actions; default is true; overridable
-        - RunOnGithubActionsLinux:     indicates whether tests should run on Linux in GitHub Actions; default is true; overridable
-        - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps; default is true; overridable
-        - RunOnAzdoHelix:              indicates whether tests should run on Helix (either Windows or Linux); computed
-        - RunOnAzdoHelixWindows:       indicates whether tests should run on Windows in Helix; default is true; overridable
-        - RunOnAzdoHelixLinux:         indicates whether tests should run on Linux in Helix; default is true; overridable
+        - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux); computed.
+        - RunOnGithubActionsWindows:   indicates whether tests should run on Windows in GitHub Actions; default is true; overridable.
+        - RunOnGithubActionsLinux:     indicates whether tests should run on Linux in GitHub Actions; default is true; overridable.
+        - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps; default is true; overridable.
+        - RunOnAzdoHelix:              indicates whether tests should run on Helix (either Windows or Linux); computed.
+        - RunOnAzdoHelixWindows:       indicates whether tests should run on Windows in Helix; default is true; overridable.
+        - RunOnAzdoHelixLinux:         indicates whether tests should run on Linux in Helix; default is true; overridable.
     -->
 
   <PropertyGroup>
     <!-- See https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables -->
-    <IsGitHubActionsRunner Condition=" '$(IsGitHubActionsRunner)' == '' and '$(GITHUB_ACTIONS)' == 'true' ">true</IsGitHubActionsRunner>
+    <IsGitHubActionsRunner Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</IsGitHubActionsRunner>
 
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
-    <IsAzdoCIRunner Condition=" '$(IsAzdoCIRunner)' == '' and '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
+    <IsAzdoCIRunner Condition=" '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
-    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(PrepareForHelix)' == 'true' ">true</IsAzdoHelixRunner>
+    <IsAzdoHelixRunner Condition=" '$(PrepareForHelix)' == 'true' ">true</IsAzdoHelixRunner>
   </PropertyGroup>
 
   <PropertyGroup>
