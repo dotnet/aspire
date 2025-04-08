@@ -94,21 +94,28 @@ public static class PageExtensions
     /// </returns>
     public static async Task<bool> InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
     {
-        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)) && !page.NavigationService.IsFirstPageLoad)
+        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
         {
             var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })
             {
-                var newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
-
-                // Don't navigate if the URL redirects to itself.
-                if (newUrl != "/" + page.BasePath)
+                if (page.NavigationService.IsFirstPageLoad)
                 {
-                    // Replace the initial address with this navigation.
-                    // We do this because the visit to "/{BasePath}" then redirect to the final address is automatic from the user perspective.
-                    // Replacing the visit to "/{BasePath}" is good because we want to take the user back to where they started, not an intermediary address.
-                    page.NavigationManager.NavigateTo(newUrl, new NavigationOptions { ReplaceHistoryEntry = true });
-                    return true;
+                    await page.SessionStorage.DeleteAsync(page.SessionStorageKey).ConfigureAwait(false);
+                }
+                else
+                {
+                    var newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
+
+                    // Don't navigate if the URL redirects to itself.
+                    if (newUrl != "/" + page.BasePath)
+                    {
+                        // Replace the initial address with this navigation.
+                        // We do this because the visit to "/{BasePath}" then redirect to the final address is automatic from the user perspective.
+                        // Replacing the visit to "/{BasePath}" is good because we want to take the user back to where they started, not an intermediary address.
+                        page.NavigationManager.NavigateTo(newUrl, new NavigationOptions { ReplaceHistoryEntry = true });
+                        return true;
+                    }
                 }
             }
         }

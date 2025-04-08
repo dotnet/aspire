@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Model.BrowserStorage;
 
 public abstract class BrowserStorageBase : IBrowserStorage
 {
-    private readonly ProtectedBrowserStorage _protectedBrowserStorage;
+    protected readonly ProtectedBrowserStorage _protectedBrowserStorage;
 
     protected BrowserStorageBase(ProtectedBrowserStorage protectedBrowserStorage, ILogger logger)
     {
@@ -43,4 +43,6 @@ public abstract class BrowserStorageBase : IBrowserStorage
     {
         await _protectedBrowserStorage.SetAsync(key, value!).ConfigureAwait(false);
     }
+
+    public abstract Task DeleteAsync(string key);
 }

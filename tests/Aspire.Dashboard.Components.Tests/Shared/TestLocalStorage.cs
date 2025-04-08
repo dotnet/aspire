@@ -38,4 +38,9 @@ public sealed class TestLocalStorage : ILocalStorage
         }
         return Task.CompletedTask;
     }
+
+    public Task DeleteAsync(string key)
+    {
+        return Task.CompletedTask;
+    }
 }
