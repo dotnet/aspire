@@ -299,79 +299,79 @@ public static class AzureSqlExtensions
 
     private static void AddPrincipalIdUserRole(IDistributedApplicationBuilder builder, AzureSqlDatabaseResource azureSqlDatabase)
     {
-        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        if (!builder.ExecutionContext.IsPublishMode)
         {
-            foreach (var identityResource in builder.Resources.Where(r => r is IAppIdentityResource).Cast<IAppIdentityResource>())
-            {
-                var sqlServer = azureSqlDatabase.Parent;
+            return;
+        }
 
-                var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
-                var bicep = builder.AddBicepTemplateString(
-                    scriptIdentifier,
-                    $$"""
-                param location string = resourceGroup().location
+        foreach (var identityResource in builder.Resources.Where(r => r is IAppIdentityResource).Cast<IAppIdentityResource>())
+        {
+            var sqlServer = azureSqlDatabase.Parent;
 
-                param sqlserver_name string
+            var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
+            var bicep = builder.AddBicepTemplateString(
+                scriptIdentifier,
+                $$"""
+            param location string = resourceGroup().location
 
-                param sqldatabase_name string
+            param sqlserver_name string
+
+            param sqldatabase_name string
                 
-                param principalName string
+            param principalName string
 
-                resource sqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
-                    name: sqlserver_name
-                }
-
-                resource sqldatabase 'Microsoft.Sql/servers/databases@2021-11-01' existing = {
-                  name: sqldatabase_name
-                }
-
-                resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-                  name: '{{scriptIdentifier}}'
-                  location: location
-                  kind: 'AzureCLI'
-                  properties: {
-                    azCliVersion: '2.37.0'
-                    retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
-                    timeout: 'PT5M' // Five minutes
-                    cleanupPreference: 'OnSuccess'
-                    environmentVariables: [
-                      {
-                        name: 'DBNAME'
-                        value: sqldatabase.name
-                      }
-                      {
-                        name: 'DBSERVER'
-                        value: sqlserver.properties.fullyQualifiedDomainName
-                      }
-                      {
-                        name: 'IDENTITY'
-                        secureValue: principalName
-                      }
-                    ]
-
-                    scriptContent: '''
-                wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
-                tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
-                
-                cat <<SCRIPT_END > ./script.sql
-                CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
-                ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
-                ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
-                SCRIPT_END
-                
-                ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
-                    '''
-                  }
-                }
-                """);
-
-                bicep.WithParameter("sqldatabase_outputs_name", azureSqlDatabase.Name);
-                bicep.WithParameter("sqlserver_outputs_name", azureSqlDatabase.Parent.Name);
-                bicep.WithParameter("principalName", identityResource.PrincipalName);
+            resource sqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
+                name: sqlserver_name
             }
 
-            return Task.CompletedTask;
-        });
+            resource sqldatabase 'Microsoft.Sql/servers/databases@2021-11-01' existing = {
+                name: sqldatabase_name
+            }
+
+            resource sqlDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+                name: '{{scriptIdentifier}}'
+                location: location
+                kind: 'AzureCLI'
+                properties: {
+                azCliVersion: '2.37.0'
+                retentionInterval: 'PT1H' // Retain the script resource for 1 hour after it ends running
+                timeout: 'PT5M' // Five minutes
+                cleanupPreference: 'OnSuccess'
+                environmentVariables: [
+                    {
+                    name: 'DBNAME'
+                    value: sqldatabase.name
+                    }
+                    {
+                    name: 'DBSERVER'
+                    value: sqlserver.properties.fullyQualifiedDomainName
+                    }
+                    {
+                    name: 'IDENTITY'
+                    secureValue: principalName
+                    }
+                ]
+
+                scriptContent: '''
+            wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
+            tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
+                
+            cat <<SCRIPT_END > ./script.sql
+            CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
+            ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
+            ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
+            SCRIPT_END
+                
+            ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
+                '''
+                }
+            }
+            """);
+
+            bicep.WithParameter("sqlserver_name", azureSqlDatabase.Name);
+            bicep.WithParameter("sqldatabase_name", azureSqlDatabase.Parent.Name);
+            bicep.WithParameter("principalName", identityResource.PrincipalName);
+        }
     }
 
     /// <remarks>
