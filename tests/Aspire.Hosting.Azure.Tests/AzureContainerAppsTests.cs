@@ -3231,7 +3231,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                         .AddDatabase("db");
 
         builder.AddContainer("cache", "redis")
-               .WithVolume("data", "/data")
+               .WithVolume("App.da-ta", "/data")
                .WithReference(pg);
 
         using var app = builder.Build();
@@ -3366,7 +3366,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
 
             resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
-              name: take('${toLower('cache')}-${toLower('data')}', 60)
+              name: take('${toLower('cache')}-${toLower('Appdata')}', 60)
               properties: {
                 enabledProtocols: 'SMB'
                 shareQuota: 1024
@@ -3375,7 +3375,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             }
 
             resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
-              name: take('${toLower('cache')}-${toLower('data')}', 32)
+              name: take('${toLower('cache')}-${toLower('Appdata')}', 32)
               properties: {
                 azureFile: {
                   accountName: env_storageVolume.name
