@@ -102,7 +102,7 @@
   </Target>
 
   <!-- Generate before the build so the projects can use this in a <None ..> item -->
-  <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
+  <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true' and '$(IsTestUtilityProject)' != 'true'">
     <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->
     <ItemGroup>
       <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
