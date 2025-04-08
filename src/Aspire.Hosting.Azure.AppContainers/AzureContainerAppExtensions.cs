@@ -76,10 +76,21 @@ public static class AzureContainerAppExtensions
 
             infra.Add(tags);
 
+            ProvisioningVariable? resourceToken = null;
+            if (appEnvResource.UseAzdNamingConvention)
+            {
+                resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
+                {
+                    Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
+                };
+                infra.Add(resourceToken);
+            }
+
             var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_mi"))
             {
                 Tags = tags
             };
+
             infra.Add(identity);
 
             var containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
@@ -215,11 +226,7 @@ public static class AzureContainerAppExtensions
 
             if (appEnvResource.UseAzdNamingConvention)
             {
-                var resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
-                {
-                    Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
-                };
-                infra.Add(resourceToken);
+                Debug.Assert(resourceToken is not null);
 
                 identity.Name = BicepFunction.Interpolate($"mi-{resourceToken}");
                 containerRegistry.Name = new FunctionCallExpression(
