@@ -37,7 +37,7 @@
 
   <PropertyGroup>
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
-    <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(RunHelixTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
+    <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(PrepareForHelix)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
 
     <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestUtilityProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath Condition="'$(GeneratedPackagesVersionsPropsPath)' == ''">$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
@@ -95,7 +95,7 @@
 
   <Target Name="_UpdateArchiveSourcePath"
           BeforeTargets="ZipTestArchive"
-          Condition=" '$(IsTestProject)' == 'true' and '$(RunHelixTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
+          Condition=" '$(IsTestProject)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
     <PropertyGroup>
       <TestsArchiveSourceDir>$(OutDir)$(DeployOutsideOfRepoSupportFilesRelativeDir)</TestsArchiveSourceDir>
     </PropertyGroup>

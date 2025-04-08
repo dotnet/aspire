@@ -27,7 +27,7 @@
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
     <IsAzdoCIRunner Condition=" '$(IsAzdoCIRunner)' == '' and '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
-    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(RunHelixTests)' == 'true' ">true</IsAzdoHelixRunner>
+    <IsAzdoHelixRunner Condition=" '$(IsAzdoHelixRunner)' == '' and '$(PrepareForHelix)' == 'true' ">true</IsAzdoHelixRunner>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -89,7 +89,7 @@
     <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(RunHelixTests)' == 'true'" Label="Prepare archive dir for helix">
+  <ItemGroup Condition="'$(PrepareForHelix)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />

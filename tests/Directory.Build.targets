@@ -9,7 +9,7 @@
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
-    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(RunHelixTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(PrepareForHelix)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build"
-          Condition=" '$(IsTestProject)' == 'true' and '$(RunHelixTests)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+          Condition=" '$(IsTestProject)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
@@ -35,7 +35,7 @@
 
   <!-- Used for running one helix job per test class -->
   <Target Name="ExtractTestClassNames"
-          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(RunHelixTests)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
+          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"

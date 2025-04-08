@@ -160,8 +160,8 @@ jobs:
           CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
-          /p:RunHelixTests=true
-          /bl:${{ github.workspace }}/artifacts/log/Debug/RunHelixTests.binlog
+          /p:PrepareForHelix=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
