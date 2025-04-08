@@ -17,5 +17,5 @@ internal interface IAzureContainerAppEnvironment
     IManifestExpressionProvider ContainerAppEnvironmentName { get; }
 
     IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource);
-    IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex);
+    IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex);
 }
