@@ -44,7 +44,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(templateVersionOption);
 
         var prereleaseOption = new Option<bool>("--prerelease");
-        prereleaseOption.Description = "Include prelease versions when searching for project templates.";
+        prereleaseOption.Description = "Include prerelease versions when searching for project templates.";
         Options.Add(prereleaseOption);
     }
 
