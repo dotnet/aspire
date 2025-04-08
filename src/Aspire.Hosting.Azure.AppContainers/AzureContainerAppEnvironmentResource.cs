@@ -80,8 +80,15 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
+        var prefix = volume.Type switch
+        {
+            ContainerMountType.BindMount => "bm",
+            ContainerMountType.Volume => "v",
+            _ => throw new NotSupportedException()
+        };
+
         // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"volumes_{resource.Name}_{volumeIndex}";
+        var outputName = $"volumes_{resource.Name}_{prefix}{volumeIndex}";
 
         if (!VolumeNames.TryGetValue(outputName, out var volumeName))
         {
