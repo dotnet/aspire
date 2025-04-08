@@ -304,9 +304,10 @@ public static class AzureSqlExtensions
             return;
         }
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
-        {
-            foreach (var resource in builder.Resources)
+        //builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        //{
+        var resources = builder.Resources.ToArray();
+            foreach (var resource in resources)
             {
                 Console.WriteLine($"Resource: {resource.Name}");
 
@@ -315,12 +316,12 @@ public static class AzureSqlExtensions
                     Console.WriteLine($"  Identity: {resource.Name}");
                 }
 
-                if (!resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var annotation))
-                {
-                    continue;
-                }
+                //if (!resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var annotation))
+                //{
+                //    continue;
+                //}
 
-                var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-sqlroles";
+                var scriptIdentifier = $"{azureSqlDatabase.DatabaseName}-{resource.Name}-sqlroles";
                 var bicep = builder.AddBicepTemplateString(
                     scriptIdentifier,
                     $$"""
@@ -380,13 +381,13 @@ public static class AzureSqlExtensions
                         }
                         """);
 
-                bicep.WithParameter("sqlserver_name", azureSqlDatabase.Name);
-                bicep.WithParameter("sqldatabase_name", azureSqlDatabase.Parent.Name);
-                bicep.WithParameter("principalName", annotation.IdentityResource.PrincipalName);
+                bicep.WithParameter("sqldatabase_name", azureSqlDatabase.DatabaseName);
+                bicep.WithParameter("sqlserver_name", azureSqlDatabase.Parent.Name);
+                //bicep.WithParameter("principalName", annotation.IdentityResource.PrincipalName);
             }
 
-            return Task.CompletedTask;
-        });
+        //    return Task.CompletedTask;
+        //});
     }
 
     /// <remarks>
