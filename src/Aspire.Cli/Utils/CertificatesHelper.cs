@@ -10,7 +10,7 @@ internal static class CertificatesHelper
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(CertificatesHelper));
 
-    internal static async Task EnsureCertificatesTrustedAsync(DotNetCliRunner runner, CancellationToken cancellationToken)
+    internal static async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
     {
         using var activity = s_activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 

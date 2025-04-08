@@ -11,10 +11,10 @@ namespace Aspire.Cli.Commands;
 internal sealed class NewCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public NewCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));

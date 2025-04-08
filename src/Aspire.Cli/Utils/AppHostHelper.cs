@@ -11,7 +11,7 @@ internal static class AppHostHelper
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(AppHostHelper));
 
-    internal static async Task<(bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatabilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatabilityAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, projectFile, cancellationToken);
 
@@ -47,7 +47,7 @@ internal static class AppHostHelper
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
         using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
@@ -63,7 +63,7 @@ internal static class AppHostHelper
         return appHostInformationResult;
     }
     
-    internal static async Task<int> BuildAppHostAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
         return await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
