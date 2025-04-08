@@ -27,6 +27,25 @@ internal sealed class RootCommand : BaseRootCommand
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
+        var otelOption = new Option<string>("--otel");
+        otelOption.Description = "Send telemetry to the OpenTelemetry collector";
+        otelOption.Validators.Add((result) => {
+                var otelUrl = result.GetValueOrDefault<string>();
+
+                if (Uri.TryCreate(otelUrl, UriKind.Absolute, out var otelUri) && (otelUri.Scheme == Uri.UriSchemeHttp || otelUri.Scheme == Uri.UriSchemeHttps))
+                {
+                    // If we have a valid URL then we can just return.
+                    return;
+                }
+                else
+                {
+                    result.AddError("The OpenTelemetry URL must be an absolute URI with either HTTP or HTTPS scheme.");
+                }
+        });
+        otelOption.Recursive = true;
+        otelOption.Hidden = true; // Hiding for now since this could be confusing about what it does.
+        Options.Add(otelOption);
+
         #if DEBUG
         waitForDebuggerOption.Validators.Add((result) => {
 

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli;
@@ -49,12 +50,22 @@ public class Program
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
 
-        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
+        // NOTE: Actual arg validation will take place elsewhere, this is just
+        //       a quick check to make sure that DI is configured correctly.
+        if (args.IndexOf("--otel") is var otelArgIndex && otelArgIndex != -1)
         {
-            // NOTE: If we always enable the OTEL exporter it dramatically
-            //       impacts the CLI in terms of exiting quickly because it
-            //       has to finish sending telemetry.
-            otelBuilder.UseOtlpExporter();
+            // If we have an otel switch then we need to check that we
+            // have at least enough args to have a base URL.
+            if (args.Length == otelArgIndex + 2)
+            {
+                var baseUrl = args[otelArgIndex + 1];
+
+                // If we have enough arguments we need to make sure its a valid URL.
+                if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) && (baseUri.Scheme == Uri.UriSchemeHttp || baseUri.Scheme == Uri.UriSchemeHttp))
+                {
+                    otelBuilder.UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, baseUri);
+                }
+            }
         }
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
