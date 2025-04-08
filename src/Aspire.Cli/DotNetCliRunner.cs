@@ -486,6 +486,12 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
                 throw;
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
+                backchannelCompletionSource.SetException(ex);
+                throw;
+            }
 
         } while (await timer.WaitForNextTickAsync(cancellationToken));
     }

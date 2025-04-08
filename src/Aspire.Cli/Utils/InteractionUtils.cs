@@ -8,6 +8,24 @@ namespace Aspire.Cli.Utils;
 
 internal static class InteractionUtils
 {
+    public static async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    {
+        return await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots3)
+            .SpinnerStyle(Style.Parse("purple"))
+            .StartAsync(statusText, (context) => action());
+    }
+
+    public static async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    {
+        return await PromptForSelectionAsync(
+            "Select a template version:",
+            candidatePackages,
+            (p) => $"{p.Version} ({p.Source})",
+            cancellationToken
+            );
+    }
+
     public static async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));

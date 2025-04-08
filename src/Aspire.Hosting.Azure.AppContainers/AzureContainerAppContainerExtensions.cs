@@ -42,7 +42,7 @@ public static class AzureContainerAppContainerExtensions
             return container;
         }
 
-        container.ApplicationBuilder.AddAzureContainerAppsInfrastructure();
+        container.ApplicationBuilder.AddAzureContainerAppsInfrastructureCore();
 
         container.WithAnnotation(new AzureContainerAppCustomizationAnnotation(configure));
 

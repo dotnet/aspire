@@ -28,7 +28,11 @@ public static class AzureContainerAppExtensions
     /// Adds the necessary infrastructure for Azure Container Apps to the distributed application builder.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
+    [Obsolete($"Use {nameof(AddAzureContainerAppEnvironment)} instead. This method will be removed in a future version.")]
+    public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) =>
+        AddAzureContainerAppsInfrastructureCore(builder);
+
+    internal static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -52,7 +56,7 @@ public static class AzureContainerAppExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddAzureContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructureCore();
 
         // Only support one temporarily until we can support multiple environments
         // and allowing each container app to be explicit about which environment it uses
