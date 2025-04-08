@@ -25,7 +25,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var redis = builder.AddAzureRedis("redis-cache");
