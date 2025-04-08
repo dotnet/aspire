@@ -27,7 +27,7 @@ internal sealed class RootCommand : BaseRootCommand
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
-        var otelOption = new Option<string>("--otel");
+        var otelOption = new Option<string>("--cli-otlp-endpoint");
         otelOption.Description = "Send telemetry to the OpenTelemetry collector";
         otelOption.Validators.Add((result) => {
                 var otelUrl = result.GetValueOrDefault<string>();

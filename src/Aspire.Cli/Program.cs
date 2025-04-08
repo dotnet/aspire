@@ -52,9 +52,9 @@ public class Program
 
         // NOTE: Actual arg validation will take place elsewhere, this is just
         //       a quick check to make sure that DI is configured correctly.
-        if (args.IndexOf("--otel") is var otelArgIndex && otelArgIndex != -1)
+        if (args.IndexOf("--cli-otlp-endpoint") is var otelArgIndex && otelArgIndex != -1)
         {
-            // If we have an otel switch then we need to check that we
+            // If we have an --cli-otlp-endpoint switch then we need to check that we
             // have at least enough args to have a base URL.
             if (args.Length == otelArgIndex + 2)
             {
