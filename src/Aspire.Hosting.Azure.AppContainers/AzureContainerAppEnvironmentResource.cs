@@ -13,6 +13,8 @@ namespace Aspire.Hosting.Azure.AppContainers;
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment
 {
+    internal bool UseAzdNamingConvention { get; set; }
+
     /// <summary>
     /// Gets the unique identifier of the Container App Environment.
     /// </summary>
