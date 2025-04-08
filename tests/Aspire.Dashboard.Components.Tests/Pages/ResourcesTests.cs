@@ -45,19 +45,19 @@ public partial class ResourcesTests : DashboardTestContext
         });
 
         // Assert 1
-        Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Type1", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Running", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Unhealthy", kvp.Key);
@@ -78,7 +78,7 @@ public partial class ResourcesTests : DashboardTestContext
         cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
 
         // Assert 2
-        Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Type1", kvp.Key);
@@ -89,13 +89,13 @@ public partial class ResourcesTests : DashboardTestContext
                 Assert.Equal("Type2", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Running", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Healthy", kvp.Key);
