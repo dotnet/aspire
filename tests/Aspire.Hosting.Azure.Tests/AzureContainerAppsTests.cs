@@ -3271,6 +3271,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
             param tags object = { }
 
+            var resourceToken = uniqueString(resourceGroup().id)
+
             resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
               name: 'mi-${resourceToken}'
               location: location
@@ -3384,8 +3386,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               }
               parent: env
             }
-
-            var resourceToken = uniqueString(resourceGroup().id)
 
             output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
