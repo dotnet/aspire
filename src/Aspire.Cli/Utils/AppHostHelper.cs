@@ -11,7 +11,7 @@ internal static class AppHostHelper
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(AppHostHelper));
 
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatabilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, projectFile, cancellationToken);
 
