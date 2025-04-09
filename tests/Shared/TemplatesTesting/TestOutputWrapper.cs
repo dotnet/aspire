@@ -39,7 +39,7 @@ public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMess
 
         if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
         }
     }
 
@@ -49,7 +49,7 @@ public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMess
         messageSink?.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
         if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
-            Console.WriteLine(format, args);
+            //Console.WriteLine(format, args);
         }
     }
 }
