@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -83,7 +82,7 @@ public partial class ResourceActions : ComponentBase
             Icon = s_consoleLogsIcon,
             OnClick = () =>
             {
-                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: Resource.GetConsoleLogsName(ResourceByName.Values)));
+                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: ResourceViewModel.GetResourceName(Resource, ResourceByName)));
                 return Task.CompletedTask;
             }
         });

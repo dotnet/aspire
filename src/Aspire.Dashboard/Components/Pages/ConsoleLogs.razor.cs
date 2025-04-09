@@ -12,7 +12,6 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -239,24 +238,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
     {
         Debug.Assert(_resources is not null);
-        return _resources.SingleOrDefault(
-            option =>
-            {
-                var typeDetails = option.Id;
-                // Never match the replica parent or _noSelection.
-                if (typeDetails is null || typeDetails.Type is OtlpApplicationType.ResourceGrouping)
-                {
-                    return false;
-                }
-
-                // If the resource has multiple replicas, using the display name is not allowed. In this case,
-                // we must compare against the replica id. Otherwise, we can use the display name.
-                var optionName = typeDetails.Type is OtlpApplicationType.Instance
-                    ? option.Id?.InstanceId
-                    : option.Name;
-                return string.Equals(ResourceName, optionName, StringComparisons.ResourceName);
-            })
-            ?? _noSelection;
+        return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -385,7 +367,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName, _resourceByName.Values);
+        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
