@@ -61,7 +61,8 @@
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
     <ItemGroup>
-      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActions)" />
+      <TestProject Condition="'$(OS)' == 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsWindows)" />
+      <TestProject Condition="'$(OS)' != 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsLinux)" />
     </ItemGroup>
   </Target>
 
