@@ -492,7 +492,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                     ex.RequiredCapability
                     );
 
-                // If the app host is incompatable then there is no point
+                // If the app host is incompatible then there is no point
                 // trying to reconnect, we should propogate the exception
                 // up to the code that needs to back channel so it can display
                 // and error message to the user.
