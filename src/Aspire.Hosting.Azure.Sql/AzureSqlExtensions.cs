@@ -6,7 +6,6 @@ using Aspire.Hosting.Azure;
 //using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Sql;
 //using static Aspire.Hosting.Azure.SqlServerScriptProvisioningResource;
 
@@ -281,92 +280,5 @@ public static class AzureSqlExtensions
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
-    }
-
-    internal static SqlServerAzureADAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, SqlServer sqlServer, BicepValue<Guid> principalId, BicepValue<string> principalName)
-    {
-        var admin = new SqlServerAzureADAdministratorWorkaround($"{sqlServer.BicepIdentifier}_admin")
-        {
-            ParentOverride = sqlServer,
-            LoginOverride = principalName,
-            SidOverride = principalId
-        };
-        infra.Add(admin);
-        return admin;
-    }
-    /// <remarks>
-    /// Workaround for issue using SqlServerAzureADAdministrator.
-    /// See https://github.com/Azure/azure-sdk-for-net/issues/48364 for more information.
-    /// </remarks>
-    private sealed class SqlServerAzureADAdministratorWorkaround(string bicepIdentifier) : SqlServerAzureADAdministrator(bicepIdentifier)
-    {
-        private BicepValue<string>? _name;
-        private BicepValue<string>? _login;
-        private BicepValue<Guid>? _sid;
-        private ResourceReference<SqlServer>? _parent;
-
-        /// <summary>
-        /// Login name of the server administrator.
-        /// </summary>
-        public BicepValue<string> LoginOverride
-        {
-            get
-            {
-                Initialize();
-                return _login!;
-            }
-            set
-            {
-                Initialize();
-                _login!.Assign(value);
-            }
-        }
-
-        /// <summary>
-        /// SID (object ID) of the server administrator.
-        /// </summary>
-        public BicepValue<Guid> SidOverride
-        {
-            get
-            {
-                Initialize();
-                return _sid!;
-            }
-            set
-            {
-                Initialize();
-                _sid!.Assign(value);
-            }
-        }
-
-        /// <summary>
-        /// Parent resource of the server administrator.
-        /// </summary>
-        public SqlServer? ParentOverride
-        {
-            get
-            {
-                Initialize();
-                return _parent!.Value;
-            }
-            set
-            {
-                Initialize();
-                _parent!.Value = value;
-            }
-        }
-
-        private static BicepValue<string> GetNameDefaultValue()
-        {
-            return new StringLiteralExpression("ActiveDirectory");
-        }
-
-        protected override void DefineProvisionableProperties()
-        {
-            _name = DefineProperty("Name", ["name"], defaultValue: GetNameDefaultValue());
-            _login = DefineProperty<string>("Login", ["properties", "login"]);
-            _sid = DefineProperty<Guid>("Sid", ["properties", "sid"]);
-            _parent = DefineResource<SqlServer>("Parent", ["parent"], isOutput: false, isRequired: true);
-        }
     }
 }

@@ -1,9 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Hashing;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using Azure.Provisioning.Resources;
+using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting.Azure;
@@ -111,30 +118,52 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         var infra = roleAssignmentContext.Infrastructure;
         var sqlserver = (SqlServer)AddAsExistingResource(infra);
 
-        //var principalId = roleAssignmentContext.PrincipalId;
+        // The name of the user assigned identity for the container app
         var principalName = roleAssignmentContext.PrincipalName;
 
-        //AzureSqlExtensions.AddActiveDirectoryAdministrator(infra, sqlserver, principalId, principalName);
+        // Get a reference to the user assigned identity that is used for the deployment
+        // c.f. AzureContainerAppExtensions.AddAzureContainerAppEnvironment()
+        var userManagedIdentity = UserAssignedIdentity.FromExisting("mi");
+        infra.Add(userManagedIdentity);
+
+        // Identity requires Directory Reader role to be added as a user
+        // https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-directory-readers-role
+
+        var ra = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"roleAssignment"))
+        {
+            Scope = new IdentifierExpression(sqlserver.BicepIdentifier),
+            RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", "88d8e3e3-8f55-4a1e-953a-9b9898b8876b"),
+            PrincipalId = roleAssignmentContext.PrincipalId,
+            PrincipalType = roleAssignmentContext.PrincipalType,
+        };
+        infra.Add(ra);
 
         foreach (var database in Databases.Keys)
         {
-            var scriptResource = new SqlServerScriptProvisioningResource($"{infra.AspireResource.GetBicepIdentifier()}_{database}_sqlroles");
+            var hash = new XxHash3();
+            hash.Append(Encoding.UTF8.GetBytes(database));
+            hash.Append(Encoding.UTF8.GetBytes(infra.AspireResource.GetBicepIdentifier()));
+
+            var scriptResource = new SqlServerScriptProvisioningResource($"dbroles_{Convert.ToHexString(hash.GetCurrentHash()).ToLowerInvariant()}");
+
+            scriptResource.Identity.IdentityType = ArmDeploymentScriptManagedIdentityType.UserAssigned;
+            scriptResource.Identity.UserAssignedIdentities["${mi.id}"] = new UserAssignedIdentityDetails();
 
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "IDENTITY", Value = principalName });
 
             scriptResource.ScriptContent = $$"""
+                    echo "Downloading go-sqlcmd"
                     wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
                     tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
-                        
-                    cat <<SCRIPT_END > ./script.sql
-                    CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;
-                    ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];
-                    ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];
-                    SCRIPT_END
-                        
-                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -i ./script.sql
+                    echo "Creating database roles for '${DBNAME}' on '${DBSERVER}' on user assigned identity '${IDENTITY}'"
+                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;"
+                    echo "Assign db_datareader"
+                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];"
+                    echo "Assign db_datawriter"
+                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];"
+                    echo "Done"
                     """;
 
             infra.Add(scriptResource);
