@@ -6,6 +6,7 @@ using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
@@ -46,8 +47,10 @@ public partial class MetricsTests : DashboardTestContext
             expectedInstrumentNameAfterChange: null);
     }
 
-    [Fact]
-    public void InitialLoad_HasSessionState_RedirectUsingState()
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)] // first page load doesn't redirect
+    public void HasSessionState_RedirectsCorrectly(bool isFirstPageLoad, bool expectRedirect)
     {
         // Arrange
         var testSessionStorage = new TestSessionStorage
@@ -73,6 +76,9 @@ public partial class MetricsTests : DashboardTestContext
             }
         };
         MetricsSetupHelpers.SetupMetricsPage(this, sessionStorage: testSessionStorage);
+
+        var navigationService = Services.GetRequiredService<NavigationService>();
+        navigationService.IsFirstPageLoad = isFirstPageLoad;
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
         navigationManager.NavigateTo(DashboardUrls.MetricsUrl());
@@ -110,14 +116,20 @@ public partial class MetricsTests : DashboardTestContext
         });
 
         // Assert
-        Assert.NotNull(loadRedirect);
-        Assert.Equal("/metrics/resource/TestApp", loadRedirect.AbsolutePath);
-
-        var query = HttpUtility.ParseQueryString(loadRedirect.Query);
-        Assert.Equal("test-meter", query["meter"]);
-        Assert.Equal("test-instrument", query["instrument"]);
-        Assert.Equal("720", query["duration"]);
-        Assert.Equal(MetricViewKind.Table.ToString(), query["view"]);
+        if (expectRedirect)
+        {
+            Assert.NotNull(loadRedirect);
+            Assert.Equal("/metrics/resource/TestApp", loadRedirect.AbsolutePath);
+            var query = HttpUtility.ParseQueryString(loadRedirect.Query);
+            Assert.Equal("test-meter", query["meter"]);
+            Assert.Equal("test-instrument", query["instrument"]);
+            Assert.Equal("720", query["duration"]);
+            Assert.Equal(nameof(MetricViewKind.Table), query["view"]);
+        }
+        else
+        {
+            Assert.Null(loadRedirect);
+        }
     }
 
     [Fact]
