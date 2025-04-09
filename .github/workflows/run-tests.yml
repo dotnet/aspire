@@ -147,12 +147,6 @@ jobs:
           echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
           echo "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV
 
-      - name: Set executable extension (Windows)
-        if: inputs.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          echo "TEST_EXECUTABLE_EXTENSION=.exe" >> $env:GITHUB_ENV
-
       - name: Build test project
         if: ${{ ! inputs.requiresNugets }}
         env:
@@ -226,7 +220,7 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         run: >
-          ${{ env.TEST_ASSEMBLY_NAME }}${{ env.TEST_EXECUTABLE_EXTENSION }}
+          dotnet exec ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
