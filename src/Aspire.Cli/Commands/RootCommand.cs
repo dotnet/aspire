@@ -5,7 +5,7 @@ using System.CommandLine;
 
 #if DEBUG
 using System.Diagnostics;
-using Spectre.Console;
+using Aspire.Cli.Utils;
 #endif
 
 using BaseRootCommand = System.CommandLine.RootCommand;
@@ -34,15 +34,14 @@ internal sealed class RootCommand : BaseRootCommand
 
             if (waitForDebugger)
             {
-                AnsiConsole.Status().Start(
+                InteractionUtils.ShowStatus(
                     $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
-                    context => {
+                    () => {
                         while (!Debugger.IsAttached)
                         {
                             Thread.Sleep(1000);
                         }
-                    }
-                );
+                    });
             }
         });
         #endif

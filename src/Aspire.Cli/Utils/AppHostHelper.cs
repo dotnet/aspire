@@ -51,25 +51,18 @@ internal static class AppHostHelper
     {
         using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
-        var appHostInformationResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":microscope: Checking project type...",
-                async (context) => {
-                    return await runner.GetAppHostInformationAsync(projectFile, cancellationToken);
-                });
+        var appHostInformationResult = await InteractionUtils.ShowStatusAsync(
+            ":microscope: Checking project type...",
+            () => runner.GetAppHostInformationAsync(projectFile, cancellationToken)
+        );
 
         return appHostInformationResult;
     }
     
     internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(":hammer_and_wrench:  Building app host...", async context => {
-                return await runner.BuildAsync(projectFile, cancellationToken).ConfigureAwait(false);
-            });
+        return await InteractionUtils.ShowStatusAsync(
+            ":hammer_and_wrench:  Building app host...",
+            () => runner.BuildAsync(projectFile, cancellationToken));
     }
 }

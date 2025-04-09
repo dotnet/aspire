@@ -78,36 +78,32 @@ internal sealed class PublishCommand : BaseCommand
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishersResult = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync<(int ExitCode, string[]? Publishers)>(
-                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
-                    async context => {
+            var publishersResult = await InteractionUtils.ShowStatusAsync<(int ExitCode, string[] Publishers)>(
+                publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                async () => {
+                    using var getPublishersActivity = _activitySource.StartActivity(
+                        $"{nameof(ExecuteAsync)}-Action-GetPublishers",
+                        ActivityKind.Client);
 
-                        using var getPublishersActivity = _activitySource.StartActivity(
-                            $"{nameof(ExecuteAsync)}-Action-GetPublishers",
-                            ActivityKind.Client);
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                    var pendingInspectRun = _runner.RunAsync(
+                        effectiveAppHostProjectFile,
+                        false,
+                        true,
+                        ["--operation", "inspect"],
+                        null,
+                        backchannelCompletionSource,
+                        cancellationToken).ConfigureAwait(false);
 
-                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
-                        var pendingInspectRun = _runner.RunAsync(
-                            effectiveAppHostProjectFile,
-                            false,
-                            true,
-                            ["--operation", "inspect"],
-                            null,
-                            backchannelCompletionSource,
-                            cancellationToken).ConfigureAwait(false);
+                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                    var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
+                    
+                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                    var exitCode = await pendingInspectRun;
 
-                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-                        var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
-                        
-                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                        var exitCode = await pendingInspectRun;
-
-                        return (exitCode, publishers);
-
-                    }).ConfigureAwait(false);
+                    return (exitCode, publishers);
+                }
+            );
 
             if (publishersResult.ExitCode != 0)
             {

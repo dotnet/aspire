@@ -105,9 +105,9 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException("Unexpected number of packages found.")
             };
 
-            var addPackageResult = await AnsiConsole.Status().StartAsync(
+            var addPackageResult = await InteractionUtils.ShowStatusAsync(
                 "Adding Aspire integration...",
-                async context => {
+                async () => {
                     var addPackageResult = await _runner.AddPackageAsync(
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,

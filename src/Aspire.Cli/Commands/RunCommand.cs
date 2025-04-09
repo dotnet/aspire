@@ -109,20 +109,14 @@ internal sealed class RunCommand : BaseCommand
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
-                var backchannel = await AnsiConsole.Status()
-                        .Spinner(Spinner.Known.Dots3)
-                        .SpinnerStyle(Style.Parse("purple"))
-                        .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                            return await backchannelCompletitionSource.Task;
-                        });
+                var backchannel = await InteractionUtils.ShowStatusAsync(
+                    ":linked_paperclips:  Starting Aspire app host...",
+                    () => backchannelCompletitionSource.Task);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await AnsiConsole.Status()
-                                                    .Spinner(Spinner.Known.Dots3)
-                                                    .SpinnerStyle(Style.Parse("purple"))
-                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-                                                        return await backchannel.GetDashboardUrlsAsync(cancellationToken);
-                                                    });
+                var dashboardUrls = await InteractionUtils.ShowStatusAsync(
+                    ":chart_increasing:  Starting Aspire dashboard...",
+                    () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");

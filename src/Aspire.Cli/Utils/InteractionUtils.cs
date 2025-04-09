@@ -16,6 +16,14 @@ internal static class InteractionUtils
             .StartAsync(statusText, (context) => action());
     }
 
+    public static void ShowStatus(string statusText, Action action)
+    {
+        AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots3)
+            .SpinnerStyle(Style.Parse("purple"))
+            .Start(statusText, (context) => action());
+    }
+
     public static async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
         return await PromptForSelectionAsync(
