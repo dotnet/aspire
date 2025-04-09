@@ -4,17 +4,12 @@
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
 
   <PropertyGroup>
-    <!-- forward the settings file path to RunTests target in arcade -->
-    <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
-
-    <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(PrepareForHelix)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -41,7 +36,7 @@
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
            Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Templates.Tests" />
 
-    <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true" EnvironmentVariables="DOTNET_ROOT=$(DotNetRoot);DOTNET_ROOT_X86=$(DotNetRoot)x86">
+    <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests" ConsoleToMSBuild="true" EnvironmentVariables="DOTNET_ROOT=$(DotNetRoot);DOTNET_ROOT_X86=$(DotNetRoot)x86">
       <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
     </Exec>
 
@@ -66,7 +61,8 @@
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
     <ItemGroup>
-      <TestProject Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActions)" />
+      <TestProject Condition="'$(OS)' == 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsWindows)" />
+      <TestProject Condition="'$(OS)' != 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsLinux)" />
     </ItemGroup>
   </Target>
 
