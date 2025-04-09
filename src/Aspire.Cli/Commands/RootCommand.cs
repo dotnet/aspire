@@ -22,7 +22,7 @@ internal sealed class RootCommand : BaseRootCommand
         debugOption.Recursive = true;
         Options.Add(debugOption);
         
-        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger", "-w");
+        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
