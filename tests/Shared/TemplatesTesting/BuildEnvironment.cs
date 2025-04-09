@@ -101,7 +101,11 @@ public class BuildEnvironment
                 sdkForTemplatePath = Path.GetDirectoryName(dotnetPath)!;
             }
 
-            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+#if RELEASE
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Release", "Shipping");
+#else
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Debug", "Shipping");
+#endif
 
             PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }
@@ -154,8 +158,6 @@ public class BuildEnvironment
         // Avoid using the msbuild terminal logger, so the output can be read
         // in the tests
         EnvVars["_MSBUILDTLENABLED"] = "0";
-        // .. and disable new output style for vstest
-        EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");

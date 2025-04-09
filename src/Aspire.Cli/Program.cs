@@ -9,9 +9,13 @@ using Aspire.Cli.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+#if DEBUG
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+#endif
+
 using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
@@ -33,6 +37,7 @@ public class Program
             logging.IncludeScopes = true;
             });
 
+#if DEBUG
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing => {
@@ -67,6 +72,7 @@ public class Program
                 }
             }
         }
+#endif
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 
