@@ -27,6 +27,7 @@ namespace Aspire.Dashboard.Otlp.Storage;
 public sealed class TelemetryRepository
 {
     private readonly PauseManager _pauseManager;
+    private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers;
     private readonly ILogger _logger;
 
     private readonly object _lock = new();
@@ -62,7 +63,7 @@ public sealed class TelemetryRepository
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
     internal List<Subscription> TracesSubscriptions => _tracesSubscriptions;
 
-    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager)
+    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
         _otlpContext = new OtlpContext
@@ -71,7 +72,7 @@ public sealed class TelemetryRepository
             Options = dashboardOptions.Value.TelemetryLimits
         };
         _pauseManager = pauseManager;
-
+        _outgoingPeerResolvers = outgoingPeerResolvers.ToArray();
         _logs = new(_otlpContext.Options.MaxLogCount);
         _traces = new(_otlpContext.Options.MaxTraceCount);
         _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
@@ -204,25 +205,25 @@ public sealed class TelemetryRepository
         }
 
         // Slower get or add path.
-        (application, var isNew) = GetOrAddApplication(key, resource);
+        (application, var isNew) = GetOrAddApplication(key);
         if (isNew)
         {
             RaiseSubscriptionChanged(_applicationSubscriptions);
         }
 
         return application.GetView(resource.Attributes);
+    }
 
-        (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key, Resource resource)
+    private (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key)
+    {
+        // This GetOrAdd allocates a closure, so we avoid it if possible.
+        var newApplication = false;
+        var application = _applications.GetOrAdd(key, _ =>
         {
-            // This GetOrAdd allocates a closure, so we avoid it if possible.
-            var newApplication = false;
-            var application = _applications.GetOrAdd(key, _ =>
-            {
-                newApplication = true;
-                return new OtlpApplication(key.Name, key.InstanceId!, _otlpContext);
-            });
-            return (application, newApplication);
-        }
+            newApplication = true;
+            return new OtlpApplication(key.Name, key.InstanceId!, _otlpContext);
+        });
+        return (application, newApplication);
     }
 
     public Subscription OnNewApplications(Func<Task> callback)
@@ -582,10 +583,12 @@ public sealed class TelemetryRepository
     {
         for (var i = 0; i < applications.Count; i++)
         {
+            var applicationKey = applications[i].ApplicationKey;
+
             // Spans collection type returns a struct enumerator so it's ok to foreach inside another loop.
             foreach (var span in t.Spans)
             {
-                if (span.Source.ApplicationKey == applications[i].ApplicationKey)
+                if (span.Source.ApplicationKey == applicationKey || span.UninstrumentedPeer?.ApplicationKey == applicationKey)
                 {
                     return true;
                 }
@@ -708,10 +711,16 @@ public sealed class TelemetryRepository
             {
                 foreach (var span in trace.Spans)
                 {
-                    var value = OtlpSpan.GetFieldValue(span, attributeName);
-                    if (value != null)
+                    var values = OtlpSpan.GetFieldValue(span, attributeName);
+                    if (values.Value1 != null)
                     {
-                        ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                        ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, values.Value1, out _);
+                        // Adds to dictionary if not present.
+                        count++;
+                    }
+                    if (values.Value2 != null)
+                    {
+                        ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, values.Value2, out _);
                         // Adds to dictionary if not present.
                         count++;
                     }
@@ -913,24 +922,23 @@ public sealed class TelemetryRepository
                     continue;
                 }
 
-                OtlpTrace? lastTrace = null;
+                var updatedTraces = new Dictionary<ReadOnlyMemory<byte>, OtlpTrace>();
 
                 foreach (var span in scopeSpan.Spans)
                 {
                     try
                     {
                         OtlpTrace? trace;
-                        bool newTrace = false;
+                        var newTrace = false;
 
-                        // Fast path to check if the span is in the same trace as the last span.
-                        if (lastTrace != null && span.TraceId.Span.SequenceEqual(lastTrace.Key.Span))
+                        // Fast path to check if the span is in a trace that's been updated this add call.
+                        if (!updatedTraces.TryGetValue(span.TraceId.Memory, out trace))
                         {
-                            trace = lastTrace;
-                        }
-                        else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
-                        {
-                            trace = new OtlpTrace(span.TraceId.Memory);
-                            newTrace = true;
+                            if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
+                            {
+                                trace = new OtlpTrace(span.TraceId.Memory);
+                                newTrace = true;
+                            }
                         }
 
                         var newSpan = CreateSpan(applicationView, span, trace, scope, _otlpContext);
@@ -1018,7 +1026,7 @@ public sealed class TelemetryRepository
                         // Newly added or updated trace should always been in the collection.
                         Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
 
-                        lastTrace = trace;
+                        updatedTraces[trace.Key] = trace;
                     }
                     catch (Exception ex)
                     {
@@ -1030,6 +1038,35 @@ public sealed class TelemetryRepository
                     AssertSpanLinks();
                 }
 
+                // After spans are updated, loop through traces and their spans and update uninstrumented peer values.
+                // These can change
+                foreach (var (_, updatedTrace) in updatedTraces)
+                {
+                    foreach (var span in updatedTrace.Spans)
+                    {
+                        // A span may indicate a call to another service but the service isn't instrumented.
+                        var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
+                        var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
+                        var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, _outgoingPeerResolvers) : null;
+
+                        if (uninstrumentedPeer != null)
+                        {
+                            if (span.UninstrumentedPeer?.ApplicationKey.EqualsCompositeName(uninstrumentedPeer.Name) ?? false)
+                            {
+                                // Already the correct value. No changes needed.
+                                continue;
+                            }
+
+                            var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
+                            var (app, _) = GetOrAddApplication(appKey);
+                            span.UninstrumentedPeer = app;
+                        }
+                        else
+                        {
+                            span.UninstrumentedPeer = null;
+                        }
+                    }
+                }
             }
         }
         finally
@@ -1052,6 +1089,20 @@ public sealed class TelemetryRepository
             trace = null;
             return false;
         }
+    }
+
+    private static ResourceViewModel? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    {
+        // Attempt to resolve uninstrumented peer to a friendly name from the span.
+        foreach (var resolver in outgoingPeerResolvers)
+        {
+            if (resolver.TryResolvePeerName(span.Attributes, out _, out var matchedResourced))
+            {
+                return matchedResourced;
+            }
+        }
+
+        return null; ;
     }
 
     [Conditional("DEBUG")]

@@ -4,7 +4,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
@@ -239,16 +238,12 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
 
     object IPropertyGridItem.Key => _key;
 
-    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
+    public ResourcePropertyViewModel(string name, Value value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name;
         Value = value;
-        IsValueSensitive = isValueSensitive;
-        KnownProperty = knownProperty;
-        Priority = priority;
-        IsValueMasked = isValueSensitive;
 
         // Known and unknown properties are displayed together. Avoid any duplicate keys.
         _key = KnownProperty != null ? KnownProperty.Key : $"unknown-{Name}";
@@ -269,14 +264,6 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
                 if (value.Length > 12)
                 {
                     value = value[..12];
-                }
-            }
-            else
-            {
-                // Dates are returned as ISO 8601 text. Try to parse. If successful, format with the current culture.
-                if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                {
-                    value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
                 }
             }
 

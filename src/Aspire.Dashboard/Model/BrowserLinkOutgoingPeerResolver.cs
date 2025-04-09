@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model;
@@ -20,7 +19,7 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         }
     }
 
-    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
+    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
         // There isn't a good way to identify the HTTP request the BrowserLink middleware makes to
         // the IDE to get the script tag. The logic below looks at the host and URL and identifies
@@ -48,6 +47,7 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
                     if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], lastSegment, StringComparisons.UrlPath))
                     {
                         name = "Browser Link";
+                        matchedResource = null;
                         return true;
                     }
                 }
@@ -55,6 +55,7 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         }
 
         name = null;
+        matchedResource = null;
         return false;
     }
 }

@@ -132,8 +132,28 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
     public bool Apply(OtlpSpan span)
     {
         var fieldValue = OtlpSpan.GetFieldValue(span, Field);
-        var func = ConditionToFuncString(Condition);
-        return func(fieldValue, Value);
+        if (fieldValue.Value1 == null)
+        {
+            return false;
+        }
+
+        if (!IsMatch(fieldValue.Value1, Value, Condition))
+        {
+            return false;
+        }
+
+        if (fieldValue.Value2 != null && !IsMatch(fieldValue.Value2, Value, Condition))
+        {
+            return false;
+        }
+
+        return true;
+
+        static bool IsMatch(string fieldValue, string filterValue, FilterCondition condition)
+        {
+            var func = ConditionToFuncString(condition);
+            return func(fieldValue, filterValue);
+        }
     }
 
     public bool Equals(TelemetryFilter? other)

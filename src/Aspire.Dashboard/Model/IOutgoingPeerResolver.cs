@@ -5,6 +5,6 @@ namespace Aspire.Dashboard.Model;
 
 public interface IOutgoingPeerResolver
 {
-    bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name);
+    bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResourced);
     IDisposable OnPeerChanges(Func<Task> callback);
 }

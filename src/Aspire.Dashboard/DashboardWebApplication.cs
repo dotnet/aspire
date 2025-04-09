@@ -228,7 +228,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Data from the server.
-        builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
+        builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
         builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
@@ -244,8 +244,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddTransient<OtlpMetricsService>();
 
         builder.Services.AddTransient<TracesViewModel>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
 

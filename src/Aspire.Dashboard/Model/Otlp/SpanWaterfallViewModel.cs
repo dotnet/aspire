@@ -178,7 +178,7 @@ public sealed class SpanWaterfallViewModel
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
         foreach (var resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span.Attributes, out var name))
+            if (resolver.TryResolvePeerName(span.Attributes, out var name, out var _))
             {
                 return name;
             }

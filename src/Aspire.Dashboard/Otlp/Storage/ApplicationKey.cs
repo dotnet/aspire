@@ -16,6 +16,17 @@ public readonly record struct ApplicationKey(string Name, string? InstanceId) : 
         return string.Compare(InstanceId, other.InstanceId, StringComparisons.ResourceName);
     }
 
+    public static ApplicationKey Create(string name)
+    {
+        var separator = name.LastIndexOf('-');
+        if (separator == -1)
+        {
+            return new ApplicationKey(Name: name, InstanceId: null);
+        }
+
+        return new ApplicationKey(Name: name.Substring(0, separator), InstanceId: name.Substring(separator + 1));
+    }
+
     public bool EqualsCompositeName(string name)
     {
         if (name == null)
