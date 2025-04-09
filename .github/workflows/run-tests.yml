@@ -220,7 +220,7 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         run: >
-          dotnet exec ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
