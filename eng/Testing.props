@@ -20,7 +20,7 @@
 
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --filter-not-trait &quot;category=failing&quot;</TestRunnerAdditionalArguments>
 
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == ''">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' != 'true'">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
   </PropertyGroup>
 </Project>

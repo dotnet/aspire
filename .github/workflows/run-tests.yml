@@ -246,7 +246,6 @@ jobs:
           # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
-        
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
