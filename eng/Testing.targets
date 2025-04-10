@@ -50,7 +50,8 @@
     <SkipTests>true</SkipTests>
 
     <!-- Only run tests if the build is running on GitHub Actions  -->
-    <SkipTests Condition=" '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">false</SkipTests>
+    <SkipTests Condition=" '$(IsGitHubActionsRunner)' == 'true' and '$(BuildOs)' == 'windows' and '$(RunOnGithubActionsWindows)' == 'true' ">false</SkipTests>
+    <SkipTests Condition=" '$(IsGitHubActionsRunner)' == 'true' and '$(BuildOs)' != 'windows' and '$(RunOnGithubActionsLinux)' == 'true' ">false</SkipTests>
 
     <!-- Only run tests if the build is running on Helix infra  -->
     <SkipTests Condition=" '$(IsAzdoHelixRunner)' == 'true' and '$(RunOnAzdoHelix)' == 'true' ">false</SkipTests>
