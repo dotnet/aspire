@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
@@ -54,6 +55,9 @@ public partial class ResourceActions : ComponentBase
     [Parameter]
     public required int MaxHighlightedCount { get; set; }
 
+    [Parameter]
+    public required ConcurrentDictionary<string, ResourceViewModel> ResourceByName { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -71,14 +75,14 @@ public partial class ResourceActions : ComponentBase
             Icon = s_viewDetailsIcon,
             OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
         });
- 
+
         _menuItems.Add(new MenuButtonItem
         {
             Text = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
             Icon = s_consoleLogsIcon,
             OnClick = () =>
             {
-                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: Resource.Name));
+                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: ResourceViewModel.GetResourceName(Resource, ResourceByName)));
                 return Task.CompletedTask;
             }
         });
