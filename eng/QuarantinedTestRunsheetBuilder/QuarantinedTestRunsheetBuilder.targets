@@ -61,12 +61,10 @@
       <_TestAssembly Condition="'$(OS)'=='Windows_NT'">$([System.IO.Path]::ChangeExtension($(_TestAssembly), '.exe'))</_TestAssembly>
       <_TestAssembly Condition="'$(OS)'!='Windows_NT'">$(_TestAssembly.TrimEnd('.dll'))</_TestAssembly>
       <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
-      <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
 
       <_TargetDir>$([System.IO.Path]::GetDirectoryName('$(_TestAssembly)'))\</_TargetDir>
 
-      <_TestRunnerCommand>$(_TestAssembly) --list-tests</_TestRunnerCommand>
-      <_TestRunnerCommand Condition="'$(_TestRunnerAdditionalArguments)' != ''">$(_TestRunnerCommand) $(_TestRunnerAdditionalArguments)</_TestRunnerCommand>
+      <_TestRunnerCommand>$(_TestAssembly) --list-tests $(_QuarantinedTestRunAdditionalArgs)</_TestRunnerCommand>
 
       <!--
         Redirect std output of the runner.
