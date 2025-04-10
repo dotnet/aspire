@@ -12,12 +12,21 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [System.Obsolete("AddDeployment taking an AzureOpenAIDeployment is deprecated. Please the AddDeployment overload that returns an AzureOpenAIDeploymentResource instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> AddDeployment(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> builder, ApplicationModel.AzureOpenAIDeployment deployment) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> builder, string name, string modelName, string modelVersion) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIDeploymentResource> WithProperties(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIDeploymentResource> builder, System.Action<ApplicationModel.AzureOpenAIDeploymentResource> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureOpenAIResource> target, params global::Azure.Provisioning.CognitiveServices.CognitiveServicesBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Obsolete("AzureOpenAIDeployment is deprecated. Please use AzureOpenAIDeploymentResource instead.")]
     public partial class AzureOpenAIDeployment
     {
         public AzureOpenAIDeployment(string name, string modelName, string modelVersion, string? skuName = null, int? skuCapacity = null) { }
@@ -33,6 +42,25 @@ namespace Aspire.Hosting.ApplicationModel
         public string SkuName { get { throw null; } set { } }
     }
 
+    public partial class AzureOpenAIDeploymentResource : Resource, IResourceWithParent<AzureOpenAIResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
+    {
+        public AzureOpenAIDeploymentResource(string name, string modelName, string modelVersion, AzureOpenAIResource parent) : base(default!) { }
+
+        public ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public string DeploymentName { get { throw null; } set { } }
+
+        public string ModelName { get { throw null; } set { } }
+
+        public string ModelVersion { get { throw null; } set { } }
+
+        public AzureOpenAIResource Parent { get { throw null; } }
+
+        public int SkuCapacity { get { throw null; } set { } }
+
+        public string SkuName { get { throw null; } set { } }
+    }
+
     public partial class AzureOpenAIResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public AzureOpenAIResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
@@ -41,6 +69,9 @@ namespace Aspire.Hosting.ApplicationModel
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        [System.Obsolete("AzureOpenAIDeployment is deprecated.")]
         public System.Collections.Generic.IReadOnlyList<AzureOpenAIDeployment> Deployments { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }
