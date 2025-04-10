@@ -68,6 +68,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
+    public required NavigationService NavigationService { get; init; }
+
+    [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]

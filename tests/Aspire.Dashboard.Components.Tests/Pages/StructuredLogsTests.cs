@@ -191,6 +191,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<GlobalState>();
+        Services.AddSingleton<NavigationService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

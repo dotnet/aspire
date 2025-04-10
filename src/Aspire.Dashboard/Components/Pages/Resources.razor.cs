@@ -43,6 +43,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
     [Inject]
+    public required NavigationService NavigationService { get; init; }
+    [Inject]
     public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }

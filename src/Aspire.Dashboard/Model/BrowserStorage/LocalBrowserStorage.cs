@@ -55,4 +55,7 @@ public class LocalBrowserStorage : BrowserStorageBase, ILocalStorage
 
     private ValueTask<string?> GetJsonAsync(string key)
         => _jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+
+    public override async Task DeleteAsync(string key)
+        => await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key).ConfigureAwait(false);
 }

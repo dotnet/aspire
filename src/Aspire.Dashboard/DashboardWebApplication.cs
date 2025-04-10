@@ -255,6 +255,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
+        builder.Services.AddScoped<NavigationService>();
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();

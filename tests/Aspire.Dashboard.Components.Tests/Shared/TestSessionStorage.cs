@@ -30,4 +30,9 @@ public sealed class TestSessionStorage : ISessionStorage
 
         return Task.CompletedTask;
     }
+
+    public Task DeleteAsync(string key)
+    {
+        return Task.CompletedTask;
+    }
 }

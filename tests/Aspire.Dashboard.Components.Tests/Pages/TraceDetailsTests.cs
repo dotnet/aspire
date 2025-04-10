@@ -184,6 +184,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<NavigationService>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
