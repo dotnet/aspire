@@ -25,7 +25,7 @@ jobs:
       # and find out whether it contains any quarantined tests.
       - name: Build the solution
         run: |
-          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false /bl:./artifacts/log/Release/build.binlog
+          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
