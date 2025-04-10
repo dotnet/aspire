@@ -336,7 +336,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            ResourceActions.AddMenuItems(
+            ResourceMenuItems.AddMenuItems(
                 _resourceMenuItems,
                 openingMenuButtonId: null,
                 PageViewModel.SelectedResource,

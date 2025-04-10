@@ -516,7 +516,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         if (_contextMenu is { } contextMenu)
         {
             _contextMenuItems.Clear();
-            ResourceActions.AddMenuItems(
+            ResourceMenuItems.AddMenuItems(
                 _contextMenuItems,
                 openingMenuButtonId: null,
                 resource,
