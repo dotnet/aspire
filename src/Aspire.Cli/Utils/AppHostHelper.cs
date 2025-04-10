@@ -11,7 +11,7 @@ internal static class AppHostHelper
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(AppHostHelper));
 
-    internal static async Task<(bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatabilityAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, projectFile, cancellationToken);
 
@@ -47,29 +47,22 @@ internal static class AppHostHelper
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
         using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
-        var appHostInformationResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":microscope: Checking project type...",
-                async (context) => {
-                    return await runner.GetAppHostInformationAsync(projectFile, cancellationToken);
-                });
+        var appHostInformationResult = await InteractionUtils.ShowStatusAsync(
+            ":microscope: Checking project type...",
+            () => runner.GetAppHostInformationAsync(projectFile, cancellationToken)
+        );
 
         return appHostInformationResult;
     }
     
-    internal static async Task<int> BuildAppHostAsync(DotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(":hammer_and_wrench:  Building app host...", async context => {
-                return await runner.BuildAsync(projectFile, cancellationToken).ConfigureAwait(false);
-            });
+        return await InteractionUtils.ShowStatusAsync(
+            ":hammer_and_wrench:  Building app host...",
+            () => runner.BuildAsync(projectFile, cancellationToken));
     }
 }

@@ -15,9 +15,9 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
 
-    public RunCommand(DotNetCliRunner runner)
+    public RunCommand(IDotNetCliRunner runner)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
@@ -36,7 +36,7 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        (bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatabilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
         {
             using var activity = _activitySource.StartActivity();
@@ -87,9 +87,9 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
             
-            appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
+            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -109,20 +109,14 @@ internal sealed class RunCommand : BaseCommand
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
-                var backchannel = await AnsiConsole.Status()
-                        .Spinner(Spinner.Known.Dots3)
-                        .SpinnerStyle(Style.Parse("purple"))
-                        .StartAsync(":linked_paperclips:  Starting Aspire app host...", async context => {
-                            return await backchannelCompletitionSource.Task;
-                        });
+                var backchannel = await InteractionUtils.ShowStatusAsync(
+                    ":linked_paperclips:  Starting Aspire app host...",
+                    () => backchannelCompletitionSource.Task);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await AnsiConsole.Status()
-                                                    .Spinner(Spinner.Known.Dots3)
-                                                    .SpinnerStyle(Style.Parse("purple"))
-                                                    .StartAsync(":chart_increasing:  Starting Aspire dashboard...", async context => {
-                                                        return await backchannel.GetDashboardUrlsAsync(cancellationToken);
-                                                    });
+                var dashboardUrls = await InteractionUtils.ShowStatusAsync(
+                    ":chart_increasing:  Starting Aspire dashboard...",
+                    () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
@@ -217,7 +211,7 @@ internal sealed class RunCommand : BaseCommand
         {
             return InteractionUtils.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatabilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
         }
     }

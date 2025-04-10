@@ -13,9 +13,9 @@ namespace Aspire.Cli.Commands;
 internal sealed class PublishCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(PublishCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
 
-    public PublishCommand(DotNetCliRunner runner)
+    public PublishCommand(IDotNetCliRunner runner)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
@@ -38,7 +38,7 @@ internal sealed class PublishCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        (bool IsCompatableAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatabilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
 
         try
         {
@@ -59,9 +59,9 @@ internal sealed class PublishCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatabilityCheck = await AppHostHelper.CheckAppHostCompatabilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatabilityCheck?.IsCompatableAppHost ?? throw new InvalidOperationException("IsCompatableAppHost is null"))
+            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -78,36 +78,32 @@ internal sealed class PublishCommand : BaseCommand
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishersResult = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots3)
-                .SpinnerStyle(Style.Parse("purple"))
-                .StartAsync<(int ExitCode, string[]? Publishers)>(
-                    publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
-                    async context => {
+            var publishersResult = await InteractionUtils.ShowStatusAsync<(int ExitCode, string[] Publishers)>(
+                publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
+                async () => {
+                    using var getPublishersActivity = _activitySource.StartActivity(
+                        $"{nameof(ExecuteAsync)}-Action-GetPublishers",
+                        ActivityKind.Client);
 
-                        using var getPublishersActivity = _activitySource.StartActivity(
-                            $"{nameof(ExecuteAsync)}-Action-GetPublishers",
-                            ActivityKind.Client);
+                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                    var pendingInspectRun = _runner.RunAsync(
+                        effectiveAppHostProjectFile,
+                        false,
+                        true,
+                        ["--operation", "inspect"],
+                        null,
+                        backchannelCompletionSource,
+                        cancellationToken).ConfigureAwait(false);
 
-                        var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
-                        var pendingInspectRun = _runner.RunAsync(
-                            effectiveAppHostProjectFile,
-                            false,
-                            true,
-                            ["--operation", "inspect"],
-                            null,
-                            backchannelCompletionSource,
-                            cancellationToken).ConfigureAwait(false);
+                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+                    var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
+                    
+                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                    var exitCode = await pendingInspectRun;
 
-                        var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-                        var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
-                        
-                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                        var exitCode = await pendingInspectRun;
-
-                        return (exitCode, publishers);
-
-                    }).ConfigureAwait(false);
+                    return (exitCode, publishers);
+                }
+            );
 
             if (publishersResult.ExitCode != 0)
             {
@@ -255,7 +251,7 @@ internal sealed class PublishCommand : BaseCommand
         {
             return InteractionUtils.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatabilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
         }
     }

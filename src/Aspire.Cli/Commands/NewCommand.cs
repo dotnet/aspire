@@ -11,10 +11,10 @@ namespace Aspire.Cli.Commands;
 internal sealed class NewCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public NewCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
@@ -140,14 +140,9 @@ internal sealed class NewCommand : BaseCommand
         var source = parseResult.GetValue<string?>("--source");
         var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
 
-        var templateInstallResult = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":ice:  Getting latest templates...",
-                async context => {
-                    return await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken);
-                });
+        var templateInstallResult = await InteractionUtils.ShowStatusAsync(
+            ":ice:  Getting latest templates...",
+            () => _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken));
 
         if (templateInstallResult.ExitCode != 0)
         {
@@ -157,18 +152,13 @@ internal sealed class NewCommand : BaseCommand
 
         AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
 
-        int newProjectExitCode = await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
-            .StartAsync(
-                ":rocket:  Creating new Aspire project...",
-                async context => {
-                    return await _runner.NewProjectAsync(
+        var newProjectExitCode = await InteractionUtils.ShowStatusAsync(
+            ":rocket:  Creating new Aspire project...",
+            () => _runner.NewProjectAsync(
                         template.TemplateName,
                         name,
                         outputPath,
-                        cancellationToken);
-                });
+                        cancellationToken));
 
         if (newProjectExitCode != 0)
         {

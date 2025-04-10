@@ -12,10 +12,10 @@ namespace Aspire.Cli.Commands;
 internal sealed class AddCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
-    private readonly DotNetCliRunner _runner;
+    private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
 
-    public AddCommand(DotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
@@ -105,9 +105,9 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException("Unexpected number of packages found.")
             };
 
-            var addPackageResult = await AnsiConsole.Status().StartAsync(
+            var addPackageResult = await InteractionUtils.ShowStatusAsync(
                 "Adding Aspire integration...",
-                async context => {
+                async () => {
                     var addPackageResult = await _runner.AddPackageAsync(
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
