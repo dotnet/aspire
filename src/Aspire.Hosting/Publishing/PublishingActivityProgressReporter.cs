@@ -14,7 +14,12 @@ namespace Aspire.Hosting.Publishing;
 [Experimental("ASPIREPUBLISHERS001")]
 public sealed class PublishingActivity
 {
-    internal PublishingActivity(string id, bool isPrimary = false)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PublishingActivity"/> class.
+    /// </summary>
+    /// <param name="id">The unique identifier for the publishing activity.</param>
+    /// <param name="isPrimary">Indicates whether this activity is the primary activity.</param>
+    public PublishingActivity(string id, bool isPrimary = false)
     {
         Id = id;
         IsPrimary = isPrimary;
@@ -33,7 +38,7 @@ public sealed class PublishingActivity
     /// <summary>
     /// The status text of the publishing activity.
     /// </summary>
-    public PublishingActivityStatus? LastStatus { get; internal set; }
+    public PublishingActivityStatus? LastStatus { get; set; }
 }
 
 /// <summary>
@@ -79,7 +84,7 @@ public interface IPublishingActivityProgressReporter
     /// <returns>The publishing activity</returns>
     /// <remarks>
     /// When an activity is created the <paramref name="isPrimary"/> flag indicates whether this
-    /// activity is the primary activity. When the primary activity is completed any laumcher
+    /// activity is the primary activity. When the primary activity is completed any launcher
     /// which is reading activities will stop listening for updates.
     /// </remarks>
     Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, CancellationToken cancellationToken);
