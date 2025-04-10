@@ -98,48 +98,21 @@
       <Output TaskParameter="ExitCode" PropertyName="_TestErrorCode" />
     </Exec>
 
-    <!--
-      Report test status.
-      -->
-    <Message Text="Search complete: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '0'" Importance="high" />
-
     <PropertyGroup>
       <_ResultsFileToDisplay>%(TestToRun.ResultsStdOutPath)</_ResultsFileToDisplay>
     </PropertyGroup>
 
     <!--
-      Ideally we would set ContinueOnError="ErrorAndContinue" so that when a test fails in multi-targeted test project
-      we'll still run tests for all target frameworks. ErrorAndContinue doesn't work well on Linux though: https://github.com/Microsoft/msbuild/issues/3961.
-    -->
-    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' != '0'" File="QuarantinedTestRunsheetBuilder" />
-
-    <!--
-      Read the test result and see if the string "No test matches the given testcase filter" is present.
-      This indicates that there are no quarantined tests to run.
+      Report test status.
       -->
-    <ReadLinesFromFile File="$(_ResultsFileToDisplay)">
-      <Output TaskParameter="Lines" ItemName="FileLines" />
-    </ReadLinesFromFile>
-
-    <ItemGroup>
-      <Lines Include="@(FileLines)" >
-        <Sanitized>$([System.String]::Copy('%(FileLines.Identity)').Replace('`', ''))</Sanitized>
-      </Lines>
-
-      <_UnhandledExceptionLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`Unhandled exception`)) " />
-      <_ExceptionDiscoveringTestsLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`Exception discovering tests`)) " />
-      <_NoTestMatchesLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`No test matches the given testcase filter`)) " />
-    </ItemGroup>
+    <Message Text="Search complete, no quarantined tests found: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '8'" Importance="high" />
+    <Message Text="💡 Search complete, quarantined tests found: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '0'" Importance="high" />
+    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition=" '$(_TestErrorCode)' != '0' and '$(_TestErrorCode)' != '8' " File="QuarantinedTestRunsheetBuilder" />
 
     <PropertyGroup>
-      <_FailedToEnumerateTests Condition=" '@(_UnhandledExceptionLines)' != '' or '@(_ExceptionDiscoveringTestsLines)' != '' ">true</_FailedToEnumerateTests>
-
       <_HasQuarantinedTests>true</_HasQuarantinedTests>
-      <_HasQuarantinedTests Condition=" '@(_NoTestMatchesLines)' != '' ">false</_HasQuarantinedTests>
+      <_HasQuarantinedTests Condition=" '$(_TestErrorCode)' == '8' ">false</_HasQuarantinedTests>
     </PropertyGroup>
-
-    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition="'$(_FailedToEnumerateTests)' == 'true'" File="QuarantinedTestRunsheetBuilder" />
-    <Message Text="💡 Quarantined tests found in $(_TestAssembly) [$(_TestEnvironment)]" Condition=" '$(_HasQuarantinedTests)' == 'true' " Importance="high" />
 
     <!--
       Generate test runsheet, if there are quarantined tests.
