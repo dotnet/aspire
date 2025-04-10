@@ -13,7 +13,7 @@ public class NullPublishingActivityProgressReporterTests
     [Fact]
     public async Task CanUseNullReporter()
     {
-        var reporter = new NullPublishingActivityProgressReporter();
+        var reporter = NullPublishingActivityProgressReporter.Instance;
         var activity = await reporter.CreateActivityAsync("1", "initial", isPrimary: true, default);
         await reporter.UpdateActivityStatusAsync(activity, (status) => status with { IsComplete = true }, default);
 
