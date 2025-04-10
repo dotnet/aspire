@@ -8,9 +8,18 @@ builder.AddNpgsqlDbContext<MyDbContext>("db");
 using var app = builder.Build();
 using var scope = app.Services.CreateScope();
 using var db = scope.ServiceProvider.GetRequiredService<MyDbContext>();
+var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-var created = await db.Database.EnsureCreatedAsync();
-if (created)
+while (true)
 {
-    Console.WriteLine("Database created!");
+    try
+    {
+       await db.Database.EnsureCreatedAsync();
+       break;
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error creating database.");
+        await Task.Delay(1000);
+    }
 }

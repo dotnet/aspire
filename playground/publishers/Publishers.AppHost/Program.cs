@@ -49,8 +49,7 @@ builder.AddProject<Projects.Publishers_Frontend>("frontend")
 
 builder.AddDockerfile("mycontainer", "qots");
 
-builder.AddNpmApp("adminportal", "../adminportal", "dev")
-       .WithHttpEndpoint(env: "PORT");
+builder.AddAdminPortal();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -63,3 +62,19 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 #endif
 
 builder.Build().Run();
+
+internal static class AdminPortalExtensions
+{
+       public static IResourceBuilder<NodeAppResource> AddAdminPortal(this IDistributedApplicationBuilder builder)
+       {
+              var app = builder.AddNpmApp("adminportal", "../adminportal", "dev")
+                     .WithHttpEndpoint(env: "PORT")
+                     .PublishAsDockerFile();
+
+              var npmInstall = builder.AddExecutable($"{app.Resource.Name}-npm-install", "npm", "../adminportal", "install")
+                     .WithParentRelationship(app);
+
+              app.WaitForCompletion(npmInstall);
+              return app;
+       }
+}
