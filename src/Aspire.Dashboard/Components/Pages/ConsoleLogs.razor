@@ -34,7 +34,7 @@
             {
                 if (_highlightedCommands.Count > 0)
                 {
-                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
+                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]</span>
 
                     @foreach (var command in _highlightedCommands)
                     {
@@ -60,7 +60,7 @@
                     <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                                       Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
                                       Items="@_resourceMenuItems"
-                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]" />
                 }
             }
 
