@@ -43,12 +43,6 @@
     <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
   </Target>
 
-  <PropertyGroup>
-    <AspireRidToolRoot>$(MSBuildThisFileDirectory)..\tools\@DefaultTargetFramework@\</AspireRidToolRoot>
-    <AspireRidToolDirectory>$([MSBuild]::NormalizePath('$(AspireRidToolRoot)\'))</AspireRidToolDirectory>
-    <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
-  </PropertyGroup>
-
   <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)../tasks/netstandard2.0/Aspire.AppHost.Tasks.dll" TaskName="PickBestRid" />
 
   <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
@@ -101,7 +95,7 @@
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-x64;win-x86;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64" />
     </ItemGroup>
 
-    <!-- Call Aspire.RuntimeIdentifier.Tool to get the RIDs for Dashboard and DCP packages -->
+    <!-- Compute the RID for Dashboard and DCP packages -->
     <PickBestRid RuntimeGraphPath="$(BundledRuntimeIdentifierGraphFile)" CurrentRid="$(NETCoreSdkRuntimeIdentifier)" SupportedRids="@(_DashboardAndDCPSupportedTargetingRIDs)">
       <Output TaskParameter="MatchingRid" PropertyName="_DashboardAndDcpRID" />
     </PickBestRid>
