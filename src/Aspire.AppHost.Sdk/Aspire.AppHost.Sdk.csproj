@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Build.NoTargets">
+﻿<Project Sdk="Microsoft.Build.NoTargets">
 
   <Import Project="$(SharedDir)Workload.targets" />
 
@@ -20,25 +20,16 @@
     <None Update="SDK\Sdk.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="Sdk\Sdk.targets" />
 
     <!-- Adding a project reference to the tool to avoid MSBuild having clashes when building this project before the other. -->
-    <ProjectReference Include="Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj"
-                      ReferenceOutputAssembly="false"
-                      SkipTargetFrameworkProperties="true"
-                      ExcludeAssets="all"
-                      Private="false" />
+    <ProjectReference Include="Aspire.AppHost.Tasks\Aspire.AppHost.Tasks.csproj" Private="true" />
   </ItemGroup>
 
   <Target Name="_PublishAndPackRIDTool">
-    <MSBuild Projects="$(MSBuildThisFileDirectory)Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj" 
-             Targets="Publish" 
-             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
-
+    <MSBuild Projects="@(ProjectReference)" Targets="Build" Properties="TargetFramework=netstandard2.0">
+      <Output TaskParameter="TargetOutputs" ItemName="TaskDlls" />
+      
+    </MSBuild>
     <ItemGroup>
-      <_publishContentToPackage Include="$(DotNetOutputPath)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(DefaultTargetFramework)/publish/**/*" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="@(_publishContentToPackage)"
-                              PackagePath="tools/$(DefaultTargetFramework)/%(_publishContentToPackage.RecursiveDir)" />
+      <TfmSpecificPackageFile Include="@(TaskDlls)" PackagePath="tasks/netstandard2.0/%(TaskDlls.RecursiveDir)" />
     </ItemGroup>
 
   </Target>

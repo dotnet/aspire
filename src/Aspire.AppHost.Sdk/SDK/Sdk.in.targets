@@ -49,6 +49,8 @@
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
 
+  <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)../tasks/netstandard2.0/Aspire.AppHost.Tasks.dll" TaskName="PickBestRid" />
+
   <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
        a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
        the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
@@ -122,21 +124,10 @@
     </PropertyGroup>
 
     <!-- Call Aspire.RuntimeIdentifier.Tool to get the RIDs for Dashboard and DCP packages -->
-    <Exec Command="&quot;$(_DotNetHostPath)&quot; exec &quot;$(AspireRidToolExecutable)&quot; --runtimeGraphPath &quot;$(BundledRuntimeIdentifierGraphFile)&quot; --supportedRids &quot;@(_DashboardAndDCPSupportedTargetingRIDs -> '%(Identity)', ',')&quot; --netcoreSdkRuntimeIdentifier &quot;$(NETCoreSdkRuntimeIdentifier)&quot;"
-          ConsoleToMSBuild="true"
-          StandardOutputImportance="Low"
-          IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="_AspireRidToolExitCode" />
-      <Output TaskParameter="ConsoleOutput" ItemName="_AspireRidToolOutput" />
-    </Exec>
+    <PickBestRid RuntimeGraphPath="$(BundledRuntimeIdentifierGraphFile)" CurrentRid="$(NETCoreSdkRuntimeIdentifier)" SupportedRids="@(_DashboardAndDCPSupportedTargetingRIDs)">
+      <Output TaskParameter="MatchingRid" PropertyName="_DashboardAndDcpRID" />
+    </PickBestRid>
 
-    <Error Condition="$(_AspireRidToolExitCode) != 0" Text="Failed to run Aspire.RuntimeIdentifier.Tool. Exit code: $(_AspireRidToolExitCode). Output: @(_AspireRidToolOutput)" />
-
-    <PropertyGroup>
-      <_DashboardAndDcpRID>@(_AspireRidToolOutput)</_DashboardAndDcpRID>
-    </PropertyGroup>
-
-    
     <!-- Now that we have the version, we add the package references -->
     <ItemGroup>
       <PackageReference Include="Aspire.Dashboard.Sdk.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
