@@ -474,10 +474,9 @@ class ResourceGraph {
     }
 
     nodeContextMenu = async (event) => {
-        console.log(event);
-
         var data = event.target.__data__;
 
+        // Prevent default browser context menu.
         event.preventDefault();
 
         this.openContextMenu = true;

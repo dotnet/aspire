@@ -530,7 +530,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true);
 
-            Debug.Assert(_contextMenuClosedTcs == null, "Shouldn't be a TCS for an open context menu.");
+            // The previous context menu should always be closed by this point but complete just in case.
+            _contextMenuClosedTcs?.TrySetResult();
+
             _contextMenuClosedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await contextMenu.OpenAsync(clientX, clientY);
@@ -808,7 +810,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
             await menu.CloseAsync();
         }
 
-        _contextMenuClosedTcs?.SetResult();
+        _contextMenuClosedTcs?.TrySetResult();
         _contextMenuClosedTcs = null;
     }
 }
