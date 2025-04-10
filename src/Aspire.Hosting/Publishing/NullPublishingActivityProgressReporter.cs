@@ -11,6 +11,15 @@ namespace Aspire.Hosting.Publishing;
 [Experimental("ASPIREPUBLISHERS001")]
 public sealed class NullPublishingActivityProgressReporter : IPublishingActivityProgressReporter
 {
+    /// <summary>
+    /// Gets the singleton instance of <see cref="NullPublishingActivityProgressReporter"/>.
+    /// </summary>
+    public static NullPublishingActivityProgressReporter Instance { get; } = new NullPublishingActivityProgressReporter();
+
+    private NullPublishingActivityProgressReporter()
+    {
+    }
+
     /// <inheritdoc/>
     public Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, CancellationToken cancellationToken)
     {
