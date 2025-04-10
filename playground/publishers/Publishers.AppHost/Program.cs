@@ -49,6 +49,9 @@ builder.AddProject<Projects.Publishers_Frontend>("frontend")
 
 builder.AddDockerfile("mycontainer", "qots");
 
+builder.AddNpmApp("adminportal", "../adminportal", "dev")
+       .WithHttpEndpoint(env: "PORT");
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
