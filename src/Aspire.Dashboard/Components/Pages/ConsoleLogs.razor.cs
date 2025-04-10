@@ -19,7 +19,6 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -58,10 +57,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
@@ -331,23 +336,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            var menuCommands = PageViewModel.SelectedResource.Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
-            if (menuCommands.Count > 0)
-            {
-                foreach (var command in menuCommands)
+            ResourceActions.AddMenuItems(
+                _resourceMenuItems,
+                openingMenuButtonId: null,
+                PageViewModel.SelectedResource,
+                NavigationManager,
+                TelemetryRepository,
+                GetResourceName,
+                ControlsStringsLoc,
+                ResourcesLoc,
+                buttonId =>
                 {
-                    var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
-
-                    _resourceMenuItems.Add(new MenuButtonItem
-                    {
-                        Text = command.DisplayName,
-                        Tooltip = command.DisplayDescription,
-                        Icon = icon,
-                        OnClick = () => ExecuteResourceCommandAsync(command),
-                        IsDisabled = command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(PageViewModel.SelectedResource!.Name, command.Name)
-                    });
-                }
-            }
+                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
+                    return Task.CompletedTask;
+                },
+                ExecuteResourceCommandAsync,
+                (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showConsoleLogsItem: false);
         }
     }
 

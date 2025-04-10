@@ -34,16 +34,13 @@ public partial class ResourceActions : ComponentBase
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Parameter]
-    public required IList<CommandViewModel> Commands { get; set; }
-
-    [Parameter]
-    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
+    public required Func<CommandViewModel, Task> CommandSelected { get; set; }
 
     [Parameter]
     public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
 
     [Parameter]
-    public required EventCallback<string> OnViewDetails { get; set; }
+    public required Func<string?, Task> OnViewDetails { get; set; }
 
     [Parameter]
     public required ResourceViewModel Resource { get; set; }
@@ -65,86 +62,121 @@ public partial class ResourceActions : ComponentBase
         _menuItems.Clear();
         _highlightedCommands.Clear();
 
-        _menuItems.Add(new MenuButtonItem
-        {
-            Text = ControlLoc[nameof(Resources.ControlsStrings.ActionViewDetailsText)],
-            Icon = s_viewDetailsIcon,
-            OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
-        });
- 
-        _menuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
-            Icon = s_consoleLogsIcon,
-            OnClick = () =>
-            {
-                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: Resource.Name));
-                return Task.CompletedTask;
-            }
-        });
-
-        // Show telemetry menu items if there is telemetry for the resource.
-        var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
-        if (hasTelemetryApplication)
-        {
-            _menuItems.Add(new MenuButtonItem { IsDivider = true });
-            _menuItems.Add(new MenuButtonItem
-            {
-                Text = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Tooltip = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Icon = s_structuredLogsIcon,
-                OnClick = () =>
-                {
-                    NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
-                    return Task.CompletedTask;
-                }
-            });
-            _menuItems.Add(new MenuButtonItem
-            {
-                Text = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
-                Tooltip = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
-                Icon = s_tracesIcon,
-                OnClick = () =>
-                {
-                    NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
-                    return Task.CompletedTask;
-                }
-            });
-            _menuItems.Add(new MenuButtonItem
-            {
-                Text = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Tooltip = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Icon = s_metricsIcon,
-                OnClick = () =>
-                {
-                    NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
-                    return Task.CompletedTask;
-                }
-            });
-        }
+        AddMenuItems(
+            _menuItems,
+            _menuButton?.MenuButtonId,
+            Resource,
+            NavigationManager,
+            TelemetryRepository,
+            GetResourceName,
+            ControlLoc,
+            Loc,
+            OnViewDetails,
+            CommandSelected,
+            IsCommandExecuting,
+            showConsoleLogsItem: true);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)
         {
-            _highlightedCommands.AddRange(Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));
+            _highlightedCommands.AddRange(Resource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));
+        }
+    }
+
+    public static void AddMenuItems(
+        List<MenuButtonItem> menuItems,
+        string? openingMenuButtonId,
+        ResourceViewModel resource,
+        NavigationManager navigationManager,
+        TelemetryRepository telemetryRepository,
+        Func<ResourceViewModel, string> getResourceName,
+        IStringLocalizer<Resources.ControlsStrings> controlLoc,
+        IStringLocalizer<Resources.Resources> loc,
+        Func<string?, Task> onViewDetails,
+        Func<CommandViewModel, Task> commandSelected,
+        Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
+        bool showConsoleLogsItem)
+    {
+        menuItems.Add(new MenuButtonItem
+        {
+            Text = controlLoc[nameof(Resources.ControlsStrings.ActionViewDetailsText)],
+            Icon = s_viewDetailsIcon,
+            OnClick = () => onViewDetails(openingMenuButtonId)
+        });
+
+        if (showConsoleLogsItem)
+        {
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
+                Icon = s_consoleLogsIcon,
+                OnClick = () =>
+                {
+                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name));
+                    return Task.CompletedTask;
+                }
+            });
         }
 
-        var menuCommands = Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
+        // Show telemetry menu items if there is telemetry for the resource.
+        var hasTelemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name) != null;
+        if (hasTelemetryApplication)
+        {
+            menuItems.Add(new MenuButtonItem { IsDivider = true });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                Icon = s_structuredLogsIcon,
+                OnClick = () =>
+                {
+                    navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
+                    return Task.CompletedTask;
+                }
+            });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Tooltip = loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Icon = s_tracesIcon,
+                OnClick = () =>
+                {
+                    navigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: getResourceName(resource)));
+                    return Task.CompletedTask;
+                }
+            });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                Icon = s_metricsIcon,
+                OnClick = () =>
+                {
+                    navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
+                    return Task.CompletedTask;
+                }
+            });
+        }
+
+        var menuCommands = resource.Commands
+            .Where(c => c.State != CommandViewModelState.Hidden)
+            .OrderBy(c => !c.IsHighlighted)
+            .ToList();
         if (menuCommands.Count > 0)
         {
-            _menuItems.Add(new MenuButtonItem { IsDivider = true });
+            menuItems.Add(new MenuButtonItem { IsDivider = true });
 
             foreach (var command in menuCommands)
             {
                 var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
-                _menuItems.Add(new MenuButtonItem
+                menuItems.Add(new MenuButtonItem
                 {
                     Text = command.DisplayName,
                     Tooltip = command.DisplayDescription,
                     Icon = icon,
-                    OnClick = () => CommandSelected.InvokeAsync(command),
-                    IsDisabled = command.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, command)
+                    OnClick = () => commandSelected(command),
+                    IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
                 });
             }
         }
