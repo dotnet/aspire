@@ -487,6 +487,7 @@ class ResourceGraph {
         } finally {
             this.openContextMenu = false;
 
+            // Unselect the node when the context menu is closed to reset mouseover state.
             this.updateNodeHighlights(null);
         }
     };

@@ -513,6 +513,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private async Task ShowContextMenuAsync(ResourceViewModel resource, int clientX, int clientY)
     {
+        // This is called when the browser requests to show the context menu for a resource.
+        // The method doesn't complete until the context menu is closed so the browser can await
+        // it and perform clean up when the context menu is closed.
         if (_contextMenu is { } contextMenu)
         {
             _contextMenuItems.Clear();
