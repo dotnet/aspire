@@ -21,6 +21,10 @@ namespace Aspire.Azure.Messaging.ServiceBus
         public string? HealthCheckQueueName { get { throw null; } set { } }
 
         public string? HealthCheckTopicName { get { throw null; } set { } }
+
+        public string? QueueOrTopicName { get { throw null; } set { } }
+
+        public string? SubscriptionName { get { throw null; } set { } }
     }
 }
 
