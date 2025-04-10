@@ -137,5 +137,5 @@ jobs:
           path: |
             ${{ github.workspace }}/artifacts/log/*/*.binlog
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**
-            ${{ github.workspace }}/artifacts/log/TestResults/*/*.trx
+            ${{ github.workspace }}/artifacts/TestResults/*/*.trx
           retention-days: 5
