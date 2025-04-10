@@ -93,7 +93,7 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $logDirectory = "${{ github.workspace }}/artifacts/log/**/TestLogs"
+          $logDirectory = "${{ github.workspace }}/artifacts/TestResults"
           $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
 
           $testResults = @() # Initialize an array to store test results
@@ -172,4 +172,5 @@ jobs:
           path: |
             ${{ github.workspace }}/artifacts/log/*/*.binlog
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**
+            ${{ github.workspace }}/artifacts/log/TestResults/*/*.trx
           retention-days: 5
