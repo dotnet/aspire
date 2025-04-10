@@ -49,6 +49,14 @@
     <MakeDir Directories="@(_OutputFiles->'%(RootDir)%(Directory)')"/>
     <Delete Files="@(_OutputFiles)" />
 
+    <!--
+      Add command line to the log.
+    -->
+    <WriteLinesToFile File="%(TestToRun.ResultsStdOutPath)"
+                      Overwrite="false"
+                      Lines=";=== COMMAND LINE ===;$(_TestRunnerCommand)"
+                      Condition="'$(TestCaptureOutput)' != 'false'" />
+
     <Message Text="Running tests: $(_TestAssembly) [$(_TestEnvironment)]" Importance="high"/>
     <Exec Command='$(_TestRunnerCommand)'
           LogStandardErrorAsError="false"
@@ -59,14 +67,6 @@
           ContinueOnError="WarnAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="_TestErrorCode" />
     </Exec>
-
-    <!--
-      Add command line to the log.
-    -->
-    <WriteLinesToFile File="%(TestToRun.ResultsStdOutPath)"
-                      Overwrite="false"
-                      Lines=";=== COMMAND LINE ===;$(_TestRunnerCommand)"
-                      Condition="'$(TestCaptureOutput)' != 'false'" />
 
     <!--
       Report test status.
