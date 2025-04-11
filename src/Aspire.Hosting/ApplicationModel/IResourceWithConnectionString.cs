@@ -7,7 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a resource that has a connection string associated with it.
 /// </summary>
 public interface IResourceWithConnectionString : IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences,
-    IResourceReferenceable<IResourceWithConnectionString, IResourceWithEnvironment>
+    IReferenceable<IResourceWithConnectionString, IResourceWithEnvironment>
 {
     /// <summary>
     /// Gets the connection string associated with the resource.
@@ -33,8 +33,8 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
 
     IEnumerable<object> IValueWithReferences.References => [ConnectionStringExpression];
 
-    static void IResourceReferenceable<IResourceWithConnectionString, IResourceWithEnvironment>.ProcessReference(
-        IResourceBuilder<IResourceWithConnectionString> source,
+    static void IReferenceable<IResourceWithConnectionString, IResourceWithEnvironment>.ProcessReference(
+        IResourceWithConnectionString source,
         IResourceBuilder<IResourceWithEnvironment> destination)
     {
         destination.WithReference(source);

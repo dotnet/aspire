@@ -6,15 +6,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// 
 /// </summary>
-public interface IResourceReferenceable<in TSource, in TDestination> : IResource
-    where TSource : IResource
+public interface IReferenceable<in TSource, in TDestination>
     where TDestination : IResource
+    where TSource : IReferenceable<TSource, TDestination>
 {
     /// <summary>
     /// 
     /// </summary>
     /// <param name="source"></param>
     /// <param name="destination"></param>
-    static abstract void ProcessReference(IResourceBuilder<TSource> source, IResourceBuilder<TDestination> destination);
-
+    //static abstract void ProcessReference(IResourceBuilder<TSource> source, IResourceBuilder<TDestination> destination);
+    static abstract void ProcessReference(TSource source, IResourceBuilder<TDestination> destination);
 }

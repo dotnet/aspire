@@ -8,12 +8,12 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A resource that supports exporting service discovery information.
 /// </summary>
-public interface IResourceWithServiceDiscovery : IResourceWithEndpoints, IResourceReferenceable<IResourceWithServiceDiscovery, IResourceWithEnvironment>
+public interface IResourceWithServiceDiscovery : IResourceWithEndpoints, IReferenceable<IResourceWithServiceDiscovery, IResourceWithEnvironment>
 {
-    static void IResourceReferenceable<IResourceWithServiceDiscovery, IResourceWithEnvironment>.ProcessReference(
-        IResourceBuilder<IResourceWithServiceDiscovery> source,
+    static void IReferenceable<IResourceWithServiceDiscovery, IResourceWithEnvironment>.ProcessReference(
+        IResourceWithServiceDiscovery source,
         IResourceBuilder<IResourceWithEnvironment> destination)
     {
-        ResourceBuilderExtensions.ApplyEndpoints(destination, source.Resource);
+        destination.WithReference(source);
     }
 }

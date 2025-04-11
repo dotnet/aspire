@@ -360,16 +360,22 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        var resource = source.Resource;
-        connectionName ??= resource.Name;
+        var resourceWithConnectionString = source.Resource;
+        return builder.WithReference(resourceWithConnectionString);
+    }
 
-        builder.WithReferenceRelationship(resource);
+    internal static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceWithConnectionString source, string? connectionName = null, bool optional = false)
+        where TDestination : IResourceWithEnvironment
+    {
+        connectionName ??= source.Name;
+
+        builder.WithReferenceRelationship(source);
 
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+            var connectionStringName = source.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(source, optional);
         });
     }
 
@@ -388,6 +394,13 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
 
         ApplyEndpoints(builder, source.Resource);
+        return builder;
+    }
+
+    internal static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceWithServiceDiscovery source)
+        where TDestination : IResourceWithEnvironment
+    {
+        ApplyEndpoints(builder, source);
         return builder;
     }
 
@@ -430,18 +443,42 @@ public static class ResourceBuilderExtensions
     /// <param name="source1"></param>
     /// <param name="source2"></param>
     /// <returns></returns>
+
     public static IResourceBuilder<TDestination> WithReferences<TDestination, TSource1, TSource2>(this IResourceBuilder<TDestination> builder,
-        IResourceBuilder<TSource1> source1,
-        IResourceBuilder<TSource2> source2)
+        TSource1 source1,
+        TSource2 source2)
         where TDestination : IResource
-        where TSource1 : IResourceReferenceable<TSource1, TDestination>
-        where TSource2 : IResourceReferenceable<TSource2, TDestination>
+        where TSource1 : IReferenceable<TSource1, TDestination>
+        where TSource2 : IReferenceable<TSource2, TDestination>
     {
         TSource1.ProcessReference(source1, builder);
         TSource2.ProcessReference(source2, builder);
 
         return builder;
     }
+
+    ///// <summary>
+    ///// 
+    ///// </summary>
+    ///// <typeparam name="TDestination"></typeparam>
+    ///// <typeparam name="TSource1"></typeparam>
+    ///// <typeparam name="TSource2"></typeparam>
+    ///// <param name="builder"></param>
+    ///// <param name="source1"></param>
+    ///// <param name="source2"></param>
+    ///// <returns></returns>
+    //public static IResourceBuilder<TDestination> WithReferences<TDestination, TSource1, TSource2>(this IResourceBuilder<TDestination> builder,
+    //    IResourceBuilder<TSource1> source1,
+    //    IResourceBuilder<TSource2> source2)
+    //    where TDestination : IResource
+    //    where TSource1 : IReferenceable<TSource1, TDestination>, IResource
+    //    where TSource2 : IReferenceable<TSource2, TDestination>, IResource
+    //{
+    //    TSource1.ProcessReference(source1.Resource, builder);
+    //    TSource2.ProcessReference(source2.Resource, builder);
+
+    //    return builder;
+    //}
 
     /// <summary>
     /// 
@@ -456,13 +493,13 @@ public static class ResourceBuilderExtensions
     /// <param name="source3"></param>
     /// <returns></returns>
     public static IResourceBuilder<TDestination> WithReferences<TDestination, TSource1, TSource2, TSource3>(this IResourceBuilder<TDestination> builder,
-        IResourceBuilder<TSource1> source1,
-        IResourceBuilder<TSource2> source2,
-        IResourceBuilder<TSource3> source3)
+        TSource1 source1,
+        TSource2 source2,
+        TSource3 source3)
         where TDestination : IResource
-        where TSource1 : IResourceReferenceable<TSource1, TDestination>
-        where TSource2 : IResourceReferenceable<TSource2, TDestination>
-        where TSource3 : IResourceReferenceable<TSource3, TDestination>
+        where TSource1 : IReferenceable<TSource1, TDestination>
+        where TSource2 : IReferenceable<TSource2, TDestination>
+        where TSource3 : IReferenceable<TSource3, TDestination>
     {
         TSource1.ProcessReference(source1, builder);
         TSource2.ProcessReference(source2, builder);
@@ -489,7 +526,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    internal static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
+    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
         where T : IResourceWithEnvironment
     {
         // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation

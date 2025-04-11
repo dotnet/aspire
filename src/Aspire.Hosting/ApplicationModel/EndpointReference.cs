@@ -8,8 +8,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences, IReferenceable<EndpointReference, IResourceWithEnvironment>
 {
+    static void IReferenceable<EndpointReference, IResourceWithEnvironment>.ProcessReference(
+        EndpointReference source,
+        IResourceBuilder<IResourceWithEnvironment> destination)
+    {
+        destination.WithReference(source);
+    }
+
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;

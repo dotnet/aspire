@@ -59,12 +59,12 @@ var messaging = builder.AddRabbitMQ("messaging")
                        .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
-                           .WithReferences(basketCache, messaging)
+                           .WithReferences(basketCache.Resource, messaging.Resource)
                            .WaitFor(messaging);
 
 var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
                       .WithExternalHttpEndpoints()
-                      .WithReferences(basketService, catalogService)
+                      .WithReferences(basketService.Resource, catalogService.GetEndpoint("f"))
                       .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"));
 
 var _ = frontend.GetEndpoint("https").Exists ? frontend.WithHttpsHealthCheck("/health") : frontend.WithHttpHealthCheck("/health");
@@ -73,7 +73,7 @@ builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName:
        .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
-       .WithReferences(basketService, catalogService);
+       .WithReferences(basketService.Resource, catalogService.Resource);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
