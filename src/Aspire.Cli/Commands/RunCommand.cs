@@ -70,7 +70,7 @@ internal sealed class RunCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                InteractionUtils.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
                 return ExitCodeConstants.FailedToTrustCertificates;
             }
 
@@ -82,7 +82,7 @@ internal sealed class RunCommand : BaseCommand
 
                 if (buildExitCode != 0)
                 {
-                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+                    InteractionUtils.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
@@ -118,18 +118,7 @@ internal sealed class RunCommand : BaseCommand
                     ":chart_increasing:  Starting Aspire dashboard...",
                     () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                }
-                AnsiConsole.WriteLine();
+                InteractionUtils.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
 

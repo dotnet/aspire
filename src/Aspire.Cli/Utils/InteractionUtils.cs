@@ -74,12 +74,43 @@ internal static class InteractionUtils
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
         
-        AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The app host is not compatible. Consider upgrading the app host or Aspire CLI.[/]");
+        InteractionUtils.DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
         Console.WriteLine();
         AnsiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
         AnsiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
         AnsiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
+    }
+
+    public static void DisplayError(string errorMessage)
+    {
+        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+    }
+
+    public static void DisplayMessage(string emoji, string message)
+    {
+        AnsiConsole.MarkupLine($":{emoji}:  {message}");
+    }
+
+    public static void DisplaySuccess(string message)
+    {
+        DisplayMessage("thumbs_up", message);
+    }
+
+    public static void DisplayDashboardUrls(dynamic dashboardUrls)
+    {
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+        if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
+        {
+            AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+            AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+        }
+        AnsiConsole.WriteLine();
     }
 }

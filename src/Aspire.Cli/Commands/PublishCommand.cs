@@ -70,7 +70,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (buildExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+                InteractionUtils.DisplayError("The project could not be built. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
@@ -107,14 +107,14 @@ internal sealed class PublishCommand : BaseCommand
 
             if (publishersResult.ExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.[/]");
+                InteractionUtils.DisplayError($"The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             var publishers = publishersResult.Publishers;
             if (publishers is null || publishers.Length == 0)
             {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down:  No publishers were found.[/]");
+                InteractionUtils.DisplayError($"No publishers were found.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
@@ -122,21 +122,18 @@ internal sealed class PublishCommand : BaseCommand
             {
                 if (publisher is not null)
                 {
-                    AnsiConsole.MarkupLine($"[red bold]:warning:  The specified publisher '{publisher}' was not found.[/]");
+                    InteractionUtils.DisplayMessage("warning", $"[yellow bold]The specified publisher '{publisher}' was not found.[/]");
                 }
 
-                var publisherPrompt = new SelectionPrompt<string>()
-                    .Title("Select a publisher:")
-                    .UseConverter(p => p)
-                    .PageSize(10)
-                    .EnableSearch()
-                    .HighlightStyle(Style.Parse("darkmagenta"))
-                    .AddChoices(publishers!);
-
-                publisher = await AnsiConsole.PromptAsync(publisherPrompt, cancellationToken);
+                publisher = await InteractionUtils.PromptForSelectionAsync(
+                    "Select a publisher:",
+                    publishers!,
+                    (p) => p,
+                    cancellationToken
+                );
             }
 
-            AnsiConsole.MarkupLine($":hammer_and_wrench:  Generating artifacts for '{publisher}' publisher...");
+            InteractionUtils.DisplayMessage($"hammer_and_wrench", $"Generating artifacts for '{publisher}' publisher...");
 
             var exitCode = await AnsiConsole.Progress()
                 .AutoRefresh(true)
@@ -238,12 +235,12 @@ internal sealed class PublishCommand : BaseCommand
 
             if (exitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.[/]");
+                InteractionUtils.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
             else
             {
-                AnsiConsole.MarkupLine($"[green bold]:thumbs_up: Successfully published artifacts to: {fullyQualifiedOutputPath}[/]");
+                InteractionUtils.DisplaySuccess($"Successfully published artifacts to: {fullyQualifiedOutputPath}");
                 return ExitCodeConstants.Success;
             }
         }
