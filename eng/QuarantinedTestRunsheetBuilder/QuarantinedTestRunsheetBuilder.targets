@@ -133,6 +133,12 @@
       <_TestRunnerLinux>./eng/build.sh</_TestRunnerLinux>
       <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci /p:RunQuarantinedTests=true /p:CI=false</_TestCommand>
 
+      <!--
+        Some quarantinted test may only be executable on Windows or Linux, however we can't possibly know that at this time.
+        The MTP runner will return exit code 8 if no tests are found, and we need to ignore it instead of failing the test.
+        -->
+      <_TestCommand>$(_TestCommand) /p:IgnoreZeroTestResult=true</_TestCommand>
+
       <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
       <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>
 
