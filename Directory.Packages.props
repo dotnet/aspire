@@ -13,6 +13,7 @@
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
+    <PackageVersion Include="Azure.Data.AppConfiguration" Version="1.6.0" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.6" />
@@ -28,6 +29,7 @@
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.1.1" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
@@ -84,6 +86,7 @@
     <PackageVersion Include="KubernetesClient" Version="16.0.2" />
     <PackageVersion Include="JsonPatch.Net" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <PackageVersion Include="Microsoft.FeatureManagement" Version="4.0.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
