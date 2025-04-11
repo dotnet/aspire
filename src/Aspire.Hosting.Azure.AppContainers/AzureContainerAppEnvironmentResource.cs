@@ -31,6 +31,11 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     private BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
 
     /// <summary>
+    /// Gets the name of the associated Azure Container Registry.
+    /// </summary>
+    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
+
+    /// <summary>
     /// Gets the managed identity ID associated with the Azure Container Registry.
     /// </summary>
     private BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
@@ -72,6 +77,11 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalName => PrincipalName;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
+
+    IContainerRegistry IAzureContainerAppEnvironment.ContainerRegistry => new ContainerRegistryInfo(
+            ContainerRegistryName,
+            ContainerRegistryUrl,
+            ContainerRegistryManagedIdentityId);
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {

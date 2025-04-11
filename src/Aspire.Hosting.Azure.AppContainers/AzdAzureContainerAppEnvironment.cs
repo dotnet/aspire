@@ -28,6 +28,14 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
 
     public IManifestExpressionProvider ContainerAppEnvironmentName => AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME;
 
+    private IContainerRegistry? _containerRegistry;
+
+    public IContainerRegistry ContainerRegistry =>
+        _containerRegistry ??= new ContainerRegistryInfo(
+            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_NAME,
+            ContainerRegistryUrl,
+            ContainerRegistryManagedIdentityId);
+
     public IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource)
     {
         return SecretOutputExpression.GetSecretOutputKeyVault(resource);
@@ -50,6 +58,7 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
         public static IManifestExpressionProvider MANAGED_IDENTITY_PRINCIPAL_ID => GetExpression("MANAGED_IDENTITY_PRINCIPAL_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID => GetExpression("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_ENDPOINT => GetExpression("AZURE_CONTAINER_REGISTRY_ENDPOINT");
+        public static IManifestExpressionProvider AZURE_CONTAINER_REGISTRY_NAME => GetExpression("AZURE_CONTAINER_REGISTRY_NAME");
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_ID => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN");
         public static IManifestExpressionProvider AZURE_LOG_ANALYTICS_WORKSPACE_ID => GetExpression("AZURE_LOG_ANALYTICS_WORKSPACE_ID");
