@@ -424,7 +424,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(cts.Token);
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
 
