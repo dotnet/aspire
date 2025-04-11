@@ -36,12 +36,30 @@ public static class OtlpConfigurationExtensions
         {
             if (context.ExecutionContext.IsPublishMode)
             {
-                // REVIEW:  Do we want to set references to an imaginary otlp provider as a requirement?
+                // REVIEW: Do we want to set references to an imaginary otlp provider as a requirement?
                 return;
             }
 
             var dashboardOtlpGrpcUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
             var dashboardOtlpHttpUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
+            var dashboardPathBase = configuration[KnownConfigNames.DashboardPathBase];
+
+            if (!string.IsNullOrEmpty(dashboardPathBase))
+            {
+                // Ensure OTLP URLs are rewritten to include the path base.
+                if (Uri.TryCreate(dashboardOtlpGrpcUrl, UriKind.Absolute, out var otlpGrpcUri) && !otlpGrpcUri.AbsolutePath.StartsWith(dashboardPathBase))
+                {
+                    var uriBuilder = new UriBuilder(otlpGrpcUri);
+                    uriBuilder.Path = dashboardPathBase + uriBuilder.Path.TrimStart('/');
+                    dashboardOtlpGrpcUrl = uriBuilder.Uri.ToString();
+                }
+                if (Uri.TryCreate(dashboardOtlpHttpUrl, UriKind.Absolute, out var otlpHttpUri) && !otlpHttpUri.AbsolutePath.StartsWith(dashboardPathBase))
+                {
+                    var uriBuilder = new UriBuilder(otlpHttpUri);
+                    uriBuilder.Path = dashboardPathBase + uriBuilder.Path.TrimStart('/');
+                    dashboardOtlpHttpUrl = uriBuilder.Uri.ToString();
+                }
+            }
 
             // The dashboard can support OTLP/gRPC and OTLP/HTTP endpoints at the same time, but it can
             // only tell resources about one of the endpoints via environment variables.

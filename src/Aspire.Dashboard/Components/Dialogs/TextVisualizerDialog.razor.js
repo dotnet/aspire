@@ -1,4 +1,4 @@
-import hljs from '/js/highlight-11.10.0.min.js'
+import hljs from '../../js/highlight-11.10.0.min.js'
 
 let highlightObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
