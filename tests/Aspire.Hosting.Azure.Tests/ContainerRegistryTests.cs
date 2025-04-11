@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class ContainerRegistryTests
 {
     [Fact]
-    public async Task AzureContainerAppEnvironmentResourceExposesContainerRegistry()
+    public async Task AzureContainerAppEnvironmentResourceImplementsContainerRegistry()
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -29,12 +29,8 @@ public class ContainerRegistryTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
 
-        // Get IAzureContainerAppEnvironment interface
-        var azureEnv = environment as IAzureContainerAppEnvironment;
-        Assert.NotNull(azureEnv);
-
-        // Verify ContainerRegistry property is available
-        var registry = azureEnv.ContainerRegistry;
+        // Get IContainerRegistry interface
+        var registry = environment as IContainerRegistry;
         Assert.NotNull(registry);
 
         // Verify registry properties are available
@@ -142,12 +138,12 @@ public class ContainerRegistryTests
         public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
         {
             // Look for container registry in Container App Environment resource
-            foreach (var resource in model.Resources.OfType<IAzureContainerAppEnvironment>())
+            foreach (var resource in model.Resources.OfType<IContainerRegistry>())
             {
-                if (resource.ContainerRegistry != null)
+                if (resource != null)
                 {
                     EnvironmentRegistryFound = true;
-                    EnvironmentRegistry = resource.ContainerRegistry;
+                    EnvironmentRegistry = resource;
                     break;
                 }
             }

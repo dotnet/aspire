@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <param name="name">The name of the Container App Environment.</param>
 /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment
+    AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment, IContainerRegistry
 {
     internal bool UseAzdNamingConvention { get; set; }
 
@@ -29,11 +29,6 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
     private BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
-
-    /// <summary>
-    /// Gets the name of the associated Azure Container Registry.
-    /// </summary>
-    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
 
     /// <summary>
     /// Gets the managed identity ID associated with the Azure Container Registry.
@@ -60,6 +55,11 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// </summary>
     private BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
+    /// <summary>
+    /// Gets the container registry name.
+    /// </summary>
+    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
+
     internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentId => ContainerAppEnvironmentId;
@@ -78,10 +78,12 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
 
-    IContainerRegistry IAzureContainerAppEnvironment.ContainerRegistry => new ContainerRegistryInfo(
-            ContainerRegistryName,
-            ContainerRegistryUrl,
-            ContainerRegistryManagedIdentityId);
+    // Implement IContainerRegistry directly
+    IManifestExpressionProvider IContainerRegistry.Name => ContainerRegistryName;
+
+    IManifestExpressionProvider IContainerRegistry.Endpoint => ContainerRegistryUrl;
+
+    IManifestExpressionProvider IContainerRegistry.ManagedIdentityId => ContainerRegistryManagedIdentityId;
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {
