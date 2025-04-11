@@ -32,7 +32,7 @@ internal sealed class AzureContainerAppsInfrastructure(
         }
 
         // TODO: We need to support direct association between a compute resource and the container app environment.
-        // Right now we support a single container app environment as the one we want to use and we'll fall back to 
+        // Right now we support a single container app environment as the one we want to use and we'll fall back to
         // azd based environment if we don't have one.
 
         var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
@@ -62,7 +62,13 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
 
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
+            // Capture information about the container registry used by the
+            // container app environment in the deployment target information
+            // associated with each compute resource that needs an image
+            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
+            {
+                ContainerRegistryInfo = environment.ContainerRegistry
+            });
         }
 
         static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)

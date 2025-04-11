@@ -12,4 +12,15 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// The deployment target.
     /// </summary>
     public IResource DeploymentTarget { get; } = target;
+
+    /// <summary>
+    /// Gets or sets the container registry information associated with
+    /// the deployment target, if the deployment target an image-based environment.
+    /// </summary>
+    /// <remarks>
+    /// This property is typed as <see cref="object"/> since the
+    /// IContainerRegistry interface is defined in the layer above
+    /// in the Aspire.Hosting.Azure.AppContainers assemblies.
+    /// </remarks>
+    public object? ContainerRegistryInfo { get; set; }
 }
