@@ -21,6 +21,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Kubernetes" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Docker" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <ProjectReference Include="..\Publishers.Frontend\Publishers.Frontend.csproj" />
 
     <ProjectReference Include="..\Publishers.ApiService\Publishers.ApiService.csproj" />
