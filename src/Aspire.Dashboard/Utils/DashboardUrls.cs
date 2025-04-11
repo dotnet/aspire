@@ -8,15 +8,15 @@ namespace Aspire.Dashboard.Utils;
 
 internal static class DashboardUrls
 {
-    public const string ResourcesBasePath = "";
+    public const string ResourcesBasePath = "/";
     public const string ConsoleLogBasePath = "consolelogs";
     public const string MetricsBasePath = "metrics";
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
-    public static string ResourcesUrl(string? resource = null, string? view = null)
+    public static string ResourcesUrl(string? resource = null, string? view = null, string? hiddenTypes = null, string? hiddenStates = null, string? hiddenHealthStates = null)
     {
-        var url = $"/{ResourcesBasePath}";
+        var url = ResourcesBasePath;
         if (resource != null)
         {
             url = QueryHelpers.AddQueryString(url, "resource", resource);
@@ -24,6 +24,18 @@ internal static class DashboardUrls
         if (view != null)
         {
             url = QueryHelpers.AddQueryString(url, "view", view);
+        }
+        if (hiddenTypes != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenTypes", hiddenTypes);
+        }
+        if (hiddenStates != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenStates", hiddenStates);
+        }
+        if (hiddenHealthStates != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenHealthStates", hiddenHealthStates);
         }
 
         return url;
