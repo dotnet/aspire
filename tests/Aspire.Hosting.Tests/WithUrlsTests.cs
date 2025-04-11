@@ -551,7 +551,7 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task WithUrlForEndpointaddTurnsRelativeUrlIntoAbsoluteUrl()
+    public async Task WithUrlForEndpointAddTurnsRelativeUrlIntoAbsoluteUrl()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
