@@ -421,6 +421,57 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <typeparam name="TSource1"></typeparam>
+    /// <typeparam name="TSource2"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="source1"></param>
+    /// <param name="source2"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<TDestination> WithReferences<TDestination, TSource1, TSource2>(this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<TSource1> source1,
+        IResourceBuilder<TSource2> source2)
+        where TDestination : IResource
+        where TSource1 : IResourceReferenceable<TSource1, TDestination>
+        where TSource2 : IResourceReferenceable<TSource2, TDestination>
+    {
+        TSource1.ProcessReference(source1, builder);
+        TSource2.ProcessReference(source2, builder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <typeparam name="TSource1"></typeparam>
+    /// <typeparam name="TSource2"></typeparam>
+    /// <typeparam name="TSource3"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="source1"></param>
+    /// <param name="source2"></param>
+    /// <param name="source3"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<TDestination> WithReferences<TDestination, TSource1, TSource2, TSource3>(this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<TSource1> source1,
+        IResourceBuilder<TSource2> source2,
+        IResourceBuilder<TSource3> source3)
+        where TDestination : IResource
+        where TSource1 : IResourceReferenceable<TSource1, TDestination>
+        where TSource2 : IResourceReferenceable<TSource2, TDestination>
+        where TSource3 : IResourceReferenceable<TSource3, TDestination>
+    {
+        TSource1.ProcessReference(source1, builder);
+        TSource2.ProcessReference(source2, builder);
+        TSource3.ProcessReference(source3, builder);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
@@ -438,7 +489,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
+    internal static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
         where T : IResourceWithEnvironment
     {
         // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation
@@ -941,6 +992,27 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(dependency);
 
         return WaitForCore(builder, dependency, waitBehavior: null, addRelationship: true);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="dependencies"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, params IResourceBuilder<IResource>[] dependencies)
+        where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependencies);
+
+        foreach (var dependency in dependencies)
+        {
+            WaitForCore(builder, dependency, waitBehavior: null, addRelationship: true);
+        }
+
+        return builder;
     }
 
     /// <summary>
