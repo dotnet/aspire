@@ -28,14 +28,6 @@ internal sealed class AzdAzureContainerAppEnvironment : IAzureContainerAppEnviro
 
     public IManifestExpressionProvider ContainerAppEnvironmentName => AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME;
 
-    private IContainerRegistry? _containerRegistry;
-
-    public IContainerRegistry ContainerRegistry =>
-        _containerRegistry ??= new ContainerRegistryInfo(
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_NAME,
-            ContainerRegistryUrl,
-            ContainerRegistryManagedIdentityId);
-
     public IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource)
     {
         return SecretOutputExpression.GetSecretOutputKeyVault(resource);

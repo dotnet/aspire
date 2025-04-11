@@ -15,10 +15,6 @@ internal interface IAzureContainerAppEnvironment
     IManifestExpressionProvider PrincipalId { get; }
     IManifestExpressionProvider PrincipalName { get; }
     IManifestExpressionProvider ContainerAppEnvironmentName { get; }
-
-    // Container registry information
-    IContainerRegistry ContainerRegistry { get; }
-
     IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource);
     IManifestExpressionProvider GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex);
 }
