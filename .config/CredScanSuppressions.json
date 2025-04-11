@@ -36,6 +36,10 @@
     {
       "file": "\\tests\\Shared\\TestCertificates\\testCert.pfx",
       "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
+    },
+    {
+      "placeholder": "user1",
+      "_justification": "This is a fake username, used in tests."
     }
   ]
 }

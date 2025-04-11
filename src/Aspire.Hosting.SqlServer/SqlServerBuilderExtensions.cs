@@ -17,6 +17,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static partial class SqlServerBuilderExtensions
 {
+
+    private const string PasswordEnvVarName = "MSSQL_SA_PASSWORD";
+
     // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
     // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
     [GeneratedRegex(@"^\s*GO(?<repeat>\s+\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
@@ -86,7 +89,7 @@ public static partial class SqlServerBuilderExtensions
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
+                          context.EnvironmentVariables[PasswordEnvVarName] = sqlServer.PasswordParameter;
                       })
                       .WithHealthCheck(healthCheckKey);
     }
@@ -198,6 +201,37 @@ public static partial class SqlServerBuilderExtensions
         builder.WithAnnotation(new SqlServerCreateDatabaseScriptAnnotation(script));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the SqlServer resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the SqlServer resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithPassword(this IResourceBuilder<SqlServerServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the SqlServer resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(SqlServerServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+
     }
 
     private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
