@@ -5,7 +5,9 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -72,6 +74,8 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton<IInteractionService, InteractionService>();
+        builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();

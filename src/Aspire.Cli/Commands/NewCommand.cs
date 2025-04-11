@@ -3,8 +3,8 @@
 
 using System.CommandLine;
 using System.Diagnostics;
-using Aspire.Cli.Utils;
-
+using Aspire.Cli.Certificates;
+using Aspire.Cli.Interaction;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
@@ -12,14 +12,21 @@ internal sealed class NewCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IInteractionService _interactionService;
+    private readonly ICertificateService _certificateService;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, ICertificateService certificateService)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
+        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
+        ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
+
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
+        _interactionService = interactionService;
+        _certificateService = certificateService;
 
         var templateArgument = new Argument<string>("template");
         templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
@@ -47,7 +54,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(prereleaseOption);
     }
 
-    private static async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -72,7 +79,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await InteractionUtils.PromptForSelectionAsync(
+            return await _interactionService.PromptForSelectionAsync(
                 "Select a project template:",
                 validTemplates,
                 t => $"{t.TemplateName} ({t.TemplateDescription})",
@@ -81,12 +88,13 @@ internal sealed class NewCommand : BaseCommand
         }
     }
 
-    private static async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--name") is not { } name)
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
-            name = await InteractionUtils.PromptForStringAsync("Enter the project name:",
+            name = await _interactionService.PromptForStringAsync(
+                "Enter the project name:",
                 defaultValue: defaultName,
                 cancellationToken: cancellationToken);
         }
@@ -94,11 +102,11 @@ internal sealed class NewCommand : BaseCommand
         return name;
     }
 
-    private static async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
+    private async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await InteractionUtils.PromptForStringAsync(
+            outputPath = await _interactionService.PromptForStringAsync(
                 "Enter the output path:",
                 defaultValue: pathAppendage ?? ".",
                 cancellationToken: cancellationToken
@@ -118,12 +126,12 @@ internal sealed class NewCommand : BaseCommand
         {
             var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
 
-            var candidatePackages = await InteractionUtils.ShowStatusAsync(
+            var candidatePackages = await _interactionService.ShowStatusAsync(
                 "Searching for available project template versions...",
                 () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
-            var selectedPackage = await InteractionUtils.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
+            var selectedPackage = await _interactionService.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
             return selectedPackage.Version;
         }
     }
@@ -139,19 +147,19 @@ internal sealed class NewCommand : BaseCommand
         var source = parseResult.GetValue<string?>("--source");
         var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
 
-        var templateInstallResult = await InteractionUtils.ShowStatusAsync(
+        var templateInstallResult = await _interactionService.ShowStatusAsync(
             ":ice:  Getting latest templates...",
             () => _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken));
 
         if (templateInstallResult.ExitCode != 0)
         {
-            InteractionUtils.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
+            _interactionService.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToInstallTemplates;
         }
 
-        InteractionUtils.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
+        _interactionService.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
 
-        var newProjectExitCode = await InteractionUtils.ShowStatusAsync(
+        var newProjectExitCode = await _interactionService.ShowStatusAsync(
             ":rocket:  Creating new Aspire project...",
             () => _runner.NewProjectAsync(
                         template.TemplateName,
@@ -161,21 +169,21 @@ internal sealed class NewCommand : BaseCommand
 
         if (newProjectExitCode != 0)
         {
-           InteractionUtils.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
+           _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToCreateNewProject;
         }
 
         try
         {
-            await CertificatesHelper.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
         }
         catch (Exception ex)
         {
-            InteractionUtils.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
             return ExitCodeConstants.FailedToTrustCertificates;
         }
 
-        InteractionUtils.DisplaySuccess($"Project created successfully in {outputPath}.");
+        _interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
 
         return ExitCodeConstants.Success;
     }
