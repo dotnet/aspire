@@ -219,6 +219,15 @@ namespace Aspire.Hosting.Azure
     {
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public sealed partial class AzurePublishingContext
+    {
+        public global::Azure.Provisioning.Infrastructure MainInfrastructure;
+        public AzurePublishingContext(AzurePublisherOptions publisherOptions, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger) { }
+
+        public System.Threading.Tasks.Task WriteModelAsync(ApplicationModel.DistributedApplicationModel model, System.Threading.CancellationToken cancellationToken = default) { throw null; }
+    }
+
     public sealed partial class AzureResourceInfrastructure : global::Azure.Provisioning.Infrastructure
     {
         internal AzureResourceInfrastructure() : base(default!) { }
