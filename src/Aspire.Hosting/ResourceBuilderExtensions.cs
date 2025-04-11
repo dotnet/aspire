@@ -896,11 +896,6 @@ public static class ResourceBuilderExtensions
             if (urlForEndpoint is not null)
             {
                 callback(urlForEndpoint);
-                if (urlForEndpoint.Endpoint is not null && urlForEndpoint.Url.StartsWith('/'))
-                {
-                    // Url is relative, update it to be absolute using the endpoint URL
-                    urlForEndpoint.Url = urlForEndpoint.Endpoint.Url.TrimEnd('/') + urlForEndpoint.Url;
-                }
             }
             else
             {
@@ -947,11 +942,6 @@ public static class ResourceBuilderExtensions
             if (endpoint.Exists)
             {
                 var url = callback(endpoint).WithEndpoint(endpoint);
-                if (url.Url.StartsWith('/'))
-                {
-                    // Url is relative, update it to be absolute using the endpoint URL
-                    url.Url = endpoint.Url.TrimEnd('/') + url.Url;
-                }
                 context.Urls.Add(url);
             }
             else

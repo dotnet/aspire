@@ -581,6 +581,37 @@ public class WithUrlsTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task WithUrlsTurnsRelativeEndpointUrlsIntoAbsoluteUrls()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new() { Endpoint = c.GetEndpoint("test"), Url = "/sub-path" });
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test" && u.Url.EndsWith("/sub-path"));
+
+        Assert.NotNull(endpointUrl);
+        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
+
+        await app.StopAsync();
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
