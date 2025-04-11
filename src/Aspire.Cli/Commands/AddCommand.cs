@@ -77,7 +77,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (!packagesWithShortName.Any())
             {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down: No packages found.[/]");
+                InteractionUtils.DisplayError("No packages found.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -121,23 +121,23 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                InteractionUtils.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
             else
             {
-                AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                InteractionUtils.DisplaySuccess($"The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
                 return ExitCodeConstants.Success;
             }
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("[yellow bold]:stop_sign: Operation cancelled by user action.[/]");
+            InteractionUtils.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: An error occurred while adding the package: {ex.Message}[/]");
+            InteractionUtils.DisplayError($"An error occurred while adding the package: {ex.Message}");
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
@@ -158,7 +158,11 @@ internal sealed class AddCommand : BaseCommand
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
-            > 1 => await AnsiConsole.PromptAsync(packagePrompt, cancellationToken),
+            > 1 => await InteractionUtils.PromptForSelectionAsync(
+                "Select an integration to add:",
+                distinctPackages,
+                PackageNameWithFriendlyNameIfAvailable,
+                cancellationToken),
             _ => throw new InvalidOperationException("Unexpected number of packages found.")
         };
 
@@ -173,14 +177,11 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var versionPrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title($"Select a version of {selectedPackage.Package.Id}:")
-            .UseConverter(p => p.Package.Version)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(packageVersions);
-
-        var version = await AnsiConsole.PromptAsync(versionPrompt, cancellationToken);
+        var version = await InteractionUtils.PromptForSelectionAsync(
+            $"Select a version of the {selectedPackage.Package.Id}:",
+            packageVersions,
+            p => p.Package.Version,
+            cancellationToken);
 
         return version;
 

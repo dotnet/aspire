@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Semver;
-using Spectre.Console;
 using System.Diagnostics;
 
 namespace Aspire.Cli.Utils;
@@ -17,26 +16,26 @@ internal static class AppHostHelper
 
             if (appHostInformation.ExitCode != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be analyzed due to a build error. For more information run with --debug switch.[/]");
+                InteractionUtils.DisplayError("The project could not be analyzed due to a build error. For more information run with --debug switch.");
                 return (false, false, null);
             }
 
             if (!appHostInformation.IsAspireHost)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project is not an Aspire app host project.[/]");
+                InteractionUtils.DisplayError($"The project is not an Aspire app host project.");
                 return (false, false, null);
             }
 
             if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Could not parse Aspire SDK version.[/]");
+                InteractionUtils.DisplayError($"Could not parse Aspire SDK version.");
                 return (false, false, null);
             }
 
             var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
             if (!aspireSdkVersion.Satisfies(compatibleRanges))
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.[/]");
+                InteractionUtils.DisplayError($"The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.");
                 return (false, false, appHostInformation.AspireHostingSdkVersion);
             }
             else

@@ -4,7 +4,6 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Utils;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -146,11 +145,11 @@ internal sealed class NewCommand : BaseCommand
 
         if (templateInstallResult.ExitCode != 0)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.[/]");
+            InteractionUtils.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToInstallTemplates;
         }
 
-        AnsiConsole.MarkupLine($":package: Using project templates version: {templateInstallResult.TemplateVersion}");
+        InteractionUtils.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
 
         var newProjectExitCode = await InteractionUtils.ShowStatusAsync(
             ":rocket:  Creating new Aspire project...",
@@ -162,7 +161,7 @@ internal sealed class NewCommand : BaseCommand
 
         if (newProjectExitCode != 0)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.[/]");
+           InteractionUtils.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToCreateNewProject;
         }
 
@@ -172,11 +171,11 @@ internal sealed class NewCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+            InteractionUtils.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
             return ExitCodeConstants.FailedToTrustCertificates;
         }
 
-        AnsiConsole.MarkupLine($":thumbs_up: Project created successfully in {outputPath}.");
+        InteractionUtils.DisplaySuccess($"Project created successfully in {outputPath}.");
 
         return ExitCodeConstants.Success;
     }
