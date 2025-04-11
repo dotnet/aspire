@@ -61,7 +61,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var publisher = new DockerComposePublisher("test", options,
+        var publisher = new DockerComposePublisher("test",
+            options,
             NullLogger<DockerComposePublisher>.Instance,
             builder.ExecutionContext,
             new MockImageBuilder()
@@ -130,7 +131,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             networks:
               aspire:
                 driver: "bridge"
-            
+
             """,
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
 
@@ -195,13 +196,60 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DockerComposeHandleImageBuilding(bool shouldBuildImages)
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
+            .WithTestAndResourceLogging(outputHelper);
+
+        var options = new OptionsMonitor(new DockerComposePublisherOptions
+        {
+            OutputPath = tempDir.Path,
+            BuildImages = shouldBuildImages,
+        });
+
+        var mockImageBuilder = new MockImageBuilder();
+
+        builder.AddDockerComposePublisher();
+
+        builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            .WithHttpEndpoint(env: "HTTP_PORT");
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var publisher = new DockerComposePublisher("test",
+            options,
+            NullLogger<DockerComposePublisher>.Instance,
+            builder.ExecutionContext,
+            mockImageBuilder
+        );
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+        Assert.Equal(shouldBuildImages, mockImageBuilder.BuildImageCalled);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
+        public bool BuildImageCalled { get; private set; }
+
         public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
         {
+            BuildImageCalled = true;
             return Task.CompletedTask;
         }
     }
