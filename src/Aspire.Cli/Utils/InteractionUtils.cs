@@ -98,7 +98,7 @@ internal static class InteractionUtils
         DisplayMessage("thumbs_up", message);
     }
 
-    public static void DisplayDashboardUrls(dynamic dashboardUrls)
+    public static void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
