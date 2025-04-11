@@ -21,6 +21,8 @@
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageVersion Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.1.1" />
