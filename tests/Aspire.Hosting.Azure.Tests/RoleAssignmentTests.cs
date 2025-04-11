@@ -469,7 +469,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
         bool includePrincipalName = false)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         configureBuilder(builder);
 

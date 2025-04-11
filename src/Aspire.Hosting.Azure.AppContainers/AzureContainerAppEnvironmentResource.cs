@@ -13,6 +13,8 @@ namespace Aspire.Hosting.Azure.AppContainers;
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment
 {
+    internal bool UseAzdNamingConvention { get; set; }
+
     /// <summary>
     /// Gets the unique identifier of the Container App Environment.
     /// </summary>
@@ -53,7 +55,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// </summary>
     private BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
-    internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
+    internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentId => ContainerAppEnvironmentId;
 
@@ -76,18 +78,25 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
     }
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)
+    IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
-        // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"volumes_{resource.Name}_{volumeIndex}";
-
-        if (!VolumeNames.TryGetValue(outputName, out var outputReference))
+        var prefix = volume.Type switch
         {
-            outputReference = new BicepOutputReference(outputName, this);
+            ContainerMountType.BindMount => "bindmounts",
+            ContainerMountType.Volume => "volumes",
+            _ => throw new NotSupportedException()
+        };
 
-            VolumeNames[outputName] = outputReference;
+        // REVIEW: Should we use the same naming algorithm as azd?
+        var outputName = $"{prefix}_{resource.Name}_{volumeIndex}";
+
+        if (!VolumeNames.TryGetValue(outputName, out var volumeName))
+        {
+            volumeName = (resource, volume, volumeIndex, new BicepOutputReference(outputName, this));
+
+            VolumeNames[outputName] = volumeName;
         }
 
-        return outputReference;
+        return volumeName.outputReference;
     }
 }

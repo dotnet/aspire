@@ -9,9 +9,13 @@ using Aspire.Cli.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+#if DEBUG
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+#endif
+
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli;
@@ -32,6 +36,7 @@ public class Program
             logging.IncludeScopes = true;
             });
 
+#if DEBUG
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing => {
@@ -56,6 +61,7 @@ public class Program
             //       has to finish sending telemetry.
             otelBuilder.UseOtlpExporter();
         }
+#endif
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 
@@ -66,7 +72,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddTransient<DotNetCliRunner>();
+        builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();

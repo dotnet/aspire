@@ -88,25 +88,49 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async Task ConnectAsync(Process process, string socketPath, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
-
-        _process = process;
-
-        if (_rpcTaskCompletionSource.Task.IsCompleted)
+        try
         {
-            throw new InvalidOperationException("Already connected to AppHost backchannel.");
+            using var activity = _activitySource.StartActivity();
+
+            _process = process;
+
+            if (_rpcTaskCompletionSource.Task.IsCompleted)
+            {
+                throw new InvalidOperationException("Already connected to AppHost backchannel.");
+            }
+
+            logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+            await socket.ConnectAsync(endpoint, cancellationToken);
+            logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
+
+            var stream = new NetworkStream(socket, true);
+            var rpc = JsonRpc.Attach(stream, target);
+
+            var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+                "GetCapabilitiesAsync",
+                Array.Empty<object>(),
+                cancellationToken);
+
+            if (!capabilities.Any(s => s == "baseline.v0"))
+            {
+                throw new AppHostIncompatibleException(
+                    $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the baseline.v0 capability.",
+                    "baseline.v0"
+                    );
+            }
+
+            _rpcTaskCompletionSource.SetResult(rpc);
         }
-
-        logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
-        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        var endpoint = new UnixDomainSocketEndPoint(socketPath);
-        await socket.ConnectAsync(endpoint, cancellationToken);
-        logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
-
-        var stream = new NetworkStream(socket, true);
-        var rpc = JsonRpc.Attach(stream, target);
-
-        _rpcTaskCompletionSource.SetResult(rpc);
+        catch (RemoteMethodNotFoundException ex)
+        {
+            logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the baseline.v0 capability.");
+            throw new AppHostIncompatibleException(
+                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the baseline.v0 capability.",
+                "baseline.v0"
+                );
+        }
     }
 
     public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
@@ -144,5 +168,21 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         {
             yield return state;
         }
+    }
+
+    public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
+
+        logger.LogDebug("Requesting capabilities");
+
+        var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+            "GetCapabilitiesAsync",
+            Array.Empty<object>(),
+            cancellationToken).ConfigureAwait(false);
+
+        return capabilities;
     }
 }

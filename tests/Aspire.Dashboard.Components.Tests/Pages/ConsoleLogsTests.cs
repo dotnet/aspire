@@ -8,6 +8,7 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
@@ -538,6 +539,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
+        Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();

@@ -11,6 +11,9 @@ namespace Aspire.Hosting
     public static partial class AzureAppConfigurationExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> target, params global::Azure.Provisioning.AppConfiguration.AppConfigurationBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -23,5 +26,7 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference Endpoint { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }

@@ -13,7 +13,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli;
 
-internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider)
+internal interface IDotNetCliRunner
+{
+    Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(FileInfo projectFile, CancellationToken cancellationToken);
+    Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken);
+    Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken);
+    Task<int> CheckHttpCertificateAsync(CancellationToken cancellationToken);
+    Task<int> TrustHttpCertificateAsync(CancellationToken cancellationToken);
+    Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, CancellationToken cancellationToken);
+    Task<int> NewProjectAsync(string templateName, string name, string outputPath, CancellationToken cancellationToken);
+    Task<int> BuildAsync(FileInfo projectFilePath, CancellationToken cancellationToken);
+    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, CancellationToken cancellationToken);
+    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, CancellationToken cancellationToken);
+}
+
+internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider) : IDotNetCliRunner
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(DotNetCliRunner));
 
@@ -77,13 +91,58 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         }
     }
 
+    public async Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+        
+        string[] cliArgs = [
+            "msbuild",
+            $"-getProperty:{string.Join(",", properties)}",
+            $"-getItem:{string.Join(",", items)}",
+            projectFile.FullName
+            ];
+
+        string? stdout = null;
+        string? stderr = null;
+
+        var exitCode = await ExecuteAsync(
+            cliArgs,
+            null,
+            projectFile.Directory!,
+            null,
+            (_, output, error) => {
+                stdout = output.ReadToEnd();
+                stderr = error.ReadToEnd();
+            },
+            cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError(
+                "Failed to get items and properties from project. Exit code was: {ExitCode}. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                exitCode,
+                stderr,
+                stdout
+            );
+
+            return (exitCode, null);
+        }
+        else
+        {
+            var json = JsonDocument.Parse(stdout!);
+            return (exitCode, json);
+        }
+    }
+
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
         if (watch && noBuild)
         {
-            throw new InvalidOperationException("Cannot use --watch and --no-build at the same time.");
+            var ex = new InvalidOperationException("Cannot use --watch and --no-build at the same time.");
+            backchannelCompletionSource?.SetException(ex);
+            throw ex;
         }
 
         var watchOrRunCommand = watch ? "watch" : "run";
@@ -424,6 +483,28 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
                 {
                     // We don't want to spam the logs with our early connection attempts.
                 }
+            }
+            catch (AppHostIncompatibleException ex)
+            {
+                logger.LogError(
+                    ex,
+                    "The app host is incompatible with the CLI and must be updated to a version that supports the {RequiredCapability} capability.",
+                    ex.RequiredCapability
+                    );
+
+                // If the app host is incompatible then there is no point
+                // trying to reconnect, we should propogate the exception
+                // up to the code that needs to back channel so it can display
+                // and error message to the user.
+                backchannelCompletionSource.SetException(ex);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
+                backchannelCompletionSource.SetException(ex);
+                throw;
             }
 
         } while (await timer.WaitForNextTickAsync(cancellationToken));

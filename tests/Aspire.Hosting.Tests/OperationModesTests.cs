@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -14,8 +16,7 @@ namespace Aspire.Hosting.Tests;
 public class OperationModesTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8400")]
-    public async Task VerifyBackwardsCompatableRunModeInvocation()
+    public async Task VerifyBackwardsCompatibleRunModeInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will continue
         // to enter run mode if executed without any arguments.
@@ -101,7 +102,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task VerifyBackwardsCompatablePublishModeInvocation()
+    public async Task VerifyBackwardsCompatiblePublishModeInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will continue
         // to enter publish mode if the --publisher argument is specified.

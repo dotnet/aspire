@@ -484,7 +484,7 @@ public static class ResourceBuilderExtensions
     /// <para>
     /// The <see cref="WithEndpoint{T}(IResourceBuilder{T}, string, Action{EndpointAnnotation}, bool)"/> method allows
     /// developers to mutate any aspect of an endpoint annotation. Note that changing one value does not automatically change
-    /// other values to compatable/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
+    /// other values to compatible/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
     /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
     /// All values should be set in the callback if the defaults are not acceptable.
     /// </para>
@@ -799,7 +799,58 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Registers a callback to customize the URL displayed for the endpoint with the specified name.
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The interpolated string that produces the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, in ReferenceExpression.ExpressionInterpolatedStringHandler url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var expression = url.GetExpression();
+
+        return builder.WithUrl(expression, displayText);
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">A <see cref="ReferenceExpression"/> that will produce the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(async c =>
+        {
+            var endpoint = url.ValueProviders.OfType<EndpointReference>().FirstOrDefault();
+            var urlValue = await url.GetValueAsync(c.CancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(urlValue))
+            {
+                c.Urls.Add(new() { Endpoint = endpoint, Url = urlValue, DisplayText = displayText });
+            }
+        }));
+    }
+
+    /// <summary>
+    /// Registers a callback to update the URL displayed for the endpoint with the specified name.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
