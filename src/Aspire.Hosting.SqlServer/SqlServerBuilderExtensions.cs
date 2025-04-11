@@ -215,10 +215,7 @@ public static partial class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(password);
 
         builder.Resource.SetPassword(password.Resource);
-        return builder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables[PasswordEnvVarName] = builder.Resource.PasswordParameter;
-        });
+        return builder;
     }
 
     /// <summary>

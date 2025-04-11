@@ -613,13 +613,7 @@ public static class RedisBuilderExtensions
         ArgumentNullException.ThrowIfNull(password);
 
         builder.Resource.SetPassword(password.Resource);
-        return builder.WithEnvironment(context =>
-        {
-            if (builder.Resource.PasswordParameter is { } password)
-            {
-                context.EnvironmentVariables[PasswordEnvVarName] = password;
-            }
-        });
+        return builder;
     }
 
     /// <summary>

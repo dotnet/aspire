@@ -665,8 +665,8 @@ public class AddPostgresTests
     public void VerifyPostgresServerResourceWithHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddPostgres("postgres").
-            WithHostPort(1000);
+        builder.AddPostgres("postgres")
+            .WithHostPort(1000);
 
         var resource = Assert.Single(builder.Resources.OfType<PostgresServerResource>());
         var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());

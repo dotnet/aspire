@@ -322,8 +322,8 @@ public class AddRedisTests
     public void VerifyRedisResourceWithHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").
-            WithHostPort(1000);
+        builder.AddRedis("myredis")
+            .WithHostPort(1000);
 
         var resource = Assert.Single(builder.Resources.OfType<RedisResource>());
         var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
@@ -337,15 +337,13 @@ public class AddRedisTests
 
         var password = "p@ssw0rd1";
         var pass = builder.AddParameter("pass", password);
-        var redis = builder.
-            AddRedis("myRedis")
+        var redis = builder
+            .AddRedis("myRedis")
             .WithPassword(pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
         using var app = builder.Build();
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
@@ -409,7 +407,7 @@ public class AddRedisTests
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new (app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 

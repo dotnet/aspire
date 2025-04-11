@@ -435,11 +435,8 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(password);
 
-        builder.Resource.SetPassword(password.Resource);
-        return builder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables[PasswordEnvVarName] = builder.Resource.PasswordParameter;
-        });
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
     }
 
     /// <summary>
@@ -453,11 +450,8 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(userName);
 
-        builder.Resource.SetUserName(userName.Resource);
-        return builder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables[UserEnvVarName] = builder.Resource.UserNameReference;
-        });
+        builder.Resource.UserNameParameter = userName.Resource;
+        return builder;
     }
 
     /// <summary>

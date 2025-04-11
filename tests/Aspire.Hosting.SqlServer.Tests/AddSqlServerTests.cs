@@ -254,8 +254,8 @@ public class AddSqlServerTests
     public void VerifySqlServerServerResourceWithHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddSqlServer("sqlserver1").
-            WithHostPort(1000);
+        builder.AddSqlServer("sqlserver1")
+            .WithHostPort(1000);
 
         var resource = Assert.Single(builder.Resources.OfType<SqlServerServerResource>());
         var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
@@ -274,12 +274,10 @@ public class AddSqlServerTests
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
 
         using var app = appBuilder.Build();
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-
         Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", connectionString);
         Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
