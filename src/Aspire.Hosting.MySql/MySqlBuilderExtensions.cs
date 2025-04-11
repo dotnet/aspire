@@ -101,7 +101,7 @@ public static class MySqlBuilderExtensions
             return builder;
         }
 
-        containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+        containerName ??= "phpmyadmin";
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
