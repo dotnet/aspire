@@ -4,6 +4,8 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -16,13 +18,19 @@ internal sealed class RunCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly IDotNetCliRunner _runner;
+    private readonly IInteractionService _interactionService;
+    private readonly ICertificateService _certificateService;
 
-    public RunCommand(IDotNetCliRunner runner)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
+        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
+        ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
 
         _runner = runner;
+        _interactionService = interactionService;
+        _certificateService = certificateService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -42,7 +50,7 @@ internal sealed class RunCommand : BaseCommand
             using var activity = _activitySource.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(_interactionService, passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -66,11 +74,11 @@ internal sealed class RunCommand : BaseCommand
 
             try
             {
-                await CertificatesHelper.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             }
             catch (Exception ex)
             {
-                InteractionUtils.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+                _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
                 return ExitCodeConstants.FailedToTrustCertificates;
             }
 
@@ -78,16 +86,16 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
-                    InteractionUtils.DisplayError($"The project could not be built. For more information run with --debug switch.");
+                    _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
             
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -109,16 +117,16 @@ internal sealed class RunCommand : BaseCommand
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
-                var backchannel = await InteractionUtils.ShowStatusAsync(
+                var backchannel = await _interactionService.ShowStatusAsync(
                     ":linked_paperclips:  Starting Aspire app host...",
                     () => backchannelCompletitionSource.Task);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await InteractionUtils.ShowStatusAsync(
+                var dashboardUrls = await _interactionService.ShowStatusAsync(
                     ":chart_increasing:  Starting Aspire dashboard...",
                     () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
-                InteractionUtils.DisplayDashboardUrls(dashboardUrls);
+                _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
 
@@ -198,7 +206,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (AppHostIncompatibleException ex)
         {
-            return InteractionUtils.DisplayIncompatibleVersionError(
+            return _interactionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );

@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -14,14 +15,17 @@ internal sealed class AddCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IInteractionService _interactionService;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
+        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
+        _interactionService = interactionService;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
@@ -55,7 +59,7 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(_interactionService, passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -66,7 +70,7 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packages = await InteractionUtils.ShowStatusAsync(
+            var packages = await _interactionService.ShowStatusAsync(
                 "Searching for Aspire packages...",
                 () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
                 );
@@ -77,7 +81,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (!packagesWithShortName.Any())
             {
-                InteractionUtils.DisplayError("No packages found.");
+                _interactionService.DisplayError("No packages found.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -105,7 +109,7 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException("Unexpected number of packages found.")
             };
 
-            var addPackageResult = await InteractionUtils.ShowStatusAsync(
+            var addPackageResult = await _interactionService.ShowStatusAsync(
                 "Adding Aspire integration...",
                 async () => {
                     var addPackageResult = await _runner.AddPackageAsync(
@@ -121,28 +125,28 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
-                InteractionUtils.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
+                _interactionService.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
             else
             {
-                InteractionUtils.DisplaySuccess($"The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                _interactionService.DisplaySuccess($"The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
                 return ExitCodeConstants.Success;
             }
         }
         catch (OperationCanceledException)
         {
-            InteractionUtils.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+            _interactionService.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            InteractionUtils.DisplayError($"An error occurred while adding the package: {ex.Message}");
+            _interactionService.DisplayError($"An error occurred while adding the package: {ex.Message}");
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
 
-    private static async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
+    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
     {
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
@@ -158,7 +162,7 @@ internal sealed class AddCommand : BaseCommand
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
-            > 1 => await InteractionUtils.PromptForSelectionAsync(
+            > 1 => await _interactionService.PromptForSelectionAsync(
                 "Select an integration to add:",
                 distinctPackages,
                 PackageNameWithFriendlyNameIfAvailable,
@@ -177,7 +181,7 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var version = await InteractionUtils.PromptForSelectionAsync(
+        var version = await _interactionService.PromptForSelectionAsync(
             $"Select a version of the {selectedPackage.Package.Id}:",
             packageVersions,
             p => p.Package.Version,

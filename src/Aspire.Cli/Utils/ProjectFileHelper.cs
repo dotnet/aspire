@@ -3,12 +3,13 @@
 
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using Aspire.Cli.Interaction;
 
 namespace Aspire.Cli.Utils;
 
 internal static class ProjectFileHelper
 {
-    internal static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+    internal static FileInfo? UseOrFindAppHostProjectFile(IInteractionService interactionService, FileInfo? projectFile)
     {
         if (projectFile is not null)
         {
@@ -35,12 +36,12 @@ internal static class ProjectFileHelper
             Debug.WriteLine(ex.Message);
             if (projectFilePaths.Length > 1)
             {
-                InteractionUtils.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+                interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
                 
             }
             else
             {
-                InteractionUtils.DisplayError("The --project option was not specified and no *.csproj files were detected.");
+                interactionService.DisplayError("The --project option was not specified and no *.csproj files were detected.");
             }
             return null;
         };
