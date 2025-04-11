@@ -30,4 +30,12 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// The display order the URL. Higher values mean sort higher in the list.
     /// </summary>
     public int? DisplayOrder;
+
+    /// <summary>
+    /// Whether this URL should be shown on the dashboard resources page. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// Set this to <see langword="false"/> to only show this URL in the resource details grid.
+    /// </remarks>
+    public bool ShowOnResourcesPage { get; set; } = true;
 }

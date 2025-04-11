@@ -859,11 +859,15 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.
+    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.<br/>
+    /// To add another URL for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Func{EndpointReference, ResourceUrlAnnotation})"/>.
     /// </para>
     /// <para>
     /// The callback will be executed after endpoints have been allocated and the URL has been generated.<br/>
     /// This allows you to modify the URL or its display text.
+    /// </para>
+    /// <para>
+    /// If the URL returned by <paramref name="callback"/> is relative, it will be combined with the endpoint URL to create an absolute URL.
     /// </para>
     /// <para>
     /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
@@ -876,6 +880,13 @@ public static class ResourceBuilderExtensions
     ///                       .WithUrlForEndpoint("https", url => url.DisplayText = "Home");
     /// </code>
     /// </example>
+    /// <example>
+    /// Customize the URL for the "https" endpoint to deep to the "/home" path:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", url => url.Url = "/home");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
         where T : IResource
     {
@@ -885,10 +896,67 @@ public static class ResourceBuilderExtensions
             if (urlForEndpoint is not null)
             {
                 callback(urlForEndpoint);
+                if (urlForEndpoint.Endpoint is not null && urlForEndpoint.Url.StartsWith('/'))
+                {
+                    // Url is relative, update it to be absolute using the endpoint URL
+                    urlForEndpoint.Url = urlForEndpoint.Endpoint.Url.TrimEnd('/') + urlForEndpoint.Url;
+                }
             }
             else
             {
                 context.Logger.LogWarning("Could not execute callback to customize endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a callback to add a URL for the endpoint with the specified name.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to add the URL for.</param>
+    /// <param name="callback">The callback that will create the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method to add another URL for an endpoint on the resource.<br/>
+    /// To customize the URL that is automatically added for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
+    /// </para>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated and the resource is about to start.
+    /// </para>
+    /// <para>
+    /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a URL for the "https" endpoint that deep-links to an admin page with the text "Admin":
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", ep => new() { Url = "/admin", DisplayText = "Admin" });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
+        where T : IResourceWithEndpoints
+    {
+        builder.WithUrls(context =>
+        {
+            var endpoint = builder.GetEndpoint(endpointName);
+            if (endpoint is not null)
+            {
+                var url = callback(endpoint);
+                if (url.Url.StartsWith('/'))
+                {
+                    // Url is relative, update it to be absolute using the endpoint URL
+                    url.Url = endpoint.Url.TrimEnd('/') + url.Url;
+                }
+                context.Urls.Add(url);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to add an endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
             }
         });
 
