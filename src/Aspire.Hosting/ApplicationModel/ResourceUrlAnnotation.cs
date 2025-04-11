@@ -38,4 +38,16 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// Set this to <see langword="false"/> to only show this URL in the resource details grid.
     /// </remarks>
     public bool ShowOnResourcesPage { get; set; } = true;
+
+    internal ResourceUrlAnnotation WithEndpoint(EndpointReference endpoint)
+    {
+        return new()
+        {
+            Url = Url,
+            DisplayText = DisplayText,
+            Endpoint = endpoint,
+            DisplayOrder = DisplayOrder,
+            ShowOnResourcesPage = ShowOnResourcesPage
+        };
+    }
 }

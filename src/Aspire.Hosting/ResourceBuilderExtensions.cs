@@ -944,9 +944,9 @@ public static class ResourceBuilderExtensions
         builder.WithUrls(context =>
         {
             var endpoint = builder.GetEndpoint(endpointName);
-            if (endpoint is not null)
+            if (endpoint.Exists)
             {
-                var url = callback(endpoint);
+                var url = callback(endpoint).WithEndpoint(endpoint);
                 if (url.Url.StartsWith('/'))
                 {
                     // Url is relative, update it to be absolute using the endpoint URL
