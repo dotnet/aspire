@@ -28,7 +28,7 @@ public class NewCommandTests
     }
 
     [Fact]
-    public async Task NewCommandInteractiveFlowExecutesExpectedCommands()
+    public async Task NewCommandInteractiveFlowSmokeTest()
     {
         var services = CliTestHelper.CreateServiceCollection(options => {
 
