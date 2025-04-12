@@ -32,12 +32,11 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     public int? DisplayOrder;
 
     /// <summary>
-    /// Whether this URL should be shown on the dashboard resources page. Defaults to <see langword="true"/>.
+    /// Locations where this URL should be shown on the dashboard. Defaults to <see cref="UrlDisplayLocation.SummaryAndDetails"/>.
     /// </summary>
-    /// <remarks>
-    /// Set this to <see langword="false"/> to only show this URL in the resource details grid.
-    /// </remarks>
-    public bool ShowOnResourcesPage { get; set; } = true;
+    public UrlDisplayLocation DisplayLocation { get; set; } = UrlDisplayLocation.SummaryAndDetails;
+
+    internal bool IsInternal => DisplayLocation == UrlDisplayLocation.DetailsOnly;
 
     internal ResourceUrlAnnotation WithEndpoint(EndpointReference endpoint)
     {
@@ -47,7 +46,22 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
             DisplayText = DisplayText,
             Endpoint = endpoint,
             DisplayOrder = DisplayOrder,
-            ShowOnResourcesPage = ShowOnResourcesPage
+            DisplayLocation = DisplayLocation
         };
     }
+}
+
+/// <summary>
+/// Specifies where the URL should be displayed.
+/// </summary>
+public enum UrlDisplayLocation
+{
+    /// <summary>
+    /// Show the URL in locations where either the resource summary or resource details are being displayed.
+    /// </summary>
+    SummaryAndDetails,
+    /// <summary>
+    /// Show the URL in locations where the full details of the resource are being displayed.
+    /// </summary>
+    DetailsOnly
 }

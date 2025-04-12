@@ -414,15 +414,16 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task UrlsAreMarkedAsInternalDependingOnShowOnResourcesPage()
+    public async Task UrlsAreMarkedAsInternalDependingOnDisplayLocation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrls(c =>
             {
-                c.Urls.Add(new() { Url = "http://example.com/", ShowOnResourcesPage = true });
-                c.Urls.Add(new() { Url = "http://example.com/internal", ShowOnResourcesPage = false });
+                c.Urls.Add(new() { Url = "http://example.com/", DisplayLocation = UrlDisplayLocation.SummaryAndDetails });
+                c.Urls.Add(new() { Url = "http://example.com/internal", DisplayLocation = UrlDisplayLocation.DetailsOnly });
+                c.Urls.Add(new() { Url = "http://example.com/out-of-range", DisplayLocation = (UrlDisplayLocation)100 });
             });
 
         var app = await builder.BuildAsync();
@@ -456,7 +457,8 @@ public class WithUrlsTests
         Assert.Collection(urlSnapshot,
             url => { Assert.Equal("http", url.Name); Assert.False(url.IsInternal); },
             url => { Assert.Equal("http://example.com/", url.Url); Assert.False(url.IsInternal); },
-            url => { Assert.Equal("http://example.com/internal", url.Url); Assert.True(url.IsInternal); }
+            url => { Assert.Equal("http://example.com/internal", url.Url); Assert.True(url.IsInternal); },
+            url => { Assert.Equal("http://example.com/out-of-range", url.Url); Assert.False(url.IsInternal); }
         );
     }
 

@@ -69,9 +69,9 @@ var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
        // Modify the display text of the URLs
        .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"))
        // Don't show the non-HTTPS link on the resources page (details only)
-       .WithUrlForEndpoint("http", url => url.ShowOnResourcesPage = false)
+       .WithUrlForEndpoint("http", url => url.DisplayLocation = UrlDisplayLocation.DetailsOnly)
        // Add health relative URL (show in details only)
-       .WithUrlForEndpoint("https", ep => new() { Url = "/health", DisplayText = "Health", ShowOnResourcesPage = false });
+       .WithUrlForEndpoint("https", ep => new() { Url = "/health", DisplayText = "Health", DisplayLocation = UrlDisplayLocation.DetailsOnly });
 
 var _ = frontend.GetEndpoint("https").Exists ? frontend.WithHttpsHealthCheck("/health") : frontend.WithHttpHealthCheck("/health");
 
