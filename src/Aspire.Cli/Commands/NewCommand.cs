@@ -190,7 +190,7 @@ internal interface INewCommandPrompter
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
-    public async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
             "Select a template version:",
