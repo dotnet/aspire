@@ -5,9 +5,9 @@ using System.CommandLine;
 
 #if DEBUG
 using System.Diagnostics;
-using Aspire.Cli.Interaction;
-
 #endif
+
+using Aspire.Cli.Interaction;
 
 using BaseRootCommand = System.CommandLine.RootCommand;
 
