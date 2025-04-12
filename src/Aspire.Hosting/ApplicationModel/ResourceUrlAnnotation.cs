@@ -30,4 +30,38 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// The display order the URL. Higher values mean sort higher in the list.
     /// </summary>
     public int? DisplayOrder;
+
+    /// <summary>
+    /// Locations where this URL should be shown on the dashboard. Defaults to <see cref="UrlDisplayLocation.SummaryAndDetails"/>.
+    /// </summary>
+    public UrlDisplayLocation DisplayLocation { get; set; } = UrlDisplayLocation.SummaryAndDetails;
+
+    internal bool IsInternal => DisplayLocation == UrlDisplayLocation.DetailsOnly;
+
+    internal ResourceUrlAnnotation WithEndpoint(EndpointReference endpoint)
+    {
+        return new()
+        {
+            Url = Url,
+            DisplayText = DisplayText,
+            Endpoint = endpoint,
+            DisplayOrder = DisplayOrder,
+            DisplayLocation = DisplayLocation
+        };
+    }
+}
+
+/// <summary>
+/// Specifies where the URL should be displayed.
+/// </summary>
+public enum UrlDisplayLocation
+{
+    /// <summary>
+    /// Show the URL in locations where either the resource summary or resource details are being displayed.
+    /// </summary>
+    SummaryAndDetails,
+    /// <summary>
+    /// Show the URL in locations where the full details of the resource are being displayed.
+    /// </summary>
+    DetailsOnly
 }

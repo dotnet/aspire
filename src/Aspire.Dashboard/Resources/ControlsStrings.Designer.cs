@@ -511,11 +511,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Link.
+        ///   Looks up a localized string similar to Address.
         /// </summary>
-        public static string LinkColumnHeader {
+        public static string LinkAddressColumnHeader {
             get {
-                return ResourceManager.GetString("LinkColumnHeader", resourceCulture);
+                return ResourceManager.GetString("LinkAddressColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        public static string LinkTextColumnHeader {
+            get {
+                return ResourceManager.GetString("LinkTextColumnHeader", resourceCulture);
             }
         }
         
