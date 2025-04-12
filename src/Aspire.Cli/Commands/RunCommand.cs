@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -20,21 +21,24 @@ internal sealed class RunCommand : BaseCommand
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
+    private readonly IProjectLocator _projectLocator;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
         ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
+        ArgumentNullException.ThrowIfNull(projectLocator, nameof(projectLocator));
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
+        _projectLocator = projectLocator;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
-        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
+        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
@@ -50,7 +54,7 @@ internal sealed class RunCommand : BaseCommand
             using var activity = _activitySource.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(_interactionService, passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -203,6 +207,21 @@ internal sealed class RunCommand : BaseCommand
             {
                 return await pendingRun;
             }
+        }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        {
+            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        {
+            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        {
+            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {

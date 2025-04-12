@@ -8,6 +8,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -74,6 +75,7 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
@@ -90,6 +92,12 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
+        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
     }
 
     public static async Task<int> Main(string[] args)

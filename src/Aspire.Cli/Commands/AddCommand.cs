@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -16,16 +17,20 @@ internal sealed class AddCommand : BaseCommand
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly IInteractionService _interactionService;
+    private readonly IProjectLocator _projectLocator;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
         ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
+        ArgumentNullException.ThrowIfNull(projectLocator, nameof(projectLocator));
+        
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _interactionService = interactionService;
+        _projectLocator = projectLocator;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
@@ -34,7 +39,7 @@ internal sealed class AddCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the project file to add the integration to.";
-        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
+        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -59,7 +64,7 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(_interactionService, passedAppHostProjectFile);
+            var effectiveAppHostProjectFile =  _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -133,6 +138,21 @@ internal sealed class AddCommand : BaseCommand
                 _interactionService.DisplaySuccess($"The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
                 return ExitCodeConstants.Success;
             }
+        }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        {
+            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        {
+            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        {
+            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
         }
         catch (OperationCanceledException)
         {
