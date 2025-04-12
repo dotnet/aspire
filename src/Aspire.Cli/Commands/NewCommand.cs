@@ -12,21 +12,24 @@ internal sealed class NewCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
-    private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
+    private readonly INewCommandPrompter _prompter;
+    private readonly IInteractionService _interactionService;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, ICertificateService certificateService)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner, nameof(runner));
         ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
         ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
+        ArgumentNullException.ThrowIfNull(prompter, nameof(prompter));
+        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
-        _interactionService = interactionService;
         _certificateService = certificateService;
+        _prompter = prompter;
+        _interactionService = interactionService;
 
         var templateArgument = new Argument<string>("template");
         templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
@@ -79,12 +82,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await _interactionService.PromptForSelectionAsync(
-                "Select a project template:",
-                validTemplates,
-                t => $"{t.TemplateName} ({t.TemplateDescription})",
-                cancellationToken
-                );
+            return await _prompter.PromptForTemplateAsync(validTemplates, cancellationToken);
         }
     }
 
@@ -93,10 +91,7 @@ internal sealed class NewCommand : BaseCommand
         if (parseResult.GetValue<string>("--name") is not { } name)
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
-            name = await _interactionService.PromptForStringAsync(
-                "Enter the project name:",
-                defaultValue: defaultName,
-                cancellationToken: cancellationToken);
+            name = await _prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
         }
 
         return name;
@@ -106,11 +101,7 @@ internal sealed class NewCommand : BaseCommand
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await _interactionService.PromptForStringAsync(
-                "Enter the output path:",
-                defaultValue: pathAppendage ?? ".",
-                cancellationToken: cancellationToken
-                );
+            outputPath = await _prompter.PromptForOutputPath(pathAppendage ?? ".", cancellationToken);
         }
 
         return Path.GetFullPath(outputPath);
@@ -131,7 +122,7 @@ internal sealed class NewCommand : BaseCommand
                 () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
-            var selectedPackage = await _interactionService.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
+            var selectedPackage = await _prompter.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
             return selectedPackage.Version;
         }
     }
@@ -169,7 +160,7 @@ internal sealed class NewCommand : BaseCommand
 
         if (newProjectExitCode != 0)
         {
-           _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
+            _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToCreateNewProject;
         }
 
@@ -186,5 +177,53 @@ internal sealed class NewCommand : BaseCommand
         _interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
 
         return ExitCodeConstants.Success;
+    }
+}
+
+internal interface INewCommandPrompter
+{
+    Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
+    Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken);
+    Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
+    Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
+}
+
+internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
+{
+    public async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForSelectionAsync(
+            "Select a template version:",
+            candidatePackages,
+            (p) => $"{p.Version} ({p.Source})",
+            cancellationToken
+            );
+    }
+
+    public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForStringAsync(
+            "Enter the output path:",
+            defaultValue: path,
+            cancellationToken: cancellationToken
+            );
+    }
+
+    public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForStringAsync(
+            "Enter the project name:",
+            defaultValue: defaultName,
+            cancellationToken: cancellationToken);
+    }
+
+    public virtual async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForSelectionAsync(
+            "Select a project template:",
+            validTemplates,
+            t => $"{t.TemplateName} ({t.TemplateDescription})",
+            cancellationToken
+        );
     }
 }

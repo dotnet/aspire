@@ -25,16 +25,6 @@ internal class InteractionService : IInteractionService
             .Start(statusText, (context) => action());
     }
 
-    public async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
-    {
-        return await PromptForSelectionAsync(
-            "Select a template version:",
-            candidatePackages,
-            (p) => $"{p.Version} ({p.Source})",
-            cancellationToken
-            );
-    }
-
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));

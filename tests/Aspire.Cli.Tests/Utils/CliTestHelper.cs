@@ -23,6 +23,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractiveServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
+        services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddTransient<RootCommand>();
@@ -37,6 +38,12 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions
 {
+    public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new NewCommandPrompter(interactionService);
+    };
+
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         return new ProjectLocator(logger, Directory.GetCurrentDirectory());
