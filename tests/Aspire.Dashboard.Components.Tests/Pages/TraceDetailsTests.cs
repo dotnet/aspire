@@ -133,11 +133,10 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         // Assert
-        var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
-
         logger.LogInformation($"Assert row count for '{traceId}'");
         await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
         {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
             var rows = grid.FindAll(".fluent-data-grid-row");
             return rows.Count == 3;
         }, "Expected rows to be rendered.", logger);
@@ -151,6 +150,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         logger.LogInformation($"Assert row count for '{traceId}'");
         await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
         {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
             var rows = grid.FindAll(".fluent-data-grid-row");
             return rows.Count == 2;
         }, "Expected rows to be rendered.", logger);
