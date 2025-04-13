@@ -95,7 +95,7 @@
                     <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
                                    Value="@context.Name"
-                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && context.Name != "-")"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter" />
                     </AspireTemplateColumn>
                 </FluentDataGrid>
@@ -294,7 +294,7 @@
         // If there's no URL, e.g. this is a tcp:// URI, just show the text
         if (vm.Url is null)
         {
-            if (highlighting && vm.Text != "-")
+            if (highlighting)
             {
                 return @<FluentHighlighter HighlightedText="@filter" Text="@vm.Text" />;
             }
@@ -318,7 +318,7 @@
         // If there's no DisplayName then show nothing
         if (string.IsNullOrEmpty(vm.DisplayName))
         {
-            return @<span class="empty-data">-</span>;
+            return @<span class="empty-data"></span>;
         }
         // Otherwise, render a link with the text as the anchor text & title as the URL
         else
