@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsResourceActions">
         <source>Resource actions</source>
-        <target state="new">Resource actions</target>
+        <target state="translated">Ressourcenaktionen</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
