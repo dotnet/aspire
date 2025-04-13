@@ -4,6 +4,9 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -16,17 +19,26 @@ internal sealed class RunCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly IDotNetCliRunner _runner;
+    private readonly IInteractionService _interactionService;
+    private readonly ICertificateService _certificateService;
+    private readonly IProjectLocator _projectLocator;
 
-    public RunCommand(IDotNetCliRunner runner)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator)
         : base("run", "Run an Aspire app host in development mode.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(certificateService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
 
         _runner = runner;
+        _interactionService = interactionService;
+        _certificateService = certificateService;
+        _projectLocator = projectLocator;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
-        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
+        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
@@ -42,7 +54,7 @@ internal sealed class RunCommand : BaseCommand
             using var activity = _activitySource.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -66,11 +78,11 @@ internal sealed class RunCommand : BaseCommand
 
             try
             {
-                await CertificatesHelper.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  An error occurred while trusting the certificates: {ex.Message}[/]");
+                _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
                 return ExitCodeConstants.FailedToTrustCertificates;
             }
 
@@ -78,16 +90,16 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
-                    AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The project could not be built. For more information run with --debug switch.[/]");
+                    _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
             
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -109,27 +121,16 @@ internal sealed class RunCommand : BaseCommand
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
-                var backchannel = await InteractionUtils.ShowStatusAsync(
+                var backchannel = await _interactionService.ShowStatusAsync(
                     ":linked_paperclips:  Starting Aspire app host...",
                     () => backchannelCompletitionSource.Task);
 
                 // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await InteractionUtils.ShowStatusAsync(
+                var dashboardUrls = await _interactionService.ShowStatusAsync(
                     ":chart_increasing:  Starting Aspire dashboard...",
                     () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
-                if (dashboardUrls.CodespacesUrlWithLoginToken is not  null)
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                    AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-                }
-                AnsiConsole.WriteLine();
+                _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
 
@@ -207,9 +208,24 @@ internal sealed class RunCommand : BaseCommand
                 return await pendingRun;
             }
         }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        {
+            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        {
+            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        {
+            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
         catch (AppHostIncompatibleException ex)
         {
-            return InteractionUtils.DisplayIncompatibleVersionError(
+            return _interactionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );

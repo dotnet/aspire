@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +20,10 @@ internal static class CliTestHelper
         var services = new ServiceCollection();
         services.AddLogging();
 
+        services.AddSingleton(options.ProjectLocatorFactory);
+        services.AddSingleton(options.InteractiveServiceFactory);
+        services.AddSingleton(options.CertificateServiceFactory);
+        services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddTransient<RootCommand>();
@@ -31,6 +38,26 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions
 {
+    public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new NewCommandPrompter(interactionService);
+    };
+
+    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
+        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
+    };
+
+    public Func<IServiceProvider, IInteractionService> InteractiveServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        return new InteractionService();
+    };
+
+    public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        var interactiveService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new CertificateService(interactiveService);
+    };
+
     public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         return new DotNetCliRunner(logger, serviceProvider);

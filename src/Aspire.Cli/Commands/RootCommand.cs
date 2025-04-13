@@ -5,8 +5,9 @@ using System.CommandLine;
 
 #if DEBUG
 using System.Diagnostics;
-using Aspire.Cli.Utils;
 #endif
+
+using Aspire.Cli.Interaction;
 
 using BaseRootCommand = System.CommandLine.RootCommand;
 
@@ -14,9 +15,19 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand)
+    private readonly IInteractionService _interactionService;
+
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, IInteractionService interactionService)
         : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
+        ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(runCommand);
+        ArgumentNullException.ThrowIfNull(addCommand);
+        ArgumentNullException.ThrowIfNull(publishCommand);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        
+        _interactionService = interactionService;
+
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = "Enable debug logging to the console.";
         debugOption.Recursive = true;
@@ -34,7 +45,7 @@ internal sealed class RootCommand : BaseRootCommand
 
             if (waitForDebugger)
             {
-                InteractionUtils.ShowStatus(
+                _interactionService.ShowStatus(
                     $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
                     () => {
                         while (!Debugger.IsAttached)
