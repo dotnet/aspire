@@ -20,11 +20,11 @@ internal sealed class RootCommand : BaseRootCommand
     public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, IInteractionService interactionService)
         : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
-        ArgumentNullException.ThrowIfNull(newCommand, nameof(newCommand));
-        ArgumentNullException.ThrowIfNull(runCommand, nameof(runCommand));
-        ArgumentNullException.ThrowIfNull(addCommand, nameof(addCommand));
-        ArgumentNullException.ThrowIfNull(publishCommand, nameof(publishCommand));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
+        ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(runCommand);
+        ArgumentNullException.ThrowIfNull(addCommand);
+        ArgumentNullException.ThrowIfNull(publishCommand);
+        ArgumentNullException.ThrowIfNull(interactionService);
         
         _interactionService = interactionService;
 

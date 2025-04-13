@@ -26,10 +26,10 @@ internal sealed class RunCommand : BaseCommand
     public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator)
         : base("run", "Run an Aspire app host in development mode.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
-        ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
-        ArgumentNullException.ThrowIfNull(projectLocator, nameof(projectLocator));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(certificateService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
 
         _runner = runner;
         _interactionService = interactionService;

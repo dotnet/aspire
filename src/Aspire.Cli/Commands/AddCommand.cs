@@ -22,10 +22,10 @@ internal sealed class AddCommand : BaseCommand
     public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator)
         : base("add", "Add an integration to the Aspire project.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
-        ArgumentNullException.ThrowIfNull(projectLocator, nameof(projectLocator));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
         
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;

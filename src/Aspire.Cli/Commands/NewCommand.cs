@@ -19,11 +19,11 @@ internal sealed class NewCommand : BaseCommand
     public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService)
         : base("new", "Create a new Aspire sample project.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
-        ArgumentNullException.ThrowIfNull(certificateService, nameof(certificateService));
-        ArgumentNullException.ThrowIfNull(prompter, nameof(prompter));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
+        ArgumentNullException.ThrowIfNull(certificateService);
+        ArgumentNullException.ThrowIfNull(prompter);
+        ArgumentNullException.ThrowIfNull(interactionService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;

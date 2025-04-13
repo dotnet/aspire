@@ -22,9 +22,9 @@ internal sealed class PublishCommand : BaseCommand
     public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
-        ArgumentNullException.ThrowIfNull(interactionService, nameof(interactionService));
-        ArgumentNullException.ThrowIfNull(projectLocator, nameof(projectLocator));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
 
         _runner = runner;
         _interactionService = interactionService;
