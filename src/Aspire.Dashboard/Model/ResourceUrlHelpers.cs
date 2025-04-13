@@ -83,6 +83,8 @@ public sealed class DisplayedUrl : IPropertyGridItem
     public string? ValueToVisualize => Url ?? Text;
 
     public bool MatchesFilter(string filter)
-        => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-           Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
+        => Url?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+           Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+           Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+           DisplayName?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }

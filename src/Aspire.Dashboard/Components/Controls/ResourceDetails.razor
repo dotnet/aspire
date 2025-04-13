@@ -318,7 +318,7 @@
         // If there's no DisplayName then show nothing
         if (string.IsNullOrEmpty(vm.DisplayName))
         {
-            return @<span>-</span>;
+            return @<span class="empty-data">-</span>;
         }
         // Otherwise, render a link with the text as the anchor text & title as the URL
         else
