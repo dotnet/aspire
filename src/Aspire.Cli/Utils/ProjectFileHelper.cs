@@ -1,119 +1,31 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Spectre.Console;
 using System.CommandLine.Parsing;
-using System.Diagnostics;
+using Aspire.Cli.Projects;
 
 namespace Aspire.Cli.Utils;
 
 internal static class ProjectFileHelper
 {
-    internal static FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+    internal static void ValidateProjectOption(OptionResult result, IProjectLocator projectLocator)
     {
-        if (projectFile is not null)
+        try
         {
-            // If the project file is passed, just use it.
-            return projectFile;
+            var value = result.GetValueOrDefault<FileInfo?>();
+            projectLocator.UseOrFindAppHostProjectFile(value);
         }
-
-        var projectFilePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-        try 
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
         {
-            var projectFilePath = projectFilePaths?.SingleOrDefault();
-            if (projectFilePath is null)
-            {
-                throw new InvalidOperationException("No project file found.");
-            }
-            else
-            {
-                return new FileInfo(projectFilePath);
-            }
-            
+            result.AddError("The --project option specified a project that does not exist.");
         }
-        catch (Exception ex)
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
         {
-            Debug.WriteLine(ex.Message);
-            if (projectFilePaths.Length > 1)
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and multiple *.csproj files were detected.[/]");
-                
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[red bold]:police_car_light: The --project option was not specified and no *.csproj files were detected.[/]");
-            }
-            return null;
-        };
-    }
-
-    internal static void ValidateProjectArgument(ArgumentResult result)
-    {
-        var value = result.GetValueOrDefault<FileInfo?>();
-
-        if (value is null)
-        {
-            // Having no value here is fine, but there has to
-            // be a single csproj file in the current
-            // working directory.
-            var csprojFiles = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-
-            if (csprojFiles.Length > 1)
-            {
-                result.AddError("The project argument was not specified and multiple *.csproj files were detected.");
-                return;
-            }
-            else if (csprojFiles.Length == 0)
-            {
-                result.AddError("The project argument was not specified and no *.csproj files were detected.");
-                return;
-            }
-
-            return;
+            result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
         }
-
-        if (!File.Exists(value.FullName))
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
         {
-            result.AddError("The specified project file does not exist.");
-            return;
-        }
-    }
-
-    internal static void ValidateProjectOption(OptionResult result)
-    {
-        var value = result.GetValueOrDefault<FileInfo?>();
-
-        if (result.Implicit)
-        {
-            // Having no value here is fine, but there has to
-            // be a single csproj file in the current
-            // working directory.
-            var csprojFiles = Directory.GetFiles(Environment.CurrentDirectory, "*.csproj");
-
-            if (csprojFiles.Length > 1)
-            {
-                result.AddError("The --project option was not specified and multiple *.csproj files were detected.");
-                return;
-            }
-            else if (csprojFiles.Length == 0)
-            {
-                result.AddError("The --project option was not specified and no *.csproj files were detected.");
-                return;
-            }
-
-            return;
-        }
-
-        if (value is null)
-        {
-            result.AddError("The --project option was specified but no path was provided.");
-            return;
-        }
-
-        if (!File.Exists(value.FullName))
-        {
-            result.AddError("The specified project file does not exist.");
-            return;
+            result.AddError("The project argument was not specified and no *.csproj files were detected.");
         }
     }
 }

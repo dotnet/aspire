@@ -1,11 +1,14 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -72,7 +75,11 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddTransient<DotNetCliRunner>();
+        builder.Services.AddSingleton(BuildProjectLocator);
+        builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<IInteractionService, InteractionService>();
+        builder.Services.AddSingleton<ICertificateService, CertificateService>();
+        builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
@@ -86,6 +93,12 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
+        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
     }
 
     public static async Task<int> Main(string[] args)

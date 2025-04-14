@@ -43,6 +43,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzureServiceBusSubscriptionResource> WithProperties(this ApplicationModel.IResourceBuilder<Azure.AzureServiceBusSubscriptionResource> builder, System.Action<Azure.AzureServiceBusSubscriptionResource> configure) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureServiceBusTopicResource> WithProperties(this ApplicationModel.IResourceBuilder<Azure.AzureServiceBusTopicResource> builder, System.Action<Azure.AzureServiceBusTopicResource> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureServiceBusResource> target, params global::Azure.Provisioning.ServiceBus.ServiceBusBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -124,6 +127,8 @@ namespace Aspire.Hosting.Azure
         public bool IsEmulator { get { throw null; } }
 
         public BicepOutputReference ServiceBusEndpoint { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL
 {
-    public sealed partial class NpgsqlEntityFrameworkCorePostgreSQLSettings
+    public partial class NpgsqlEntityFrameworkCorePostgreSQLSettings
     {
         public int? CommandTimeout { get { throw null; } set { } }
 
