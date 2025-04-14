@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 using Spectre.Console;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Interaction;
 
-internal static class InteractionUtils
+internal class InteractionService : IInteractionService
 {
-    public static async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         return await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
@@ -16,7 +17,7 @@ internal static class InteractionUtils
             .StartAsync(statusText, (context) => action());
     }
 
-    public static void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action)
     {
         AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
@@ -24,17 +25,7 @@ internal static class InteractionUtils
             .Start(statusText, (context) => action());
     }
 
-    public static async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
-    {
-        return await PromptForSelectionAsync(
-            "Select a template version:",
-            candidatePackages,
-            (p) => $"{p.Version} ({p.Source})",
-            cancellationToken
-            );
-    }
-
-    public static async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         var prompt = new TextPrompt<string>(promptText);
@@ -53,7 +44,7 @@ internal static class InteractionUtils
         return await AnsiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public static async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T: notnull
+    public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
@@ -70,16 +61,47 @@ internal static class InteractionUtils
         return await AnsiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public static int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
         
-        AnsiConsole.MarkupLine($"[red bold]:thumbs_down:  The app host is not compatible. Consider upgrading the app host or Aspire CLI.[/]");
+        DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
         Console.WriteLine();
         AnsiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
         AnsiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
         AnsiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
+    }
+
+    public void DisplayError(string errorMessage)
+    {
+        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+    }
+
+    public void DisplayMessage(string emoji, string message)
+    {
+        AnsiConsole.MarkupLine($":{emoji}:  {message}");
+    }
+
+    public void DisplaySuccess(string message)
+    {
+        DisplayMessage("thumbs_up", message);
+    }
+
+    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
+    {
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+        if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
+        {
+            AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+            AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+        }
+        AnsiConsole.WriteLine();
     }
 }
