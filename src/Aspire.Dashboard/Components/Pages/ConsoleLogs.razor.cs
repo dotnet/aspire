@@ -471,7 +471,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 var timestampFilterDate = GetFilteredDateFromRemove();
 
-                var logParser = new LogParser();
+                var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
                     if (batch.Count is 0)
