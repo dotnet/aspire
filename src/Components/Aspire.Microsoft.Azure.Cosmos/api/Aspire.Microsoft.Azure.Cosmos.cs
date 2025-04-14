@@ -8,13 +8,24 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Microsoft.Azure.Cosmos
 {
+    public sealed partial class CosmosDatabaseBuilder
+    {
+        public CosmosDatabaseBuilder(global::Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, MicrosoftAzureCosmosSettings settings, global::Microsoft.Azure.Cosmos.CosmosClientOptions clientOptions) { }
+
+        public CosmosDatabaseBuilder AddKeyedContainer(string name) { throw null; }
+    }
+
     public sealed partial class MicrosoftAzureCosmosSettings
     {
         public System.Uri? AccountEndpoint { get { throw null; } set { } }
 
         public string? ConnectionString { get { throw null; } set { } }
 
+        public string? ContainerName { get { throw null; } set { } }
+
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
+
+        public string? DatabaseName { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }
     }
@@ -26,6 +37,14 @@ namespace Microsoft.Extensions.Hosting
     {
         public static void AddAzureCosmosClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
 
+        public static void AddAzureCosmosContainer(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static Aspire.Microsoft.Azure.Cosmos.CosmosDatabaseBuilder AddAzureCosmosDatabase(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { throw null; }
+
         public static void AddKeyedAzureCosmosClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static void AddKeyedAzureCosmosContainer(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { }
+
+        public static Aspire.Microsoft.Azure.Cosmos.CosmosDatabaseBuilder AddKeyedAzureCosmosDatabase(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosSettings>? configureSettings = null, System.Action<Azure.Cosmos.CosmosClientOptions>? configureClientOptions = null) { throw null; }
     }
 }

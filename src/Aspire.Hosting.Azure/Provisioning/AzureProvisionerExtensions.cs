@@ -29,6 +29,8 @@ public static class AzureProvisionerExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        builder.Services.AddSingleton<TokenCredentialHolder>();
+
         builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
 
         return builder;

@@ -100,6 +100,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
 
+    private AspireMenu? _contextMenu;
+    private bool _contextMenuOpen;
+    private readonly List<MenuButtonItem> _contextMenuItems = new();
+    private TaskCompletionSource? _contextMenuClosedTcs;
+
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
     private bool _showResourceTypeColumn;
@@ -343,6 +348,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 });
             }
         }
+
+        [JSInvokable]
+        public async Task ResourceContextMenu(string id, int clientX, int clientY)
+        {
+            if (resources._resourceByName.TryGetValue(id, out var resource))
+            {
+                await resources.InvokeAsync(async () =>
+                {
+                    await resources.ShowContextMenuAsync(resource, clientX, clientY);
+                });
+            }
+        }
     }
 
     internal IEnumerable<ResourceViewModel> GetFilteredResources()
@@ -489,6 +506,41 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         }
 
         return false;
+    }
+
+    private async Task ShowContextMenuAsync(ResourceViewModel resource, int clientX, int clientY)
+    {
+        // This is called when the browser requests to show the context menu for a resource.
+        // The method doesn't complete until the context menu is closed so the browser can await
+        // it and perform clean up when the context menu is closed.
+        if (_contextMenu is { } contextMenu)
+        {
+            _contextMenuItems.Clear();
+            ResourceMenuItems.AddMenuItems(
+                _contextMenuItems,
+                openingMenuButtonId: null,
+                resource,
+                NavigationManager,
+                TelemetryRepository,
+                GetResourceName,
+                ControlsStringsLoc,
+                Loc,
+                (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
+                (command) => ExecuteResourceCommandAsync(resource, command),
+                (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showConsoleLogsItem: true);
+
+            // The previous context menu should always be closed by this point but complete just in case.
+            _contextMenuClosedTcs?.TrySetResult();
+
+            _contextMenuClosedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await contextMenu.OpenAsync(clientX, clientY);
+            StateHasChanged();
+
+            // Completed when the overlay closes.
+            await _contextMenuClosedTcs.Task;
+        }
     }
 
     private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
@@ -769,5 +821,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
+    }
+
+    private async Task ContextMenuClosed(Microsoft.AspNetCore.Components.Web.MouseEventArgs args)
+    {
+        if (_contextMenu is { } menu)
+        {
+            await menu.CloseAsync();
+        }
+
+        _contextMenuClosedTcs?.TrySetResult();
+        _contextMenuClosedTcs = null;
     }
 }

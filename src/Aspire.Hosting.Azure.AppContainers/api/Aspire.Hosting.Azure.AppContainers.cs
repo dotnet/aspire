@@ -22,7 +22,12 @@ namespace Aspire.Hosting
 
     public static partial class AzureContainerAppExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> AddAzureContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        [System.Obsolete("Use AddAzureContainerAppEnvironment instead. This method will be removed in a future version.")]
         public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder) { throw null; }
     }
 
     public static partial class AzureContainerAppProjectExtensions
@@ -45,5 +50,13 @@ namespace Aspire.Hosting.Azure
         public AzureContainerAppCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> configure) { }
 
         public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> Configure { get { throw null; } }
+    }
+}
+
+namespace Aspire.Hosting.Azure.AppContainers
+{
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource
+    {
+        public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
     }
 }

@@ -42,7 +42,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 icon = new Icons.Filled.Size16.ErrorCircle();
                 color = Color.Error;
             }
-            else if (resource.IsFinishedState())
+            else if (resource.IsFinishedState() || resource.IsExitedState())
             {
                 // Process completed successfully.
                 icon = new Icons.Regular.Size16.RecordStop();

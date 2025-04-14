@@ -8,7 +8,13 @@ namespace Aspire.Dashboard.ConsoleLogs;
 
 internal sealed class LogParser
 {
+    private readonly ConsoleColor _defaultBackgroundColor;
     private AnsiParser.ParserState? _residualState;
+
+    public LogParser(ConsoleColor defaultBackgroundColor)
+    {
+        _defaultBackgroundColor = defaultBackgroundColor;
+    }
 
     public LogEntry CreateLogEntry(string rawText, bool isErrorOutput)
     {
@@ -39,7 +45,7 @@ internal sealed class LogParser
             var updatedText = WebUtility.HtmlEncode(s);
 
             // 3b. Parse the content to look for ANSI Control Sequences and color them if possible
-            var conversionResult = AnsiParser.ConvertToHtml(updatedText, _residualState);
+            var conversionResult = AnsiParser.ConvertToHtml(updatedText, _residualState, _defaultBackgroundColor);
             updatedText = conversionResult.ConvertedText;
             _residualState = conversionResult.ResidualState;
 

@@ -77,7 +77,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      extraTestArgs: "--filter \"(quarantined!=true)\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -90,7 +90,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      extraTestArgs: "--filter \"(quarantined!=true)\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
   templates_test_lin:
     name: Templates Linux
@@ -103,10 +103,9 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
-      # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter \"(quarantined!=true)&(FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}.)\""
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
       requiresTestSdk: true
 
@@ -121,10 +120,9 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
-      # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter \"(quarantined!=true)&(FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}.)\""
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
       requiresTestSdk: true
 

@@ -172,11 +172,11 @@ public sealed record ResourceStateSnapshot(string Text, string? Style)
 public sealed record EnvironmentVariableSnapshot(string Name, string? Value, bool IsFromSpec);
 
 /// <summary>
-/// A snapshot of the url.
+/// A snapshot of the URL.
 /// </summary>
-/// <param name="Name">Name of the endpoint associated with the url.</param>
-/// <param name="Url">The full uri.</param>
-/// <param name="IsInternal">Determines if this url is internal.</param>
+/// <param name="Name">Name of the endpoint associated with the URL.</param>
+/// <param name="Url">The full URL.</param>
+/// <param name="IsInternal">Determines if this URL is internal. Internal URLs are only shown in the details grid for a resource.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
 public sealed record UrlSnapshot(string? Name, string Url, bool IsInternal)
 {
