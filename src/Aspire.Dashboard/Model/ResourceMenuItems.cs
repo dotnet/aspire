@@ -47,7 +47,7 @@ public static class ResourceMenuItems
                 Icon = s_consoleLogsIcon,
                 OnClick = () =>
                 {
-                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name));
+                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
                     return Task.CompletedTask;
                 }
             });

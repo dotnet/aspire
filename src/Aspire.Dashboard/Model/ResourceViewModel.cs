@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
@@ -116,6 +117,23 @@ public sealed class ResourceViewModel
         }
 
         return resource.DisplayName;
+    }
+
+    public static bool TryGetResourceByName(string resourceName, IDictionary<string, ResourceViewModel> resourceByName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (resourceByName.TryGetValue(resourceName, out resource))
+        {
+            return true;
+        }
+
+        var resourcesWithDisplayName = resourceByName.Values.Where(r => string.Equals(resourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
+        if (resourcesWithDisplayName.Count == 1)
+        {
+            resource = resourcesWithDisplayName.Single();
+            return true;
+        }
+
+        return false;
     }
 }
 

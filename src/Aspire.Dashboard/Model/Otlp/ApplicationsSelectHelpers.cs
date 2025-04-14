@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public static class ApplicationsSelectHelpers
 {
-    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallback)
+    public static SelectViewModel<ResourceTypeDetails> GetApplication(this ICollection<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallback)
     {
         if (name is null)
         {
