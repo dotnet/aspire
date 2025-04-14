@@ -18,7 +18,7 @@ public class LogEntriesTests
 
     private static void AddLogLine(LogEntries logEntries, string content, bool isError)
     {
-        var logParser = new LogParser();
+        var logParser = new LogParser(ConsoleColor.Black);
         var logEntry = logParser.CreateLogEntry(content, isError);
         logEntries.InsertSorted(logEntry);
     }
@@ -268,7 +268,7 @@ public class LogEntriesTests
     public void CreateLogEntry_AnsiAndUrl_HasUrlAnchor()
     {
         // Arrange
-        var parser = new LogParser();
+        var parser = new LogParser(ConsoleColor.Black);
 
         // Act
         var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false);
