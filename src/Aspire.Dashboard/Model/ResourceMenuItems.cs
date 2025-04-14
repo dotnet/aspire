@@ -131,6 +131,8 @@ public static class ResourceMenuItems
 
             foreach (var url in urls)
             {
+                // Opens the URL in a new window when clicked.
+                // It's important that this is done in the onclick event so the browser popup allows it.
                 menuItems.Add(new MenuButtonItem
                 {
                     Text = url.Text,
