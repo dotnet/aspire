@@ -43,6 +43,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     public string? SpanId { get; set; }
 
     [Inject]
+    public required ILogger<TraceDetail> Logger { get; init; }
+
+    [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
@@ -167,15 +170,18 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         _applications = TelemetryRepository.GetApplications();
 
+        Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
         _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
 
         if (_trace == null)
         {
+            Logger.LogInformation("Couldn't find trace '{TraceId}'.", TraceId);
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
             return;
         }
 
+        Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
     }
