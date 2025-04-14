@@ -73,7 +73,8 @@ public partial class ResourceActions : ComponentBase
             OnViewDetails,
             CommandSelected,
             IsCommandExecuting,
-            showConsoleLogsItem: true);
+            showConsoleLogsItem: true,
+            showUrls: false);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

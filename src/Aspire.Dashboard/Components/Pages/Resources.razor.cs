@@ -531,7 +531,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
                 (command) => ExecuteResourceCommandAsync(resource, command),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
-                showConsoleLogsItem: true);
+                showConsoleLogsItem: true,
+                showUrls: true);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();
