@@ -276,4 +276,19 @@ public class LogEntriesTests
         // Assert
         Assert.Equal("<span class=\"ansi-fg-cyan\"></span><a target=\"_blank\" href=\"https://www.example.com\" rel=\"noopener noreferrer nofollow\">https://www.example.com</a>", entry.Content);
     }
+
+    [Theory]
+    [InlineData(ConsoleColor.Black, @"<span class=""ansi-fg-green"">info</span>: LoggerName")]
+    [InlineData(ConsoleColor.Blue, @"<span class=""ansi-fg-green ansi-bg-black"">info</span>: LoggerName")]
+    public void CreateLogEntry_DefaultBackgroundColor_SkipMatchingColor(ConsoleColor defaultBackgroundColor, string output)
+    {
+        // Arrange
+        var parser = new LogParser(defaultBackgroundColor);
+
+        // Act
+        var entry = parser.CreateLogEntry("\u001b[40m\u001b[32minfo\u001b[39m\u001b[22m\u001b[49m: LoggerName", isErrorOutput: false);
+
+        // Assert
+        Assert.Equal(output, entry.Content);
+    }
 }
