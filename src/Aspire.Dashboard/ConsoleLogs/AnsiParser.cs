@@ -230,10 +230,7 @@ public class AnsiParser
             {
                 // Don't set the background color if it matches the default background color.
                 // Skipping setting it improves appearance when row mouseover slightly changes color.
-                if (color != defaultBackgroundColor)
-                {
-                    newState.BackgroundColor = color;
-                }
+                newState.BackgroundColor = (color != defaultBackgroundColor) ? color : null;
             }
             else if (parameter == DefaultBackgroundCode)
             {
