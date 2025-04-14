@@ -21,7 +21,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class RedisBuilderExtensions
 {
-    private const string PasswordEnvVarName = "REDIS_PASSWORD";
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
@@ -102,7 +101,7 @@ public static class RedisBuilderExtensions
                       {
                           if (redis.PasswordParameter is { } password)
                           {
-                              context.EnvironmentVariables[PasswordEnvVarName] = password;
+                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
                           }
                       })
                       .WithArgs(context =>
@@ -115,7 +114,7 @@ public static class RedisBuilderExtensions
                           if (redis.PasswordParameter is not null)
                           {
                               redisCommand.Add("--requirepass");
-                              redisCommand.Add($"${PasswordEnvVarName}");
+                              redisCommand.Add("$REDIS_PASSWORD");
                           }
 
                           if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))

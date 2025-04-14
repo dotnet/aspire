@@ -205,15 +205,14 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
         sql.RunAsContainer(configureContainer: c =>
         {
-            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455));
-            c.WithHostPort(12455)
-            .WithPassword(pass);
+            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                .WithHostPort(12455)
+                .WithPassword(pass);
             innerSql = c;
         });
 

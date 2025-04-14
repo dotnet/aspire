@@ -467,7 +467,6 @@ public static class PostgresBuilderExtensions
         {
             endpoint.Port = port;
         });
-
     }
 
     private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)

@@ -223,9 +223,9 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             {
                 redisResource = c.Resource;
 
-                c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455));
-                c.WithHostPort(12455)
-                .WithPassword(pass);
+                c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                    .WithHostPort(12455)
+                    .WithPassword(pass);
             });
 
         Assert.NotNull(redisResource);
