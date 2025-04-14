@@ -355,7 +355,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 },
                 ExecuteResourceCommandAsync,
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
-                showConsoleLogsItem: false);
+                showConsoleLogsItem: false,
+                showUrls: true);
         }
     }
 
