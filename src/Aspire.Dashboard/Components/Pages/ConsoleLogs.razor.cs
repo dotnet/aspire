@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
@@ -188,7 +187,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // Set loading task result if the selected resource is already in the snapshot or there is no selected resource.
             if (ResourceName != null)
             {
-                if (TryGetResourceByName(ResourceName, out var selectedResource))
+                if (ResourceViewModel.TryGetResourceByName(ResourceName, _resourceByName, out var selectedResource))
                 {
                     SetSelectedResourceOption(selectedResource);
                 }
@@ -722,22 +721,5 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // _noSelection, which doesn't have a resource attached to it
             : null;
         return new ConsoleLogsPageState(selectedResourceName);
-    }
-
-    private bool TryGetResourceByName(string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
-    {
-        if (_resourceByName.TryGetValue(resourceName, out resource))
-        {
-            return true;
-        }
-
-        var resourcesWithDisplayName = _resourceByName.Values.Where(r => string.Equals(resourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
-        if (resourcesWithDisplayName.Count == 1)
-        {
-            resource = resourcesWithDisplayName.Single();
-            return true;
-        }
-
-        return false;
     }
 }
