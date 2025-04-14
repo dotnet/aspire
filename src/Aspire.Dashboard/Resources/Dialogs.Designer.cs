@@ -9,21 +9,21 @@
 
 namespace Aspire.Dashboard.Resources {
     using System;
-
-
+    
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Dialogs {
-
+        
         private static System.Resources.ResourceManager resourceMan;
-
+        
         private static System.Globalization.CultureInfo resourceCulture;
-
+        
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Dialogs() {
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Aspire.Dashboard.Resources {
                 return resourceMan;
             }
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Globalization.CultureInfo Culture {
             get {
@@ -44,340 +44,358 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-
+        
         public static string FilterDialogFieldPlaceholder {
             get {
                 return ResourceManager.GetString("FilterDialogFieldPlaceholder", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogTextValuePlaceholder {
             get {
                 return ResourceManager.GetString("FilterDialogTextValuePlaceholder", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogCancelButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogCancelButtonText", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogApplyFilterButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogApplyFilterButtonText", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogEnableFilterButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogEnableFilterButtonText", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogDisableFilterButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogDisableFilterButtonText", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogRemoveFilterButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogRemoveFilterButtonText", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogSystemTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogSystemTheme", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogLightTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogLightTheme", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogDarkTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogDarkTheme", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogTheme", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogVersion {
             get {
                 return ResourceManager.GetString("SettingsDialogVersion", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogLanguage {
             get {
                 return ResourceManager.GetString("SettingsDialogLanguage", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogLanguagePageReloads {
             get {
                 return ResourceManager.GetString("SettingsDialogLanguagePageReloads", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogParameterInputLabel {
             get {
                 return ResourceManager.GetString("FilterDialogParameterInputLabel", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogConditionInputLabel {
             get {
                 return ResourceManager.GetString("FilterDialogConditionInputLabel", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGetHelpLinkText {
             get {
                 return ResourceManager.GetString("HelpDialogGetHelpLinkText", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogCategoryPanels {
             get {
                 return ResourceManager.GetString("HelpDialogCategoryPanels", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogCategoryPageNavigation {
             get {
                 return ResourceManager.GetString("HelpDialogCategoryPageNavigation", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogCategoryNavigation {
             get {
                 return ResourceManager.GetString("HelpDialogCategoryNavigation", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogIncreasePanelSize {
             get {
                 return ResourceManager.GetString("HelpDialogIncreasePanelSize", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogDecreasePanelSize {
             get {
                 return ResourceManager.GetString("HelpDialogDecreasePanelSize", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogResetPanelSize {
             get {
                 return ResourceManager.GetString("HelpDialogResetPanelSize", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogTogglePanelOrientation {
             get {
                 return ResourceManager.GetString("HelpDialogTogglePanelOrientation", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogTogglePanelOpen {
             get {
                 return ResourceManager.GetString("HelpDialogTogglePanelOpen", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToResources {
             get {
                 return ResourceManager.GetString("HelpDialogGoToResources", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToConsoleLogs {
             get {
                 return ResourceManager.GetString("HelpDialogGoToConsoleLogs", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToStructuredLogs {
             get {
                 return ResourceManager.GetString("HelpDialogGoToStructuredLogs", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToTraces {
             get {
                 return ResourceManager.GetString("HelpDialogGoToTraces", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToMetrics {
             get {
                 return ResourceManager.GetString("HelpDialogGoToMetrics", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToHelp {
             get {
                 return ResourceManager.GetString("HelpDialogGoToHelp", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogGoToSettings {
             get {
                 return ResourceManager.GetString("HelpDialogGoToSettings", resourceCulture);
             }
         }
-
+        
         public static string HelpDialogKeyboardShortcutsTitle {
             get {
                 return ResourceManager.GetString("HelpDialogKeyboardShortcutsTitle", resourceCulture);
             }
         }
-
+        
         public static string DialogCloseButtonText {
             get {
                 return ResourceManager.GetString("DialogCloseButtonText", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogTitle {
             get {
                 return ResourceManager.GetString("ExemplarsDialogTitle", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogTraceColumnHeader {
             get {
                 return ResourceManager.GetString("ExemplarsDialogTraceColumnHeader", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogTimestampColumnHeader {
             get {
                 return ResourceManager.GetString("ExemplarsDialogTimestampColumnHeader", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogValueColumnHeader {
             get {
                 return ResourceManager.GetString("ExemplarsDialogValueColumnHeader", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogDetailsColumnHeader {
             get {
                 return ResourceManager.GetString("ExemplarsDialogDetailsColumnHeader", resourceCulture);
             }
         }
-
+        
         public static string ExemplarsDialogTrace {
             get {
                 return ResourceManager.GetString("ExemplarsDialogTrace", resourceCulture);
             }
         }
-
+        
         public static string OpenTraceDialogMessage {
             get {
                 return ResourceManager.GetString("OpenTraceDialogMessage", resourceCulture);
             }
         }
-
+        
         public static string OpenTraceDialogCancelButtonText {
             get {
                 return ResourceManager.GetString("OpenTraceDialogCancelButtonText", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerDialogPlaintextFormat {
             get {
                 return ResourceManager.GetString("TextVisualizerDialogPlaintextFormat", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerDialogJsonFormat {
             get {
                 return ResourceManager.GetString("TextVisualizerDialogJsonFormat", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerDialogXmlFormat {
             get {
                 return ResourceManager.GetString("TextVisualizerDialogXmlFormat", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerSelectFormatType {
             get {
                 return ResourceManager.GetString("TextVisualizerSelectFormatType", resourceCulture);
             }
         }
-
+        
         public static string OpenInTextVisualizer {
             get {
                 return ResourceManager.GetString("OpenInTextVisualizer", resourceCulture);
             }
         }
-
+        
         public static string FieldRequired {
             get {
                 return ResourceManager.GetString("FieldRequired", resourceCulture);
             }
         }
-
+        
         public static string FieldTooLong {
             get {
                 return ResourceManager.GetString("FieldTooLong", resourceCulture);
             }
         }
-
+        
         public static string SettingsDialogDashboardLogsAndTelemetry {
             get {
                 return ResourceManager.GetString("SettingsDialogDashboardLogsAndTelemetry", resourceCulture);
             }
         }
-
+        
         public static string SettingsRemoveAllButtonText {
             get {
                 return ResourceManager.GetString("SettingsRemoveAllButtonText", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerSecretWarningTitle {
             get {
                 return ResourceManager.GetString("TextVisualizerSecretWarningTitle", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerSecretWarningDescription {
             get {
                 return ResourceManager.GetString("TextVisualizerSecretWarningDescription", resourceCulture);
             }
         }
-
+        
         public static string TextVisualizerSecretWarningAcknowledge {
             get {
                 return ResourceManager.GetString("TextVisualizerSecretWarningAcknowledge", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogDisableAll {
             get {
                 return ResourceManager.GetString("FilterDialogDisableAll", resourceCulture);
             }
         }
-
+        
         public static string FilterDialogEnableAll {
             get {
                 return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogEnableTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDialogEnableTelemetry", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryEnabledInfo {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryEnabledInfo", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryInfoLinkText {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkText", resourceCulture);
             }
         }
     }
