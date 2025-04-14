@@ -140,12 +140,9 @@ public class ContainerRegistryTests
             // Look for container registry in Container App Environment resource
             foreach (var resource in model.Resources.OfType<IContainerRegistry>())
             {
-                if (resource != null)
-                {
-                    EnvironmentRegistryFound = true;
-                    EnvironmentRegistry = resource;
-                    break;
-                }
+                EnvironmentRegistryFound = true;
+                EnvironmentRegistry = resource;
+                break;
             }
 
             // Look for container registry in deployment target annotations
@@ -155,7 +152,7 @@ public class ContainerRegistryTests
                     annotation.ContainerRegistryInfo != null)
                 {
                     ComputeResourceRegistryFound = true;
-                    ComputeResourceRegistry = (IContainerRegistry)annotation.ContainerRegistryInfo;
+                    ComputeResourceRegistry = annotation.ContainerRegistryInfo;
                     break;
                 }
             }
