@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Azure.Cosmos;
@@ -13,7 +13,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -23,6 +22,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     // [InlineData(true)] // "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820"
     [InlineData(false)]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7345")]
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
     {
         // Cosmos can be pretty slow to spin up, lets give it plenty of time.
@@ -268,7 +268,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7178")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7178")]
     public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));

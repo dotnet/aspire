@@ -1,7 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Collections.Immutable
 @using Aspire.Dashboard.Model
-@using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
 
 @{
@@ -21,33 +20,12 @@
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+
+        @if (!HideIcon)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+        }
     }
 </FluentButton>
 
-<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
-    @foreach (var item in Items)
-    {
-        @if (item.IsDivider)
-        {
-            <FluentDivider />
-        }
-        else
-        {
-            var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
-            {
-                { "title", item.Tooltip ?? string.Empty }
-            };
-
-            <FluentMenuItem Id="@item.Id" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
-                @item.Text
-                @if (item.Icon != null)
-                {
-                    <span slot="start">
-                        <FluentIcon Value="@item.Icon" Style="vertical-align: text-bottom;" Width="16px" />
-                    </span>
-                }
-            </FluentMenuItem>
-        }
-    }
-</FluentMenu>
+<AspireMenu Anchor="@MenuButtonId" @bind-Open="@_visible" Items="Items" />

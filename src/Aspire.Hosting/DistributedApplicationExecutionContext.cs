@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -36,7 +38,7 @@ public class DistributedApplicationExecutionContext
     /// <summary>
     /// The name of the publisher that is being used if <see cref="Operation"/> is set to <see cref="DistributedApplicationOperation.Publish"/>. 
     /// </summary>
-    public string? PublisherName { get; set; }
+    public string PublisherName { get; set; }
 
     private readonly DistributedApplicationExecutionContextOptions? _options;
 
@@ -89,5 +91,6 @@ public class DistributedApplicationExecutionContext
     /// <summary>
     /// Returns true if the current operation is inspecting.
     /// </summary>
+    [Experimental("ASPIREPUBLISHERS001")]
     public bool IsInspectMode => Operation == DistributedApplicationOperation.Inspect;
 }

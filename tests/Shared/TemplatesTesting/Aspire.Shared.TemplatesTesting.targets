@@ -1,0 +1,18 @@
+<Project>
+  <!-- This file is meant to be imported by test projects that want to use
+       workloads for testing -->
+
+  <Import Project="$(MSBuildThisFileDirectory)..\Playwright\Playwright.targets" />
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="TemplateTestingCommon" />
+
+    <_DataFile Include="$(MSBuildThisFileDirectory)data\**\*" Link="testassets\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="@(_DataFile)" />
+
+    <PackageReference Include="Polly.Core" />
+
+    <!-- needed for the RequiresDocker attribute, and discoverer -->
+    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
+  </ItemGroup>
+</Project>

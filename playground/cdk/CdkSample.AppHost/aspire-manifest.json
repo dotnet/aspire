@@ -4,15 +4,11 @@
     "cosmos": {
       "type": "azure.bicep.v0",
       "connectionString": "{cosmos.outputs.connectionString}",
-      "path": "cosmos.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "cosmos.module.bicep"
     },
     "cosmosdb": {
       "type": "value.v0",
-      "connectionString": "{cosmos.outputs.connectionString}"
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=cosmosdb"
     },
     "storagesku": {
       "type": "parameter.v0",
@@ -37,9 +33,7 @@
       "path": "storage.module.bicep",
       "params": {
         "storagesku": "{storagesku.value}",
-        "locationOverride": "{locationOverride.value}",
-        "principalType": "",
-        "principalId": ""
+        "locationOverride": "{locationOverride.value}"
       }
     },
     "blobs": {
@@ -74,19 +68,13 @@
       "connectionString": "{mykv.outputs.vaultUri}",
       "path": "mykv.module.bicep",
       "params": {
-        "signaturesecret": "{signaturesecret.value}",
-        "principalType": "",
-        "principalId": ""
+        "signaturesecret": "{signaturesecret.value}"
       }
     },
     "cache": {
       "type": "azure.bicep.v0",
       "connectionString": "{cache.outputs.connectionString}",
-      "path": "cache.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalName": ""
-      }
+      "path": "cache.module.bicep"
     },
     "pgsqlAdministratorLogin": {
       "type": "parameter.v0",
@@ -109,27 +97,27 @@
     },
     "pgsql": {
       "type": "azure.bicep.v0",
-      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsql}",
       "path": "pgsql.module.bicep",
       "params": {
         "administratorLogin": "{pgsqlAdministratorLogin.value}",
         "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}",
-        "keyVaultName": ""
+        "keyVaultName": "{pgsql-kv.outputs.name}"
       }
+    },
+    "pgsql-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql-kv.outputs.vaultUri}",
+      "path": "pgsql-kv.module.bicep"
     },
     "pgsqldb": {
       "type": "value.v0",
-      "connectionString": "{pgsql.secretOutputs.pgsqldb-connectionString}"
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsqldb}"
     },
     "pgsql2": {
       "type": "azure.bicep.v0",
       "connectionString": "{pgsql2.outputs.connectionString}",
-      "path": "pgsql2.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalType": "",
-        "principalName": ""
-      }
+      "path": "pgsql2.module.bicep"
     },
     "pgsql2db": {
       "type": "value.v0",
@@ -138,70 +126,54 @@
     "servicebus": {
       "type": "azure.bicep.v0",
       "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
-      "path": "servicebus.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "servicebus.module.bicep"
     },
     "queue1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=queue1"
     },
     "topic1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1"
     },
     "subscription2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription2"
     },
     "topic2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2"
     },
     "subscription1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2/Subscriptions/subscription1"
     },
     "topic3": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3"
     },
     "sub1": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub1"
     },
     "sub2": {
       "type": "value.v0",
-      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub2"
     },
     "appConfig": {
       "type": "azure.bicep.v0",
       "connectionString": "{appConfig.outputs.appConfigEndpoint}",
-      "path": "appConfig.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "appConfig.module.bicep"
     },
     "search": {
       "type": "azure.bicep.v0",
       "connectionString": "{search.outputs.connectionString}",
-      "path": "search.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "search.module.bicep"
     },
     "signalr": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
-      "path": "signalr.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "signalr.module.bicep"
     },
     "logAnalyticsWorkspace": {
       "type": "azure.bicep.v0",
@@ -250,6 +222,105 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "sql-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql-roles.module.bicep",
+      "params": {
+        "sql_outputs_name": "{sql.outputs.name}",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "mykv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "mykv-roles.module.bicep",
+      "params": {
+        "mykv_outputs_name": "{mykv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cache-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cache-roles.module.bicep",
+      "params": {
+        "cache_outputs_name": "{cache.outputs.name}",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "pgsql-kv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pgsql-kv-roles.module.bicep",
+      "params": {
+        "pgsql_kv_outputs_name": "{pgsql-kv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "pgsql2-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pgsql2-roles.module.bicep",
+      "params": {
+        "pgsql2_outputs_name": "{pgsql2.outputs.name}",
+        "principalType": "",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "servicebus-roles": {
+      "type": "azure.bicep.v0",
+      "path": "servicebus-roles.module.bicep",
+      "params": {
+        "servicebus_outputs_name": "{servicebus.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "appConfig-roles": {
+      "type": "azure.bicep.v0",
+      "path": "appConfig-roles.module.bicep",
+      "params": {
+        "appconfig_outputs_name": "{appConfig.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "search-roles": {
+      "type": "azure.bicep.v0",
+      "path": "search-roles.module.bicep",
+      "params": {
+        "search_outputs_name": "{search.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "signalr-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalr-roles.module.bicep",
+      "params": {
+        "signalr_outputs_name": "{signalr.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

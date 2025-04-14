@@ -33,6 +33,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private string _filter = string.Empty;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -40,6 +41,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     [Parameter]
     [SupplyParameterFromQuery]
     public string? SpanId { get; set; }
+
+    [Inject]
+    public required ILogger<TraceDetail> Logger { get; init; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -79,9 +83,20 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+        var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            {
+                visibleViewModels.Add(viewModel);
+                foreach (var descendent in matchedDescendents)
+                {
+                    visibleViewModels.Add(descendent);
+                }
+            }
+        }
 
-        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        var page = visibleViewModels.AsEnumerable();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -91,7 +106,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
             Items = page.ToList(),
-            TotalItemCount = visibleSpanWaterfallViewModels.Count
+            TotalItemCount = visibleViewModels.Count
         });
     }
 
@@ -155,18 +170,28 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         _applications = TelemetryRepository.GetApplications();
 
+        Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
         _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
 
         if (_trace == null)
         {
+            Logger.LogInformation("Couldn't find trace '{TraceId}'.", TraceId);
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
             return;
         }
 
+        Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
-        return;
+    }
+
+    private async Task HandleAfterFilterBindAsync()
+    {
+        SelectedSpan = null;
+        await InvokeAsync(StateHasChanged);
+
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private void UpdateSubscription()

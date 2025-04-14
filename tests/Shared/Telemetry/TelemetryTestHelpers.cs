@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
@@ -227,7 +228,8 @@ internal static class TelemetryTestHelpers
         int? maxSpanEventCount = null,
         int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        PauseManager? pauseManager = null)
     {
         var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
@@ -253,7 +255,8 @@ internal static class TelemetryTestHelpers
 
         var repository = new TelemetryRepository(
             loggerFactory ?? NullLoggerFactory.Instance,
-            Options.Create(new DashboardOptions { TelemetryLimits = options }));
+            Options.Create(new DashboardOptions { TelemetryLimits = options }),
+            pauseManager ?? new PauseManager());
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;
@@ -290,7 +293,7 @@ internal static class TelemetryTestHelpers
     }
 
     public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
-        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null)
+        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified)
     {
         return new OtlpSpan(app.GetView([]), trace, scope)
         {
@@ -298,7 +301,7 @@ internal static class TelemetryTestHelpers
             BackLinks = [],
             EndTime = DateTime.MaxValue,
             Events = [],
-            Kind = OtlpSpanKind.Unspecified,
+            Kind = kind,
             Links = [],
             Name = "Test",
             ParentSpanId = parentSpanId,

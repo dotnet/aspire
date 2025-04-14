@@ -90,7 +90,7 @@ public sealed class ServiceSpecV1
     /// that the Service targets. The Service routes traffic to these pods based on the selector definition.
     /// </remarks>
     [YamlMember(Alias = "selector")]
-    public Dictionary<string, string> Selector { get; } = [];
+    public Dictionary<string, string> Selector { get; set; } = [];
 
     /// <summary>
     /// Indicates whether node ports should be automatically allocated for a service of type LoadBalancer.

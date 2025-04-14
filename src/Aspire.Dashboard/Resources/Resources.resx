@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    Microsoft ResX Schema
-
+  <!-- 
+    Microsoft ResX Schema 
+    
     Version 2.0
-
-    The primary goals of this format is to allow a simple XML format
-    that is mostly human readable. The generation and parsing of the
-    various data types are done through the TypeConverter classes
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
     associated with the data types.
-
+    
     Example:
-
+    
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,79 +26,79 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-
-    There are any number of "resheader" rows that contain simple
+                
+    There are any number of "resheader" rows that contain simple 
     name/value pairs.
-
-    Each data row contains a name, and value. The row also contains a
-    type or mimetype. Type corresponds to a .NET class that support
-    text/value conversion through the TypeConverter architecture.
-    Classes that don't support this are serialized and stored with the
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
     mimetype set.
-
-    The mimetype is used for serialized objects, and tells the
-    ResXResourceReader how to depersist the object. This is currently not
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
     extensible. For a given mimetype the value must be set accordingly:
-
-    Note - application/x-microsoft.net.object.binary.base64 is the format
-    that the ResXResourceWriter will generate, however the reader can
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
     read any of the formats listed below.
-
+    
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-
+    
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array
+    value   : The object must be serialized into a byte array 
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
       <xsd:complexType>
         <xsd:choice maxOccurs="unbounded">
           <xsd:element name="metadata">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
               </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string"/>
-              <xsd:attribute name="type" type="xsd:string"/>
-              <xsd:attribute name="mimetype" type="xsd:string"/>
-              <xsd:attribute ref="xml:space"/>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="assembly">
             <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string"/>
-              <xsd:attribute name="name" type="xsd:string"/>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="data">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
-              <xsd:attribute ref="xml:space"/>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="resheader">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required"/>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -123,27 +123,21 @@
   </data>
   <data name="ResourcesHeader" xml:space="preserve">
     <value>Resources</value>
-    <comment/>
   </data>
   <data name="ResourcesNotFiltered" xml:space="preserve">
     <value>No filters</value>
-    <comment/>
   </data>
   <data name="ResourcesFiltered" xml:space="preserve">
     <value>Has filters</value>
-    <comment/>
   </data>
   <data name="ResourcesResourceTypesHeader" xml:space="preserve">
     <value>Resource types</value>
-    <comment/>
   </data>
   <data name="ResourcesResourceStatesHeader" xml:space="preserve">
     <value>State</value>
-    <comment/>
   </data>
   <data name="ResourceFilterOptionEmpty" xml:space="preserve">
     <value>(Unset)</value>
-    <comment/>
   </data>
   <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables for {0}</value>
@@ -151,103 +145,78 @@
   </data>
   <data name="ResourcesStateColumnHeader" xml:space="preserve">
     <value>State</value>
-    <comment/>
   </data>
   <data name="ResourcesTypeColumnHeader" xml:space="preserve">
     <value>Type</value>
-    <comment/>
   </data>
   <data name="ResourcesStartTimeColumnHeader" xml:space="preserve">
     <value>Start time</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsExitCodeProperty" xml:space="preserve">
     <value>Exit code</value>
-    <comment/>
   </data>
   <data name="ResourcesSourceColumnHeader" xml:space="preserve">
     <value>Source</value>
-    <comment/>
   </data>
-  <data name="ResourcesEndpointsColumnHeader" xml:space="preserve">
-    <value>Endpoints</value>
-    <comment/>
+  <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
     <value>Environment</value>
-    <comment/>
   </data>
   <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
     <value>No environment variables</value>
-    <comment/>
   </data>
   <data name="ResourcesNoResources" xml:space="preserve">
     <value>No resources found</value>
-    <comment/>
   </data>
   <data name="ResourceDetailsEndpointUrl" xml:space="preserve">
     <value>Endpoint URL</value>
-    <comment/>
   </data>
   <data name="ResourceDetailsProxyUrl" xml:space="preserve">
     <value>Proxy URL</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerArgumentsProperty" xml:space="preserve">
     <value>Container arguments</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerCommandProperty" xml:space="preserve">
     <value>Container command</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerIdProperty" xml:space="preserve">
     <value>Container ID</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerImageProperty" xml:space="preserve">
     <value>Container image</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerPortsProperty" xml:space="preserve">
     <value>Container ports</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsContainerLifetimeProperty" xml:space="preserve">
     <value>Container lifetime</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsDisplayNameProperty" xml:space="preserve">
     <value>Display name</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsExecutableArgumentsProperty" xml:space="preserve">
     <value>Executable arguments</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsExecutablePathProperty" xml:space="preserve">
     <value>Executable path</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsExecutableProcessIdProperty" xml:space="preserve">
     <value>Process ID</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsExecutableWorkingDirectoryProperty" xml:space="preserve">
     <value>Working directory</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsProjectPathProperty" xml:space="preserve">
     <value>Project path</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsStartTimeProperty" xml:space="preserve">
     <value>Start time</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsStateProperty" xml:space="preserve">
     <value>State</value>
-    <comment/>
   </data>
   <data name="ResourceCommandFailed" xml:space="preserve">
     <value>{0} "{1}" failed</value>
@@ -259,27 +228,21 @@
   </data>
   <data name="ResourceCommandToastViewLogs" xml:space="preserve">
     <value>View console logs</value>
-    <comment/>
   </data>
   <data name="ResourcesActionsColumnHeader" xml:space="preserve">
     <value>Actions</value>
-    <comment/>
   </data>
   <data name="ResourceActionConsoleLogsText" xml:space="preserve">
     <value>Console logs</value>
-    <comment/>
   </data>
   <data name="ResourceDetailsViewConsoleLogs" xml:space="preserve">
     <value>View console logs</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
     <value>Health state</value>
-    <comment/>
   </data>
   <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
     <value>Stop time</value>
-    <comment/>
   </data>
   <data name="ResourceCommandStarting" xml:space="preserve">
     <value>{0} "{1}" starting</value>
@@ -287,15 +250,12 @@
   </data>
   <data name="ResourceActionTracesText" xml:space="preserve">
     <value>Traces</value>
-    <comment/>
   </data>
   <data name="ResourceActionStructuredLogsText" xml:space="preserve">
     <value>Structured logs</value>
-    <comment/>
   </data>
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
-    <comment/>
   </data>
   <data name="WaitingForHealthDataMessage" xml:space="preserve">
     <value>Waiting for health data...</value>
@@ -307,18 +267,30 @@
   </data>
   <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
     <value>No telemetry found for this resource.</value>
-    <comment/>
   </data>
   <data name="ResourceCollapseAllChildren" xml:space="preserve">
     <value>Collapse child resources</value>
-    <comment/>
   </data>
   <data name="ResourceExpandAllChildren" xml:space="preserve">
     <value>Expand child resources</value>
-    <comment/>
   </data>
   <data name="ResourcesChangeViewOptions" xml:space="preserve">
     <value>View options</value>
     <comment>An icon allowing the user to expand or collapse all child resources.</comment>
+  </data>
+  <data name="ResourcesGraphZoomOutButton" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="ResourcesGraphZoomInButton" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="ResourcesGraphResetButton" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
   </data>
 </root>

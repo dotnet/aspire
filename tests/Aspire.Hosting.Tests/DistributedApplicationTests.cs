@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -24,7 +24,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
 
@@ -178,26 +177,26 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
+        // Source should be populated on non-started resources.
         Assert.Contains("TestProject.ServiceA.csproj", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5156", u.Url);
-            Assert.True(u.IsInactive);
-        });
         Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5254", u.Url);
-            Assert.True(u.IsInactive);
-        });
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5156", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceRunningEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentResourceRunningEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -240,26 +239,26 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
+        // Source should be populated on non-started resources.
         Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
-        Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
+        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
+        logger.LogInformation("Start explicit start resource.");
+        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
             Assert.True(u.IsInactive);
         });
-        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
-        Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
-        {
-            Assert.Equal("http://localhost:5254", u.Url);
-            Assert.True(u.IsInactive);
-        });
-
-        logger.LogInformation("Start explicit start resource.");
-        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -312,7 +311,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram("ports-assigned-after-hook-runs");
@@ -345,7 +343,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -402,7 +399,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
@@ -432,7 +428,61 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    public async Task VerifyContainerCreateFile()
+    {
+        using var testProgram = CreateTestProgram("verify-container-create-file");
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var destination = "/tmp";
+        var umask = UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+        var createFileEntries = new List<ContainerFileSystemItem>
+        {
+            new ContainerDirectory
+            {
+                Name = "test-folder",
+                Owner = 1000,
+                Entries = [
+                    new ContainerFile
+                    {
+                        Name = "test.txt",
+                        Contents = "Hello World!",
+                        Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    },
+                ],
+            },
+        };
+
+        AddRedisContainer(testProgram.AppBuilder, "verify-container-create-file-redis")
+            .WithContainerFiles(destination, createFileEntries, umask: umask);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal(RedisImageSource, item.Spec.Image);
+                Assert.Equal(new List<ContainerCreateFileSystem>
+                {
+                    new ContainerCreateFileSystem
+                    {
+                        Destination = destination,
+                        Umask = (int?)umask,
+                        Entries = createFileEntries.Select(e => e.ToContainerFileSystemEntry()).ToList(),
+                    }
+                },
+                item.Spec.CreateFiles);
+            });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
@@ -485,7 +535,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyExecutableStopStartWorks()
     {
         const string testName = "executable-start-stop";
@@ -520,7 +570,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         const string testName = "ports-flow-to-env";
@@ -577,15 +626,14 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         const string testName = "dashboard-auth-config";
         var browserToken = "ThisIsATestToken";
         var args = new string[] {
-            "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
-            $"DOTNET_DASHBOARD_FRONTEND_BROWSERTOKEN={browserToken}"
+            $"{KnownConfigNames.AspNetCoreUrls}=http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0",
+            $"{KnownConfigNames.DashboardFrontendBrowserToken}={browserToken}"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
@@ -618,14 +666,14 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         const string testName = "dashboard-allow-anonymous";
         var args = new string[] {
-            "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
-            "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
+            $"{KnownConfigNames.AspNetCoreUrls}=http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0",
+            $"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}=true"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
@@ -655,7 +703,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         const string testName = "docker-entrypoint";
@@ -684,7 +731,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         const string testName = "docker-bindmount-absolute";
@@ -715,7 +761,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         const string testName = "docker-bindmount-relative";
@@ -746,7 +791,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         const string testName = "docker-volume";
@@ -776,7 +820,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         const string testName = "kube-resource-names";
@@ -834,7 +877,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         const string testName = "replicas-no-proxyless-endpoints";
@@ -853,7 +895,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         const string testName = "proxyess-endpoint-without-port";
@@ -873,7 +914,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8728")]
     public async Task ProxylessEndpointWorks()
     {
         const string testName = "proxyless-endpoint-works";
@@ -908,8 +949,8 @@ public class DistributedApplicationTests
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4599")]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         const string testName = "proxyless-and-proxied-endpoints";
@@ -977,7 +1018,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
         const string testName = "proxyless-container";
@@ -1083,7 +1123,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         const string testName = "proxyless-container-without-ports";
@@ -1102,7 +1141,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         const string testName = "lifecycle-hook-after-resource-created";

@@ -2,17 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <IsTestSupportProject>true</IsTestSupportProject>
+
+    <!--
+      Whilst this looks like a test project, it is not... https://github.com/dotnet/aspire/pull/8498/files#r2029349258
+      -->
+    <IsTestUtilityProject>true</IsTestUtilityProject>
+    <SkipTests>true</SkipTests>
+    <DeployOutsideOfRepoSupportFiles>false</DeployOutsideOfRepoSupportFiles>
+
+    <!-- https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
+    <!-- Exit code 8 is "zero tests ran" -->
+    <!-- Currently, none of the tests in this project run in CI. All are ignored -->
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" />
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
 </Project>

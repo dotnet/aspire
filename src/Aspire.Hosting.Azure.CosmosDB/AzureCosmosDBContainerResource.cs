@@ -35,11 +35,25 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     /// <summary>
     /// Gets the connection string expression for the Azure Cosmos DB Database Container.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.Parent.GetChildConnectionString(Name, Parent.DatabaseName, ContainerName);
 
     // ensure Azure Functions projects can WithReference a CosmosDB database container
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
-        ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (Parent.Parent.IsEmulator || Parent.Parent.UseAccessKeyAuthentication)
+        {
+            Parent.Parent.SetConnectionString(target, connectionName, ConnectionStringExpression);
+        }
+        else
+        {
+            Parent.Parent.SetAccountEndpoint(target, connectionName);
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__DatabaseName"] = Parent.DatabaseName;
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__DatabaseName"] = Parent.DatabaseName;
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ContainerName"] = ContainerName;
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ContainerName"] = ContainerName;
+        }
+    }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {

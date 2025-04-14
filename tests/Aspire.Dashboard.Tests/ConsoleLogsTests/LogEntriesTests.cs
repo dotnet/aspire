@@ -18,9 +18,39 @@ public class LogEntriesTests
 
     private static void AddLogLine(LogEntries logEntries, string content, bool isError)
     {
-        var logParser = new LogParser();
+        var logParser = new LogParser(ConsoleColor.Black);
         var logEntry = logParser.CreateLogEntry(content, isError);
         logEntries.InsertSorted(logEntry);
+    }
+
+    [Fact]
+    public void Add_PauseAndThenRemove_ActivePauseKept()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+
+        // Act
+        AddLogLine(logEntries, "Hello world", isError: false);
+
+        // Completed pause
+        logEntries.InsertSorted(LogEntry.CreatePause(
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+
+        // Active pause
+        var pauseEntry = LogEntry.CreatePause(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        logEntries.InsertSorted(pauseEntry);
+
+        var pauseVM = pauseEntry.Pause;
+        Assert.NotNull(pauseVM);
+        pauseVM.FilteredCount++;
+
+        logEntries.Clear(keepActivePauseEntries: true);
+
+        // Assert
+        var entry = Assert.Single(logEntries.GetEntries());
+        Assert.Equal(pauseEntry, entry);
+        Assert.Equal(0, pauseVM.FilteredCount);
     }
 
     [Fact]
@@ -238,12 +268,27 @@ public class LogEntriesTests
     public void CreateLogEntry_AnsiAndUrl_HasUrlAnchor()
     {
         // Arrange
-        var parser = new LogParser();
+        var parser = new LogParser(ConsoleColor.Black);
 
         // Act
         var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false);
 
         // Assert
         Assert.Equal("<span class=\"ansi-fg-cyan\"></span><a target=\"_blank\" href=\"https://www.example.com\" rel=\"noopener noreferrer nofollow\">https://www.example.com</a>", entry.Content);
+    }
+
+    [Theory]
+    [InlineData(ConsoleColor.Black, @"<span class=""ansi-fg-green"">info</span>: LoggerName")]
+    [InlineData(ConsoleColor.Blue, @"<span class=""ansi-fg-green ansi-bg-black"">info</span>: LoggerName")]
+    public void CreateLogEntry_DefaultBackgroundColor_SkipMatchingColor(ConsoleColor defaultBackgroundColor, string output)
+    {
+        // Arrange
+        var parser = new LogParser(defaultBackgroundColor);
+
+        // Act
+        var entry = parser.CreateLogEntry("\u001b[40m\u001b[32minfo\u001b[39m\u001b[22m\u001b[49m: LoggerName", isErrorOutput: false);
+
+        // Assert
+        Assert.Equal(output, entry.Content);
     }
 }

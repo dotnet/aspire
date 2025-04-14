@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="System.Text.Json" VersionOverride="9.0.1" />

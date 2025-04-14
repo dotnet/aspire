@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Microsoft.Data.SqlClient.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
@@ -49,7 +48,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

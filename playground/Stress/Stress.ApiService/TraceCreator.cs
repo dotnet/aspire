@@ -96,7 +96,7 @@ public class TraceCreator
         for (var i = 0; i < eventCount; i++)
         {
             var activityTags = new ActivityTagsCollection();
-            var tagsCount = Random.Shared.Next(0, 3);
+            var tagsCount = Random.Shared.Next(0, 5);
             for (var j = 0; j < tagsCount; j++)
             {
                 activityTags.Add($"key-{j}", "Value!");

@@ -15,7 +15,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-using Xunit.Abstractions;
 using DashboardService = Aspire.Hosting.Dashboard.DashboardService;
 using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
@@ -92,13 +91,16 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             name: "TestName",
             displayName: "Display name!",
             executeCommand: c => Task.FromResult(CommandResults.Success()),
-            updateState: c => ApplicationModel.ResourceCommandState.Enabled,
-            displayDescription: "Display description!",
-            parameter: new [] {"One", "Two"},
-            confirmationMessage: "Confirmation message!",
-            iconName: "Icon name!",
-            iconVariant: ApplicationModel.IconVariant.Filled,
-            isHighlighted: true);
+            commandOptions: new()
+            {
+                UpdateState = c => ApplicationModel.ResourceCommandState.Enabled,
+                Description = "Display description!",
+                Parameter = new[] { "One", "Two" },
+                ConfirmationMessage = "Confirmation message!",
+                IconName = "Icon name!",
+                IconVariant = ApplicationModel.IconVariant.Filled,
+                IsHighlighted = true
+            });
 
         logger.LogInformation("Publishing resource.");
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>

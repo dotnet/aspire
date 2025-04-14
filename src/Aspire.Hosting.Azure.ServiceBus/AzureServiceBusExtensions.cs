@@ -71,19 +71,6 @@ public static class AzureServiceBusExtensions
                     return resource;
                 });
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(new ServiceBusBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
-
             infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
             // We need to output name to externalize role assignments.
@@ -449,7 +436,6 @@ public static class AzureServiceBusExtensions
 
                     foreach (var annotation in configJsonAnnotations)
                     {
-
                         annotation.Configure(jsonObject);
                     }
 

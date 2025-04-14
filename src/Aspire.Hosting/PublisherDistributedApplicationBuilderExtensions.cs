@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
 /// <summary>
-/// TODO
+/// Extensions for adding a publisher to the distributed application.
 /// </summary>
 public static class PublisherDistributedApplicationBuilderExtensions
 {
@@ -19,12 +20,18 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>. </param>
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
-    public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
+    [Experimental("ASPIREPUBLISHERS001")]
+    public static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
         where TPublisher : class, IDistributedApplicationPublisher
         where TPublisherOptions : class
     {
         // TODO: We need to add validation here since this needs to be something we refer to on the CLI.
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, TPublisher>(name);
+
+        builder.Eventing.Subscribe<PublisherAdvertisementEvent>((e, ct) => {
+            e.AddAdvertisement(name);
+            return Task.CompletedTask;
+        });
 
         if (configureOptions is not null)
         {
@@ -36,5 +43,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
         {
             configureOptions?.Invoke(options);
         });
+
+        return builder;
     }
 }

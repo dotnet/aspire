@@ -82,6 +82,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required IMessageService MessageService { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -317,6 +320,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 ViewModel.AddFilter(filter);
                 await ClearSelectedLogEntryAsync();
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -349,6 +360,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
+    private List<MenuButtonItem> GetFilterMenuItems()
+    {
+        return this.GetFilterMenuItems(
+            ViewModel.Filters,
+            ViewModel.ClearFilters,
+            OpenFilterAsync,
+            FilterLoc,
+            DialogsLoc,
+            _contentLayout);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)
@@ -371,6 +393,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await JS.InvokeVoidAsync("initializeContinuousScroll");
         });
     }
+
+    private string? PauseText => PauseManager.AreStructuredLogsPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
 
     public void Dispose()
     {

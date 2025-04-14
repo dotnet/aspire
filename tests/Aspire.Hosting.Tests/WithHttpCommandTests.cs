@@ -2,15 +2,36 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
 public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    public void WithHttpCommand_AddsHttpClientFactory()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var resourceBuilder = builder.AddContainer("name", "image")
+            .WithHttpEndpoint()
+            .WithHttpCommand("/some-path", "Do The Thing");
+
+        using var app = builder.Build();
+
+        // Assert
+        var httpClientFactoryServiceDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(IHttpClientFactory));
+        Assert.NotNull(httpClientFactoryServiceDescriptor);
+
+        var httpClientFactory = app.Services.GetService<IHttpClientFactory>();
+        Assert.NotNull(httpClientFactory);
+    }
+
     [Fact]
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
@@ -44,11 +65,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
             .WithHttpEndpoint()
             .WithHttpCommand("/some-path", "Do The Thing",
                 commandName: "my-command-name",
-                displayDescription: "Command description",
-                confirmationMessage: "Are you sure?",
-                iconName: "DatabaseLightning",
-                iconVariant: IconVariant.Filled,
-                isHighlighted: true);
+                commandOptions: new()
+                {
+                    Description = "Command description",
+                    ConfirmationMessage = "Are you sure?",
+                    IconName = "DatabaseLightning",
+                    IconVariant = IconVariant.Filled,
+                    IsHighlighted = true
+                });
 
         // Act
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().FirstOrDefault();
@@ -74,8 +98,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
             .WithHttpEndpoint(name: "custom-endpoint")
             .WithHttpCommand("/some-path", "Do The Thing")
             .WithHttpCommand("/some-path", "Do The Thing", endpointName: "custom-endpoint")
-            .WithHttpCommand("/some-path", "Do The Get Thing", method: HttpMethod.Get)
-            .WithHttpCommand("/some-path", "Do The Get Thing", method: HttpMethod.Get, endpointName: "custom-endpoint")
+            .WithHttpCommand("/some-path", "Do The Get Thing", commandOptions: new() { Method = HttpMethod.Get })
+            .WithHttpCommand("/some-path", "Do The Get Thing", endpointName: "custom-endpoint", commandOptions: new() { Method = HttpMethod.Get })
             .WithHttpCommand("/some-other-path", "Do The Other Thing")
             // Call it again but just change display name, it should override the previous one with the same path
             .WithHttpCommand("/some-other-path", "Do The Other Thing CHANGED");
@@ -107,6 +131,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(404, false)]
     [InlineData(500, false)]
     [Theory]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8194")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
@@ -139,10 +164,10 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
         // Arrange
-        var method = httpMethod is not null ? new HttpMethod(httpMethod) : null;
+        var method = httpMethod is not null ? new HttpMethod(httpMethod) : HttpCommandOptions.Default.Method;
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithHttpCommand("/get-only", "Do The Thing", method: method, commandName: "mycommand");
+            .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { Method = method });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
@@ -171,7 +196,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddHttpClient("commandclient")
             .AddHttpMessageHandler((sp) => trackingMessageHandler);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", httpClientName: "commandclient");
+            .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { HttpClientName = "commandclient" });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
@@ -212,11 +237,11 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         var callbackCalled = false;
         var serviceB = builder.AddProject<Projects.ServiceA>("serviceb")
             .WithHttpCommand("/status/200", "Do The Thing", commandName: "mycommand",
-            endpointSelector: () =>
-            {
-                callbackCalled = true;
-                return serviceA.GetEndpoint("http");
-            });
+                endpointSelector: () =>
+                {
+                    callbackCalled = true;
+                    return serviceA.GetEndpoint("http");
+                });
         var command = serviceB.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
@@ -245,17 +270,20 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
-                configureRequest: requestContext =>
+                commandOptions: new()
                 {
-                    Assert.NotNull(requestContext);
-                    Assert.NotNull(requestContext.ServiceProvider);
-                    Assert.Equal("servicea", requestContext.ResourceName);
-                    Assert.NotNull(requestContext.Endpoint);
-                    Assert.NotNull(requestContext.HttpClient);
-                    Assert.NotNull(requestContext.Request);
-                    
-                    callbackCalled = true;
-                    return Task.CompletedTask;
+                    PrepareRequest = requestContext =>
+                    {
+                        Assert.NotNull(requestContext);
+                        Assert.NotNull(requestContext.ServiceProvider);
+                        Assert.Equal("servicea", requestContext.ResourceName);
+                        Assert.NotNull(requestContext.Endpoint);
+                        Assert.NotNull(requestContext.HttpClient);
+                        Assert.NotNull(requestContext.Request);
+
+                        callbackCalled = true;
+                        return Task.CompletedTask;
+                    }
                 });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
@@ -286,17 +314,20 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
-                getCommandResult: resultContext =>
+                commandOptions: new()
                 {
-                    Assert.NotNull(resultContext);
-                    Assert.NotNull(resultContext.ServiceProvider);
-                    Assert.Equal("servicea", resultContext.ResourceName);
-                    Assert.NotNull(resultContext.Endpoint);
-                    Assert.NotNull(resultContext.HttpClient);
-                    Assert.NotNull(resultContext.Response);
+                    GetCommandResult = resultContext =>
+                    {
+                        Assert.NotNull(resultContext);
+                        Assert.NotNull(resultContext.ServiceProvider);
+                        Assert.Equal("servicea", resultContext.ResourceName);
+                        Assert.NotNull(resultContext.Endpoint);
+                        Assert.NotNull(resultContext.HttpClient);
+                        Assert.NotNull(resultContext.Response);
 
-                    callbackCalled = true;
-                    return Task.FromResult(CommandResults.Failure("A test error message"));
+                        callbackCalled = true;
+                        return Task.FromResult(CommandResults.Failure("A test error message"));
+                    }
                 });
         var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
@@ -320,6 +351,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
@@ -382,18 +414,22 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        
+
         builder.Configuration["CODESPACES"] = "false";
 
         var enableCommand = false;
         var callbackCalled = false;
         var service = builder.AddResource(new CustomResource("service"))
             .WithHttpEndpoint()
-            .WithHttpCommand("/dothing", "Do The Thing", commandName: "mycommand",
-                updateState: usc =>
+            .WithHttpCommand("/dothing", "Do The Thing",
+                commandName: "mycommand",
+                commandOptions: new()
                 {
-                    callbackCalled = true;
-                    return enableCommand ? ResourceCommandState.Enabled : ResourceCommandState.Hidden;
+                    UpdateState = usc =>
+                    {
+                        callbackCalled = true;
+                        return enableCommand ? ResourceCommandState.Enabled : ResourceCommandState.Hidden;
+                    }
                 });
 
         using var app = builder.Build();

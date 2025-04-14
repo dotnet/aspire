@@ -4,13 +4,11 @@ using Azure.Messaging.ServiceBus;
 
 namespace ServiceBusWorker;
 
-internal sealed class Producer(ServiceBusClient client, ILogger<Producer> logger) : BackgroundService
+internal sealed class Producer(ServiceBusSender sender, ILogger<Producer> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting producer...");
-
-        await using var sender = client.CreateSender("queue1");
 
         var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 

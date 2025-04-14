@@ -6,11 +6,15 @@
 
   <ItemGroup>
     <None Include="$(RepoRoot)src\Components\Aspire.OpenAI\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.OpenAI\Aspire.OpenAI.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
   </ItemGroup>
-
-  <Import Project="..\..\src\Components\Aspire.OpenAI\MEAIPackageOverrides.targets" />
 
 </Project>

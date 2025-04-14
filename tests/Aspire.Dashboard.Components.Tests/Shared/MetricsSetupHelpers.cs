@@ -40,6 +40,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddLocalization();
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IDialogService, DialogService>();
     }
@@ -79,6 +80,7 @@ internal static class MetricsSetupHelpers
         SetupChartContainer(context);
 
         context.Services.AddLocalization();
+        context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IMessageService, MessageService>();
         context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));

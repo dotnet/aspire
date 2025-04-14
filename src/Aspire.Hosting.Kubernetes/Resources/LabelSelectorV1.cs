@@ -23,7 +23,7 @@ public sealed class LabelSelectorV1
     /// This property is used to form more complex selection logic based on multiple conditions.
     /// </summary>
     [YamlMember(Alias = "matchExpressions")]
-    public List<LabelSelectorRequirementV1> MatchExpressions { get; } = [];
+    public List<LabelSelectorRequirementV1> MatchExpressions { get; set; } = [];
 
     /// <summary>
     /// A collection of key-value pairs used to specify matching labels for Kubernetes resources.
@@ -31,5 +31,32 @@ public sealed class LabelSelectorV1
     /// a Kubernetes environment.
     /// </summary>
     [YamlMember(Alias = "matchLabels")]
-    public Dictionary<string, string> MatchLabels { get; } = [];
+    public Dictionary<string, string> MatchLabels { get; set; } = [];
+
+    /// <summary>
+    /// Represents a label selector used to determine a set of resources
+    /// in Kubernetes that match the defined criteria.
+    /// </summary>
+    /// <remarks>
+    /// LabelSelectorV1 is commonly used in Kubernetes resource specifications
+    /// where filtering objects based on labels is required, such as in ReplicaSets,
+    /// Deployments, or custom metrics.
+    /// </remarks>
+    public LabelSelectorV1()
+    {
+    }
+
+    /// <summary>
+    /// Represents a label selector used to determine a set of resources
+    /// in Kubernetes that match the defined criteria.
+    /// </summary>
+    /// <remarks>
+    /// LabelSelectorV1 is commonly used in Kubernetes resource specifications
+    /// where filtering objects based on labels is required, such as in ReplicaSets,
+    /// Deployments, or custom metrics.
+    /// </remarks>
+    public LabelSelectorV1(Dictionary<string, string> matchLabels)
+    {
+        MatchLabels = matchLabels;
+    }
 }

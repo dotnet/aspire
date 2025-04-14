@@ -5,8 +5,8 @@ namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Context passed to callback to configure <see cref="HttpRequestMessage"/> when using
-/// <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, Func{EndpointReference}?, HttpMethod?, string?, Func{HttpCommandRequestContext, Task}?, Func{HttpCommandResultContext, Task{ExecuteCommandResult}}?, string?, Func{UpdateCommandStateContext, ResourceCommandState}?, string?, string?, string?, IconVariant?, bool)"/>
-/// or <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, string?, HttpMethod?, string?, Func{HttpCommandRequestContext, Task}?, Func{HttpCommandResultContext, Task{ExecuteCommandResult}}?, string?, Func{UpdateCommandStateContext, ResourceCommandState}?, string?, string?, string?, IconVariant?, bool)"/>.
+/// <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, string?, string?, HttpCommandOptions?)"/>
+/// or <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, Func{EndpointReference}?, string?, HttpCommandOptions?)"/>.
 /// </summary>
 public sealed class HttpCommandRequestContext
 {
@@ -43,8 +43,8 @@ public sealed class HttpCommandRequestContext
 
 /// <summary>
 /// Context passed to callback to configure <see cref="ExecuteCommandResult"/> when using
-/// <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, Func{EndpointReference}?, HttpMethod?, string?, Func{HttpCommandRequestContext, Task}?, Func{HttpCommandResultContext, Task{ExecuteCommandResult}}?, string?, Func{UpdateCommandStateContext, ResourceCommandState}?, string?, string?, string?, IconVariant?, bool)"/>
-/// or <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, string?, HttpMethod?, string?, Func{HttpCommandRequestContext, Task}?, Func{HttpCommandResultContext, Task{ExecuteCommandResult}}?, string?, Func{UpdateCommandStateContext, ResourceCommandState}?, string?, string?, string?, IconVariant?, bool)"/>.
+/// <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, string?, string?, HttpCommandOptions?)"/>
+/// or <see cref="ResourceBuilderExtensions.WithHttpCommand{TResource}(IResourceBuilder{TResource}, string, string, Func{EndpointReference}?, string?, HttpCommandOptions?)"/>.
 /// </summary>
 public sealed class HttpCommandResultContext
 {

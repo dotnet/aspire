@@ -31,6 +31,7 @@ class ResourceGraph {
     constructor(resourcesInterop) {
         this.resources = [];
         this.resourcesInterop = resourcesInterop;
+        this.openContextMenu = false;
 
         this.nodes = [];
         this.links = [];
@@ -40,10 +41,11 @@ class ResourceGraph {
 
         // Enable zoom + pan
         // https://www.d3indepth.com/zoom-and-pan/
-        let zoom = d3.zoom().on('zoom', (event) => {
+        // scaleExtent limits zoom to reasonable values
+        this.zoom = d3.zoom().scaleExtent([0.2, 4]).on('zoom', (event) => {
             this.baseGroup.attr('transform', event.transform);
         });
-        this.svg.call(zoom);
+        this.svg.call(this.zoom);
 
         // simulation setup with all forces
         this.linkForce = d3
@@ -116,6 +118,26 @@ class ResourceGraph {
 
         this.linkElementsG = this.baseGroup.append("g").attr("class", "links");
         this.nodeElementsG = this.baseGroup.append("g").attr("class", "nodes");
+
+        this.initializeButtons();
+    }
+
+    initializeButtons() {
+        d3.select('.graph-zoom-in').on("click", () => this.zoomIn());
+        d3.select('.graph-zoom-out').on("click", () => this.zoomOut());
+        d3.select('.graph-reset').on("click", () => this.resetZoomAndPan());
+    }
+
+    resetZoomAndPan() {
+        this.svg.transition().call(this.zoom.transform, d3.zoomIdentity);
+    }
+
+    zoomIn() {
+        this.svg.transition().call(this.zoom.scaleBy, 1.5);
+    }
+
+    zoomOut() {
+        this.svg.transition().call(this.zoom.scaleBy, 2 / 3);
     }
 
     createArrowMarker(parent, id, className, width, height, x) {
@@ -134,10 +156,12 @@ class ResourceGraph {
     }
 
     resize() {
-        var container = document.getElementsByClassName("resources-summary-layout")[0];
-        var width = container.clientWidth;
-        var height = Math.max(container.clientHeight - 50, 0);
-        this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        var container = document.querySelector(".resources-summary-layout");
+        if (container) {
+            var width = container.clientWidth;
+            var height = Math.max(container.clientHeight - 50, 0);
+            this.svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+        }
     }
 
     switchTo(resourceName) {
@@ -288,6 +312,7 @@ class ResourceGraph {
             .append("g")
             .attr("class", "resource-scale")
             .on('click', this.selectNode)
+            .on('contextmenu', this.nodeContextMenu)
             .on('mouseover', this.hoverNode)
             .on('mouseout', this.unHoverNode);
         newNodesContainer
@@ -335,12 +360,10 @@ class ResourceGraph {
         var resourceNameGroup = newNodesContainer
             .append("g")
             .attr("transform", "translate(0,71)")
-            .attr("class", "resource-name")
-            .on('click', this.selectNode);
+            .attr("class", "resource-name");
         resourceNameGroup
             .append("text")
-            .text(n => trimText(n.label, 30))
-            .on('click', this.selectNode);
+            .text(n => trimText(n.label, 30));
         resourceNameGroup
             .append("title")
             .text(n => n.label);
@@ -450,6 +473,25 @@ class ResourceGraph {
         return 'resource-link';
     }
 
+    nodeContextMenu = async (event) => {
+        var data = event.target.__data__;
+
+        // Prevent default browser context menu.
+        event.preventDefault();
+
+        this.openContextMenu = true;
+
+        try {
+            // Wait for method completion. It completes when the context menu is closed.
+            await this.resourcesInterop.invokeMethodAsync('ResourceContextMenu', data.id, event.clientX, event.clientY);
+        } finally {
+            this.openContextMenu = false;
+
+            // Unselect the node when the context menu is closed to reset mouseover state.
+            this.updateNodeHighlights(null);
+        }
+    };
+
     selectNode = (event) => {
         var data = event.target.__data__;
 
@@ -495,7 +537,11 @@ class ResourceGraph {
     }
 
     unHoverNode = (event) => {
-        this.updateNodeHighlights(null);
+        // Don't unhover the selected node when the context menu is open.
+        // This is done to keep the node selected until the context menu is closed.
+        if (!this.openContextMenu) {
+            this.updateNodeHighlights(null);
+        }
     };
 
     nodeEquals(resource1, resource2) {

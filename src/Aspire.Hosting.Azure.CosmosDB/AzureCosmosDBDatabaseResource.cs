@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
@@ -35,11 +34,23 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
     /// <summary>
     /// Gets the connection string expression for the Azure Cosmos DB database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.GetChildConnectionString(Name, DatabaseName, null);
 
     // ensure Azure Functions projects can WithReference a CosmosDB database
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
-        ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (Parent.IsEmulator || Parent.UseAccessKeyAuthentication)
+        {
+            Parent.SetConnectionString(target, connectionName, ConnectionStringExpression);
+        }
+        else
+        {
+            Parent.SetAccountEndpoint(target, connectionName);
+            target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
+        }
+    }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {

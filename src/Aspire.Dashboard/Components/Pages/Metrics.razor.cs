@@ -66,6 +66,9 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 

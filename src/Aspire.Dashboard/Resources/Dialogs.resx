@@ -129,6 +129,12 @@
   <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
     <value>Apply filter</value>
   </data>
+  <data name="FilterDialogEnableFilterButtonText" xml:space="preserve">
+    <value>Enable filter</value>
+  </data>
+  <data name="FilterDialogDisableFilterButtonText" xml:space="preserve">
+    <value>Disable filter</value>
+  </data>
   <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
     <value>Remove filter</value>
   </data>
@@ -267,6 +273,21 @@
   </data>
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
+  </data>
+  <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
+    <value>Sensitive value hidden</value>
+  </data>
+  <data name="TextVisualizerSecretWarningDescription" xml:space="preserve">
+    <value>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</value>
+  </data>
+  <data name="TextVisualizerSecretWarningAcknowledge" xml:space="preserve">
+    <value>Show value</value>
+  </data>
+  <data name="FilterDialogDisableAll" xml:space="preserve">
+    <value>Disable all</value>
+  </data>
+  <data name="FilterDialogEnableAll" xml:space="preserve">
+    <value>Enable all</value>
   </data>
   <data name="SettingsDialogEnableTelemetry" xml:space="preserve">
     <value>Enable dashboard telemetry</value>

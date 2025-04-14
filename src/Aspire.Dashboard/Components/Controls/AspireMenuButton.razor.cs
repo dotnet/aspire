@@ -43,6 +43,9 @@ public partial class AspireMenuButton : FluentComponentBase
     [Parameter]
     public string MenuButtonId { get; set; } = Identifier.NewId();
 
+    [Parameter]
+    public bool HideIcon { get; set; }
+
     protected override void OnParametersSet()
     {
         _icon = Icon ?? s_defaultIcon;
@@ -51,15 +54,6 @@ public partial class AspireMenuButton : FluentComponentBase
     private void ToggleMenu()
     {
         _visible = !_visible;
-    }
-
-    private async Task HandleItemClicked(MenuButtonItem item)
-    {
-        if (item.OnClick is {} onClick)
-        {
-            await onClick();
-        }
-        _visible = false;
     }
 
     private void OnKeyDown(KeyboardEventArgs args)

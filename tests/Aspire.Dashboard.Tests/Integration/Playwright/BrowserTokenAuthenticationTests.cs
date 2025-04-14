@@ -1,18 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
-using Aspire.Workload.Tests;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4921", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[RequiresPlaywright]
 public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenAuthenticationTests.BrowserTokenDashboardServerFixture>
 {
     public class BrowserTokenDashboardServerFixture : DashboardServerFixture
@@ -30,7 +30,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7921", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange
@@ -56,7 +56,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
         });
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/7522")]
+    [Fact]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
@@ -78,7 +78,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             const int pageVisibleTimeout = 10000;
 
             await Assertions
-                .Expect(page.GetByText("Invalid token"))
+                .Expect(page.GetByText(Login.InvalidTokenErrorMessage))
                 .ToBeVisibleAsync()
                 .DefaultTimeout(pageVisibleTimeout);
         });

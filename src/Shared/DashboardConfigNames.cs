@@ -5,13 +5,14 @@ namespace Aspire.Hosting;
 
 internal static class DashboardConfigNames
 {
-    public static readonly ConfigName DashboardFrontendUrlName = new("ASPNETCORE_URLS");
-    public static readonly ConfigName DashboardOtlpGrpcUrlName = new("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-    public static readonly ConfigName DashboardOtlpHttpUrlName = new("DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL");
-    public static readonly ConfigName DashboardUnsecuredAllowAnonymousName = new("DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS");
-    public static readonly ConfigName DashboardConfigFilePathName = new("DOTNET_DASHBOARD_CONFIG_FILE_PATH");
-    public static readonly ConfigName DashboardFileConfigDirectoryName = new("DOTNET_DASHBOARD_FILE_CONFIG_DIRECTORY");
-    public static readonly ConfigName ResourceServiceUrlName = new("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL");
+    public static readonly ConfigName DashboardFrontendUrlName = new(KnownConfigNames.AspNetCoreUrls);
+
+    public static readonly ConfigName DashboardOtlpGrpcUrlName = new(KnownConfigNames.DashboardOtlpGrpcEndpointUrl);
+    public static readonly ConfigName DashboardOtlpHttpUrlName = new(KnownConfigNames.DashboardOtlpHttpEndpointUrl);
+    public static readonly ConfigName DashboardUnsecuredAllowAnonymousName = new(KnownConfigNames.DashboardUnsecuredAllowAnonymous);
+    public static readonly ConfigName DashboardConfigFilePathName = new(KnownConfigNames.DashboardConfigFilePath);
+    public static readonly ConfigName DashboardFileConfigDirectoryName = new(KnownConfigNames.DashboardFileConfigDirectory);
+    public static readonly ConfigName ResourceServiceUrlName = new(KnownConfigNames.ResourceServiceEndpointUrl);
 
     public static readonly ConfigName DashboardOtlpAuthModeName = new("Dashboard:Otlp:AuthMode", "DASHBOARD__OTLP__AUTHMODE");
     public static readonly ConfigName DashboardOtlpPrimaryApiKeyName = new("Dashboard:Otlp:PrimaryApiKey", "DASHBOARD__OTLP__PRIMARYAPIKEY");
@@ -32,6 +33,16 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DebugSessionTelemetryOptOutName = new("Dashboard:DebugSession:TelemetryOptOut", "DASHBOARD__DEBUGSESSION__TELEMETRYOPTOUT");
     public static readonly ConfigName DebugSessionTokenName = new("Dashboard:DebugSession:Token", "DASHBOARD__DEBUGSESSION__TOKEN");
     public static readonly ConfigName UIDisableResourceGraphName = new("Dashboard:UI:DisableResourceGraph", "DASHBOARD__UI__DISABLERESOURCEGRAPH");
+
+    public static class Legacy
+    {
+        public static readonly ConfigName DashboardOtlpGrpcUrlName = new(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
+        public static readonly ConfigName DashboardOtlpHttpUrlName = new(KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
+        public static readonly ConfigName DashboardUnsecuredAllowAnonymousName = new(KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous);
+        public static readonly ConfigName DashboardConfigFilePathName = new(KnownConfigNames.Legacy.DashboardConfigFilePath);
+        public static readonly ConfigName DashboardFileConfigDirectoryName = new(KnownConfigNames.Legacy.DashboardFileConfigDirectory);
+        public static readonly ConfigName ResourceServiceUrlName = new(KnownConfigNames.Legacy.ResourceServiceEndpointUrl);
+    }
 }
 
 internal readonly struct ConfigName(string configKey, string? envVarName = null)

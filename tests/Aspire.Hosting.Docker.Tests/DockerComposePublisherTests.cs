@@ -1,7 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -9,7 +14,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Docker.Tests;
 
-public class DockerComposePublisherTests
+public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
@@ -17,7 +22,7 @@ public class DockerComposePublisherTests
         using var tempDir = new TempDirectory();
         // Arrange
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
@@ -25,6 +30,13 @@ public class DockerComposePublisherTests
         var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
         // Add a container to the application
+        var redis = builder.AddContainer("cache", "redis")
+                    .WithEntrypoint("/bin/sh")
+                    .WithArgs("-c", "hello $MSG")
+                    .WithEnvironment("MSG", "world");
+
+        var migration = builder.AddContainer("something", "dummy/migration:latest");
+
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
                          .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                          .WithHttpEndpoint(env: "PORT")
@@ -32,18 +44,28 @@ public class DockerComposePublisherTests
                          .WithEnvironment("param1", param1)
                          .WithEnvironment("param2", param2)
                          .WithReference(cs)
-                         .WithArgs("--cs", cs.Resource);
+                         .WithArgs("--cs", cs.Resource)
+                         .WaitFor(redis)
+                         .WaitForCompletion(migration)
+                         .WaitFor(param0);
 
-        builder.AddProject<TestProject>("project1", launchProfileName: null)
+        builder.AddProject(
+            "project1",
+            "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
+            launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
 
         var app = builder.Build();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
+        await ExecuteBeforeStartHooksAsync(app, default);
+
         var publisher = new DockerComposePublisher("test", options,
             NullLogger<DockerComposePublisher>.Instance,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
+            builder.ExecutionContext,
+            new MockImageBuilder()
+            );
 
         // Act
         await publisher.PublishAsync(model, default);
@@ -60,35 +82,55 @@ public class DockerComposePublisherTests
         Assert.Equal(
             """
             services:
-            myapp:
+              cache:
+                image: "redis:latest"
+                command:
+                  - "-c"
+                  - "hello $$MSG"
+                entrypoint:
+                  - "/bin/sh"
+                environment:
+                  MSG: "world"
+                networks:
+                  - "aspire"
+              something:
+                image: "dummy/migration:latest"
+                networks:
+                  - "aspire"
+              myapp:
                 image: "mcr.microsoft.com/dotnet/aspnet:8.0"
                 command:
-                - "--cs"
-                - "Url=${PARAM0}, Secret=${PARAM1}"
+                  - "--cs"
+                  - "Url=${PARAM0}, Secret=${PARAM1}"
                 environment:
-                ASPNETCORE_ENVIRONMENT: "Development"
-                PORT: "8001"
-                param0: "${PARAM0}"
-                param1: "${PARAM1}"
-                param2: "${PARAM2}"
-                ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
+                  ASPNETCORE_ENVIRONMENT: "Development"
+                  PORT: "8000"
+                  param0: "${PARAM0}"
+                  param1: "${PARAM1}"
+                  param2: "${PARAM2}"
+                  ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
                 ports:
-                - "8001:8000"
+                  - "8001:8000"
+                depends_on:
+                  cache:
+                    condition: "service_started"
+                  something:
+                    condition: "service_completed_successfully"
                 networks:
-                - "aspire"
-            project1:
+                  - "aspire"
+              project1:
                 image: "${PROJECT1_IMAGE}"
                 environment:
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
-                OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
-                services__myapp__http__0: "http://myapp:8000"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+                  OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+                  services__myapp__http__0: "http://myapp:8000"
                 networks:
-                - "aspire"
+                  - "aspire"
             networks:
-            aspire:
+              aspire:
                 driver: "bridge"
-
+            
             """,
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
 
@@ -109,6 +151,59 @@ public class DockerComposePublisherTests
 
             """,
             envContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task DockerComposeCorrectlyEmitsPortMappings()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
+                                                             .WithTestAndResourceLogging(outputHelper);
+
+        builder.AddDockerComposePublisher();
+
+        builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
+               .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+               .WithHttpEndpoint(env: "HTTP_PORT");
+
+        var app = builder.Build();
+
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var content = await File.ReadAllTextAsync(composePath);
+
+        Assert.Equal(
+            """
+            services:
+              resource:
+                image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+                environment:
+                  ASPNETCORE_ENVIRONMENT: "Development"
+                  HTTP_PORT: "8000"
+                ports:
+                  - "8001:8000"
+                networks:
+                  - "aspire"
+            networks:
+              aspire:
+                driver: "bridge"
+
+            """,
+            content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+
+    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    {
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class OptionsMonitor(DockerComposePublisherOptions options) : IOptionsMonitor<DockerComposePublisherOptions>

@@ -52,6 +52,8 @@ public static class ResourceBuilderExtensions
 
         var expression = value.GetExpression();
 
+        builder.WithReferenceRelationship(expression);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = expression;
@@ -72,6 +74,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
+
+        builder.WithReferenceRelationship(value);
 
         return builder.WithEnvironment(context =>
         {
@@ -140,6 +144,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(endpointReference);
 
+        builder.WithReferenceRelationship(endpointReference.Resource);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = endpointReference;
@@ -159,6 +165,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(parameter);
+
+        builder.WithReferenceRelationship(parameter.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -183,6 +191,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(envVarName);
         ArgumentNullException.ThrowIfNull(resource);
+
+        builder.WithReferenceRelationship(resource.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -216,6 +226,8 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(args);
+
+        WalkAndLinkResourceReferences(builder, args);
 
         return builder.WithArgs(context => context.Args.AddRange(args));
     }
@@ -325,7 +337,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects a connection string as an environment variable from the source resource into the destination resource, using the source resource's name as the connection string name (if not overridden).
-    /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}."
+    /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
     /// <para>
     /// Each resource defines the format of the connection string value. The
     /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionStringAsync(CancellationToken)"/>.
@@ -351,7 +363,7 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        builder.WithRelationship(resource, KnownRelationshipTypes.Reference);
+        builder.WithReferenceRelationship(resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -363,7 +375,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -410,7 +422,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -457,7 +469,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
 
-        builder.WithRelationship(resourceWithEndpoints, KnownRelationshipTypes.Reference);
+        builder.WithReferenceRelationship(resourceWithEndpoints);
     }
 
     /// <summary>
@@ -472,7 +484,7 @@ public static class ResourceBuilderExtensions
     /// <para>
     /// The <see cref="WithEndpoint{T}(IResourceBuilder{T}, string, Action{EndpointAnnotation}, bool)"/> method allows
     /// developers to mutate any aspect of an endpoint annotation. Note that changing one value does not automatically change
-    /// other values to compatable/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
+    /// other values to compatible/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
     /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
     /// All values should be set in the callback if the defaults are not acceptable.
     /// </para>
@@ -684,6 +696,261 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithAnnotation(new Http2ServiceAnnotation());
+    }
+
+    /// <summary>
+    /// Registers a callback to customize the URLs displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The callback that will customize URLs for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated for this resource.<br/>
+    /// This allows you to modify any URLs for the resource, including adding, modifying, or even deletion.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Update all displayed URLs to have display text:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrls(c =>
+    ///                       {
+    ///                           foreach (var url in c.Urls)
+    ///                           {
+    ///                               if (string.IsNullOrEmpty(url.DisplayText))
+    ///                               {
+    ///                                   url.DisplayText = "frontend";
+    ///                               }
+    ///                           }
+    ///                       });
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Update endpoint URLs to use a custom host name based on the resource name:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrls(c =>
+    ///                       {
+    ///                           foreach (var url in c.Urls)
+    ///                           {
+    ///                               if (url.Endpoint is not null)
+    ///                               {
+    ///                                   var uri = new UriBuilder(url.Url) { Host = $"{c.Resource.Name}.localhost" };
+    ///                                   url.Url = uri.ToString();
+    ///                               }
+    ///                           }
+    ///                       });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Registers an async callback to customize the URLs displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="callback">The async callback that will customize URLs for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated for this resource.<br/>
+    /// This allows you to modify any URLs for the resource, including adding, modifying, or even deletion.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, DisplayText = displayText })));
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The interpolated string that produces the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, in ReferenceExpression.ExpressionInterpolatedStringHandler url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var expression = url.GetExpression();
+
+        return builder.WithUrl(expression, displayText);
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">A <see cref="ReferenceExpression"/> that will produce the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(async c =>
+        {
+            var endpoint = url.ValueProviders.OfType<EndpointReference>().FirstOrDefault();
+            var urlValue = await url.GetValueAsync(c.CancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(urlValue))
+            {
+                c.Urls.Add(new() { Endpoint = endpoint, Url = urlValue, DisplayText = displayText });
+            }
+        }));
+    }
+
+    /// <summary>
+    /// Registers a callback to update the URL displayed for the endpoint with the specified name.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to customize the URL for.</param>
+    /// <param name="callback">The callback that will customize the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.<br/>
+    /// To add another URL for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Func{EndpointReference, ResourceUrlAnnotation})"/>.
+    /// </para>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated and the URL has been generated.<br/>
+    /// This allows you to modify the URL or its display text.
+    /// </para>
+    /// <para>
+    /// If the URL returned by <paramref name="callback"/> is relative, it will be combined with the endpoint URL to create an absolute URL.
+    /// </para>
+    /// <para>
+    /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Customize the URL for the "https" endpoint to use the link text "Home":
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", url => url.DisplayText = "Home");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Customize the URL for the "https" endpoint to deep to the "/home" path:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", url => url.Url = "/home");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
+        where T : IResource
+    {
+        builder.WithUrls(context =>
+        {
+            var urlForEndpoint = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == endpointName);
+            if (urlForEndpoint is not null)
+            {
+                callback(urlForEndpoint);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to customize endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a callback to add a URL for the endpoint with the specified name.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to add the URL for.</param>
+    /// <param name="callback">The callback that will create the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method to add another URL for an endpoint on the resource.<br/>
+    /// To customize the URL that is automatically added for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
+    /// </para>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated and the resource is about to start.
+    /// </para>
+    /// <para>
+    /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a URL for the "https" endpoint that deep-links to an admin page with the text "Admin":
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", ep => new() { Url = "/admin", DisplayText = "Admin" });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
+        where T : IResourceWithEndpoints
+    {
+        builder.WithUrls(context =>
+        {
+            var endpoint = builder.GetEndpoint(endpointName);
+            if (endpoint.Exists)
+            {
+                var url = callback(endpoint).WithEndpoint(endpoint);
+                context.Urls.Add(url);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to add an endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
     }
 
     /// <summary>
@@ -1081,7 +1348,49 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of command. The name uniquely identifies the command.</param>
+    /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="executeCommand">
+    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// The callback result is used to indicate success or failure in the UI.
+    /// </param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
+    /// and can be executed by a user using the dashboard UI.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithCommand<T>(
+        this IResourceBuilder<T> builder,
+        string name,
+        string displayName,
+        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        CommandOptions? commandOptions = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(displayName);
+        ArgumentNullException.ThrowIfNull(executeCommand);
+
+        commandOptions ??= CommandOptions.Default;
+
+        // Replace existing annotation with the same name.
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
+        if (existingAnnotation is not null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, commandOptions.UpdateState ?? (c => ResourceCommandState.Enabled), executeCommand, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
@@ -1112,6 +1421,7 @@ public static class ResourceBuilderExtensions
     /// and can be executed by a user using the dashboard UI.</para>
     /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
     /// </remarks>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload that accepts a CommandOptions instance instead.")]
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
         string name,
@@ -1148,26 +1458,8 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointName">The name of the HTTP endpoint on this resource to send the request to when the command is invoked.</param>
-    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
-    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
-    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
-    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
-    /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="updateState">
-    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
-    /// <para>If a callback isn't specified, the command is enabled when the resource is in the <c>Running</c> state.</para>
-    /// </param>
-    /// <param name="displayDescription">
-    /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
-    /// </param>
-    /// <param name="confirmationMessage">
-    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
-    /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
-    /// <param name="iconVariant">The icon variant.</param>
-    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <param name="commandName">Optional name of the command. The name uniquely identifies the command. If a name isn't specified then it's inferred using the command's endpoint and HTTP method.</param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -1186,19 +1478,19 @@ public static class ResourceBuilderExtensions
     /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
     /// </para>
     /// <para>
-    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// If <see cref="HttpCommandOptions.Method"/> is not specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
-    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// Specifying <see cref="HttpCommandOptions.HttpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
     /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
-    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// If <see cref="HttpCommandOptions.HttpClientName"/> is not specified, the default <see cref="HttpClient"/> will be used.
     /// </para>
     /// <para>
-    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// The <see cref="HttpCommandOptions.PrepareRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
     /// before the request is sent.
     /// </para>
     /// <para>
-    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
@@ -1218,13 +1510,16 @@ public static class ResourceBuilderExtensions
     ///     .WithHttpsEndpoint("admin")
     ///     .WithEnvironment("ADMIN_KEY", adminKey)
     ///     .WithHttpCommand("/reset-db", "Reset database",
-    ///                      method: HttpMethod.Get,
     ///                      endpointName: "admin",
-    ///                      confirmationMessage: "Are you sure you want to reset the database?"
-    ///                      configureRequest: request =>
+    ///                      commandOptions: new ()
     ///                      {
-    ///                          request.Headers.Add("X-Admin-Key", adminKey);
-    ///                          return Task.CompletedTask;
+    ///                         Method = HttpMethod.Get,
+    ///                         ConfirmationMessage = "Are you sure you want to reset the database?",
+    ///                         PrepareRequest: request =>
+    ///                         {
+    ///                             request.Headers.Add("X-Admin-Key", adminKey);
+    ///                             return Task.CompletedTask;
+    ///                         }
     ///                      });
     /// </code>
     /// </example>
@@ -1233,17 +1528,8 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         [EndpointName] string? endpointName = null,
-        HttpMethod? method = null,
-        string? httpClientName = null,
-        Func<HttpCommandRequestContext, Task>? configureRequest = null,
-        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
-        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
-        string? displayDescription = null,
-        string? confirmationMessage = null,
-        string? iconName = null,
-        IconVariant? iconVariant = null,
-        bool isHighlighted = false)
+        HttpCommandOptions? commandOptions = null)
         where TResource : IResourceWithEndpoints
         => builder.WithHttpCommand(
             path: path,
@@ -1251,17 +1537,8 @@ public static class ResourceBuilderExtensions
             endpointSelector: endpointName is not null
                 ? NamedEndpointSelector(builder, [endpointName])
                 : NamedEndpointSelector(builder, s_httpSchemes),
-            method: method,
-            httpClientName: httpClientName,
-            configureRequest: configureRequest,
-            getCommandResult: getCommandResult,
             commandName: commandName,
-            updateState: updateState,
-            displayDescription: displayDescription,
-            confirmationMessage: confirmationMessage,
-            iconName: iconName,
-            iconVariant: iconVariant,
-            isHighlighted: isHighlighted);
+            commandOptions: commandOptions);
 
     /// <summary>
     /// Adds a command to the resource that when invoked sends an HTTP request to the specified endpoint and path.
@@ -1271,26 +1548,8 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to send the request to when the command is invoked.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="endpointSelector">A callback that selects the HTTP endpoint to send the request to when the command is invoked.</param>
-    /// <param name="method">The HTTP method to use when sending the request. Defaults to <c>POST</c>.</param>
-    /// <param name="httpClientName">The name of the HTTP client to use when creating it via <see cref="IHttpClientFactory.CreateClient(string)"/>.</param>
-    /// <param name="configureRequest">A callback to be invoked to configure the request before it is sent.</param>
-    /// <param name="getCommandResult">A callback to be invoked after the response is received to determine the result of the command invocation.</param>
+    /// <param name="commandOptions">Optional configuration for the command.</param>
     /// <param name="commandName">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="updateState">
-    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
-    /// <para>If a callback isn't specified, the command is enabled when the resource associated with the endpoint returned by <paramref name="endpointSelector"/> is in the <c>Running</c> state.</para>
-    /// </param>
-    /// <param name="displayDescription">
-    /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
-    /// </param>
-    /// <param name="confirmationMessage">
-    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
-    /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name from <see href="https://aka.ms/fluentui-system-icons"/></param>
-    /// <param name="iconVariant">The icon variant.</param>
-    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
     /// <remarks>
@@ -1298,30 +1557,30 @@ public static class ResourceBuilderExtensions
     /// The command will be added to the resource represented by <paramref name="builder"/>.
     /// </para>
     /// <para>
-    /// If no <paramref name="endpointSelector"/> is specified, the first HTTP endpoint found on the resource will be used.
+    /// If no <see cref="HttpCommandOptions.EndpointSelector"/> is specified, the first HTTP endpoint found on the resource will be used.
     /// HTTP endpoints with an <c>https</c> scheme are preferred over those with an <c>http</c> scheme. If no HTTP endpoint
     /// is found on the resource, an exception will be thrown.
     /// </para>
     /// <para>
-    /// The supplied <paramref name="endpointSelector"/> may return an endpoint from a different resource to that which the command is being added to.
+    /// The supplied <see cref="HttpCommandOptions.EndpointSelector"/> may return an endpoint from a different resource to that which the command is being added to.
     /// </para>
     /// <para>
     /// The command will not be enabled until the endpoint is allocated and the resource the endpoint is associated with is healthy.
     /// </para>
     /// <para>
-    /// If no <paramref name="method"/> is specified, <c>POST</c> will be used.
+    /// If <see cref="HttpCommandOptions.Method"/> is not specified, <c>POST</c> will be used.
     /// </para>
     /// <para>
-    /// Specifying a <paramref name="httpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
+    /// Specifying a <see cref="HttpCommandOptions.HttpClientName"/> will use that named <see cref="HttpClient"/> when sending the request. This allows you to configure the <see cref="HttpClient"/>
     /// instance with a specific handler or other options using <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient(IServiceCollection, string)"/>.
-    /// If no <paramref name="httpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
+    /// If no <see cref="HttpCommandOptions.HttpClientName"/> is specified, the default <see cref="HttpClient"/> will be used.
     /// </para>
     /// <para>
-    /// The <paramref name="configureRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
+    /// The <see cref="HttpCommandOptions.PrepareRequest"/> callback will be invoked to configure the request before it is sent. This can be used to add headers or a request payload
     /// before the request is sent.
     /// </para>
     /// <para>
-    /// The <paramref name="getCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
+    /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
     /// </remarks>
@@ -1342,46 +1601,44 @@ public static class ResourceBuilderExtensions
         string path,
         string displayName,
         Func<EndpointReference>? endpointSelector,
-        HttpMethod? method = null,
-        string? httpClientName = null,
-        Func<HttpCommandRequestContext, Task>? configureRequest = null,
-        Func<HttpCommandResultContext, Task<ExecuteCommandResult>>? getCommandResult = null,
         string? commandName = null,
-        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
-        string? displayDescription = null,
-        string? confirmationMessage = null,
-        string? iconName = null,
-        IconVariant? iconVariant = null,
-        bool isHighlighted = false)
+        HttpCommandOptions? commandOptions = null)
         where TResource : IResourceWithEndpoints
     {
-        method ??= HttpMethod.Post;
-
         endpointSelector ??= DefaultEndpointSelector(builder);
 
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
 
-        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{method.Method.ToLowerInvariant()}-{path}";
+        builder.ApplicationBuilder.Services.AddHttpClient();
 
-        var targetRunning = false;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        commandOptions ??= HttpCommandOptions.Default;
+        commandOptions.Method ??= HttpMethod.Post;
+
+        commandName ??= $"{endpoint.Resource.Name}-{endpoint.EndpointName}-http-{commandOptions.Method.Method.ToLowerInvariant()}-{path}";
+
+        if (commandOptions.UpdateState is null)
         {
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            _ = Task.Run(async () =>
+            var targetRunning = false;
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
             {
-                await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
+                var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+                _ = Task.Run(async () =>
                 {
-                    if (resourceEvent.Resource == endpoint.Resource)
+                    await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
                     {
-                        var resourceState = resourceEvent.Snapshot.State?.Text;
-                        targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                        if (resourceEvent.Resource == endpoint.Resource)
+                        {
+                            var resourceState = resourceEvent.Snapshot.State?.Text;
+                            targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                        }
                     }
-                }
-            }, ct);
+                }, ct);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
+            commandOptions.UpdateState = context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+        }
 
         builder.WithCommand(commandName, displayName,
             async context =>
@@ -1392,9 +1649,9 @@ public static class ResourceBuilderExtensions
                 }
 
                 var uri = new UriBuilder(endpoint.Url) { Path = path }.Uri;
-                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName ?? Options.DefaultName);
-                var request = new HttpRequestMessage(method, uri);
-                if (configureRequest is not null)
+                var httpClient = context.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(commandOptions.HttpClientName ?? Options.DefaultName);
+                var request = new HttpRequestMessage(commandOptions.Method, uri);
+                if (commandOptions.PrepareRequest is not null)
                 {
                     var requestContext = new HttpCommandRequestContext
                     {
@@ -1405,12 +1662,12 @@ public static class ResourceBuilderExtensions
                         HttpClient = httpClient,
                         Request = request
                     };
-                    await configureRequest(requestContext).ConfigureAwait(false);
+                    await commandOptions.PrepareRequest(requestContext).ConfigureAwait(false);
                 }
                 try
                 {
                     var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
-                    if (getCommandResult is not null)
+                    if (commandOptions.GetCommandResult is not null)
                     {
                         var resultContext = new HttpCommandResultContext
                         {
@@ -1421,7 +1678,7 @@ public static class ResourceBuilderExtensions
                             HttpClient = httpClient,
                             Response = response
                         };
-                        return await getCommandResult(resultContext).ConfigureAwait(false);
+                        return await commandOptions.GetCommandResult(resultContext).ConfigureAwait(false);
                     }
 
                     return response.IsSuccessStatusCode
@@ -1433,12 +1690,7 @@ public static class ResourceBuilderExtensions
                     return CommandResults.Failure(ex);
                 }
             },
-            updateState: updateState ?? (context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled),
-            displayDescription: displayDescription,
-            confirmationMessage: confirmationMessage,
-            iconName: iconName,
-            iconVariant: iconVariant,
-            isHighlighted: isHighlighted);
+            commandOptions);
 
         return builder;
     }
@@ -1530,6 +1782,99 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a reference to another resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resource">The resource that the relationship is to.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource resource) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, KnownRelationshipTypes.Reference));
+    }
+
+    /// <summary>
+    /// Walks the reference expression and adds <see cref="ResourceRelationshipAnnotation"/>s for all resources found in the expression.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="expression">The reference expression.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        ReferenceExpression expression) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(expression);
+
+        WalkAndLinkResourceReferences(builder, expression.ValueProviders);
+
+        return builder;
+    }
+
+    private static void WalkAndLinkResourceReferences<T>(IResourceBuilder<T> builder, IEnumerable<object> values)
+        where T : IResource
+    {
+        var processed = new HashSet<object>();
+
+        void AddReference(IResource resource)
+        {
+            builder.WithReferenceRelationship(resource);
+        }
+
+        void Walk(object value)
+        {
+            if (!processed.Add(value))
+            {
+                return;
+            }
+
+            if (value is IResource resource)
+            {
+                AddReference(resource);
+            }
+            else if (value is IResourceBuilder<IResource> resourceBuilder)
+            {
+                AddReference(resourceBuilder.Resource);
+            }
+            else if (value is IValueWithReferences valueWithReferences)
+            {
+                foreach (var reference in valueWithReferences.References)
+                {
+                    Walk(reference);
+                }
+            }
+        }
+
+        foreach (var value in values)
+        {
+            Walk(value);
+        }
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a reference to another resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resourceBuilder">The resource builder that the relationship is to.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResource> resourceBuilder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resourceBuilder.Resource, KnownRelationshipTypes.Reference));
+    }
+
+    /// <summary>
     /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
@@ -1547,7 +1892,7 @@ public static class ResourceBuilderExtensions
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
-    /// 
+    ///
     /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
     ///                      .WithParentRelationship(backend);
     /// </code>

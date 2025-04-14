@@ -81,7 +81,7 @@ internal static partial class BicepFunction2
     private static partial Regex PlaceholderRegex();
 }
 
-internal class BicepFormatString(string format, object[] args)
+internal sealed class BicepFormatString(string format, object[] args)
 {
     public string Format { get; } = format;
     public object[] Args { get; } = args;

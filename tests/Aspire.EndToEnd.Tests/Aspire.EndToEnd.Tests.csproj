@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-
-    <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!-- Only run on Linux; no docker support on Windows yet -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
 
     <!-- no docker support on helix/windows yet -->
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
@@ -20,7 +20,6 @@
     <DefineConstants Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
@@ -28,7 +27,11 @@
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit.v3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
@@ -36,5 +39,5 @@
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+  <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />
 </Project>

@@ -108,7 +108,7 @@ public class PasswordGeneratorTests
         var password = Generate(minLength, true, true, true, false, 0, 0, 0, 0);
         password += SpecialChars;
 
-        Exception exception = Record.Exception(() => new Uri($"https://guest:{password}@localhost:12345"));
+        Exception? exception = Record.Exception(() => new Uri($"https://guest:{password}@localhost:12345"));
 
         Assert.True((exception is null), $"Password contains invalid chars: {password}");
     }

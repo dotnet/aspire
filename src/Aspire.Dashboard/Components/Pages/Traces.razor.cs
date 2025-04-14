@@ -81,6 +81,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -245,6 +248,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         });
     }
 
+    private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
+
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
@@ -332,6 +342,14 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             {
                 TracesViewModel.AddFilter(filter);
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -341,6 +359,17 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         TelemetryRepository.ClearTraces(key);
         return Task.CompletedTask;
+    }
+
+    private List<MenuButtonItem> GetFilterMenuItems()
+    {
+        return this.GetFilterMenuItems(
+            TracesViewModel.Filters,
+            clearFilters: TracesViewModel.ClearFilters,
+            openFilterAsync: OpenFilterAsync,
+            filterLoc: FilterLoc,
+            dialogsLoc: DialogsLoc,
+            contentLayout: _contentLayout);
     }
 
     public class TracesPageViewModel

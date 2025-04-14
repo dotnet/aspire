@@ -2,16 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
-        <source>Endpoints</source>
-        <target state="translated">엔드포인트</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="EndpointsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">시작 중...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
         <target state="translated">이 컨테이너는 영구적이며 앱 호스트가 종료될 때 중지되지 않습니다.</target>
@@ -112,6 +102,16 @@ For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealt
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
         <target state="translated">1개의 오류 로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UrlsColumnDisplayOverflowTitle">
+        <source>URLs</source>
+        <target state="translated">URL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UrlsColumnDisplayPlaceholder">
+        <source>Starting...</source>
+        <target state="translated">시작하는 중...</target>
         <note />
       </trans-unit>
     </body>
