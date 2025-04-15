@@ -354,13 +354,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         }
 
         [JSInvokable]
-        public async Task ResourceContextMenu(string id, int clientX, int clientY)
+        public async Task ResourceContextMenu(string id, int screenWidth, int screenHeight, int clientX, int clientY)
         {
             if (resources._resourceByName.TryGetValue(id, out var resource))
             {
                 await resources.InvokeAsync(async () =>
                 {
-                    await resources.ShowContextMenuAsync(resource, clientX, clientY);
+                    await resources.ShowContextMenuAsync(resource, screenWidth, screenHeight, clientX, clientY);
                 });
             }
         }
@@ -512,7 +512,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         return false;
     }
 
-    private async Task ShowContextMenuAsync(ResourceViewModel resource, int clientX, int clientY)
+    private async Task ShowContextMenuAsync(ResourceViewModel resource, int screenWidth, int screenHeight, int clientX, int clientY)
     {
         // This is called when the browser requests to show the context menu for a resource.
         // The method doesn't complete until the context menu is closed so the browser can await
@@ -540,7 +540,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
             _contextMenuClosedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await contextMenu.OpenAsync(clientX, clientY);
+            await contextMenu.OpenAsync(screenWidth, screenHeight, clientX, clientY);
             StateHasChanged();
 
             // Completed when the overlay closes.
