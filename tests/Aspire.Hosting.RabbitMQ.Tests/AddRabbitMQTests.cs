@@ -114,6 +114,7 @@ public class AddRabbitMQTests
     [InlineData(null, RabbitMQContainerImageTags.ManagementTag)]
     [InlineData("management", "management")]
     [InlineData("management-alpine", "management-alpine")]
+    [InlineData("alpine", "management-alpine")]
     [InlineData("3", "3-management")]
     [InlineData("3.12", "3.12-management")]
     [InlineData("3.12.0", "3.12.0-management")]
