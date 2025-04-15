@@ -17,5 +17,7 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// Gets or sets the container registry information associated with
     /// the deployment target, if the deployment target is an image-based environment.
     /// </summary>
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     public IContainerRegistry? ContainerRegistryInfo { get; set; }
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 }
