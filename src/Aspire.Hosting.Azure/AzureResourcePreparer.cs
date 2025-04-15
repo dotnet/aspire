@@ -190,6 +190,19 @@ internal sealed class AzureResourcePreparer(
                     }
                 }
             }
+
+            if (executionContext.IsRunMode)
+            {
+                // in RunMode, any Azure resources that are not referenced by a compute resource should have their default role assignments applied
+                foreach (var azureResource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
+                {
+                    if (!globalRoleAssignments.TryGetValue(azureResource, out _) &&
+                        azureResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments))
+                    {
+                        AppendGlobalRoleAssignments(globalRoleAssignments, azureResource, defaultRoleAssignments.Roles);
+                    }
+                }
+            }
         }
 
         if (globalRoleAssignments.Count > 0)
