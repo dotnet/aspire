@@ -232,6 +232,10 @@ public static partial class SqlServerBuilderExtensions
 
     private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
     {
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
+
+        logger.LogDebug("Creating database '{DatabaseName}'", sqlDatabase.DatabaseName);
+
         try
         {
             var scriptAnnotation = sqlDatabase.Annotations.OfType<SqlServerCreateDatabaseScriptAnnotation>().LastOrDefault();
@@ -286,10 +290,11 @@ public static partial class SqlServerBuilderExtensions
                     await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
                 }
             }
+
+            logger.LogDebug("Database '{DatabaseName}' created successfully", sqlDatabase.DatabaseName);
         }
         catch (Exception e)
         {
-            var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
             logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
         }
     }
