@@ -43,7 +43,7 @@ public partial class AspireMenu : FluentComponentBase
 
     public async Task OpenAsync(int screenWidth, int screenHeight, int clientX, int clientY)
     {
-        if (_menu is not null)
+        if (_menu is { } menu)
         {
             // Calculate the position to display the context menu using the cursor position (clientX, clientY)
             // together with the screen width and height.
@@ -53,7 +53,7 @@ public partial class AspireMenu : FluentComponentBase
             var top = 0;
             var bottom = 0;
 
-            if (clientX + _menu.HorizontalThreshold > screenWidth)
+            if (clientX + menu.HorizontalThreshold > screenWidth)
             {
                 right = screenWidth - clientX;
             }
@@ -62,7 +62,7 @@ public partial class AspireMenu : FluentComponentBase
                 left = clientX;
             }
 
-            if (clientY + _menu.VerticalThreshold > screenHeight)
+            if (clientY + menu.VerticalThreshold > screenHeight)
             {
                 bottom = screenHeight - clientY;
             }
