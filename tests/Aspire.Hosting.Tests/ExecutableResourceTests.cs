@@ -10,7 +10,6 @@ namespace Aspire.Hosting.Tests;
 
 public class ExecutableResourceTests
 {
-    // comment to trigger build
     [Fact]
     public async Task AddExecutableWithArgs()
     {
