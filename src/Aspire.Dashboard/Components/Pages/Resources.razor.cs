@@ -55,7 +55,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
-    public string SessionStorageKey => "Resources_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
     public ResourcesViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
