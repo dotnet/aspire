@@ -31,4 +31,7 @@ public static class TelemetryPropertyKeys
     public const string ExceptionType = AspireDashboardPropertyPrefix + "Exception.Type";
     public const string ExceptionMessage = AspireDashboardPropertyPrefix + "Exception.Message";
     public const string ExceptionStackTrace = AspireDashboardPropertyPrefix + "Exception.StackTrace";
+
+    // Resource properties
+    public const string ResourceType = AspireDashboardPropertyPrefix + "Resource.Type";
 }

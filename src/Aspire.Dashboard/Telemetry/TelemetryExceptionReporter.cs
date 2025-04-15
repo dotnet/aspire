@@ -27,7 +27,7 @@ public class TelemetryExceptionReporter(IServiceProvider serviceProvider) : ILog
                 await telemetryService.InitializeAsync().ConfigureAwait(false);
 
                 telemetryService.PostFault(
-                    TelemetryEventKeys.Fault,
+                    TelemetryEventKeys.Error,
                     formatter(state, exception),
                     ToFaultSeverity(logLevel),
                     new Dictionary<string, AspireTelemetryProperty>

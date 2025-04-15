@@ -11,5 +11,7 @@ public static class TelemetryEventKeys
     public const string ParametersSet = AspireDashboardEventPrefix + "component/paramsSet";
     public const string ComponentDispose = AspireDashboardEventPrefix + "component/dispose";
 
-    public const string Fault = AspireDashboardEventPrefix + "fault";
+    public const string Error = AspireDashboardEventPrefix + "error";
+
+    public const string RestartResource = AspireDashboardEventPrefix + "restartResource";
 }

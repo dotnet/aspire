@@ -154,9 +154,9 @@ public sealed class DashboardTelemetryService(
     /// <summary>
     /// Ends a long-running user task. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndUserTask(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndUserTask(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (!IsEnabled())
+        if (!IsEnabled() || operationId is null)
         {
             return;
         }
