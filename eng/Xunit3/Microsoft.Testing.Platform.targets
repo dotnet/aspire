@@ -37,7 +37,7 @@
         Redirect std output of the runner.
         Note that xUnit outputs failure info to both STDOUT (stack trace, message) and STDERR (failed test name)
       -->
-      <_TestRunnerCommand Condition="'$(TestCaptureOutput)' != 'false'">$(_TestRunnerCommand) > "%(TestToRun.ResultsStdOutPath)" 2>&amp;1</_TestRunnerCommand>
+      <_TestRunnerCommand Condition="'$(TestCaptureOutput)' != 'false'">$(_TestRunnerCommand) >> "%(TestToRun.ResultsStdOutPath)" 2>&amp;1</_TestRunnerCommand>
     </PropertyGroup>
 
     <ItemGroup>
@@ -54,7 +54,7 @@
     -->
     <WriteLinesToFile File="%(TestToRun.ResultsStdOutPath)"
                       Overwrite="false"
-                      Lines=";=== COMMAND LINE ===;$(_TestRunnerCommand)"
+                      Lines=";=== COMMAND LINE ===;$(_TestRunnerCommand);=== END COMMAND LINE ===;%20;"
                       Condition="'$(TestCaptureOutput)' != 'false'" />
 
     <Message Text="Running tests: $(_TestAssembly) [$(_TestEnvironment)]" Importance="high"/>
