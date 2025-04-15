@@ -7,8 +7,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a specified executable process.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">The working directory of the executable.</param>
+/// <param name="command">The command to execute. Can be empty.</param>
+/// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
 public class ExecutableResource(string name, string command, string workingDirectory)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
 {
