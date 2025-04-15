@@ -209,84 +209,6 @@ public partial class ResourcesTests : DashboardTestContext
     }
 
     [Fact]
-    public void ResourceFilters_PersistStateOnNavigation()
-    {
-        // Arrange
-        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
-        var initialResources = new List<ResourceViewModel>
-        {
-            CreateResource("Resource1", "Type1", "Running", null),
-            CreateResource("Resource2", "Type2", "Finished", null),
-        };
-
-        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources,
-            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
-        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
-
-        var sessionStorage = (TestSessionStorage)Services.GetRequiredService<ISessionStorage>();
-        // Simulate existing filters in session storage
-        sessionStorage.OnGetAsync = key =>
-        {
-            if (key is BrowserStorageKeys.ResourcesPageState)
-            {
-                return (true,
-                    new Components.Pages.Resources.ResourcesPageState
-                    {
-                        ResourceTypesToVisibility =
-                            new Dictionary<string, bool> { { "Type1", true }, { "Type2", false } },
-                        ResourceStatesToVisibility =
-                            new Dictionary<string, bool> { { "Running", true }, { "Finished", false } },
-                        ResourceHealthStatusesToVisibility =
-                            new Dictionary<string, bool> { { "Healthy", true }, { "Unhealthy", false } },
-                        ViewKind = null,
-                    });
-            }
-
-            return (false, null);
-        };
-
-        // Act
-        var cut = RenderComponent<Components.Pages.Resources>(builder => { builder.AddCascadingValue(viewport); });
-
-        // Assert
-        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
-            kvp =>
-            {
-                Assert.Equal("Type1", kvp.Key);
-                Assert.True(kvp.Value);
-            },
-            kvp =>
-            {
-                Assert.Equal("Type2", kvp.Key);
-                Assert.False(kvp.Value);
-            });
-        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
-            kvp =>
-            {
-                Assert.Equal("Finished", kvp.Key);
-                Assert.False(kvp.Value);
-            },
-            kvp =>
-            {
-                Assert.Equal("Running", kvp.Key);
-                Assert.True(kvp.Value);
-            });
-
-        // Unhealthy not included because it's not present in any resource
-        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
-            kvp =>
-            {
-                Assert.Equal(string.Empty, kvp.Key);
-                Assert.True(kvp.Value);
-            },
-            kvp =>
-            {
-                Assert.Equal("Healthy", kvp.Key);
-                Assert.True(kvp.Value);
-            });
-    }
-
-    [Fact]
     public void ResourceFilters_ApplyExistingFiltersOnInitialRender()
     {
         // Arrange
@@ -323,10 +245,9 @@ public partial class ResourcesTests : DashboardTestContext
             return (false, null);
         };
 
-        // Act
+        // Act and assert
         var cut = RenderComponent<Components.Pages.Resources>(builder => { builder.AddCascadingValue(viewport); });
 
-        // Assert
         Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
