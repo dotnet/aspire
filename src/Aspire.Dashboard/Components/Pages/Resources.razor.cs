@@ -215,21 +215,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
         async Task SubscribeResourcesAsync()
         {
-            var preselectedHiddenResourceTypes = HiddenTypes?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
-            var preselectedHiddenResourceStates = HiddenStates?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
-            var preselectedHiddenResourceHealthStates = HiddenHealthStates?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
-
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
             foreach (var resource in snapshot)
             {
-                var added = UpdateFromResource(
-                    resource,
-                    type => preselectedHiddenResourceTypes is null || !preselectedHiddenResourceTypes.Contains(type),
-                    state => preselectedHiddenResourceStates is null || !preselectedHiddenResourceStates.Contains(state),
-                    healthStatus => preselectedHiddenResourceHealthStates is null || !preselectedHiddenResourceHealthStates.Contains(healthStatus));
-
+                var added = UpdateFromResource(resource);
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
@@ -281,29 +272,42 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 }
             });
         }
+    }
 
-        bool UpdateFromResource(ResourceViewModel resource, Func<string, bool> resourceTypeVisible, Func<string, bool> stateVisible, Func<string, bool> healthStatusVisible)
+    private bool UpdateFromResource(ResourceViewModel resource)
+    {
+        var preselectedHiddenResourceTypes = HiddenTypes?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
+        var preselectedHiddenResourceStates = HiddenStates?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
+        var preselectedHiddenResourceHealthStates = HiddenHealthStates?.Split(' ').Select(StringUtils.Unescape).ToHashSet();
+
+        return UpdateFromResource(
+            resource,
+            type => preselectedHiddenResourceTypes is null || !preselectedHiddenResourceTypes.Contains(type),
+            state => preselectedHiddenResourceStates is null || !preselectedHiddenResourceStates.Contains(state),
+            healthStatus => preselectedHiddenResourceHealthStates is null || !preselectedHiddenResourceHealthStates.Contains(healthStatus));
+    }
+
+    private bool UpdateFromResource(ResourceViewModel resource, Func<string, bool> resourceTypeVisible, Func<string, bool> stateVisible, Func<string, bool> healthStatusVisible)
+    {
+        // This is ok from threadsafty perspective because we are the only thread that's modifying resources.
+        bool added;
+        if (_resourceByName.TryGetValue(resource.Name, out _))
         {
-            // This is ok from threadsafty perspective because we are the only thread that's modifying resources.
-            bool added;
-            if (_resourceByName.TryGetValue(resource.Name, out _))
-            {
-                added = false;
-                _resourceByName[resource.Name] = resource;
-            }
-            else
-            {
-                added = _resourceByName.TryAdd(resource.Name, resource);
-            }
-
-            PageViewModel.ResourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
-            PageViewModel.ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
-            PageViewModel.ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
-
-            UpdateMenuButtons();
-
-            return added;
+            added = false;
+            _resourceByName[resource.Name] = resource;
         }
+        else
+        {
+            added = _resourceByName.TryAdd(resource.Name, resource);
+        }
+
+        PageViewModel.ResourceTypesToVisibility.AddOrUpdate(resource.ResourceType, resourceTypeVisible(resource.ResourceType), (_, _) => resourceTypeVisible(resource.ResourceType));
+        PageViewModel.ResourceStatesToVisibility.AddOrUpdate(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty), (_, _) => stateVisible(resource.State ?? string.Empty));
+        PageViewModel.ResourceHealthStatusesToVisibility.AddOrUpdate(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty), (_, _) => healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
+
+        UpdateMenuButtons();
+
+        return added;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -471,6 +475,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         if (await this.InitializeViewModelAsync())
         {
             return;
+        }
+
+        // If filters were saved in page state, resource filters now need to be recomputed since the URL has changed.
+        foreach (var resourceViewModel in _resourceByName)
+        {
+            UpdateFromResource(resourceViewModel.Value);
         }
 
         if (ResourceName is not null)
