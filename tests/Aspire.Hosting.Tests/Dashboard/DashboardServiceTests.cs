@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
@@ -29,7 +32,9 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
+        var getConsoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<LogEntry>>();
+        var dcpExecutor = new TestDcpExecutor(getConsoleLogsChannel);
+        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService, dcpExecutor: dcpExecutor);
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
@@ -51,16 +56,26 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             context);
 
         // Assert
-        var longLinesUpdate1 = await writer.ReadNextAsync().DefaultTimeout();
-        Assert.Collection(longLinesUpdate1.LogLines,
+        var update1 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update1.LogLines,
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
 
-        var longLinesUpdate2 = await writer.ReadNextAsync().DefaultTimeout();
-        Assert.Collection(longLinesUpdate2.LogLines,
+        var update2 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update2.LogLines,
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
             l => Assert.Equal("Test1", l.Text.Split(' ')[1]),
             l => Assert.Equal("Test2", l.Text.Split(' ')[1]));
+
+        await getConsoleLogsChannel.Writer.WriteAsync([LogEntry.Create(null, "Test3", isErrorMessage: false)]);
+
+        var update3 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update3.LogLines,
+            l => Assert.Equal("Test3", l.Text));
+
+        Assert.False(task.IsCompleted, "Waiting for channel to complete.");
+
+        getConsoleLogsChannel.Writer.TryComplete();
 
         await task.DefaultTimeout();
     }
@@ -193,7 +208,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     private static DashboardServiceData CreateDashboardServiceData(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        IDcpExecutor? dcpExecutor = null)
     {
         loggerFactory ??= NullLoggerFactory.Instance;
 
@@ -202,7 +218,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             resourceLoggerService,
             loggerFactory.CreateLogger<DashboardServiceData>(),
             new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()),
-            new TestDcpExecutor());
+            dcpExecutor ?? new TestDcpExecutor());
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment
