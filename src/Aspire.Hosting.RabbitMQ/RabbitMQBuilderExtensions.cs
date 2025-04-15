@@ -173,8 +173,8 @@ public static class RabbitMQBuilderExtensions
                 annotation.Tag = RabbitMQContainerImageTags.ManagementTag;
                 handled = true;
             }
-            else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)
-                     || existingTag.EndsWith($"{management}{alpine}", StringComparison.OrdinalIgnoreCase))
+            else if (existingTag.EndsWith(management[1..], StringComparison.OrdinalIgnoreCase)
+                     || existingTag.EndsWith($"{management[1..]}{alpine}", StringComparison.OrdinalIgnoreCase))
             {
                 // Already using the management tag
                 handled = true;
