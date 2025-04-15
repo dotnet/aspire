@@ -380,6 +380,40 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void VerifyRedisResourceWithHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis")
+            .WithHostPort(1000);
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Fact]
+    public async Task VerifyRedisResourceWithPassword()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var redis = builder
+            .AddRedis("myRedis")
+            .WithPassword(pass)
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.StartsWith($"localhost:5001,password={password}", connectionString);
+    }
+
+    [Fact]
     public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariable()
     {
         var builder = DistributedApplication.CreateBuilder();

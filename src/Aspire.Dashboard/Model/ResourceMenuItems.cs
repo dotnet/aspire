@@ -17,6 +17,7 @@ public static class ResourceMenuItems
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_tracesIcon = new Icons.Regular.Size16.GanttChart();
     private static readonly Icon s_metricsIcon = new Icons.Regular.Size16.ChartMultiple();
+    private static readonly Icon s_linkIcon = new Icons.Regular.Size16.Link();
 
     public static void AddMenuItems(
         List<MenuButtonItem> menuItems,
@@ -30,7 +31,8 @@ public static class ResourceMenuItems
         Func<string?, Task> onViewDetails,
         Func<CommandViewModel, Task> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
-        bool showConsoleLogsItem)
+        bool showConsoleLogsItem,
+        bool showUrls)
     {
         menuItems.Add(new MenuButtonItem
         {
@@ -47,7 +49,7 @@ public static class ResourceMenuItems
                 Icon = s_consoleLogsIcon,
                 OnClick = () =>
                 {
-                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name));
+                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
                     return Task.CompletedTask;
                 }
             });
@@ -112,6 +114,36 @@ public static class ResourceMenuItems
                     Icon = icon,
                     OnClick = () => commandSelected(command),
                     IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
+                });
+            }
+        }
+
+        if (showUrls)
+        {
+            var urls = ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true)
+                .Where(u => !string.IsNullOrEmpty(u.Url))
+                .ToList();
+
+            if (urls.Count > 0)
+            {
+                menuItems.Add(new MenuButtonItem { IsDivider = true });
+            }
+
+            foreach (var url in urls)
+            {
+                // Opens the URL in a new window when clicked.
+                // It's important that this is done in the onclick event so the browser popup allows it.
+                menuItems.Add(new MenuButtonItem
+                {
+                    Text = url.Text,
+                    Tooltip = url.Url,
+                    Icon = s_linkIcon,
+                    AdditionalAttributes = new Dictionary<string, object>
+                    {
+                        ["data-openbutton"] = "true",
+                        ["data-url"] = url.Url!,
+                        ["data-target"] = "_blank"
+                    }
                 });
             }
         }

@@ -1,6 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using Aspire.Dashboard.Model
-@using Microsoft.FluentUI.AspNetCore.Components
+@using Aspire.Dashboard.Model.Otlp
 
 @if (ViewportInformation.IsDesktop)
 {
@@ -29,7 +29,7 @@
         }
     }
 
-    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: Resource.Name)))">
+    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: ResourceViewModel.GetResourceName(Resource, ResourceByName))))">
         <FluentIcon Value="@s_consoleLogsIcon" />
     </FluentButton>
 

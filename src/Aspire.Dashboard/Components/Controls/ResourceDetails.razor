@@ -1,11 +1,10 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Humanizer
 @using Microsoft.Extensions.Diagnostics.HealthChecks
-@using System.Net
+@using Aspire.Dashboard.Model.Otlp
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IStringLocalizer<Resources> Loc
@@ -13,7 +12,7 @@
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName))" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
