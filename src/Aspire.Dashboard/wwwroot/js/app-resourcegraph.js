@@ -483,7 +483,7 @@ class ResourceGraph {
 
         try {
             // Wait for method completion. It completes when the context menu is closed.
-            await this.resourcesInterop.invokeMethodAsync('ResourceContextMenu', data.id, event.clientX, event.clientY);
+            await this.resourcesInterop.invokeMethodAsync('ResourceContextMenu', data.id, window.innerWidth, window.innerHeight, event.clientX, event.clientY);
         } finally {
             this.openContextMenu = false;
 
