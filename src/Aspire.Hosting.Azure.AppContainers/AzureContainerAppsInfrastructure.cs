@@ -65,10 +65,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             // Capture information about the container registry used by the
             // container app environment in the deployment target information
             // associated with each compute resource that needs an image
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
                 ContainerRegistryInfo = caes.FirstOrDefault()
             });
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 
         static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)

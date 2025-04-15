@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -17,7 +19,6 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// Gets or sets the container registry information associated with
     /// the deployment target, if the deployment target is an image-based environment.
     /// </summary>
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    [Experimental("ASPIRECOMPUTE001")]
     public IContainerRegistry? ContainerRegistryInfo { get; set; }
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 }
