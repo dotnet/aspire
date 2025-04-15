@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -16,18 +17,20 @@ internal sealed class DashboardServiceData : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
     private readonly DashboardCommandExecutor _commandExecutor;
+    private readonly IDcpExecutor _dcpExecutor;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        DashboardCommandExecutor commandExecutor)
+        DashboardCommandExecutor commandExecutor,
+        IDcpExecutor dcpExecutor)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _commandExecutor = commandExecutor;
-
+        _dcpExecutor = dcpExecutor;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -146,6 +149,26 @@ internal sealed class DashboardServiceData : IDisposable
             await foreach (var item in sequence.WithCancellation(linked.Token).ConfigureAwait(false))
             {
                 yield return item;
+            }
+        }
+    }
+
+    internal IAsyncEnumerable<IReadOnlyList<LogLine>> GetConsoleLogs(string resourceName)
+    {
+        return Enumerate();
+
+        async IAsyncEnumerable<IReadOnlyList<LogLine>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var consoleLogsEnumerable = _dcpExecutor.GetConsoleLogs(resourceName, cancellationToken);
+
+            var inMemoryLogEntries = _resourceLoggerService.GetResourceLoggerState(resourceName).GetInMemoryLogEntries();
+
+            var lineNumber = 0;
+            yield return ResourceLoggerService.CreateLogLines(ref lineNumber, inMemoryLogEntries);
+
+            await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
+            {
+                yield return ResourceLoggerService.CreateLogLines(ref lineNumber, item);
             }
         }
     }

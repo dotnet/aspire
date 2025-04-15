@@ -477,7 +477,7 @@ internal sealed class DashboardClient : IDashboardClient
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, Follow = true },
             headers: _headers,
             cancellationToken: combinedTokens.Token);
 
@@ -492,15 +492,8 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    var logLines = new ResourceLogLine[response.LogLines.Count];
-
-                    for (var i = 0; i < logLines.Length; i++)
-                    {
-                        logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
-                    }
-
                     // Channel is unbound so TryWrite always succeeds.
-                    channel.Writer.TryWrite(logLines);
+                    channel.Writer.TryWrite(CreateLogLines(response.LogLines));
                 }
             }
             finally
@@ -522,6 +515,35 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         await readTask.ConfigureAwait(false);
+    }
+
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> IDashboardClient.GetConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+        var call = _client!.WatchResourceConsoleLogs(
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, Follow = false },
+            headers: _headers,
+            cancellationToken: combinedTokens.Token);
+
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
+        {
+            yield return CreateLogLines(response.LogLines);
+        }
+    }
+
+    private static ResourceLogLine[] CreateLogLines(IList<ConsoleLogLine> logLines)
+    {
+        var resourceLogLines = new ResourceLogLine[logLines.Count];
+
+        for (var i = 0; i < logLines.Count; i++)
+        {
+            resourceLogLines[i] = new ResourceLogLine(logLines[i].LineNumber, logLines[i].Text, logLines[i].IsStdErr);
+        }
+
+        return resourceLogLines;
     }
 
     public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)

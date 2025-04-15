@@ -353,6 +353,14 @@ public class ResourceLoggerService
             }
         }
 
+        public IReadOnlyList<LogEntry> GetInMemoryLogEntries()
+        {
+            lock (_lock)
+            {
+                return _inMemoryEntries.ToList();
+            }
+        }
+
         /// <summary>
         /// Watch for changes to the log stream for a resource.
         /// </summary>
@@ -407,25 +415,6 @@ public class ResourceLoggerService
                     OnNewLog -= Log;
                     channel.Writer.TryComplete();
                 }
-            }
-
-            static LogLine[] CreateLogLines(ref int lineNumber, IReadOnlyList<LogEntry> entries)
-            {
-                var logs = new LogLine[entries.Count];
-                for (var i = 0; i < entries.Count; i++)
-                {
-                    var entry = entries[i];
-                    var content = entry.Content ?? string.Empty;
-                    if (entry.Timestamp != null)
-                    {
-                        content = entry.Timestamp.Value.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.InvariantCulture) + " " + content;
-                    }
-
-                    logs[i] = new LogLine(lineNumber, content, entry.Type == LogEntryType.Error);
-                    lineNumber++;
-                }
-
-                return logs;
             }
         }
 
@@ -553,6 +542,25 @@ public class ResourceLoggerService
                 loggerState.AddLog(LogEntry.Create(logTime, logMessage, isErrorMessage), inMemorySource: true);
             }
         }
+    }
+
+    internal static LogLine[] CreateLogLines(ref int lineNumber, IReadOnlyList<LogEntry> entries)
+    {
+        var logs = new LogLine[entries.Count];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            var content = entry.Content ?? string.Empty;
+            if (entry.Timestamp != null)
+            {
+                content = entry.Timestamp.Value.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.InvariantCulture) + " " + content;
+            }
+
+            logs[i] = new LogLine(lineNumber, content, entry.Type == LogEntryType.Error);
+            lineNumber++;
+        }
+
+        return logs;
     }
 }
 

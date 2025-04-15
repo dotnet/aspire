@@ -297,6 +297,8 @@ message ConsoleLogLine {
 message WatchResourceConsoleLogsRequest {
     // Specifies the resource to watch logs from.
     string resource_name = 1;
+    // A flag that indicates whether to follow new logs.
+    bool follow = 2;
 }
 
 // A message received from the server when watching resource logs.
