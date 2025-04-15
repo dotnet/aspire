@@ -17,9 +17,4 @@ public interface IContainerRegistry
     /// Gets the endpoint URL of the container registry.
     /// </summary>
     ReferenceExpression Endpoint { get; }
-
-    /// <summary>
-    /// Gets the managed identity ID associated with the container registry.
-    /// </summary>
-    ReferenceExpression ManagedIdentityId { get; }
 }

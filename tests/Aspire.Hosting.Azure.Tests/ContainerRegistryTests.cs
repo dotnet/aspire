@@ -36,7 +36,8 @@ public class ContainerRegistryTests
         // Verify registry properties are available
         Assert.NotNull(registry.Name);
         Assert.NotNull(registry.Endpoint);
-        Assert.NotNull(registry.ManagedIdentityId);
+        var azureRegistry = Assert.IsType<IAzureContainerRegistry>(registry, exactMatch: false);
+        Assert.NotNull(azureRegistry.ManagedIdentityId);
     }
 
     [Fact]
@@ -70,7 +71,9 @@ public class ContainerRegistryTests
         // Verify registry properties are available
         Assert.NotNull(registry.Name);
         Assert.NotNull(registry.Endpoint);
-        Assert.NotNull(registry.ManagedIdentityId);
+        var azureRegistry = Assert.IsType<IAzureContainerRegistry>(registry, exactMatch: false);
+        Assert.NotNull(azureRegistry.ManagedIdentityId);
+
     }
 
     [Fact]
@@ -103,7 +106,8 @@ public class ContainerRegistryTests
         // Verify the container registry properties on the environment
         Assert.NotNull(publisher.EnvironmentRegistry.Name);
         Assert.NotNull(publisher.EnvironmentRegistry.Endpoint);
-        Assert.NotNull(publisher.EnvironmentRegistry.ManagedIdentityId);
+        var azureRegistry = Assert.IsType<IAzureContainerRegistry>(publisher.EnvironmentRegistry, exactMatch: false);
+        Assert.NotNull(azureRegistry.ManagedIdentityId);
 
         // Verify container registry info was found in child compute resources
         Assert.True(publisher.ComputeResourceRegistryFound);
@@ -112,15 +116,17 @@ public class ContainerRegistryTests
         // Verify the container registry properties on the compute resource
         Assert.NotNull(publisher.ComputeResourceRegistry.Name);
         Assert.NotNull(publisher.ComputeResourceRegistry.Endpoint);
-        Assert.NotNull(publisher.ComputeResourceRegistry.ManagedIdentityId);
+        azureRegistry = Assert.IsType<IAzureContainerRegistry>(publisher.ComputeResourceRegistry, exactMatch: false);
+        Assert.NotNull(azureRegistry.ManagedIdentityId);
 
         // Verify both registries are the same instance (or at least have the same values)
         Assert.Equal(publisher.EnvironmentRegistry.Name.ToString(),
                      publisher.ComputeResourceRegistry.Name.ToString());
         Assert.Equal(publisher.EnvironmentRegistry.Endpoint.ToString(),
                      publisher.ComputeResourceRegistry.Endpoint.ToString());
-        Assert.Equal(publisher.EnvironmentRegistry.ManagedIdentityId.ToString(),
-                     publisher.ComputeResourceRegistry.ManagedIdentityId.ToString());
+        azureRegistry = Assert.IsType<IAzureContainerRegistry>(publisher.EnvironmentRegistry, exactMatch: false);
+        Assert.Equal(publisher.AzureContainerRegistry?.ManagedIdentityId.ToString(),
+                     azureRegistry.ManagedIdentityId.ToString());
     }
 
     /// <summary>
@@ -134,6 +140,7 @@ public class ContainerRegistryTests
 
         public bool ComputeResourceRegistryFound { get; private set; }
         public IContainerRegistry? ComputeResourceRegistry { get; private set; }
+        public IAzureContainerRegistry? AzureContainerRegistry { get; private set; }
 
         public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
         {
@@ -153,6 +160,10 @@ public class ContainerRegistryTests
                 {
                     ComputeResourceRegistryFound = true;
                     ComputeResourceRegistry = annotation.ContainerRegistryInfo;
+                    if (ComputeResourceRegistry is IAzureContainerRegistry azureRegistry)
+                    {
+                        AzureContainerRegistry = azureRegistry;
+                    }
                     break;
                 }
             }

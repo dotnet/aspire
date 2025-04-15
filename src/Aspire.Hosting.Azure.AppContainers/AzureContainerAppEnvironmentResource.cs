@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <param name="name">The name of the Container App Environment.</param>
 /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment, IContainerRegistry
+    AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment, IAzureContainerRegistry
 {
     internal bool UseAzdNamingConvention { get; set; }
 
@@ -78,12 +78,12 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
 
-    // Implement IContainerRegistry directly
+    // Implement IAzureContainerRegistry interface
     ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
 
     ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
-    ReferenceExpression IContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {
