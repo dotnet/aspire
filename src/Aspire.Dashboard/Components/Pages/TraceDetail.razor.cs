@@ -79,7 +79,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
         }
     }
 
-    private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
+    // Internal to be used in unit tests
+    internal ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 

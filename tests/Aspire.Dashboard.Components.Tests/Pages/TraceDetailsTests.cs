@@ -156,6 +156,62 @@ public partial class TraceDetailsTests : DashboardTestContext
         }, "Expected rows to be rendered.", logger);
     }
 
+    [Fact]
+    public async Task Render_SpansOrderedByStartTime_RowsRenderedInCorrectOrder()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "1-2",
+                                    startTime: s_testTime.AddMinutes(5),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "1-3",
+                                    startTime: s_testTime.AddMinutes(2),
+                                    endTime: s_testTime.AddMinutes(6), parentSpanId: "1-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        // Act
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        var data = await cut.Instance.GetData(new GridItemsProviderRequest<SpanWaterfallViewModel>());
+
+        Assert.Collection(data.Items,
+            item => Assert.Equal("Test span. Id: 1-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 1-3", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 1-2", item.Span.Name));
+    }
+
     private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
