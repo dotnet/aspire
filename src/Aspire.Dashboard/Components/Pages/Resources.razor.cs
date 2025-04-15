@@ -322,6 +322,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
             await _jsModule.InvokeVoidAsync("initializeResourcesGraph", _resourcesInteropReference);
             await UpdateResourceGraphResourcesAsync();
+            await UpdateResourceGraphSelectedAsync();
         }
     }
 
