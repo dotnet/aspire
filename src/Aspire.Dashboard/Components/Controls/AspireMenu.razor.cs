@@ -21,6 +21,9 @@ public partial class AspireMenu : FluentComponentBase
     [Parameter]
     public bool Anchored { get; set; } = true;
 
+    [Parameter]
+    public int VerticalThreshold { get; set; } = 200;
+
     /// <summary>
     /// Raised when the <see cref="Open"/> property changed.
     /// </summary>
