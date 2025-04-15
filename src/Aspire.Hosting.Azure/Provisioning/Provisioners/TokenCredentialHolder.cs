@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal class TokenCredentialHolder
 {
-    public TokenCredentialHolder(ILogger<TokenCredentialHolder> logger, IOptions<AzureProvisionerOptions> options)
+    public TokenCredentialHolder(ILogger<AzureProvisioner> logger, IOptions<AzureProvisionerOptions> options)
     {
         // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
         var credentialSetting = options.Value.CredentialSource;
