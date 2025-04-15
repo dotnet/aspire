@@ -71,8 +71,8 @@ public partial class AspireMenu : FluentComponentBase
                 top = clientY;
             }
 
-            Style = string.Empty;
-            Style = new StyleBuilder(Style)
+            // Overwrite the style. We don't want to add new position values each time the menu is opened.
+            Style = new StyleBuilder()
                 .AddStyle("left", $"{left}px", left != 0)
                 .AddStyle("right", $"{right}px", right != 0)
                 .AddStyle("top", $"{top}px", top != 0)
