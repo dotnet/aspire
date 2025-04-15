@@ -26,4 +26,9 @@ public static class TelemetryPropertyKeys
     public const string MetricsSelectedInstrument = AspireDashboardPropertyPrefix + "Metrics.SelectedInstrument";
     public const string MetricsSelectedDuration = AspireDashboardPropertyPrefix + "Metrics.SelectedDuration";
     public const string MetricsSelectedView = AspireDashboardPropertyPrefix + "Metrics.SelectedView";
+
+    // Exception properties
+    public const string ExceptionType = AspireDashboardPropertyPrefix + "Exception.Type";
+    public const string ExceptionMessage = AspireDashboardPropertyPrefix + "Exception.Message";
+    public const string ExceptionStackTrace = AspireDashboardPropertyPrefix + "Exception.StackTrace";
 }

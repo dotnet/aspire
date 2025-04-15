@@ -270,6 +270,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddScoped<DimensionManager>();
 
+        builder.Services.AddSingleton<ILoggerProvider, TelemetryExceptionReporterProvider>();
+
         builder.Services.AddLocalization();
 
         builder.Services.AddAntiforgery(options =>
