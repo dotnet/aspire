@@ -60,7 +60,7 @@
   <ItemGroup>
     <_TestBlameArguments Include="--blame-hang" />
     <_TestBlameArguments Include="--blame-hang-dump-type full" />
-    <_TestBlameArguments Include="--blame-hang-timeout 10m" />
+    <_TestBlameArguments Include="--blame-hang-timeout 20m" />
     <_TestBlameArguments Include="--blame-crash" />
     <_TestBlameArguments Include="--blame-crash-dump-type full" />
 

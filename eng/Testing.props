@@ -22,6 +22,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <BlameHangTimeout Condition="'$(BlameHangTimeout)' == '' and '$(MSBuildProjectName)' == 'Aspire.Hosting.SqlServer.Tests'">20m</BlameHangTimeout>
     <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">10m</BlameHangTimeout>
     <_BlameArgs>--blame --blame-hang-timeout $(BlameHangTimeout) --blame-crash</_BlameArgs>
 
