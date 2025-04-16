@@ -81,6 +81,15 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         AddPorts(composeService);
         AddVolumes(composeService);
         SetDependsOn(composeService);
+
+        if (resource.TryGetAnnotationsOfType<DockerComposeServiceCustomizationAnnotation>(out var annotations))
+        {
+            foreach (var a in annotations)
+            {
+                a.Configure(this, composeService);
+            }
+        }
+
         return composeService;
     }
 
