@@ -572,6 +572,40 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the deployment target for the specified resource, if any. Throws an exception if
+    /// there are multiple compute environments and a compute environment is not explicitly specified.
+    /// </summary>
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource)
+    {
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            // find the deployment target for the compute environment
+            return resource.Annotations
+                .OfType<DeploymentTargetAnnotation>()
+                .LastOrDefault(a => a.ComputeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment);
+        }
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        else
+        {
+            DeploymentTargetAnnotation? result = null;
+            foreach (var annotation in resource.Annotations.OfType<DeploymentTargetAnnotation>())
+            {
+                if (result is null)
+                {
+                    result = annotation;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments. Please specify a single deployment target using 'WithComputeEnvironment'.");
+                }
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
     /// Gets the lifetime type of the container for the specified resource.
     /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>

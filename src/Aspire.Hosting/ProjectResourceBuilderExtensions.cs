@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -704,6 +705,26 @@ public static class ProjectResourceBuilderExtensions
         // so that the container resource is written to the manifest
         return builder.WithManifestPublishingCallback(context =>
             context.WriteContainerAsync(container));
+    }
+
+    /// <summary>
+    /// Configures the compute environment for the project resource.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="computeEnvironmentResource">The compute environment resource to associate with the project.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method allows associating a specific compute environment with the project resource.
+    /// </remarks>
+    [Experimental("ASPIRECOMPUTE001")]
+    public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
+        where T : ProjectResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(computeEnvironmentResource);
+
+        builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
+        return builder;
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)
