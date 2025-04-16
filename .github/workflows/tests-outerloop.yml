@@ -168,6 +168,6 @@ jobs:
           Write-Host "`nTest Results:`n`n$table"
 
           # Optionally, save the results to a file for further processing
-          $outputPath = "${{ github.workspace }}/artifacts/log/Release/TestLogs/summary.log"
+          $outputPath = "${{ github.workspace }}/artifacts/summary.log"
           $table | Out-File -FilePath $outputPath -Encoding utf8
           Write-Host "Test results saved to $outputPath"
