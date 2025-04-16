@@ -11,7 +11,6 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -188,7 +187,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // Set loading task result if the selected resource is already in the snapshot or there is no selected resource.
             if (ResourceName != null)
             {
-                if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+                if (ResourceViewModel.TryGetResourceByName(ResourceName, _resourceByName, out var selectedResource))
                 {
                     SetSelectedResourceOption(selectedResource);
                 }
@@ -232,14 +231,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            Debug.Assert(_resources is not null);
-
-            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            PageViewModel.SelectedOption = GetSelectedOption();
             PageViewModel.SelectedResource = resource;
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
         }
+    }
+
+    private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
+    {
+        Debug.Assert(_resources is not null);
+        return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -352,7 +355,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 },
                 ExecuteResourceCommandAsync,
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
-                showConsoleLogsItem: false);
+                showConsoleLogsItem: false,
+                showUrls: true);
         }
     }
 
@@ -471,7 +475,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 var timestampFilterDate = GetFilteredDateFromRemove();
 
-                var logParser = new LogParser();
+                var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
                     if (batch.Count is 0)
@@ -692,10 +696,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (_resources is not null && ResourceName is not null)
         {
-            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Id?.InstanceId, StringComparisons.ResourceName)) ?? _noSelection;
-
-            viewModel.SelectedOption = selectedOption;
-            viewModel.SelectedResource = selectedOption.Id?.InstanceId is null ? null : _resourceByName[selectedOption.Id.InstanceId];
+            viewModel.SelectedOption = GetSelectedOption();
+            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
             viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
         else
@@ -715,6 +717,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
+        var selectedResourceName = PageViewModel.SelectedOption.Id is not null
+            ? PageViewModel.SelectedOption.Name
+            // _noSelection, which doesn't have a resource attached to it
+            : null;
+        return new ConsoleLogsPageState(selectedResourceName);
     }
 }

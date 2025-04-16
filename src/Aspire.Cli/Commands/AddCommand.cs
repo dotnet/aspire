@@ -4,6 +4,8 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -14,14 +16,24 @@ internal sealed class AddCommand : BaseCommand
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IInteractionService _interactionService;
+    private readonly IProjectLocator _projectLocator;
+    private readonly IAddCommandPrompter _prompter;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter)
         : base("add", "Add an integration to the Aspire project.")
     {
-        ArgumentNullException.ThrowIfNull(runner, nameof(runner));
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache, nameof(nuGetPackageCache));
+        ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
+        ArgumentNullException.ThrowIfNull(prompter);
+
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
+        _interactionService = interactionService;
+        _projectLocator = projectLocator;
+        _prompter = prompter;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
@@ -30,7 +42,7 @@ internal sealed class AddCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the project file to add the integration to.";
-        projectOption.Validators.Add(ProjectFileHelper.ValidateProjectOption);
+        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -55,7 +67,7 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = ProjectFileHelper.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile =  _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -66,7 +78,7 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packages = await InteractionUtils.ShowStatusAsync(
+            var packages = await _interactionService.ShowStatusAsync(
                 "Searching for Aspire packages...",
                 () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
                 );
@@ -77,7 +89,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (!packagesWithShortName.Any())
             {
-                AnsiConsole.MarkupLine("[red bold]:thumbs_down: No packages found.[/]");
+                _interactionService.DisplayError("No packages found.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -105,7 +117,7 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException("Unexpected number of packages found.")
             };
 
-            var addPackageResult = await InteractionUtils.ShowStatusAsync(
+            var addPackageResult = await _interactionService.ShowStatusAsync(
                 "Adding Aspire integration...",
                 async () => {
                     var addPackageResult = await _runner.AddPackageAsync(
@@ -121,44 +133,51 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
-                AnsiConsole.MarkupLine($"[red bold]:thumbs_down: The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.[/]");
+                _interactionService.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
             else
             {
-                AnsiConsole.MarkupLine($":thumbs_up: The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
+                _interactionService.DisplaySuccess($"The package {selectedNuGetPackage.Package.Id}::{selectedNuGetPackage.Package.Version} was added successfully.");
                 return ExitCodeConstants.Success;
             }
         }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        {
+            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        {
+            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        {
+            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("[yellow bold]:stop_sign: Operation cancelled by user action.[/]");
+            _interactionService.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red bold]:thumbs_down: An error occurred while adding the package: {ex.Message}[/]");
+            _interactionService.DisplayError($"An error occurred while adding the package: {ex.Message}");
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
 
-    private static async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
+    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
     {
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
-
-        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title("Select an integration to add:")
-            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
-            .PageSize(10)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(distinctPackages);
 
         // If there is only one package, we can skip the prompt and just use it.
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
-            > 1 => await AnsiConsole.PromptAsync(packagePrompt, cancellationToken),
+            > 1 => await _prompter.PromptForIntegrationAsync(distinctPackages, cancellationToken),
             _ => throw new InvalidOperationException("Unexpected number of packages found.")
         };
 
@@ -173,28 +192,9 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var versionPrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title($"Select a version of {selectedPackage.Package.Id}:")
-            .UseConverter(p => p.Package.Version)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(packageVersions);
-
-        var version = await AnsiConsole.PromptAsync(versionPrompt, cancellationToken);
+        var version = await _prompter.PromptForIntegrationVersionAsync(packageVersions, cancellationToken);
 
         return version;
-
-        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
-        {
-            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
-            {
-                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
-            }
-            else
-            {
-                return packageWithFriendlyName.Package.Id;
-            }
-        }
     }
 
     private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
@@ -217,5 +217,47 @@ internal sealed class AddCommand : BaseCommand
         var lastSegment = package.Id.Split('.').Last().ToLower();
         shortNameBuilder.Append(lastSegment);
         return (shortNameBuilder.ToString(), package);
+    }
+}
+
+internal interface IAddCommandPrompter
+{
+    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
+    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
+}
+
+internal class  AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
+{
+    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    {
+        var selectedPackage = packages.First();
+        var version = await interactionService.PromptForSelectionAsync(
+            $"Select a version of the {selectedPackage.Package.Id}:",
+            packages,
+            p => p.Package.Version,
+            cancellationToken);
+        return version;
+    }
+
+    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    {
+        var selectedIntegration = await interactionService.PromptForSelectionAsync(
+                 "Select an integration to add:",
+                 packages,
+                 PackageNameWithFriendlyNameIfAvailable,
+                 cancellationToken);
+        return selectedIntegration;
+    }
+
+    private static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
+    {
+        if (packageWithFriendlyName.FriendlyName is { } friendlyName)
+        {
+            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+        }
+        else
+        {
+            return packageWithFriendlyName.Package.Id;
+        }
     }
 }

@@ -3,7 +3,7 @@
 @using Aspire.Dashboard.Model
 @inherits FluentComponentBase
 
-<FluentMenu @ref="_menu" Anchor="@Anchor" Anchored="@Anchored" Open="@Open" OpenChanged="OnOpenChanged" VerticalThreshold="200">
+<FluentMenu @ref="_menu" Anchor="@Anchor" Anchored="@Anchored" Open="@Open" OpenChanged="OnOpenChanged" Style="@Style" VerticalThreshold="@VerticalThreshold" HorizontalThreshold="200">
     @foreach (var item in Items)
     {
         @if (item.IsDivider)

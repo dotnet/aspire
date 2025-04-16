@@ -68,7 +68,7 @@ public static class ResourceGraphMapper
 
     private static string ResolvedEndpointText(DisplayedUrl? endpoint)
     {
-        var text = endpoint?.Url;
+        var text = endpoint?.OriginalUrlString;
         if (string.IsNullOrEmpty(text))
         {
             return ControlsStrings.ResourceGraphNoEndpoints;

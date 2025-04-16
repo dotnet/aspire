@@ -29,7 +29,15 @@
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
     <IsAzdoCIRunner Condition=" '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
+    <!-- See https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Helix/Sdk/Readme.md#common-helix-client-environment-variables -->
+    <IsHelix Condition=" '$(HELIX_CORRELATION_ID)' != '' ">true</IsHelix>
+
     <IsAzdoHelixRunner Condition=" '$(PrepareForHelix)' == 'true' ">true</IsAzdoHelixRunner>
+
+    <!--
+      If we haven't detected the tests are run on build agents, then we presume we're running tests locally.
+      -->
+    <IsLocalDevLoop Condition=" '$(IsGitHubActionsRunner)' != 'true' and '$(IsAzdoCIRunner)' != 'true' and '$(IsHelix)' != 'true' and '$(IsAzdoHelixRunner)' != 'true' ">true</IsLocalDevLoop>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -58,6 +66,9 @@
 
     <!-- Otherwise, run tests on AzDO CI agents -->
     <SkipTests Condition=" '$(IsAzdoCIRunner)' == 'true' and '$(RunOnAzdoCI)' == 'true' ">false</SkipTests>
+
+    <!-- If we're running locally, we don't skip tests -->
+    <SkipTests Condition=" '$(IsLocalDevLoop)' == 'true' ">false</SkipTests>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(IncludeTestUtilities)' == 'true' ">

@@ -200,6 +200,18 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
+        // Convert relative endpoint URLs to absolute URLs
+        foreach (var url in urls)
+        {
+            if (url.Endpoint is { } endpoint)
+            {
+                if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                {
+                    url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
         // Add URLs
         foreach (var url in urls)
         {

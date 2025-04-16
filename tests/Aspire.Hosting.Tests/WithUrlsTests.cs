@@ -414,7 +414,56 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task WithUrlForEndpointDoesNotThrowOrCallCallbackIfEndpointNotFound()
+    public async Task UrlsAreMarkedAsInternalDependingOnDisplayLocation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddProject<Projects.ServiceA>("servicea")
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new() { Url = "http://example.com/", DisplayLocation = UrlDisplayLocation.SummaryAndDetails });
+                c.Urls.Add(new() { Url = "http://example.com/internal", DisplayLocation = UrlDisplayLocation.DetailsOnly });
+                c.Urls.Add(new() { Url = "http://example.com/out-of-range", DisplayLocation = (UrlDisplayLocation)100 });
+            });
+
+        var app = await builder.BuildAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        ImmutableArray<UrlSnapshot> urlSnapshot = default;
+        var cts = new CancellationTokenSource();
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            {
+                if (string.Equals(notification.Snapshot.State?.Text, KnownResourceStates.Running))
+                {
+                    if (notification.Snapshot.Urls.Length > 1 && urlSnapshot == default)
+                    {
+                        urlSnapshot = notification.Snapshot.Urls;
+                        break;
+                    }
+                }
+            }
+        });
+
+        await app.StartAsync();
+
+        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        cts.Cancel();
+
+        await app.StopAsync();
+
+        Assert.Collection(urlSnapshot,
+            url => { Assert.Equal("http", url.Name); Assert.False(url.IsInternal); },
+            url => { Assert.Equal("http://example.com/", url.Url); Assert.False(url.IsInternal); },
+            url => { Assert.Equal("http://example.com/internal", url.Url); Assert.True(url.IsInternal); },
+            url => { Assert.Equal("http://example.com/out-of-range", url.Url); Assert.False(url.IsInternal); }
+        );
+    }
+
+    [Fact]
+    public async Task WithUrlForEndpointUpdateDoesNotThrowOrCallCallbackIfEndpointNotFound()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -438,6 +487,129 @@ public class WithUrlsTests
         await tcs.Task;
 
         Assert.False(called);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlForEndpointAddDoesNotThrowOrCallCallbackIfEndpointNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var called = false;
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrlForEndpoint("non-existant", ep =>
+            {
+                called = true;
+                return new() { Url = "https://example.com" };
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        Assert.False(called);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrlForEndpoint("test", url =>
+            {
+                url.Url = "/sub-path";
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
+
+        Assert.NotNull(endpointUrl);
+        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlForEndpointAddTurnsRelativeUrlIntoAbsoluteUrl()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrlForEndpoint("test", ep =>
+            {
+                return new() { Url = "/sub-path" };
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test" && u.Url.EndsWith("/sub-path"));
+
+        Assert.NotNull(endpointUrl);
+        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WithUrlsTurnsRelativeEndpointUrlsIntoAbsoluteUrls()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new() { Endpoint = c.GetEndpoint("test"), Url = "/sub-path" });
+            });
+
+        var tcs = new TaskCompletionSource();
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test" && u.Url.EndsWith("/sub-path"));
+
+        Assert.NotNull(endpointUrl);
+        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
         await app.StopAsync();
     }
