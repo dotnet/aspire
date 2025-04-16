@@ -177,113 +177,111 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
 
-        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
+        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(ConfigureEnvironmentVariables));
+    }
+
+    internal async Task ConfigureEnvironmentVariables(EnvironmentCallbackContext context)
+    {
+        // Automatically copy all configuration that starts with ASPIRE_DASHBOARD to the dashboard.
+        // Do this first so there is no chance to overwrite any explicit configuration.
+        // Some values are skipped because they're mapped to the Dashboard option type.
+        foreach (var (name, value) in configuration.AsEnumerable())
         {
-            // Automatically copy all configuration that starts with ASPIRE_DASHBOARD to the dashboard.
-            // Do this first so there is no chance to overwrite any explicit configuration.
-            // Some values are skipped because they're mapped to the Dashboard option type.
-            foreach (var (name, value) in configuration.AsEnumerable())
+            if (name.StartsWith("ASPIRE_DASHBOARD_", StringComparison.OrdinalIgnoreCase) &&
+                value != null &&
+                !s_suppressAutomaticConfigurationCopy.Contains(name))
             {
-                if (name.StartsWith("ASPIRE_DASHBOARD_", StringComparison.OrdinalIgnoreCase) &&
-                    value != null &&
-                    !s_suppressAutomaticConfigurationCopy.Contains(name))
-                {
-                    context.EnvironmentVariables[name] = value;
-                }
+                context.EnvironmentVariables[name] = value;
+            }
+        }
+
+        var options = dashboardOptions.Value;
+
+        // Options should have been validated these should not be null
+
+        Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
+        Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
+
+        var environment = options.AspNetCoreEnvironment;
+        var browserToken = options.DashboardToken;
+        var otlpApiKey = options.OtlpApiKey;
+
+        var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
+
+        context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
+        context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = options.DashboardUrl;
+        context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
+
+        if (options.OtlpHttpEndpointUrl != null)
+        {
+            // Use explicitly defined allowed origins if configured.
+            var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
+
+            // If allowed origins are not configured then calculate allowed origins from endpoints.
+            if (string.IsNullOrEmpty(allowedOrigins))
+            {
+                var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                allowedOrigins = GetAllowedOriginsFromResourceEndpoints(model);
             }
 
-            var options = dashboardOptions.Value;
-
-            // Options should have been validated these should not be null
-
-            Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
-            Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
-
-            var dashboardUrls = options.DashboardUrl;
-            var otlpGrpcEndpointUrl = options.OtlpGrpcEndpointUrl;
-            var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
-
-            var environment = options.AspNetCoreEnvironment;
-            var browserToken = options.DashboardToken;
-            var otlpApiKey = options.OtlpApiKey;
-
-            var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
-
-            context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
-            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
-            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-
-            if (otlpHttpEndpointUrl != null)
+            if (!string.IsNullOrEmpty(allowedOrigins))
             {
-                // Use explicitly defined allowed origins if configured.
-                var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
-
-                // If allowed origins are not configured then calculate allowed origins from endpoints.
-                if (string.IsNullOrEmpty(allowedOrigins))
-                {
-                    var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
-                    allowedOrigins = GetAllowedOriginsFromResourceEndpoints(model);
-                }
-
-                if (!string.IsNullOrEmpty(allowedOrigins))
-                {
-                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = allowedOrigins;
-                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
-                }
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = allowedOrigins;
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
             }
+        }
 
-            // Configure frontend browser token
-            if (!string.IsNullOrEmpty(browserToken))
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "BrowserToken";
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
-            }
-            else
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
-            }
+        // Configure frontend browser token
+        if (!string.IsNullOrEmpty(browserToken))
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "BrowserToken";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
+        }
 
-            // Configure resource service API key
-            if (string.Equals(configuration["AppHost:ResourceService:AuthMode"], nameof(ResourceServiceAuthMode.ApiKey), StringComparison.OrdinalIgnoreCase)
-                && configuration["AppHost:ResourceService:ApiKey"] is { Length: > 0 } resourceServiceApiKey)
-            {
-                context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName] = nameof(ResourceServiceAuthMode.ApiKey);
-                context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientApiKeyName.EnvVarName] = resourceServiceApiKey;
-            }
-            else
-            {
-                context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName] = nameof(ResourceServiceAuthMode.Unsecured);
-            }
+        // Configure resource service API key
+        if (string.Equals(configuration["AppHost:ResourceService:AuthMode"], nameof(ResourceServiceAuthMode.ApiKey), StringComparison.OrdinalIgnoreCase)
+            && configuration["AppHost:ResourceService:ApiKey"] is { Length: > 0 } resourceServiceApiKey)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName] = nameof(ResourceServiceAuthMode.ApiKey);
+            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientApiKeyName.EnvVarName] = resourceServiceApiKey;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName] = nameof(ResourceServiceAuthMode.Unsecured);
+        }
 
-            // Configure OTLP API key
-            if (!string.IsNullOrEmpty(otlpApiKey))
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
-            }
-            else
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
-            }
+        // Configure OTLP API key
+        if (!string.IsNullOrEmpty(otlpApiKey))
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
+        }
 
-            // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
-            // via the ILogger.
-            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
+        // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
+        // via the ILogger.
+        context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
 
-            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
-            {
-                return;
-            }
+        if (!StringUtils.TryGetUriFromDelimitedString(options.DashboardUrl, ";", out var firstDashboardUrl))
+        {
+            return;
+        }
 
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+        var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
 
-            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
+        distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
-            if (!string.IsNullOrEmpty(browserToken))
-            {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
-            }
-        }));
+        if (!string.IsNullOrEmpty(browserToken))
+        {
+            LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
+        }
     }
 
     private static string? GetAllowedOriginsFromResourceEndpoints(DistributedApplicationModel model)
