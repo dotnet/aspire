@@ -6,7 +6,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 
-internal static class CommandLineArgsExtensions
+internal static class DockerComposeServiceResourceExtensions
 {
     internal static async Task<object> ProcessValueAsync(this DockerComposeServiceResource resource, DockerComposeInfrastructure.DockerComposeEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
     {

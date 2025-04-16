@@ -75,7 +75,7 @@ internal sealed class DockerComposeInfrastructure(
 
             logger.LogInformation("Creating Docker Compose resource for {ResourceName}", resource.Name);
 
-            var serviceResource = new DockerComposeServiceResource(resource.Name, resource);
+            var serviceResource = new DockerComposeServiceResource(resource.Name, resource, environment);
             _resourceMapping[resource] = serviceResource;
 
             // Process endpoints

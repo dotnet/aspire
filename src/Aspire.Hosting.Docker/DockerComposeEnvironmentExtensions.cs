@@ -27,6 +27,7 @@ public static class DockerComposeEnvironmentExtensions
 
         var resource = new DockerComposeEnvironmentResource(name);
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
+        builder.AddDockerComposePublisher(name);
         return builder.AddResource(resource);
     }
 }
