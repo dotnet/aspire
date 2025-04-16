@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">10m</BlameHangTimeout>
+    <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">20m</BlameHangTimeout>
     <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crashdump</_BlameArgs>
 
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --filter-not-trait &quot;category=failing&quot;</TestRunnerAdditionalArguments>
