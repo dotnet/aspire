@@ -494,7 +494,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedApplication, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ToString() ?? string.Empty)),
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsFilterCount, new AspireTelemetryProperty(ViewModel.Filters.Count.ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsTraceId, new AspireTelemetryProperty(TraceId ?? string.Empty)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSpanId, new AspireTelemetryProperty(SpanId ?? string.Empty))

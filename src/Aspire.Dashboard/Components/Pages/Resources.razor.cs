@@ -217,6 +217,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
+        await TelemetryContext.InitializeAsync(TelemetryService);
         _isLoading = false;
 
         async Task SubscribeResourcesAsync()
@@ -805,6 +806,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _watchTaskCancellationTokenSource.Cancel();
         _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
+        TelemetryContext.Dispose();
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
 
@@ -820,5 +822,15 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         _contextMenuClosedTcs?.TrySetResult();
         _contextMenuClosedTcs = null;
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.ResourcesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting))
+        ]);
     }
 }

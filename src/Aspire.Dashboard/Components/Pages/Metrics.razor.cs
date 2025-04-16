@@ -325,8 +325,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedMeter, new AspireTelemetryProperty(PageViewModel.SelectedMeter?.MeterName ?? string.Empty, AspireTelemetryPropertyType.Pii)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedInstrument, new AspireTelemetryProperty(PageViewModel.SelectedInstrument?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString())),
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty))
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString(), AspireTelemetryPropertyType.UserSetting)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting))
         ]);
     }
 }
