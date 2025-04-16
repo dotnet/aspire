@@ -330,6 +330,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
         Assert.Equal(expectedAllowedOrigins, config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
         Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
+        Assert.DoesNotContain(config, e => e.Key == corsAllowedOriginsKey);
     }
 
     [Theory]

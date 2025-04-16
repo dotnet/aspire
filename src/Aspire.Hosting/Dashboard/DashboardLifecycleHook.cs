@@ -38,6 +38,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              DevcontainerSettingsWriter settingsWriter
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
+    private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard on Dashboard:Otlp:Cors type
+    };
+
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
 
@@ -174,6 +179,19 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
+            // Automatically copy all configuration that starts with ASPIRE_DASHBOARD to the dashboard.
+            // Do this first so there is no chance to overwrite any explicit configuration.
+            // Some values are skipped because they're mapped to the Dashboard option type.
+            foreach (var (name, value) in configuration.AsEnumerable())
+            {
+                if (name.StartsWith("ASPIRE_DASHBOARD_", StringComparison.OrdinalIgnoreCase) &&
+                    value != null &&
+                    !s_suppressAutomaticConfigurationCopy.Contains(name))
+                {
+                    context.EnvironmentVariables[name] = value;
+                }
+            }
+
             var options = dashboardOptions.Value;
 
             // Options should have been validated these should not be null
@@ -194,14 +212,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-            if (otlpGrpcEndpointUrl != null)
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = otlpGrpcEndpointUrl;
-            }
+
             if (otlpHttpEndpointUrl != null)
             {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
-
                 // Use explicitly defined allowed origins if configured.
                 var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
 
