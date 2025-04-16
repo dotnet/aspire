@@ -5,6 +5,8 @@
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
 
   <PropertyGroup>
+    <!-- Set RunSettingsFilePath property which is read by VSTest. -->
+    <RunSettingsFilePath>$(RepositoryEngineeringDir)testing\.runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <TestArchiveTestsDirForTemplateTests Condition="'$(TestArchiveTestsDirForTemplateTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'templates-tests'))</TestArchiveTestsDirForTemplateTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
@@ -14,7 +16,13 @@
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
+
+    <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GitHubActionsTestLogger" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+  </ItemGroup>
 
   <PropertyGroup>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
