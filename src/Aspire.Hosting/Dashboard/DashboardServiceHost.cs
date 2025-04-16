@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -55,8 +54,7 @@ internal sealed class DashboardServiceHost : IHostedService
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions,
         ResourceNotificationService resourceNotificationService,
-        ResourceLoggerService resourceLoggerService,
-        IDcpExecutor dcpExecutor)
+        ResourceLoggerService resourceLoggerService)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -114,7 +112,6 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton<DashboardServiceData>();
             builder.Services.AddSingleton(resourceNotificationService);
             builder.Services.AddSingleton(resourceLoggerService);
-            builder.Services.AddSingleton(dcpExecutor);
 
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
