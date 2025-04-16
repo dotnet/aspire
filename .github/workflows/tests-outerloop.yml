@@ -134,7 +134,7 @@ jobs:
                       }
                   }
               } catch {
-                  Write-Host "::warning::Failed to process $($trxFile.FullName): $($_.Exception.Message)"
+                  Write-Host "::error::Failed to process $($trxFile.FullName): $($_.Exception.Message)"
               }
           }
 
