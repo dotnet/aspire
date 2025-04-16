@@ -276,4 +276,56 @@ public sealed class DashboardOptionsTests
     }
 
     #endregion
+
+    #region Path Base options
+
+    [Fact]
+    public void PathBaseOptions_InvalidPathBase()
+    {
+        var options = GetValidOptions();
+        options.PathBase = "invalid";
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        Assert.False(result.Succeeded);
+        Assert.Equal("PathBase must start with a forward slash.; PathBase must end with a forward slash.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void PathBaseOptions_InvalidPathBase_Missing_TrailingSlash()
+    {
+        var options = GetValidOptions();
+        options.PathBase = "/invalid";
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        Assert.False(result.Succeeded);
+        Assert.Equal("PathBase must end with a forward slash.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void PathBaseOptions_ValidPathBase()
+    {
+        var options = GetValidOptions();
+        options.PathBase = "/valid/";
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void PathBaseOptions_Not_Set_PathBase_Defaults_To_Slash()
+    {
+        var options = GetValidOptions();
+        Assert.Equal("/", options.PathBase);
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        
+        Assert.True(result.Succeeded);
+    }
+    [Fact]
+    public void PathBaseOptions_InvalidPathBase_Missing_LeadingSlash()
+    {
+        var options = GetValidOptions();
+        options.PathBase = "invalid/";
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        Assert.False(result.Succeeded);
+        Assert.Equal("PathBase must start with a forward slash.", result.FailureMessage);
+    }
+
+    #endregion
 }

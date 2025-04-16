@@ -56,7 +56,9 @@ internal sealed class ValidateTokenMiddleware
                     {
                         newQuerystring = "?" + newQuerystring;
                     }
-                    context.Response.Redirect($"{context.Request.Path}{newQuerystring}");
+                    var pathBase = context.Request.PathBase.HasValue ? context.Request.PathBase.ToString() : "/";
+                    var redirectUrl = $"{pathBase}{context.Request.Path}{newQuerystring}";
+                    context.Response.Redirect(redirectUrl);
                 }
 
                 return;
@@ -74,7 +76,9 @@ internal sealed class ValidateTokenMiddleware
         }
         else
         {
-            context.Response.Redirect(DashboardUrls.ResourcesUrl());
+            var pathBase = context.Request.PathBase.HasValue ? context.Request.PathBase.ToString() : "/";
+            var redirectUrl = $"{pathBase}{DashboardUrls.HomeUrl()}";
+            context.Response.Redirect(redirectUrl);
         }
     }
 

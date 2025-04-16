@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -21,7 +22,7 @@ internal static class LoggingHelpers
                 ? "Login to the dashboard at {DashboardLoginUrl}"
                 : "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured.";
 
-            var dashboardUrl = $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}";
+            var dashboardUrl = $"{firstDashboardUrl.GetLeftPart(UriPartial.Path)}login?t={token}";
             logger.LogInformation(message, dashboardUrl);
         }
     }

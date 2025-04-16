@@ -152,7 +152,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
 
-        var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
+        var dashboardConfigSection = builder.Configuration.GetSection(DashboardOptions.Dashboard);
         builder.Services.AddOptions<DashboardOptions>()
             .Bind(dashboardConfigSection)
             .ValidateOnStart();
@@ -175,6 +175,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         else
         {
             _validationFailures = Array.Empty<string>();
+        }
+
+        if (dashboardOptions.ReverseProxy.ForwardHeaders)
+        {
+            builder.Services.AddSingleton<IConfigureOptions<ForwardedHeadersOptions>, ConfigureForwardedHeadersOptions>();
         }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
@@ -284,6 +289,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .Select(c => c.Name)
             .ToArray();
 
+        // TODO: Revisit whether this is needed. It provides the ability to use a path base when forwarded headers don't set it,
+        //       e.g. when not using a reverse-proxy but instead just configuring an app host project to use a path base.
+        if (dashboardOptions.PathBase is not null)
+        {
+            _app.UsePathBase(dashboardOptions.PathBase);
+
+            if (_app.Environment.IsDevelopment())
+            {
+                // In development we want to ensure that requests outside of the path base return a 404 to mimic what would
+                // happen when the dashboard is being served from behind a reverse-proxy at a configured path. Note we still let
+                // ~/login requests through as that's what VS launches the browser to. In that case we redirect instead.
+                _app.UsePathBaseEnforcement();
+            }
+        }
+
+        // Add this after PathBase so that it overrides it if the reverse proxy sets the path base.
+        if (dashboardOptions.ReverseProxy.ForwardHeaders)
+        {
+            _app.UseForwardedHeaders();
+        }
+
         _app.UseRequestLocalization(new RequestLocalizationOptions()
             .AddSupportedCultures(supportedCultureNames)
             .AddSupportedUICultures(supportedCultureNames));
@@ -340,7 +366,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
                     var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
 
-                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
+                    var dashboardUrl = frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true) + options.PathBase;
+                    LoggingHelpers.WriteDashboardUrl(_logger, dashboardUrl, options.Frontend.BrowserToken, isContainer);
                 }
             }
         });
@@ -354,7 +381,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
                 if (!client.IsEnabled)
                 {
-                    context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
+                    var targetPath = TargetLocationInterceptor.StructuredLogsPath;
+                    if (context.Request.PathBase.HasValue)
+                    {
+                        targetPath = context.Request.PathBase + targetPath;
+                    }
+                    context.Response.Redirect(targetPath);
                     return;
                 }
             }
@@ -405,6 +437,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
+        // Important to explicitly put the authn/z middleware calls *after* the path base impacting middleware so cookies are written
+        // to the right path.
+        _app.UseAuthentication();
         _app.UseAuthorization();
 
         _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
@@ -713,6 +748,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 authentication.AddCookie(options =>
                 {
                     options.Cookie.Name = DashboardAuthCookieName;
+                    if (dashboardOptions.PathBase is not null || dashboardOptions.ReverseProxy.ForwardHeaders)
+                    {
+                        options.AdjustForPathBase();
+                    }
                 });
 
                 authentication.AddOpenIdConnect(options =>
@@ -761,7 +800,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         return Task.CompletedTask;
                     };
                     options.Cookie.Name = DashboardAuthCookieName;
+                    if (dashboardOptions.PathBase is not null || dashboardOptions.ReverseProxy.ForwardHeaders)
+                    {
+                        options.AdjustForPathBase();
+                    }
                 });
+
                 break;
             case FrontendAuthMode.Unsecured:
                 authentication.AddScheme<AuthenticationSchemeOptions, UnsecuredAuthenticationHandler>(FrontendAuthenticationDefaults.AuthenticationSchemeUnsecured, o => { });

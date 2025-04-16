@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -23,6 +23,7 @@
     <ProjectReference Include="..\BasketService\BasketService.csproj" />
     <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />
     <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
+    <ProjectReference Include="..\DashboardProxy\DashboardProxy.csproj" />
     <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" />
     <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
   </ItemGroup>

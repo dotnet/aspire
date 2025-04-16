@@ -144,6 +144,41 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             }
         }
 
+        if (!options.ReverseProxy.ForwardHeaders)
+        {
+            // Ensure other properties are not set if ForwardHeaders is false.
+            if (options.ReverseProxy.ForwardLimit != ReverseProxyOptions.DefaultForwardLimit)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.ForwardLimit)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.KnownProxies.Count == 1 && options.ReverseProxy.KnownProxies[0] == ReverseProxyOptions.DefaultKnownProxy)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.KnownProxies)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.KnownNetworks.Count == 1 && options.ReverseProxy.KnownNetworks[0] == ReverseProxyOptions.DefaultKnownNetwork)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.KnownNetworks)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+            if (options.ReverseProxy.AllowedHosts.Count > 0)
+            {
+                errorMessages.Add($"Configuring {nameof(DashboardOptions.ReverseProxy)}.{nameof(ReverseProxyOptions.AllowedHosts)} has no effect when {nameof(DashboardOptions.ReverseProxy)}.{nameof(options.ReverseProxy.ForwardHeaders)} is false.");
+            }
+        }
+
+        // Validate the path base if set to make sure it starts and ends with a forward slash.
+        if (options.PathBase is not null)
+        {
+            if (!options.PathBase.StartsWith('/'))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must start with a forward slash.");
+            }
+
+            if (!options.PathBase.EndsWith('/'))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must end with a forward slash.");
+            }
+        }
+
         return errorMessages.Count > 0
             ? ValidateOptionsResult.Fail(errorMessages)
             : ValidateOptionsResult.Success;

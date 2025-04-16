@@ -50,16 +50,13 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
         ProcessNavigationUri(e.Location);
     }
 
-    private void ProcessNavigationUri(string location)
+    private void ProcessNavigationUri(string currentUrl)
     {
-        if (Uri.TryCreate(location, UriKind.Absolute, out var result))
+        var isResources = DashboardUrls.IsUrlForPage(NavigationManager.ToBaseRelativePath(currentUrl), DashboardUrls.ResourcesBasePath);
+        if (isResources != _isResources)
         {
-            var isResources = result.AbsolutePath.TrimStart('/') == DashboardUrls.ResourcesBasePath;
-            if (isResources != _isResources)
-            {
-                _isResources = isResources;
-                StateHasChanged();
-            }
+            _isResources = isResources;
+            StateHasChanged();
         }
     }
 
