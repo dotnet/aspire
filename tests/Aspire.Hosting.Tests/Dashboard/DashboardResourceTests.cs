@@ -107,9 +107,21 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Same(container.Resource, dashboard);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout())
+            .OrderBy(c => c.Key)
+            .ToList();
 
         Assert.Collection(config,
+            e =>
+            {
+                Assert.Equal(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, e.Key);
+                Assert.Equal("http://localhost", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(KnownConfigNames.ResourceServiceEndpointUrl, e.Key);
+                Assert.Equal("http://localhost:5000", e.Value);
+            },
             e =>
             {
                 Assert.Equal("ASPNETCORE_ENVIRONMENT", e.Key);
@@ -122,27 +134,17 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             },
             e =>
             {
-                Assert.Equal(KnownConfigNames.ResourceServiceEndpointUrl, e.Key);
-                Assert.Equal("http://localhost:5000", e.Value);
-            },
-            e =>
-            {
-                Assert.Equal(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, e.Key);
-                Assert.Equal("http://localhost", e.Value);
-            },
-            e =>
-            {
                 Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },
             e =>
             {
-                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
+                Assert.Equal("DASHBOARD__OTLP__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },
             e =>
             {
-                Assert.Equal("DASHBOARD__OTLP__AUTHMODE", e.Key);
+                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },
             e =>
@@ -330,6 +332,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
         Assert.Equal(expectedAllowedOrigins, config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
         Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
+        Assert.DoesNotContain(config, e => e.Key == corsAllowedOriginsKey);
     }
 
     [Theory]

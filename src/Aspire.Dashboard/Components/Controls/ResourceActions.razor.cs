@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
@@ -46,6 +47,9 @@ public partial class ResourceActions : ComponentBase
     [Parameter]
     public required int MaxHighlightedCount { get; set; }
 
+    [Parameter]
+    public required ConcurrentDictionary<string, ResourceViewModel> ResourceByName { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -69,7 +73,8 @@ public partial class ResourceActions : ComponentBase
             OnViewDetails,
             CommandSelected,
             IsCommandExecuting,
-            showConsoleLogsItem: true);
+            showConsoleLogsItem: true,
+            showUrls: false);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

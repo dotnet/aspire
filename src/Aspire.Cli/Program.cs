@@ -77,6 +77,7 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();

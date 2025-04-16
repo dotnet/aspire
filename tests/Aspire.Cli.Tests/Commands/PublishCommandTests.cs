@@ -8,12 +8,12 @@ using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 
-public class PublishCommandTests
+public class PublishCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public async Task PublishCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection();
+        var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();

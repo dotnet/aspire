@@ -19,7 +19,6 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange

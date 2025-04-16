@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -208,6 +209,40 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         Assert.NotNull(redisResource?.PasswordParameter);
         Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AddAzureRedisRunAsContainerProducesCorrectHostAndPassword()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
+        RedisResource? redisResource = null;
+        var redis = builder.AddAzureRedis("cache")
+            .RunAsContainer(c =>
+            {
+                redisResource = c.Resource;
+
+                c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                    .WithHostPort(12455)
+                    .WithPassword(pass);
+            });
+
+        Assert.NotNull(redisResource);
+
+        var endpoint = Assert.Single(redisResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(6379, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
+
+        Assert.NotNull(redisResource?.PasswordParameter);
+        Assert.Equal($"localhost:12455,password=p@ssw0rd1", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 
     [Theory]

@@ -15,7 +15,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Telemetry;
 
@@ -26,7 +25,7 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession
+            DebugSession = new DebugSessionOptions
             {
                 Address = "http://localhost:5000",
                 Token = "test",
@@ -87,7 +86,7 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
 
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession
+            DebugSession = new DebugSessionOptions
             {
                 Address = "http://localhost:5000",
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),

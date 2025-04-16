@@ -412,4 +412,35 @@ public static class RedisBuilderExtensions
 
         return builder.WithBindMount(source, "/data");
     }
+
+    /// <summary>
+    /// Configures the password that the Redis resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the Redis resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisResource> WithHostPort(this IResourceBuilder<RedisResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(RedisResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+
+    }
 }
