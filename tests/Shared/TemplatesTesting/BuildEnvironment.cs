@@ -111,19 +111,34 @@ public class BuildEnvironment
         }
         else
         {
-            // CI - helix
-            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForTemplateTestingPath))
+            if (useSystemDotNet)
             {
-                throw new ArgumentException($"Environment variable SDK_FOR_TEMPLATES_TESTING_PATH is unset");
+                string? dotnetPath = Environment.GetEnvironmentVariable("PATH")!
+                    .Split(Path.PathSeparator)
+                    .Select(path => Path.Combine(path, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"))
+                    .FirstOrDefault(File.Exists);
+                if (dotnetPath is null)
+                {
+                    throw new ArgumentException($"Could not find dotnet.exe in PATH={Environment.GetEnvironmentVariable("PATH")}");
+                }
+                sdkForTemplatePath = Path.GetDirectoryName(dotnetPath)!;
             }
-
-            string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForTemplateTestingPath);
-            if (baseDir is null)
+            else
             {
-                throw new ArgumentException($"Cannot find base directory for SDK_FOR_TEMPLATES_TESTING_PATH - {baseDir}");
-            }
+                // CI - helix
+                if (string.IsNullOrEmpty(EnvironmentVariables.SdkForTemplateTestingPath))
+                {
+                    throw new ArgumentException($"Environment variable SDK_FOR_TEMPLATES_TESTING_PATH is unset");
+                }
 
-            sdkForTemplatePath = Path.Combine(baseDir, sdkDirName);
+                string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForTemplateTestingPath);
+                if (baseDir is null)
+                {
+                    throw new ArgumentException($"Cannot find base directory for SDK_FOR_TEMPLATES_TESTING_PATH - {baseDir}");
+                }
+
+                sdkForTemplatePath = Path.Combine(baseDir, sdkDirName);
+            }
 
             if (string.IsNullOrEmpty(EnvironmentVariables.BuiltNuGetsPath) || !Directory.Exists(EnvironmentVariables.BuiltNuGetsPath))
             {

@@ -8,12 +8,12 @@ using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 
-public class RootCommandTests
+public class RootCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public async Task RootCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection();
+        var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
