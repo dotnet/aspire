@@ -335,7 +335,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureContainerAppEnvironment("infra");
+        var infra = builder.AddAzureContainerAppEnvironment("infra");
 
         var env = builder.AddParameter("env");
 
@@ -358,10 +358,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var container = Assert.Single(model.GetContainerResources());
 
-        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var target = container.GetDeploymentTargetAnnotation();
+
+        Assert.Same(infra.Resource, target?.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
-
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
@@ -551,7 +552,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAzureContainerAppEnvironment("env");
+        builder.AddAzureContainerAppEnvironment("env");
 
         var value = builder.AddParameter("value");
         var minReplicas = builder.AddParameter("minReplicas");
