@@ -59,11 +59,3 @@ This project has adopted the code of conduct defined by the [Contributor Covenan
 ## License
 
 The code in this repo is licensed under the [MIT](LICENSE.TXT) license.
-
-## Data collection
-
-The software may collect information about you and your use of the software and send it to Microsoft. Microsoft may use this information to provide services and improve our products and services. You may turn off the telemetry as described in the repository. There are also some features in the software that may enable you and Microsoft to collect data from users of your applications. If you use these features, you must comply with applicable law, including providing appropriate notices to users of your applications together with a copy of Microsoft’s privacy statement. Our privacy statement is located at https://go.microsoft.com/fwlink/?LinkID=824704. You can learn more about data collection and use in the help documentation and our privacy statement. Your use of the software operates as your consent to these practices.
-
-### Opting out of data collection
-
-The .NET Aspire dashboard collects usage telemetry. Learn what's collected and why [here](https://aka.ms/dotnet/aspire/microsoft-collected-telemetry).  To opt out of dashboard telemetry, set the environment variable `DOTNET_ASPIRE_DASHBOARD_TELEMETRY_OPTOUT` to `true` or disable telemetry in Visual Studio or Visual Studio Code.

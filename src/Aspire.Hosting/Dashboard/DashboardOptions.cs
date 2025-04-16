@@ -33,7 +33,7 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
 
-        options.TelemetryOptOut = bool.TryParse(configuration["DOTNET_DASHBOARD_TELEMETRY_OPTOUT"], out var telemetryOptOut)
+        options.TelemetryOptOut = bool.TryParse(configuration["ASPIRE_DASHBOARD_TELEMETRY_OPTOUT"], out var telemetryOptOut)
             ? !telemetryOptOut
             : null;
     }

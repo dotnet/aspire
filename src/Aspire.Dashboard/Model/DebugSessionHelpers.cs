@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Configuration;
 
@@ -25,10 +24,8 @@ internal static class DebugSessionHelpers
                 }
 
                 // Certificate isn't immediately valid. Check if it is the same as the one we expect.
-                return string.Equals(
-                    cert.GetCertHashString(HashAlgorithmName.SHA256),
-                    c?.GetCertHashString(HashAlgorithmName.SHA256),
-                    StringComparison.OrdinalIgnoreCase);
+                // It's ok that comparison isn't time constant because this is public information.
+                return cert.RawData.SequenceEqual(c?.RawData);
             };
         }
 
@@ -47,7 +44,7 @@ internal static class DebugSessionHelpers
     }
 
     public static bool HasDebugSession(
-        DebugSession debugSession,
+        DebugSessionOptions debugSession,
         out X509Certificate2? serverCert,
         [NotNullWhen(true)] out Uri? debugSessionUri,
         [NotNullWhen(true)] out string? token)

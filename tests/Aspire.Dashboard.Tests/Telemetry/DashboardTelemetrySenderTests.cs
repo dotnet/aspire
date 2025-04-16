@@ -20,7 +20,7 @@ public class DashboardTelemetrySenderTests
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession()
+            DebugSession = new DebugSessionOptions()
         });
 
         var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
@@ -34,7 +34,7 @@ public class DashboardTelemetrySenderTests
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession
+            DebugSession = new DebugSessionOptions
             {
                 Address = "http://localhost:5000",
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
@@ -61,7 +61,7 @@ public class DashboardTelemetrySenderTests
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession
+            DebugSession = new DebugSessionOptions
             {
                 Address = "http://localhost:5000",
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
@@ -108,7 +108,7 @@ public class DashboardTelemetrySenderTests
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
-            DebugSession = new DebugSession
+            DebugSession = new DebugSessionOptions
             {
                 Address = address,
                 ServerCertificate = isHttps ? Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)) : null,
