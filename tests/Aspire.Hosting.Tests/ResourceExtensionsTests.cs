@@ -300,15 +300,22 @@ public class ResourceExtensionsTests
         var compute1 = builder.AddResource(new ComputeEnvironmentResource("compute1"));
         var compute2 = builder.AddResource(new ComputeEnvironmentResource("compute2"));
 
-        var myContainer = builder.AddContainer("myContainer", "nginx")
-            .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
-            .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
+        void RunTest<T>(IResourceBuilder<T> resourceBuilder) where T : IComputeResource
+        {
+            resourceBuilder
+                .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
+                .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
 
-        Assert.Throws<InvalidOperationException>(myContainer.Resource.GetDeploymentTargetAnnotation);
+            Assert.Throws<InvalidOperationException>(resourceBuilder.Resource.GetDeploymentTargetAnnotation);
 
-        myContainer.WithComputeEnvironment(compute2);
+            resourceBuilder.WithComputeEnvironment(compute2);
 
-        Assert.Equal(compute2.Resource, myContainer.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
+            Assert.Equal(compute2.Resource, resourceBuilder.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
+        }
+
+        RunTest(builder.AddContainer("myContainer", "nginx"));
+        RunTest(builder.AddProject<Projects.ServiceA>("ServiceA"));
+        RunTest(builder.AddExecutable("myExecutable", "nginx", string.Empty));
     }
 
     private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource

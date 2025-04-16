@@ -857,26 +857,6 @@ public static class ContainerResourceBuilderExtensions
 
         return builder;
     }
-
-    /// <summary>
-    /// Configures the compute environment for the container resource.
-    /// </summary>
-    /// <param name="builder">The container resource builder.</param>
-    /// <param name="computeEnvironmentResource">The compute environment resource to associate with the container.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// This method allows associating a specific compute environment with the container resource.
-    /// </remarks>
-    [Experimental("ASPIRECOMPUTE001")]
-    public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
-        where T : ContainerResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(computeEnvironmentResource);
-
-        builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
-        return builder;
-    }
 }
 
 internal static class IListExtensions

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -1932,5 +1933,25 @@ public static class ResourceBuilderExtensions
         IResource parent) where T : IResource
     {
         return builder.WithRelationship(parent, KnownRelationshipTypes.Parent);
+    }
+
+    /// <summary>
+    /// Configures the compute environment for the compute resource.
+    /// </summary>
+    /// <param name="builder">The compute resource builder.</param>
+    /// <param name="computeEnvironmentResource">The compute environment resource to associate with the compute resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method allows associating a specific compute environment with the compute resource.
+    /// </remarks>
+    [Experimental("ASPIRECOMPUTE001")]
+    public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(computeEnvironmentResource);
+
+        builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
+        return builder;
     }
 }
