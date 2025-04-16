@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +36,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return new TestAddCommandPrompter(interactionService);
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -110,7 +109,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -191,7 +190,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -268,7 +267,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -328,20 +327,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("9.2.0", addedPackageVersion);
     }
 
-}
-
-internal sealed class FakeProjectLocator : IProjectLocator
-{
-    public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
-    {
-        if (projectFile != null)
-        {
-            return projectFile;
-        }
-
-        var fakeProjectFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "AppHost.csproj");
-        return new FileInfo(fakeProjectFilePath);
-    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)

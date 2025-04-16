@@ -106,7 +106,7 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            var backchannelCompletitionSource = new TaskCompletionSource<AppHostBackchannel>();
+            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,

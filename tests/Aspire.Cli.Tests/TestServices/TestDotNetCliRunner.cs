@@ -16,7 +16,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, string[], string[], CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
     public Func<string, string, string?, bool, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
     public Func<string, string, string, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
-    public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<AppHostBackchannel>?, CancellationToken, int>? RunAsyncCallback { get; set; }
+    public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, CancellationToken, int>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, string?, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
 
@@ -71,7 +71,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : Task.FromResult(0); // If not overridden, just return success.
     }
 
-    public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+    public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
     {
         return RunAsyncCallback != null
             ? Task.FromResult(RunAsyncCallback(projectFile, watch, noBuild, args, env, backchannelCompletionSource, cancellationToken))

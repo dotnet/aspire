@@ -9,64 +9,77 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 {
-    public Func<long, CancellationToken, long>? PingAsyncCallback { get; set; }
-    public Action<CancellationToken>? RequestStopAsyncCallback { get; set; }
-    public Func<CancellationToken, (string, string?)>? GetDashboardUrlsAsyncCallback { get; set; }
-    public Func<CancellationToken, IAsyncEnumerable<(string, string, string, string[])>>? GetResourceStatesAsyncCallback { get; set; }
-    public Action<Process, string, CancellationToken>? ConnectAsyncCallback { get; set; }
-    public Func<CancellationToken, string[]>? GetPublishersAsyncCallback { get; set; }
-    public Func<CancellationToken, IAsyncEnumerable<(string, string, bool, bool)>>? GetPublishingActivitiesAsyncCallback { get; set; }
-    public Func<CancellationToken, string[]>? GetCapabilitiesAsyncCallback { get; set; }
+    public Func<long, long>? PingCallback { get; set; }
+    public Action? RequestStopCallback { get; set; }
+    public Func<(string, string?)>? GetDashboardUrlsCallback { get; set; }
+    public Func<IAsyncEnumerable<(string, string, string, string[])>>? GetResourceStatesCallback { get; set; }
+    public Action<Process, string>? ConnectCallback { get; set; }
+    public Func<CancellationToken, string[]>? GetPublishersCallback { get; set; }
+    public Func<IAsyncEnumerable<(string, string, bool, bool)>>? GetPublishingActivitiesCallback { get; set; }
+    public Func<string[]>? GetCapabilitiesCallback { get; set; }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken) =>
-        Task.FromResult(PingAsyncCallback?.Invoke(timestamp, cancellationToken) ?? timestamp);
+    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
+    {
+        return PingCallback != null
+            ? Task.FromResult(PingCallback.Invoke(timestamp))
+            : Task.FromResult(timestamp);
+    }
 
     public Task RequestStopAsync(CancellationToken cancellationToken)
     {
-        RequestStopAsyncCallback?.Invoke(cancellationToken);
-        return Task.CompletedTask;
-    }
-
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(GetDashboardUrlsAsyncCallback?.Invoke(cancellationToken) ?? ("http://localhost", null));
-
-    public IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync(CancellationToken cancellationToken)
-    {
-        if (GetResourceStatesAsyncCallback != null)
+        if (RequestStopCallback != null)
         {
-            return GetResourceStatesAsyncCallback.Invoke(cancellationToken);
+            RequestStopCallback.Invoke();
+            return Task.CompletedTask;
         }
-        return DefaultResourceStatesAsync(cancellationToken);
-    }
-
-    private static IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> DefaultResourceStatesAsync(CancellationToken cancellationToken)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-        return DefaultResourceStatesAsyncImpl(timer, cancellationToken);
-    }
-
-    private static async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> DefaultResourceStatesAsyncImpl(PeriodicTimer timer, [EnumeratorCancellation]CancellationToken cancellationToken)
-    {
-        while (await timer.WaitForNextTickAsync(cancellationToken))
+        else
         {
-            yield return ("default-resource", "default-type", "default-state", Array.Empty<string>());
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    {
+        return GetDashboardUrlsCallback != null
+            ? Task.FromResult(GetDashboardUrlsCallback.Invoke())
+            : Task.FromResult<(string, string?)>(("http://localhost:5000/login?t=abcd", "https://monalisa-hot-potato-vrpqrxxrx7x2rxx-5000.app.github.dev/login?t=abcd"));
+    }
+
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        if (GetResourceStatesCallback != null)
+        {
+            var resourceStates = GetResourceStatesCallback.Invoke();
+            await foreach (var resourceState in resourceStates)
+            {
+                yield return resourceState;
+            }
+        }
+        else
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                yield return ("frontend", "Project", "Starting", new[] { "http://localhost:5000" });
+                yield return ("backend", "Project", "Running", new[] { "http://localhost:5001" });
+            }
         }
     }
 
     public Task ConnectAsync(Process process, string socketPath, CancellationToken cancellationToken)
     {
-        ConnectAsyncCallback?.Invoke(process, socketPath, cancellationToken);
+        ConnectCallback?.Invoke(process, socketPath);
         return Task.CompletedTask;
     }
 
     public Task<string[]> GetPublishersAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(GetPublishersAsyncCallback?.Invoke(cancellationToken) ?? Array.Empty<string>());
+        Task.FromResult(GetPublishersCallback?.Invoke(cancellationToken) ?? ["manifest"]);
 
     public IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken)
     {
-        if (GetPublishingActivitiesAsyncCallback != null)
+        if (GetPublishingActivitiesCallback != null)
         {
-            return GetPublishingActivitiesAsyncCallback.Invoke(cancellationToken);
+            return GetPublishingActivitiesCallback.Invoke();
         }
         return DefaultPublishingActivitiesAsync();
     }
@@ -96,6 +109,15 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     }
 #pragma warning restore CS1998
 
-    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(GetCapabilitiesAsyncCallback?.Invoke(cancellationToken) ?? new[] { "baseline.v0" });
+    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        if (GetCapabilitiesCallback != null)
+        {
+            return Task.FromResult(GetCapabilitiesCallback.Invoke());
+        }
+        else
+        {
+            return Task.FromResult(new[] { "baseline.v0" });
+        }
+    }
 }

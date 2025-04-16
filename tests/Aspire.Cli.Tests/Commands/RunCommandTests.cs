@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -16,7 +19,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
+        var command = provider.GetRequiredService<RunCommand>();
         var result = command.Parse("run --help");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -32,7 +35,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
+        var command = provider.GetRequiredService<RunCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -48,7 +51,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
+        var command = provider.GetRequiredService<RunCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -64,7 +67,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
+        var command = provider.GetRequiredService<RunCommand>();
         var result = command.Parse("run --project /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -88,7 +91,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
+        var command = provider.GetRequiredService<RunCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -117,5 +120,56 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
+    }
+
+    [Fact]
+    public async Task RunCommand_CompletesSuccessfully()
+    {
+        var backchannelFactory = (IServiceProvider sp) => {
+            var backchannel = new TestAppHostBackchannel();
+            return backchannel;
+        };
+
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, ct) => 0;
+
+            // Fake apphost information to return a compatable app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+            runner.RunAsyncCallback = (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
+            {
+                // Make a backchannel and return it, but don't return from the run call until the backchannel 
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+
+                ct.WaitHandle.WaitOne();
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+        
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RunCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
     }
 }
