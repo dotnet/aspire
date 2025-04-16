@@ -126,7 +126,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var configuration = configurationBuilder.Build();
         var dashboardOptions = Options.Create(new DashboardOptions
         {
-            TelemetryOptOut = telemetryEnabled
+            TelemetryOptOut = telemetryEnabled,
+            DashboardPath = "dashboard/path"
         });
         var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
 
