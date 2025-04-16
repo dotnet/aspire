@@ -108,14 +108,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ServerCallContext context)
     {
         await ExecuteAsync(
-            cancellationToken => WatchResourceConsoleLogsInternal(request.Follow, cancellationToken),
+            cancellationToken => WatchResourceConsoleLogsInternal(request.SuppressFollow, cancellationToken),
             context).ConfigureAwait(false);
 
-        async Task WatchResourceConsoleLogsInternal(bool follow, CancellationToken cancellationToken)
+        async Task WatchResourceConsoleLogsInternal(bool suppressFollow, CancellationToken cancellationToken)
         {
-            var enumerable = follow
-                ? serviceData.SubscribeConsoleLogs(request.ResourceName)
-                : serviceData.GetConsoleLogs(request.ResourceName);
+            var enumerable = suppressFollow
+                ? serviceData.GetConsoleLogs(request.ResourceName)
+                : serviceData.SubscribeConsoleLogs(request.ResourceName);
 
             if (enumerable is null)
             {

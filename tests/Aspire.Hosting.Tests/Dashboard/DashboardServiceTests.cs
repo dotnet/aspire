@@ -54,7 +54,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var task = dashboardService.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest { ResourceName = "test-resource", Follow = false },
+            new WatchResourceConsoleLogsRequest { ResourceName = "test-resource", SuppressFollow = true },
             writer,
             context);
 
@@ -107,7 +107,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var task = dashboardService.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest { ResourceName = "test-resource", Follow = true },
+            new WatchResourceConsoleLogsRequest { ResourceName = "test-resource" },
             writer,
             context);
 

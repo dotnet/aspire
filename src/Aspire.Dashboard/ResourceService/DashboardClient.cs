@@ -477,7 +477,7 @@ internal sealed class DashboardClient : IDashboardClient
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, Follow = true },
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             headers: _headers,
             cancellationToken: combinedTokens.Token);
 
@@ -524,7 +524,7 @@ internal sealed class DashboardClient : IDashboardClient
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, Follow = false },
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, SuppressFollow = true },
             headers: _headers,
             cancellationToken: combinedTokens.Token);
 
