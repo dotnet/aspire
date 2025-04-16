@@ -20,6 +20,7 @@ public class ResourceLoggerService
     internal TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
     private readonly ConcurrentDictionary<string, ResourceLoggerState> _loggers = new();
+    private IConsoleLogsService _consoleLogsService = new FakeConsoleLogsService();
     private Action<(string, ResourceLoggerState)>? _loggerAdded;
     private event Action<(string, ResourceLoggerState)> LoggerAdded
     {
@@ -147,6 +148,26 @@ public class ResourceLoggerService
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <returns></returns>
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var resourceNames = resource.GetResolvedResourceNames();
+        if (resourceNames.Length > 1)
+        {
+            return CombineMultipleAsync(resourceNames, GetAllAsync);
+        }
+        else
+        {
+            return GetAllAsync(resourceNames[0]);
+        }
+    }
+
+    /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
@@ -158,43 +179,55 @@ public class ResourceLoggerService
         var resourceNames = resource.GetResolvedResourceNames();
         if (resourceNames.Length > 1)
         {
-            return WatchMultipleAsync(resourceNames, WatchAsync);
+            return CombineMultipleAsync(resourceNames, WatchAsync);
         }
         else
         {
             return WatchAsync(resourceNames[0]);
         }
+    }
 
-        static async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> watch)
+    private static async IAsyncEnumerable<IReadOnlyList<LogLine>> CombineMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> fetch)
+    {
+        var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+        var readTasks = resourceNames.Select(async (name) =>
         {
-            var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
-            var readTasks = resourceNames.Select(async (name) =>
+            await foreach (var logLines in fetch(name).ConfigureAwait(false))
             {
-                await foreach (var logLines in watch(name).ConfigureAwait(false))
-                {
-                    channel.Writer.TryWrite(logLines);
-                }
-            });
-
-            var completionTask = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.WhenAll(readTasks).ConfigureAwait(false);
-                }
-                finally
-                {
-                    channel.Writer.Complete();
-                }
-            });
-
-            await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
-            {
-                yield return item;
+                channel.Writer.TryWrite(logLines);
             }
+        });
 
-            await completionTask.ConfigureAwait(false);
+        var completionTask = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.WhenAll(readTasks).ConfigureAwait(false);
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        });
+
+        await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            yield return item;
         }
+
+        await completionTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Watch for changes to the log stream for a resource.
+    /// </summary>
+    /// <param name="resourceName">The resource name</param>
+    /// <returns>An async enumerable that returns the logs as they are written.</returns>
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).GetAllAsync();
     }
 
     /// <summary>
@@ -294,7 +327,7 @@ public class ResourceLoggerService
     internal ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, (name, context) =>
         {
-            var state = new ResourceLoggerState(TimeProvider);
+            var state = new ResourceLoggerState(name, TimeProvider, _consoleLogsService);
             context._loggerAdded?.Invoke((name, state));
             return state;
         },
@@ -314,15 +347,19 @@ public class ResourceLoggerService
 
         private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(MaxLogCount);
         private readonly LogEntries _backlog = new(MaxLogCount) { BaseLineNumber = 0 };
+        private readonly string _name;
         private readonly TimeProvider _timeProvider;
+        private readonly IConsoleLogsService _consoleLogsService;
 
         /// <summary>
         /// Creates a new <see cref="ResourceLoggerState"/>.
         /// </summary>
-        public ResourceLoggerState(TimeProvider timeProvider)
+        public ResourceLoggerState(string name, TimeProvider timeProvider, IConsoleLogsService consoleLogsService)
         {
             _logger = new ResourceLogger(this);
+            _name = name;
             _timeProvider = timeProvider;
+            _consoleLogsService = consoleLogsService;
         }
 
         private Action<bool>? _onSubscribersChanged;
@@ -353,11 +390,22 @@ public class ResourceLoggerService
             }
         }
 
-        public IReadOnlyList<LogEntry> GetInMemoryLogEntries()
+        public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            var consoleLogsEnumerable = _consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
+
+            List<LogEntry> inMemoryEntries;
             lock (_lock)
             {
-                return _inMemoryEntries.ToList();
+                inMemoryEntries = _inMemoryEntries.ToList();
+            }
+
+            var lineNumber = 0;
+            yield return CreateLogLines(ref lineNumber, inMemoryEntries);
+
+            await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
+            {
+                yield return CreateLogLines(ref lineNumber, item);
             }
         }
 
@@ -544,7 +592,7 @@ public class ResourceLoggerService
         }
     }
 
-    internal static LogLine[] CreateLogLines(ref int lineNumber, IReadOnlyList<LogEntry> entries)
+    private static LogLine[] CreateLogLines(ref int lineNumber, IReadOnlyList<LogEntry> entries)
     {
         var logs = new LogLine[entries.Count];
         for (var i = 0; i < entries.Count; i++)
@@ -561,6 +609,19 @@ public class ResourceLoggerService
         }
 
         return logs;
+    }
+
+    internal void SetConsoleLogsService(IConsoleLogsService consoleLogsService)
+    {
+        _consoleLogsService = consoleLogsService;
+    }
+
+    private sealed class FakeConsoleLogsService : IConsoleLogsService
+    {
+        public IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException($"Getting all logs requires the {nameof(ResourceLoggerService)} instance created by DI.");
+        }
     }
 }
 

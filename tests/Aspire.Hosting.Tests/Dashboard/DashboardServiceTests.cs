@@ -4,7 +4,6 @@
 using System.Threading.Channels;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
@@ -30,11 +29,15 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
-        var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+
         var getConsoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<LogEntry>>();
-        var dcpExecutor = new TestDcpExecutor(getConsoleLogsChannel);
-        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService, dcpExecutor: dcpExecutor);
+        var consoleLogsService = new TestConsoleLogsService(name => getConsoleLogsChannel);
+
+        var resourceLoggerService = new ResourceLoggerService();
+        resourceLoggerService.SetConsoleLogsService(consoleLogsService);
+
+        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
@@ -208,8 +211,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     private static DashboardServiceData CreateDashboardServiceData(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
-        ILoggerFactory? loggerFactory = null,
-        IDcpExecutor? dcpExecutor = null)
+        ILoggerFactory? loggerFactory = null)
     {
         loggerFactory ??= NullLoggerFactory.Instance;
 
@@ -217,8 +219,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory.CreateLogger<DashboardServiceData>(),
-            new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()),
-            dcpExecutor ?? new TestDcpExecutor());
+            new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

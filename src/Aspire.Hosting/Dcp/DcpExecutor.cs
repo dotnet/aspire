@@ -28,7 +28,7 @@ using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
+internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     internal const string DefaultAspireNetworkName = "default-aspire-network";
@@ -222,6 +222,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     Task.Run(() => WatchKubernetesResourceAsync<Endpoint>(ProcessEndpointChange))).ConfigureAwait(false);
             }
         });
+
+        _loggerService.SetConsoleLogsService(this);
 
         var watchSubscribersTask = Task.Run(async () =>
         {
@@ -424,7 +426,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         return new(null, null, null);
     }
 
-    public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
         if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
