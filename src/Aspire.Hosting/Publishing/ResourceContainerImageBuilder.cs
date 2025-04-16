@@ -25,6 +25,14 @@ public interface IResourceContainerImageBuilder
     /// <param name="resource">The resource to build.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task BuildImageAsync(IResource resource, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Builds a container that represents the specified resource.
+    /// </summary>
+    /// <param name="resource">The resource to build.</param>
+    /// <param name="options">The Options for building</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task BuildImageAsync(IResource resource, BuildImageOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -35,43 +43,10 @@ internal sealed class ResourceContainerImageBuilder(
 {
     public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Building container image for resource {Resource}", resource.Name);
-
-        if (resource is ProjectResource)
-        {
-            // If it is a project resource we need to build the container image
-            // using the .NET SDK.
-            await BuildProjectContainerImageAsync(
-                resource,
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
-        {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
-            {
-                // This is a container resource so we'll use the container runtime to build the image
-                await BuildContainerImageFromDockerfileAsync(
-                    resource.Name,
-                    dockerfileBuildAnnotation.ContextPath,
-                    dockerfileBuildAnnotation.DockerfilePath,
-                    containerImageAnnotation.Image,
-                    cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            else
-            {
-                // Nothing to do here, the resource is already a container image.
-                return;
-            }
-        }
-        else
-        {
-            throw new NotSupportedException($"The resource type '{resource.GetType().Name}' is not supported.");
-        }
+        await BuildImageAsync(resource, new BuildImageOptions(), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
+    private async Task<string> BuildProjectContainerImageAsync(IResource resource, BuildImageOptions options, CancellationToken cancellationToken)
     {
         var publishingActivity = await activityReporter.CreateActivityAsync(
             $"{resource.Name}-build-image",
@@ -99,6 +74,16 @@ internal sealed class ResourceContainerImageBuilder(
         startInfo.ArgumentList.Add("Release");
         startInfo.ArgumentList.Add("/t:PublishContainer");
         startInfo.ArgumentList.Add($"/p:ContainerRepository={resource.Name}");
+
+        if (options.ContainerRegistry is not null)
+        {
+            startInfo.ArgumentList.Add($"/p:ContainerRegistry={options.ContainerRegistry}");
+        }
+
+        if (options.ContainerImageTag is not null)
+        {
+            startInfo.ArgumentList.Add($"/p:ContainerImageTag={options.ContainerImageTag}");
+        }
 
         logger.LogInformation(
             "Starting .NET CLI with arguments: {Arguments}",
@@ -190,5 +175,44 @@ internal sealed class ResourceContainerImageBuilder(
             throw;
         }
 
+    }
+
+    public async Task BuildImageAsync(IResource resource, BuildImageOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Building container image for resource {Resource}", resource.Name);
+
+        if (resource is ProjectResource)
+        {
+            // If it is a project resource we need to build the container image
+            // using the .NET SDK.
+            await BuildProjectContainerImageAsync(
+                resource,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        {
+            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
+            {
+                // This is a container resource so we'll use the container runtime to build the image
+                await BuildContainerImageFromDockerfileAsync(
+                    resource.Name,
+                    dockerfileBuildAnnotation.ContextPath,
+                    dockerfileBuildAnnotation.DockerfilePath,
+                    containerImageAnnotation.Image,
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            else
+            {
+                // Nothing to do here, the resource is already a container image.
+                return;
+            }
+        }
+        else
+        {
+            throw new NotSupportedException($"The resource type '{resource.GetType().Name}' is not supported.");
+        }
     }
 }

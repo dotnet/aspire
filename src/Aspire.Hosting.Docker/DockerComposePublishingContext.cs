@@ -202,7 +202,12 @@ internal sealed class DockerComposePublishingContext(
         {
             if (composePublishingContext.PublisherOptions.BuildImages)
             {
-                await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+                var buildOptions = new BuildImageOptions
+                {
+                    ContainerRegistry = composePublishingContext.PublisherOptions.DefaultContainerRegistry,
+                };
+
+                await composePublishingContext.ImageBuilder.BuildImageAsync(resource, buildOptions, cancellationToken).ConfigureAwait(false);
             }
 
             if (!TryGetContainerImageName(resource, out var containerImageName))
