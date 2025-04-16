@@ -81,7 +81,7 @@ public class Program
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
-        builder.Services.AddTransient<AppHostBackchannel>();
+        builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
 
