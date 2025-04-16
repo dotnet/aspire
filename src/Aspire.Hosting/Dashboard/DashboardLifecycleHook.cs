@@ -211,9 +211,14 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
         context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = options.DashboardUrl;
         context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-
+        if (options.OtlpGrpcEndpointUrl != null)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = options.OtlpGrpcEndpointUrl;
+        }
         if (options.OtlpHttpEndpointUrl != null)
         {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = options.OtlpHttpEndpointUrl;
+
             // Use explicitly defined allowed origins if configured.
             var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
 
