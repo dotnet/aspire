@@ -82,7 +82,7 @@ jobs:
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: '*-logs'
-          path: ${ github.workspace }}/artifacts/all-logs
+          path: ${{ github.workspace }}/artifacts/all-logs
 
       - name: Process logs and post results
         if: always()
