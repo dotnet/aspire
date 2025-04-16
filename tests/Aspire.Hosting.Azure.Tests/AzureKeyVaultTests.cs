@@ -154,11 +154,16 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
         var containerBuilder = builder.AddContainer("myContainer", "nginx")
                                        .WithEnvironment("MY_SECRET", secretReference);
 
-        var env = await containerBuilder.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        var runEnv = await containerBuilder.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        var publishEnv = await containerBuilder.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
 
-        var kvp = Assert.Single(env);
+        var runKvp = Assert.Single(runEnv);
+        var pubishKvp = Assert.Single(publishEnv);
 
-        Assert.Equal("MY_SECRET", kvp.Key);
-        Assert.Same("my secret value", kvp.Value);
+        Assert.Equal("MY_SECRET", runKvp.Key);
+        Assert.Same("my secret value", runKvp.Value);
+
+        Assert.Equal("MY_SECRET", pubishKvp.Key);
+        Assert.Equal("{myKeyVault.secrets.mySecret}", pubishKvp.Value);
     }
 }
