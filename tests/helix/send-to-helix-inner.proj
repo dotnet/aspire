@@ -58,19 +58,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestBlameArguments Include="--hangdump" />
-    <_TestBlameArguments Include="--hangdump-type Full" />
-    <_TestBlameArguments Include="--hangdump-timeout 20m" />
-    <_TestBlameArguments Include="--crashdump" />
-    <_TestBlameArguments Include="--crashdump-type Full" />
+    <_TestBlameArguments Include="--blame-hang" />
+    <_TestBlameArguments Include="--blame-hang-dump-type full" />
+    <_TestBlameArguments Include="--blame-hang-timeout 20m" />
+    <_TestBlameArguments Include="--blame-crash" />
+    <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
-    <!--
-      At time of writing, Aspire.Components.Common.Tests doesn't have runnable tests in CI. In that case, we don't want to fail.
-      Also EndToEnd.Tests doesn't have tests matching scenario=cosmos
-      So, ignore exit code 8 (zero tests ran)
-      https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
-    -->
-    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --filter-not-trait &quot;category=failing&quot; --ignore-exit-code 8" />
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 

@@ -378,7 +378,6 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7340")]
     public async Task VerifyEfMySql()
     {
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);

@@ -103,6 +103,23 @@ public static class AzureBicepResourceExtensions
     }
 
     /// <summary>
+    /// Adds an environment variable to the resource with the value of the key vault secret.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="secretReference">The reference to the key vault secret.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IAzureKeyVaultSecretReference secretReference)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(ctx =>
+        {
+            ctx.EnvironmentVariables[name] = secretReference;
+        });
+    }
+
+    /// <summary>
     /// Adds a parameter to the bicep template.
     /// </summary>
     /// <typeparam name="T">The <see cref="AzureBicepResource"/>.</typeparam>
