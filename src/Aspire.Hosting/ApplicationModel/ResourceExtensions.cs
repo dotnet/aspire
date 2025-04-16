@@ -585,11 +585,11 @@ public static class ResourceExtensions
                 .OfType<DeploymentTargetAnnotation>()
                 .LastOrDefault(a => a.ComputeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment);
         }
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         else
         {
             DeploymentTargetAnnotation? result = null;
-            foreach (var annotation in resource.Annotations.OfType<DeploymentTargetAnnotation>())
+            var computeEnvironments = resource.Annotations.OfType<DeploymentTargetAnnotation>();
+            foreach (var annotation in computeEnvironments)
             {
                 if (result is null)
                 {
@@ -597,12 +597,14 @@ public static class ResourceExtensions
                 }
                 else
                 {
-                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments. Please specify a single deployment target using 'WithComputeEnvironment'.");
+                    var computeEnvironmentNames = string.Join(", ", computeEnvironments.Select(a => a.ComputeEnvironment?.Name));
+                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
                 }
             }
 
             return result;
         }
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
