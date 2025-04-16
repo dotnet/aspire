@@ -127,7 +127,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var dashboardOptions = Options.Create(new DashboardOptions
         {
             TelemetryOptOut = telemetryEnabled,
-            DashboardPath = "dashboard/path"
+            DashboardPath = "test.dll",
+            DashboardUrl = "http://localhost:8080",
+            OtlpGrpcEndpointUrl = "http://localhost:4317"
         });
         var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
 
