@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
+/// <param name="workingDirectory">The working directory of the executable.</param>
 public class ExecutableResource(string name, string command, string workingDirectory)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
 {
@@ -23,7 +23,7 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
+    public string WorkingDirectory { get; } = ThrowIfNullOrEmpty(workingDirectory);
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
