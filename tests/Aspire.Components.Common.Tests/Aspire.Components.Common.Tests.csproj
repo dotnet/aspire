@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <!--
+      Whilst this looks like a test project, it is not... https://github.com/dotnet/aspire/pull/8498/files#r2029349258
+      -->
+    <IsTestUtilityProject>true</IsTestUtilityProject>
+    <SkipTests>true</SkipTests>
+    <DeployOutsideOfRepoSupportFiles>false</DeployOutsideOfRepoSupportFiles>
   </PropertyGroup>
 
   <ItemGroup>
