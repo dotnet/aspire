@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
@@ -288,6 +290,29 @@ public class ResourceExtensionsTests
             .Resource.GetArgumentValuesAsync().DefaultTimeout();
 
         Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
+    }
+
+    [Fact]
+    public void GetDeploymentTargetAnnotationWorks()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var compute1 = builder.AddResource(new ComputeEnvironmentResource("compute1"));
+        var compute2 = builder.AddResource(new ComputeEnvironmentResource("compute2"));
+
+        var myContainer = builder.AddContainer("myContainer", "nginx")
+            .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
+            .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
+
+        Assert.Throws<InvalidOperationException>(myContainer.Resource.GetDeploymentTargetAnnotation);
+
+        myContainer.WithComputeEnvironment(compute2);
+
+        Assert.Equal(compute2.Resource, myContainer.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
+    }
+
+    private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource
+    {
     }
 
     private sealed class ParentResource(string name) : Resource(name)
