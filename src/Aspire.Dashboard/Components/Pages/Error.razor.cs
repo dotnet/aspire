@@ -3,10 +3,11 @@
 
 using Microsoft.AspNetCore.Components;
 using System.Diagnostics;
+using Aspire.Dashboard.Telemetry;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Error
+public partial class Error : IComponentWithTelemetry, IDisposable
 {
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
@@ -16,4 +17,27 @@ public partial class Error
 
     protected override void OnInitialized() =>
         RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init;  }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new("Error");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await TelemetryService.InitializeAsync();
+    }
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ErrorRequestId, new AspireTelemetryProperty(RequestId ?? string.Empty)),
+        ]);
+    }
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
+    }
 }

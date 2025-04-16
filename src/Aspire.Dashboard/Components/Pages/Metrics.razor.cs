@@ -320,7 +320,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ReplicaSetName is not null)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty(PageViewModel.Instruments?.Count ?? -1)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedMeter, new AspireTelemetryProperty(PageViewModel.SelectedMeter?.MeterName ?? string.Empty, AspireTelemetryPropertyType.Pii)),

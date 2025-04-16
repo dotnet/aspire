@@ -14,12 +14,13 @@ public static class TelemetryPropertyKeys
     // IComponentWithTelemetry properties
     public const string DashboardComponentId = AspireDashboardPropertyPrefix + "ComponentId";
 
+    public const string ApplicationInstanceId = AspireDashboardPropertyPrefix + "Metrics.ApplicationInstanceId";
+
     // ConsoleLogs properties
     public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + "ConsoleLogs.ShowTimestamp";
     public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + "ConsoleLogs.ApplicationName";
 
     // Metrics properties
-    public const string MetricsApplicationInstanceId = AspireDashboardPropertyPrefix + "Metrics.ApplicationInstanceId";
     public const string MetricsApplicationIsReplica = AspireDashboardPropertyPrefix + "Metrics.ApplicationIsReplica";
     public const string MetricsInstrumentsCount = AspireDashboardPropertyPrefix + "Metrics.InstrumentsCount";
     public const string MetricsSelectedMeter = AspireDashboardPropertyPrefix + "Metrics.SelectedMeter";
@@ -34,4 +35,18 @@ public static class TelemetryPropertyKeys
 
     // Resource properties
     public const string ResourceType = AspireDashboardPropertyPrefix + "Resource.Type";
+
+    // Error properties
+    public const string ErrorRequestId = AspireDashboardPropertyPrefix + "RequestId";
+
+    // Trace detail properties
+    public const string TraceDetailTraceId = AspireDashboardPropertyPrefix + "TraceDetail.TraceId";
+
+    // Structured logs properties
+    public const string StructuredLogsSelectedApplication = AspireDashboardPropertyPrefix + "StructuredLogs.SelectedApplication";
+    public const string StructuredLogsSelectedLogLevel = AspireDashboardPropertyPrefix + "StructuredLogs.SelectedLogLevel";
+    public const string StructuredLogsFilterCount = AspireDashboardPropertyPrefix + "StructuredLogs.FilterCount";
+    public const string StructuredLogsTraceId = AspireDashboardPropertyPrefix + "StructuredLogs.TraceId";
+    public const string StructuredLogsSpanId = AspireDashboardPropertyPrefix + "StructuredLogs.SpanId";
+
 }

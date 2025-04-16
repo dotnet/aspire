@@ -11,6 +11,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
@@ -21,7 +22,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<Resources.ResourcesViewModel, Resources.ResourcesPageState>
+public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<Resources.ResourcesViewModel, Resources.ResourcesPageState>
 {
     private const string TypeColumn = nameof(TypeColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -52,6 +53,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     public required ISessionStorage SessionStorage { get; init; }
     [Inject]
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => "Resources_PageState";
