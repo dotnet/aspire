@@ -96,23 +96,54 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
     }
 
+    [Fact]
+    public async Task ConfigureEnvironmentVariables_HasAspireDashboardEnvVars_CopiedToDashboard()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            { "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER", "true" }
+        });
+        var configuration = configurationBuilder.Build();
+        var dashboardOptions = Options.Create(new DashboardOptions
+        {
+            DashboardPath = "test.dll",
+            DashboardUrl = "http://localhost:8080",
+            OtlpGrpcEndpointUrl = "http://localhost:4317",
+        });
+        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+        var envVars = new Dictionary<string, object>();
+
+        // Act
+        await hook.ConfigureEnvironmentVariables(new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), environmentVariables: envVars));
+
+        // Assert
+        Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
+    }
+
     private static DashboardLifecycleHook CreateHook(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null,
         IOptions<CodespacesOptions>? codespacesOptions = null,
-        IOptions<DevcontainersOptions>? devcontainersOptions = null
+        IOptions<DevcontainersOptions>? devcontainersOptions = null,
+        IOptions<DashboardOptions>? dashboardOptions = null
         )
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         devcontainersOptions ??= Options.Create(new DevcontainersOptions());
+        dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
         return new DashboardLifecycleHook(
             configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
+            dashboardOptions,
             NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
@@ -181,7 +212,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     {
         public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return Task.FromResult("http://localhost:1010");
         }
     }
 
