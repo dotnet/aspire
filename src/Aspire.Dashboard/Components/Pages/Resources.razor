@@ -182,7 +182,8 @@
                                                                      OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context.Resource, buttonId))"
                                                                      Resource="context.Resource"
                                                                      GetResourceName="GetResourceName"
-                                                                     MaxHighlightedCount="_maxHighlightedCount" />
+                                                                     MaxHighlightedCount="_maxHighlightedCount"
+                                                                     ResourceByName="@_resourceByName" />
                                                 </div>
                                             </AspireTemplateColumn>
                                         </ChildContent>
@@ -222,7 +223,7 @@
                         </div>
                     </div>
                     <FluentOverlay @bind-Visible="_contextMenuOpen" OnClose="ContextMenuClosed" Transparent="true" FullScreen="true" />
-                    <AspireMenu @bind-Open="_contextMenuOpen" @ref="_contextMenu" Anchor="resources-summary-layout-id" Anchored="false" Items="_contextMenuItems" />
+                    <AspireMenu @bind-Open="_contextMenuOpen" @ref="_contextMenu" Anchor="resources-summary-layout-id" Anchored="false" Items="_contextMenuItems" VerticalThreshold="300" />
                 </Summary>
                 <Details>
                     <ResourceDetails Resource="context" ResourceByName="_resourceByName" ShowSpecOnlyToggle="true" />

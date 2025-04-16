@@ -9,9 +9,21 @@ namespace Aspire.Cli.Interaction;
 
 internal class InteractionService : IInteractionService
 {
+    private readonly IAnsiConsole _ansiConsole;
+
+    public InteractionService() : this(AnsiConsole.Console)
+    {
+    }
+
+    public InteractionService(IAnsiConsole ansiConsole)
+    {
+        ArgumentNullException.ThrowIfNull(ansiConsole);
+        _ansiConsole = ansiConsole;
+    }
+
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        return await AnsiConsole.Status()
+        return await _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
             .StartAsync(statusText, (context) => action());
@@ -19,7 +31,7 @@ internal class InteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        AnsiConsole.Status()
+        _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .SpinnerStyle(Style.Parse("purple"))
             .Start(statusText, (context) => action());
@@ -40,8 +52,8 @@ internal class InteractionService : IInteractionService
         {
             prompt.Validate(validator);
         }
-
-        return await AnsiConsole.PromptAsync(prompt, cancellationToken);
+            
+        return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
     public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
@@ -58,7 +70,7 @@ internal class InteractionService : IInteractionService
             .EnableSearch()
             .HighlightStyle(Style.Parse("darkmagenta"));
 
-        return await AnsiConsole.PromptAsync(prompt, cancellationToken);
+        return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
@@ -67,9 +79,9 @@ internal class InteractionService : IInteractionService
         
         DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
         Console.WriteLine();
-        AnsiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
-        AnsiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
-        AnsiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
+        _ansiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -81,7 +93,7 @@ internal class InteractionService : IInteractionService
 
     public void DisplayMessage(string emoji, string message)
     {
-        AnsiConsole.MarkupLine($":{emoji}:  {message}");
+        _ansiConsole.MarkupLine($":{emoji}:  {message}");
     }
 
     public void DisplaySuccess(string message)
@@ -91,17 +103,17 @@ internal class InteractionService : IInteractionService
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+        _ansiConsole.WriteLine();
+        _ansiConsole.MarkupLine($"[green bold]Dashboard[/]:");
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
-            AnsiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            AnsiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
         }
-        AnsiConsole.WriteLine();
+        _ansiConsole.WriteLine();
     }
 }

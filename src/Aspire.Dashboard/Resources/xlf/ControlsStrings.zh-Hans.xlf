@@ -254,12 +254,12 @@
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>
-        <target state="new">Address</target>
+        <target state="translated">地址</target>
         <note />
       </trans-unit>
       <trans-unit id="LinkTextColumnHeader">
         <source>Text</source>
-        <target state="new">Text</target>
+        <target state="translated">文本</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
