@@ -24,6 +24,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        builder.AddDockerComposeEnvironment("docker-compose");
+
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
         var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
@@ -161,6 +163,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
                                                              .WithTestAndResourceLogging(outputHelper);
 
+        builder.AddDockerComposeEnvironment("docker-compose");
         builder.AddDockerComposePublisher();
 
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
@@ -204,6 +207,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
+
+        builder.AddDockerComposeEnvironment("docker-compose");
 
         var options = new OptionsMonitor(new DockerComposePublisherOptions
         {

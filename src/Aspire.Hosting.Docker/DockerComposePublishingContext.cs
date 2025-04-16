@@ -31,9 +31,6 @@ internal sealed class DockerComposePublishingContext(
 {
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly DockerComposePublisherOptions PublisherOptions = publisherOptions;
-    public readonly PortAllocator PortAllocator = new();
-    private readonly Dictionary<string, (string Description, string? DefaultValue)> _env = [];
-    private readonly Dictionary<IResource, ComposeServiceContext> _composeServices = [];
 
     private ILogger Logger => logger;
 
@@ -61,13 +58,23 @@ internal sealed class DockerComposePublishingContext(
         logger.FinishGeneratingDockerCompose(PublisherOptions.OutputPath);
     }
 
-    public void AddEnv(string name, string description, string? defaultValue = null)
-    {
-        _env[name] = (description, defaultValue);
-    }
-
     private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model)
     {
+        var dockerComposeEnvironments = model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
+
+        if (dockerComposeEnvironments.Length > 1)
+        {
+            throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
+        }
+
+        var environment = dockerComposeEnvironments.FirstOrDefault();
+
+        if (environment == null)
+        {
+            // No Docker Compose environment found
+            return;
+        }
+
         var defaultNetwork = new Network
         {
             Name = PublisherOptions.ExistingNetworkName ?? "aspire",
@@ -79,29 +86,21 @@ internal sealed class DockerComposePublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) &&
-                lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTargetAnnotation) &&
+                deploymentTargetAnnotation.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                continue;
+                var composeServiceContext = new ComposeServiceContext(environment, serviceResource, this);
+                var composeService = await composeServiceContext.BuildComposeServiceAsync(cancellationToken).ConfigureAwait(false);
+
+                HandleComposeFileVolumes(serviceResource, composeFile);
+
+                composeService.Networks =
+                [
+                    defaultNetwork.Name,
+                ];
+
+                composeFile.AddService(composeService);
             }
-
-            if (!resource.IsContainer() && resource is not ProjectResource)
-            {
-                continue;
-            }
-
-            var composeServiceContext = await ProcessResourceAsync(resource).ConfigureAwait(false);
-
-            var composeService = await composeServiceContext.BuildComposeServiceAsync(cancellationToken).ConfigureAwait(false);
-
-            HandleComposeFileVolumes(composeServiceContext, composeFile);
-
-            composeService.Networks =
-            [
-                defaultNetwork.Name,
-            ];
-
-            composeFile.AddService(composeService);
         }
 
         var composeOutput = composeFile.ToYaml();
@@ -109,7 +108,7 @@ internal sealed class DockerComposePublishingContext(
         Directory.CreateDirectory(PublisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
 
-        if (_env.Count == 0)
+        if (environment.CapturedEnvironmentVariables.Count == 0)
         {
             // No environment variables to write, so we can skip creating the .env file
             return;
@@ -120,7 +119,7 @@ internal sealed class DockerComposePublishingContext(
         var envFile = Path.Combine(PublisherOptions.OutputPath!, ".env");
         using var envWriter = new StreamWriter(envFile);
 
-        foreach (var entry in _env)
+        foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
         {
             var (key, (description, defaultValue)) = entry;
 
@@ -141,20 +140,9 @@ internal sealed class DockerComposePublishingContext(
         await envWriter.FlushAsync().ConfigureAwait(false);
     }
 
-    private async Task<ComposeServiceContext> ProcessResourceAsync(IResource resource)
+    private static void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)
     {
-        if (!_composeServices.TryGetValue(resource, out var context))
-        {
-            _composeServices[resource] = context = new(resource, this);
-            await context.ProcessResourceAsync(executionContext, cancellationToken).ConfigureAwait(false);
-        }
-
-        return context;
-    }
-
-    private static void HandleComposeFileVolumes(ComposeServiceContext composeServiceContext, ComposeFile composeFile)
-    {
-        foreach (var volume in composeServiceContext.Volumes.Where(volume => volume.Type != "bind"))
+        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type != "bind"))
         {
             if (composeFile.Volumes.ContainsKey(volume.Name))
             {
@@ -172,7 +160,7 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private sealed class ComposeServiceContext(IResource resource, DockerComposePublishingContext composePublishingContext)
+    private sealed class ComposeServiceContext(DockerComposeEnvironmentResource environment, DockerComposeServiceResource resource, DockerComposePublishingContext composePublishingContext)
     {
         /// <summary>
         /// Most common shell executables used as container entrypoints in Linux containers.
@@ -190,22 +178,16 @@ internal sealed class DockerComposePublishingContext(
             "/usr/bin/bash"
         };
 
-        private record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress);
-
-        private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
-        public Dictionary<string, string> EnvironmentVariables { get; } = [];
-        private List<string> Commands { get; } = [];
-        public List<Volume> Volumes { get; } = [];
         public bool IsShellExec { get; private set; }
 
         public async Task<Service> BuildComposeServiceAsync(CancellationToken cancellationToken)
         {
             if (composePublishingContext.PublisherOptions.BuildImages)
             {
-                await composePublishingContext.ImageBuilder.BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
+                await composePublishingContext.ImageBuilder.BuildImageAsync(resource.TargetResource, cancellationToken).ConfigureAwait(false);
             }
 
-            if (!TryGetContainerImageName(resource, out var containerImageName))
+            if (!TryGetContainerImageName(resource.TargetResource, out var containerImageName))
             {
                 composePublishingContext.Logger.FailedToGetContainerImage(resource.Name);
             }
@@ -227,7 +209,7 @@ internal sealed class DockerComposePublishingContext(
 
         private void SetDependsOn(Service composeService)
         {
-            if (resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+            if (resource.TargetResource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
             {
                 foreach (var waitAnnotation in waitAnnotations)
                 {
@@ -259,9 +241,7 @@ internal sealed class DockerComposePublishingContext(
             {
                 var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
 
-                composePublishingContext.AddEnv(imageEnvName,
-                                                $"Container image name for {resourceInstance.Name}",
-                                                $"{resourceInstance.Name}:latest");
+                environment.CapturedEnvironmentVariables.Add(imageEnvName, ($"Container image name for {resourceInstance.Name}", $"{resourceInstance.Name}:latest"));
 
                 containerImageName = $"${{{imageEnvName}}}";
                 return true;
@@ -272,12 +252,12 @@ internal sealed class DockerComposePublishingContext(
 
         private void AddVolumes(Service composeService)
         {
-            if (Volumes.Count == 0)
+            if (resource.Volumes.Count == 0)
             {
                 return;
             }
 
-            foreach (var volume in Volumes)
+            foreach (var volume in resource.Volumes)
             {
                 composeService.AddVolume(volume);
             }
@@ -285,12 +265,12 @@ internal sealed class DockerComposePublishingContext(
 
         private void AddPorts(Service composeService)
         {
-            if (_endpointMapping.Count == 0)
+            if (resource.EndpointMappings.Count == 0)
             {
                 return;
             }
 
-            foreach (var (_, mapping) in _endpointMapping)
+            foreach (var (_, mapping) in resource.EndpointMappings)
             {
                 var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
                 var exposedPort = mapping.ExposedPort.ToString(CultureInfo.InvariantCulture);
@@ -307,270 +287,9 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            ProcessEndpoints();
-            ProcessVolumes();
-
-            await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
-            await ProcessArgumentsAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        private void ProcessEndpoints()
-        {
-            if (!resource.TryGetEndpoints(out var endpoints))
-            {
-                return;
-            }
-
-            foreach (var endpoint in endpoints)
-            {
-                var internalPort = endpoint.TargetPort ?? composePublishingContext.PortAllocator.AllocatePort();
-                composePublishingContext.PortAllocator.AddUsedPort(internalPort);
-
-                var exposedPort = composePublishingContext.PortAllocator.AllocatePort();
-                composePublishingContext.PortAllocator.AddUsedPort(exposedPort);
-
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, exposedPort, false);
-            }
-        }
-
-        private async Task ProcessArgumentsAsync(CancellationToken cancellationToken)
-        {
-            if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
-            {
-                var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
-
-                foreach (var c in commandLineArgsCallbackAnnotations)
-                {
-                    await c.Callback(context).ConfigureAwait(false);
-                }
-
-                foreach (var arg in context.Args)
-                {
-                    var value = await ProcessValueAsync(arg).ConfigureAwait(false);
-
-                    if (value is not string str)
-                    {
-                        throw new NotSupportedException("Command line args must be strings");
-                    }
-
-                    Commands.Add(new(str));
-                }
-            }
-        }
-
-        private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
-            {
-                var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
-
-                foreach (var c in environmentCallbacks)
-                {
-                    await c.Callback(context).ConfigureAwait(false);
-                }
-
-                RemoveHttpsServiceDiscoveryVariables(context.EnvironmentVariables);
-
-                foreach (var kv in context.EnvironmentVariables)
-                {
-                    var value = await ProcessValueAsync(kv.Value).ConfigureAwait(false);
-
-                    EnvironmentVariables[kv.Key] = value.ToString() ?? string.Empty;
-                }
-            }
-        }
-
-        private static void RemoveHttpsServiceDiscoveryVariables(Dictionary<string, object> environmentVariables)
-        {
-            // HACK: At the moment Docker Compose doesn't do anything with setting up certificates so
-            //       we need to remove the https service discovery variables.
-
-            var keysToRemove = environmentVariables
-                .Where(kvp => kvp.Value is EndpointReference epRef && epRef.Scheme == "https" && kvp.Key.StartsWith("services__"))
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in keysToRemove)
-            {
-                environmentVariables.Remove(key);
-            }
-        }
-
-        private void ProcessVolumes()
-        {
-            if (!resource.TryGetContainerMounts(out var mounts))
-            {
-                return;
-            }
-
-            foreach (var volume in mounts)
-            {
-                if (volume.Source is null || volume.Target is null)
-                {
-                    throw new InvalidOperationException("Volume source and target must be set");
-                }
-
-                var composeVolume = new Volume
-                {
-                    Name = volume.Source,
-                    Type = volume.Type == ContainerMountType.BindMount ? "bind" : "volume",
-                    Target = volume.Target,
-                    Source = volume.Source,
-                    ReadOnly = volume.IsReadOnly,
-                };
-
-                Volumes.Add(composeVolume);
-            }
-        }
-
-        private static string GetValue(EndpointMapping mapping, EndpointProperty property)
-        {
-            var (scheme, host, internalPort, _, isHttpIngress) = mapping;
-
-            return property switch
-            {
-                EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{internalPort}"),
-                EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-                EndpointProperty.Port => internalPort.ToString(CultureInfo.InvariantCulture),
-                EndpointProperty.HostAndPort => GetHostValue(suffix: $":{internalPort}"),
-                EndpointProperty.TargetPort => $"{internalPort}",
-                EndpointProperty.Scheme => scheme,
-                _ => throw new NotSupportedException(),
-            };
-
-            string GetHostValue(string? prefix = null, string? suffix = null)
-            {
-                return $"{prefix}{host}{suffix}";
-            }
-        }
-
-        private async Task<object> ProcessValueAsync(object value)
-        {
-            while (true)
-            {
-                if (value is string s)
-                {
-                    return s;
-                }
-
-                if (value is EndpointReference ep)
-                {
-                    var context = ep.Resource == resource
-                        ? this
-                        : await composePublishingContext.ProcessResourceAsync(ep.Resource)
-                            .ConfigureAwait(false);
-
-                    var mapping = context._endpointMapping[ep.EndpointName];
-
-                    var url = GetValue(mapping, EndpointProperty.Url);
-
-                    return url;
-                }
-
-                if (value is ParameterResource param)
-                {
-                    return AllocateParameter(param);
-                }
-
-                if (value is ConnectionStringReference cs)
-                {
-                    value = cs.Resource.ConnectionStringExpression;
-                    continue;
-                }
-
-                if (value is IResourceWithConnectionString csrs)
-                {
-                    value = csrs.ConnectionStringExpression;
-                    continue;
-                }
-
-                if (value is EndpointReferenceExpression epExpr)
-                {
-                    var context = epExpr.Endpoint.Resource == resource
-                        ? this
-                        : await composePublishingContext.ProcessResourceAsync(epExpr.Endpoint.Resource).ConfigureAwait(false);
-
-                    var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
-
-                    var val = GetValue(mapping, epExpr.Property);
-
-                    return val;
-                }
-
-                if (value is ReferenceExpression expr)
-                {
-                    if (expr is { Format: "{0}", ValueProviders.Count: 1 })
-                    {
-                        return (await ProcessValueAsync(expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
-                    }
-
-                    var args = new object[expr.ValueProviders.Count];
-                    var index = 0;
-
-                    foreach (var vp in expr.ValueProviders)
-                    {
-                        var val = await ProcessValueAsync(vp).ConfigureAwait(false);
-                        args[index++] = val ?? throw new InvalidOperationException("Value is null");
-                    }
-
-                    return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
-                }
-
-                // If we don't know how to process the value, we just return it as an external reference
-                if (value is IManifestExpressionProvider r)
-                {
-                    composePublishingContext.Logger.NotSupportedResourceWarning(nameof(value), r.GetType().Name);
-
-                    return ResolveUnknownValue(r);
-                }
-
-                return value; // todo: we need to never get here really...
-            }
-        }
-
-        private string ResolveUnknownValue(IManifestExpressionProvider parameter)
-        {
-            // Placeholder for resolving the actual parameter value
-            // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-            // Treat secrets as environment variable placeholders as for now
-            // this doesn't handle generation of parameter values with defaults
-            var env = parameter.ValueExpression.Replace("{", "")
-                     .Replace("}", "")
-                     .Replace(".", "_")
-                     .Replace("-", "_")
-                     .ToUpperInvariant();
-
-            composePublishingContext.AddEnv(env, $"Unknown reference {parameter.ValueExpression}");
-
-            return $"${{{env}}}";
-        }
-
-        private string ResolveParameterValue(ParameterResource parameter)
-        {
-            // Placeholder for resolving the actual parameter value
-            // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-            // Treat secrets as environment variable placeholders as for now
-            // this doesn't handle generation of parameter values with defaults
-            var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
-
-            composePublishingContext.AddEnv(env, $"Parameter {parameter.Name}",
-                                            parameter.Secret || parameter.Default is null ? null : parameter.Value);
-
-            return $"${{{env}}}";
-        }
-
-        private string AllocateParameter(ParameterResource parameter)
-        {
-            return ResolveParameterValue(parameter);
-        }
-
         private void SetEntryPoint(Service composeService)
         {
-            if (resource is ContainerResource { Entrypoint: { } entrypoint })
+            if (resource.TargetResource is ContainerResource { Entrypoint: { } entrypoint })
             {
                 composeService.Entrypoint.Add(entrypoint);
 
@@ -583,20 +302,20 @@ internal sealed class DockerComposePublishingContext(
 
         private void AddEnvironmentVariablesAndCommandLineArgs(Service composeService)
         {
-            if (EnvironmentVariables.Count > 0)
+            if (resource.EnvironmentVariables.Count > 0)
             {
-                foreach (var variable in EnvironmentVariables)
+                foreach (var variable in resource.EnvironmentVariables)
                 {
                     composeService.AddEnvironmentalVariable(variable.Key, variable.Value);
                 }
             }
 
-            if (Commands.Count > 0)
+            if (resource.Commands.Count > 0)
             {
                 if (IsShellExec)
                 {
                     var sb = new StringBuilder();
-                    foreach (var command in Commands)
+                    foreach (var command in resource.Commands)
                     {
                         // Escape any environment variables expressions in the command
                         // to prevent them from being interpreted by the docker compose CLI
@@ -607,7 +326,7 @@ internal sealed class DockerComposePublishingContext(
                 }
                 else
                 {
-                    composeService.Command.AddRange(Commands);
+                    composeService.Command.AddRange(resource.Commands);
                 }
             }
         }
