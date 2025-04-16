@@ -40,7 +40,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 {
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard on Dashboard:Otlp:Cors type
+        KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard's Dashboard:Otlp:Cors type
     };
 
     private Task? _dashboardLogsTask;
