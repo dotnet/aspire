@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -57,148 +56,12 @@ internal sealed class DockerComposeInfrastructure(
             var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
             // Add deployment target annotation to the resource
-            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource));
-        }
-    }
-
-    internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentResource environment, ILogger logger)
-    {
-        private readonly Dictionary<IResource, DockerComposeServiceResource> _resourceMapping = [];
-        private readonly PortAllocator _portAllocator = new();
-
-        public async Task<DockerComposeServiceResource> CreateDockerComposeServiceResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            if (_resourceMapping.TryGetValue(resource, out var existingResource))
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
             {
-                return existingResource;
-            }
-
-            logger.LogInformation("Creating Docker Compose resource for {ResourceName}", resource.Name);
-
-            var serviceResource = new DockerComposeServiceResource(resource.Name, resource, environment);
-            _resourceMapping[resource] = serviceResource;
-
-            // Process endpoints
-            ProcessEndpoints(serviceResource);
-
-            // Process volumes
-            ProcessVolumes(serviceResource);
-
-            // Process environment variables
-            await ProcessEnvironmentVariablesAsync(serviceResource, executionContext, cancellationToken).ConfigureAwait(false);
-
-            // Process command line arguments
-            await ProcessArgumentsAsync(serviceResource, executionContext, cancellationToken).ConfigureAwait(false);
-
-            return serviceResource;
-        }
-
-        private void ProcessEndpoints(DockerComposeServiceResource serviceResource)
-        {
-            if (!serviceResource.TargetResource.TryGetEndpoints(out var endpoints))
-            {
-                return;
-            }
-
-            foreach (var endpoint in endpoints)
-            {
-                var internalPort = endpoint.TargetPort ?? _portAllocator.AllocatePort();
-                _portAllocator.AddUsedPort(internalPort);
-
-                var exposedPort = _portAllocator.AllocatePort();
-                _portAllocator.AddUsedPort(exposedPort);
-
-                serviceResource.EndpointMappings.Add(endpoint.Name, new(endpoint.UriScheme, serviceResource.TargetResource.Name, internalPort, exposedPort, false));
-            }
-        }
-
-        private static void ProcessVolumes(DockerComposeServiceResource serviceResource)
-        {
-            if (!serviceResource.TargetResource.TryGetContainerMounts(out var mounts))
-            {
-                return;
-            }
-
-            foreach (var mount in mounts)
-            {
-                if (mount.Source is null || mount.Target is null)
-                {
-                    throw new InvalidOperationException("Volume source and target must be set");
-                }
-
-                serviceResource.Volumes.Add(new Resources.ServiceNodes.Volume
-                {
-                    Name = mount.Source,
-                    Source = mount.Source,
-                    Target = mount.Target,
-                    Type = mount.Type == ContainerMountType.BindMount ? "bind" : "volume",
-                    ReadOnly = mount.IsReadOnly
-                });
-            }
-        }
-
-        private async Task ProcessEnvironmentVariablesAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            if (serviceResource.TargetResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
-            {
-                var context = new EnvironmentCallbackContext(executionContext, serviceResource.TargetResource, cancellationToken: cancellationToken);
-
-                foreach (var callback in environmentCallbacks)
-                {
-                    await callback.Callback(context).ConfigureAwait(false);
-                }
-
-                // Remove HTTPS service discovery variables as Docker Compose doesn't handle certificates
-                RemoveHttpsServiceDiscoveryVariables(context.EnvironmentVariables);
-
-                foreach (var kv in context.EnvironmentVariables)
-                {
-                    var value = await serviceResource.ProcessValueAsync(this, executionContext, kv.Value).ConfigureAwait(false);
-                    serviceResource.EnvironmentVariables.Add(kv.Key, value?.ToString() ?? string.Empty);
-                }
-            }
-        }
-
-        private static void RemoveHttpsServiceDiscoveryVariables(Dictionary<string, object> environmentVariables)
-        {
-            var keysToRemove = environmentVariables
-                .Where(kvp => kvp.Value is EndpointReference epRef && epRef.Scheme == "https" && kvp.Key.StartsWith("services__"))
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in keysToRemove)
-            {
-                environmentVariables.Remove(key);
-            }
-        }
-
-        private async Task ProcessArgumentsAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            if (serviceResource.TargetResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbacks))
-            {
-                var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
-
-                foreach (var callback in commandLineArgsCallbacks)
-                {
-                    await callback.Callback(context).ConfigureAwait(false);
-                }
-
-                foreach (var arg in context.Args)
-                {
-                    var value = await serviceResource.ProcessValueAsync(this, executionContext, arg).ConfigureAwait(false);
-                    if (value is not string str)
-                    {
-                        throw new NotSupportedException("Command line args must be strings");
-                    }
-
-                    serviceResource.Commands.Add(str);
-                }
-            }
-        }
-
-        public void AddEnv(string name, string description, string? defaultValue = null)
-        {
-            environment.CapturedEnvironmentVariables[name] = (description, defaultValue);
+                ComputeEnvironment = environment,
+            });
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
     }
 }
