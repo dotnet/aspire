@@ -63,6 +63,11 @@ public class TestDashboardClient : IDashboardClient
         }
     }
 
+    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         if (_resourceChannelProvider == null)

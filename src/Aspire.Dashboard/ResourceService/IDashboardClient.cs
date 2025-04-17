@@ -42,6 +42,8 @@ public interface IDashboardClient : IDashboardClientStatus, IAsyncDisposable
     /// so that resources owned by the sequence and its consumers can be freed.</para>
     IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken);
 
+    IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken);
+
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
 }
 
