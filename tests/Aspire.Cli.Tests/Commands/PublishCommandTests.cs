@@ -158,7 +158,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                     await Task.Delay(100, cancellationToken);
 
                     // Simulate apphost crash by completing the backchannel with an exception
-                    backchannelCompletionSource?.SetException(new InvalidOperationException("AppHost process has exited unexpectedly. Use --debug to see more deails."));
+                    backchannelCompletionSource?.SetException(new InvalidOperationException("AppHost process has exited unexpectedly. Use --debug to see more details."));
 
                     return 1; // Non-zero exit code to indicate failure
                 };
