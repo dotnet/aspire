@@ -17,4 +17,13 @@ public interface IResource
     /// Gets the annotations associated with the resource.
     /// </summary>
     ResourceAnnotationCollection Annotations { get; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="visitor"></param>
+    Task AcceptAsync(IResourceVisitor visitor)
+    {
+        return Task.CompletedTask;
+    }
 }

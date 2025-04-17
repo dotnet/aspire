@@ -12,4 +12,17 @@ public interface IValueWithReferences
     /// The referenced objects of the value.
     /// </summary>
     public IEnumerable<object> References { get; }
+
+    /// <summary>
+    /// Accepts a visitor to visit the references of the value.
+    /// </summary>
+    /// <param name="visitor">The visitor to accept.</param>
+    /// <returns></returns>
+    public async Task AcceptAsync(IResourceVisitor visitor)
+    {
+        foreach (var reference in References)
+        {
+            await visitor.VisitAsync(reference).ConfigureAwait(false);
+        }
+    }
 }
