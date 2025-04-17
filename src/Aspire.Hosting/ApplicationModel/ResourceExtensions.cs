@@ -572,6 +572,42 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the deployment target for the specified resource, if any. Throws an exception if
+    /// there are multiple compute environments and a compute environment is not explicitly specified.
+    /// </summary>
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource)
+    {
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            // find the deployment target for the compute environment
+            return resource.Annotations
+                .OfType<DeploymentTargetAnnotation>()
+                .LastOrDefault(a => a.ComputeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment);
+        }
+        else
+        {
+            DeploymentTargetAnnotation? result = null;
+            var computeEnvironments = resource.Annotations.OfType<DeploymentTargetAnnotation>();
+            foreach (var annotation in computeEnvironments)
+            {
+                if (result is null)
+                {
+                    result = annotation;
+                }
+                else
+                {
+                    var computeEnvironmentNames = string.Join(", ", computeEnvironments.Select(a => a.ComputeEnvironment?.Name));
+                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
+                }
+            }
+
+            return result;
+        }
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    }
+
+    /// <summary>
     /// Gets the lifetime type of the container for the specified resource.
     /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>

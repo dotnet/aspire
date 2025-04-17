@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -201,11 +202,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task AddContainerAppsInfrastructureAddsDeploymentTargetWithContainerAppToProjectResources()
+    public async Task AddContainerAppEnvironmentAddsDeploymentTargetWithContainerAppToProjectResources()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureContainerAppEnvironment("env");
+        var env = builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint();
@@ -218,10 +219,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var container = Assert.Single(model.GetProjectResources());
 
-        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var target = container.GetDeploymentTargetAnnotation();
+
+        Assert.Same(env.Resource, target?.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
-
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
@@ -333,7 +335,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureContainerAppEnvironment("infra");
+        var infra = builder.AddAzureContainerAppEnvironment("infra");
 
         var env = builder.AddParameter("env");
 
@@ -356,10 +358,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var container = Assert.Single(model.GetContainerResources());
 
-        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var target = container.GetDeploymentTargetAnnotation();
+
+        Assert.Same(infra.Resource, target?.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
-
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
@@ -450,7 +453,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureContainerAppEnvironment("env");
+        var env = builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddExecutable("api", "node.exe", Environment.CurrentDirectory)
                .PublishAsDockerFile();
@@ -463,10 +466,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var container = Assert.Single(model.GetContainerResources());
 
-        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var target = container.GetDeploymentTargetAnnotation();
+
+        Assert.Same(env.Resource, target?.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
-
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);

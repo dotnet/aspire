@@ -219,8 +219,7 @@ public sealed class AzurePublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var targetAnnotation) &&
-                targetAnnotation.DeploymentTarget is AzureBicepResource br)
+            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is AzureBicepResource br)
             {
                 var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 

@@ -68,7 +68,8 @@ internal sealed class AzureContainerAppsInfrastructure(
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
-                ContainerRegistryInfo = caes.FirstOrDefault()
+                ContainerRegistryInfo = caes.FirstOrDefault(),
+                ComputeEnvironment = environment as IComputeEnvironmentResource // will be null if azd
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
