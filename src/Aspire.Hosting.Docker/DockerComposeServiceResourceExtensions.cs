@@ -8,7 +8,7 @@ using Aspire.Hosting.Docker;
 
 internal static class DockerComposeServiceResourceExtensions
 {
-    internal static async Task<object> ProcessValueAsync(this DockerComposeServiceResource resource, DockerComposeInfrastructure.DockerComposeEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    internal static async Task<object> ProcessValueAsync(this DockerComposeServiceResource resource, DockerComposeEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
     {
         while (true)
         {
@@ -108,7 +108,7 @@ internal static class DockerComposeServiceResourceExtensions
         }
     }
 
-    private static string ResolveParameterValue(ParameterResource parameter, DockerComposeInfrastructure.DockerComposeEnvironmentContext context)
+    private static string ResolveParameterValue(ParameterResource parameter, DockerComposeEnvironmentContext context)
     {
         // Placeholder for resolving the actual parameter value
         // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
@@ -123,7 +123,7 @@ internal static class DockerComposeServiceResourceExtensions
         return $"${{{env}}}";
     }
 
-    private static string AllocateParameter(ParameterResource parameter, DockerComposeInfrastructure.DockerComposeEnvironmentContext context)
+    private static string AllocateParameter(ParameterResource parameter, DockerComposeEnvironmentContext context)
     {
         return ResolveParameterValue(parameter, context);
     }
