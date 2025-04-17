@@ -12,13 +12,12 @@ using Aspire.Cli.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 #if DEBUG
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Spectre.Console;
-
 #endif
 
 using RootCommand = Aspire.Cli.Commands.RootCommand;
