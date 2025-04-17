@@ -134,6 +134,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 }
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -152,7 +154,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     protected override async Task OnInitializedAsync()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
-        
+
         await TelemetryContext.InitializeAsync(TelemetryService);
     }
 

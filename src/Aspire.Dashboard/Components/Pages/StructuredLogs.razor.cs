@@ -213,7 +213,9 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         {
             return;
         }
+
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()

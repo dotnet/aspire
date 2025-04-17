@@ -182,6 +182,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()

@@ -29,6 +29,11 @@ public partial class Error : IComponentWithTelemetry, IDisposable
         await TelemetryService.InitializeAsync();
     }
 
+    protected override void OnParametersSet()
+    {
+        UpdateTelemetryProperties();
+    }
+
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([

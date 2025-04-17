@@ -496,6 +496,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             // Navigate to remove ?resource=xxx in the URL.
             NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
         }
+
+        UpdateTelemetryProperties();
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
@@ -829,8 +831,16 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     public void UpdateTelemetryProperties()
     {
-        TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting))
-        ]);
+        var properties = new List<ComponentTelemetryProperty>
+        {
+            new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting))
+        };
+
+        foreach (var resourceTypeGroup in _resourceByName.Values.GroupBy(r => r.ResourceType))
+        {
+            properties.Add(new ComponentTelemetryProperty($"{TelemetryPropertyKeys.ResourceType}.{resourceTypeGroup.Key}", new AspireTelemetryProperty(resourceTypeGroup.Count(), AspireTelemetryPropertyType.Metric)));
+        }
+
+        TelemetryContext.UpdateTelemetryProperties(properties);
     }
 }
