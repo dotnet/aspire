@@ -247,9 +247,9 @@ public sealed class AzurePublishingContext(
                 }
 
                 foreach (var parameter in br.Parameters)
-                    {
-                        Visit(parameter.Value, CaptureBicepOutputs);
-                    }
+                {
+                    Visit(parameter.Value, CaptureBicepOutputs);
+                }
             }
         }
 
