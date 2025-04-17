@@ -53,7 +53,6 @@ internal sealed class PublishCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
-        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var publisherOption = new Option<string>("--publisher", "-p");
@@ -93,7 +92,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
+                return ExitCodeConstants.AppHostIncompatible;
             }
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);

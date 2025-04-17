@@ -51,35 +51,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.NotEqual(0, exitCode); // Ensure the command fails
-    }
-
-    [Fact]
-    public async Task PublishCommandFailsWhenDotNetCliRunnerThrows()
-    {
-        // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
-        {
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.BuildAsyncCallback = (projectFile, cancellationToken) =>
-                {
-                    throw new InvalidOperationException("Simulated failure in DotNetCliRunner");
-                };
-                return runner;
-            };
-        });
-
-        var provider = services.BuildServiceProvider();
-        var command = provider.GetRequiredService<RootCommand>();
-
-        // Act
-        var result = command.Parse("publish --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-
-        // Assert
-        Assert.NotEqual(0, exitCode); // Ensure the command fails
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode); // Ensure the command fails
     }
 
     [Fact]
@@ -88,6 +60,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
@@ -107,7 +81,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.NotEqual(0, exitCode); // Ensure the command fails
+        Assert.Equal(ExitCodeConstants.AppHostIncompatible, exitCode); // Ensure the command fails
     }
 
     [Fact]
@@ -116,6 +90,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
@@ -135,7 +111,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.NotEqual(0, exitCode); // Ensure the command fails
+        Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
     }
 
     [Fact]
@@ -144,6 +120,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
@@ -175,7 +153,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.NotEqual(0, exitCode); // Ensure the command fails
+        Assert.Equal(1, exitCode); // Ensure the command fails
     }
 
     [Fact]

@@ -41,7 +41,6 @@ internal sealed class RunCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
-        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
@@ -222,7 +221,7 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayError("The --project option specified a project that does not exist.");
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files"))
         {
             _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
             return ExitCodeConstants.FailedToFindProject;
