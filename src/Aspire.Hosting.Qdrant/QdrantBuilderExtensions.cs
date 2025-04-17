@@ -86,7 +86,9 @@ public static class QdrantBuilderExtensions
                     context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
             })
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            .WithUrlForEndpoint(QdrantServerResource.PrimaryEndpointName, c => c.DisplayText = "Qdrant (GRPC)")
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)");
     }
 
     /// <summary>
@@ -179,7 +181,7 @@ public static class QdrantBuilderExtensions
         {
             throw new InvalidOperationException("Endpoint is unavailable");
         }
-        
+
         var client = new QdrantClient(endpoint, key);
         return client;
     }
