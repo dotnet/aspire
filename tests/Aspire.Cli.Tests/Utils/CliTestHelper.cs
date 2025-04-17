@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
@@ -23,6 +24,7 @@ internal static class CliTestHelper
         var services = new ServiceCollection();
         services.AddLogging();
 
+        services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractiveServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
@@ -35,6 +37,7 @@ internal static class CliTestHelper
         services.AddTransient<RunCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<PublishCommand>();
+        services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
     }
@@ -42,6 +45,19 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
 {
+    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Yes,
+            Interactive = InteractionSupport.Yes,
+            ColorSystem = ColorSystemSupport.Standard,
+            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        return ansiConsole;
+    };
+
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
@@ -60,14 +76,8 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
     };
 
     public Func<IServiceProvider, IInteractionService> InteractiveServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
-        {
-            Ansi = AnsiSupport.Yes,
-            Interactive = InteractionSupport.Yes,
-            ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
-        };
-        return new InteractionService(AnsiConsole.Create(settings));
+        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        return new InteractionService(ansiConsole);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
@@ -84,6 +94,13 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         return new NuGetPackageCache(logger, runner);
+    };
+
+    public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
+        var rpcTarget = serviceProvider.GetService<CliRpcTarget>() ?? throw new InvalidOperationException("CliRpcTarget not registered");
+        return new AppHostBackchannel(logger, rpcTarget);
     };
 }
 

@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -21,5 +24,167 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenNoProjectFileFound_ReturnsNonZeroExitCode()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.NotEqual(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenMultipleProjectFilesFound_ReturnsNonZeroExitCode()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new MultipleProjectFilesProjectLocator();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.NotEqual(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenProjectFileDoesNotExist_ReturnsNonZeroExitCode()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new ProjectFileDoesNotExistLocator();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --project /tmp/doesnotexist.csproj");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.NotEqual(0, exitCode);
+    }
+
+    private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
+    {
+        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.CertificateServiceFactory = _ => new ThrowingCertificateService();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.NotEqual(0, exitCode);
+    }
+
+    private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
+    {
+        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private sealed class NoProjectFileProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    {
+        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
+    }
+
+    private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    {
+        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+        }
+    }
+
+    [Fact]
+    public async Task RunCommand_CompletesSuccessfully()
+    {
+        var getResourceStatesAsyncCalled = new TaskCompletionSource();
+
+        var backchannelFactory = (IServiceProvider sp) => {
+            var backchannel = new TestAppHostBackchannel();
+
+            backchannel.GetResourceStatesAsyncCalled = getResourceStatesAsyncCalled;
+
+            return backchannel;
+        };
+
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, ct) => 0;
+
+            // Fake apphost information to return a compatable app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
+            {
+                // Make a backchannel and return it, but don't return from the run call until the backchannel 
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+
+                // Just simulate the process running until the user cancels.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+        
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        var pendingRun = result.InvokeAsync(cts.Token);
+
+        await getResourceStatesAsyncCalled.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Simulate CTRL-C.
+        cts.Cancel();
+
+        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }

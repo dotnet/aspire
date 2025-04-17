@@ -12,6 +12,7 @@ using Aspire.Cli.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 #if DEBUG
 using OpenTelemetry;
@@ -75,13 +76,14 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton(BuildAnsiConsole);
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
-        builder.Services.AddTransient<AppHostBackchannel>();
+        builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
 
@@ -94,6 +96,18 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
+    {
+        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Detect,
+            Interactive = InteractionSupport.Detect,
+            ColorSystem = ColorSystemSupport.Detect
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        return ansiConsole;
     }
 
     private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
