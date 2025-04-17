@@ -11,10 +11,6 @@ internal class InteractionService : IInteractionService
 {
     private readonly IAnsiConsole _ansiConsole;
 
-    public InteractionService() : this(AnsiConsole.Console)
-    {
-    }
-
     public InteractionService(IAnsiConsole ansiConsole)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);

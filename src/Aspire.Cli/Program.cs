@@ -17,6 +17,8 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Spectre.Console;
+
 #endif
 
 using RootCommand = Aspire.Cli.Commands.RootCommand;
@@ -75,6 +77,7 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton(BuildAnsiConsole);
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
@@ -94,6 +97,18 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
+    {
+        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Detect,
+            Interactive = InteractionSupport.Detect,
+            ColorSystem = ColorSystemSupport.Detect
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        return ansiConsole;
     }
 
     private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)

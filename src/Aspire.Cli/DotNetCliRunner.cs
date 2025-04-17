@@ -442,7 +442,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
 
-        var backchannel = serviceProvider.GetRequiredService<AppHostBackchannel>();
+        var backchannel = serviceProvider.GetRequiredService<IAppHostBackchannel>();
         var connectionAttempts = 0;
 
         logger.LogDebug("Starting backchannel connection to AppHost at {SocketPath}", socketPath);
