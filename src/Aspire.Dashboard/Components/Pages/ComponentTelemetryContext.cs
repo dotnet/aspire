@@ -18,6 +18,7 @@ public class ComponentTelemetryContext(string componentType) : IDisposable
     public async Task InitializeAsync(DashboardTelemetryService telemetryService)
     {
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(componentType);
+        Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(await telemetryService.GetUserAgentAsync());
 
         _telemetryService = telemetryService;
         await telemetryService.InitializeAsync();

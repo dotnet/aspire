@@ -13,6 +13,7 @@ public static class TelemetryPropertyKeys
 
     // IComponentWithTelemetry properties
     public const string DashboardComponentId = AspireDashboardPropertyPrefix + "ComponentId";
+    public const string UserAgent = AspireDashboardPropertyPrefix + "UserAgent";
 
     public const string ApplicationInstanceId = AspireDashboardPropertyPrefix + "Metrics.ApplicationInstanceId";
 
@@ -50,4 +51,6 @@ public static class TelemetryPropertyKeys
     public const string StructuredLogsTraceId = AspireDashboardPropertyPrefix + "StructuredLogs.TraceId";
     public const string StructuredLogsSpanId = AspireDashboardPropertyPrefix + "StructuredLogs.SpanId";
 
+    // Command properties
+    public const string CommandName = AspireDashboardPropertyPrefix + "Command.Name";
 }

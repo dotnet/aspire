@@ -40,10 +40,11 @@ public sealed class DashboardCommandExecutor(
 
         await telemetryService.InitializeAsync().ConfigureAwait(false);
 
-        var startEvent = telemetryService.StartUserTask(TelemetryEventKeys.RestartResource,
+        var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
             new Dictionary<string, AspireTelemetryProperty>
             {
                 { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(resource.ResourceType) },
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(command.Name) },
             });
 
         var operationId = startEvent.Properties.FirstOrDefault();
@@ -51,7 +52,7 @@ public sealed class DashboardCommandExecutor(
         try
         {
             await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
-            telemetryService.EndUserTask(operationId, TelemetryResult.Success);
+            telemetryService.EndOperation(operationId, TelemetryResult.Success);
         }
         catch (Exception ex)
         {

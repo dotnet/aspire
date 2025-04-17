@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Telemetry;
 
 public sealed class DashboardTelemetryService(
     ILogger<DashboardTelemetryService> logger,
-    IDashboardTelemetrySender telemetrySender)
+    IDashboardTelemetrySender telemetrySender,
+    IJSRuntime js)
 {
     private bool? _telemetryEnabled;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
@@ -97,7 +99,7 @@ public sealed class DashboardTelemetryService(
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
                 postStartEvent);
 
-            var response = await PostRequestAsync<AspireTelemetryScopeSettings, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartOperation, scopeSettings).ConfigureAwait(false);
+            var response = await PostRequestAsync<StartOperationRequest, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartOperation, new StartOperationRequest(eventName, scopeSettings)).ConfigureAwait(false);
             context.Properties[0].SetValue(response.OperationId);
             context.Properties[1].SetValue(response.Correlation);
         });
@@ -108,9 +110,9 @@ public sealed class DashboardTelemetryService(
     /// <summary>
     /// Ends a long-running operation. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndOperation(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndOperation(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (!IsEnabled())
+        if (!IsEnabled() || operationId is null)
         {
             return;
         }
@@ -143,7 +145,7 @@ public sealed class DashboardTelemetryService(
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
                 postStartEvent);
 
-            var response = await PostRequestAsync<AspireTelemetryScopeSettings, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartUserTask, scopeSettings).ConfigureAwait(false);
+            var response = await PostRequestAsync<StartOperationRequest, StartOperationResponse>(client, TelemetryEndpoints.TelemetryStartUserTask, new StartOperationRequest(eventName, scopeSettings)).ConfigureAwait(false);
             context.Properties[0].SetValue(response.OperationId);
             context.Properties[1].SetValue(response.Correlation);
         });
@@ -346,6 +348,11 @@ public sealed class DashboardTelemetryService(
             { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
             { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
         };
+    }
+
+    public ValueTask<string> GetUserAgentAsync()
+    {
+        return js.InvokeAsync<string>("getUserAgent");
     }
 
     private static async Task<TResponse> PostRequestAsync<TRequest, TResponse>(HttpClient client, string endpoint, TRequest request)

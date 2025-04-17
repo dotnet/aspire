@@ -370,3 +370,7 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.remove();
     URL.revokeObjectURL(url);
 };
+
+window.getUserAgent = function() {
+    return navigator.userAgent;
+}
