@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -174,5 +176,76 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.NotEqual(0, exitCode); // Ensure the command fails
+    }
+
+    [Fact]
+    public async Task PublishCommandSucceedsEndToEnd()
+    {
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+
+                // Simulate a successful build
+                runner.BuildAsyncCallback = (projectFile, cancellationToken) => 0;
+                
+                // Simulate a successful app host information retrieval
+                runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) =>
+                {
+                    return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                };
+
+                // Simulate apphost running successfully and establishing a backchannel
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, cancellationToken) =>
+                {
+                    if (args.Any(a => a == "inspect"))
+                    {
+                        var inspectModeCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel();
+                        backchannel.RequestStopAsyncCalled = inspectModeCompleted;
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await inspectModeCompleted.Task;
+                        return 0;
+                    }
+                    else
+                    {
+                        var publishModeCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel();
+                        backchannel.RequestStopAsyncCalled = publishModeCompleted;
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await publishModeCompleted.Task;
+                        return 0; // Simulate successful run
+                    }
+                };
+
+                return runner;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish --project valid.csproj --publisher test-publisher --output-path /output/path");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode); // Ensure the command succeeds
+    }
+}
+
+internal sealed class TestPublishCommandPrompter(IInteractionService interactionService) : PublishCommandPrompter(interactionService)
+{
+    public Func<IEnumerable<string>, string>? PromptForPublisherCallback { get; set; }
+
+    public override Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
+    {
+        return PromptForPublisherCallback switch
+        {
+            { } callback => Task.FromResult(callback(publishers)),
+            _ => Task.FromResult(publishers.First()) // Default to the first publisher if no callback is provided.
+        };
     }
 }

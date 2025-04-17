@@ -12,23 +12,44 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
+internal interface IPublishCommandPrompter
+{
+    Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken);
+}
+
+internal class PublishCommandPrompter(IInteractionService interactionService) : IPublishCommandPrompter
+{
+    public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForSelectionAsync(
+            "Select a publisher:",
+            publishers,
+            p => p,
+            cancellationToken
+        );
+    }
+}
+
 internal sealed class PublishCommand : BaseCommand
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(PublishCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
+    private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
+        ArgumentNullException.ThrowIfNull(prompter);
 
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
+        _prompter = prompter;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -134,12 +155,7 @@ internal sealed class PublishCommand : BaseCommand
                     _interactionService.DisplayMessage("warning", $"[yellow bold]The specified publisher '{publisher}' was not found.[/]");
                 }
 
-                publisher = await _interactionService.PromptForSelectionAsync(
-                    "Select a publisher:",
-                    publishers!,
-                    (p) => p,
-                    cancellationToken
-                );
+                publisher = await _prompter.PromptForPublisherAsync(publishers!, cancellationToken);
             }
 
             _interactionService.DisplayMessage($"hammer_and_wrench", $"Generating artifacts for '{publisher}' publisher...");
