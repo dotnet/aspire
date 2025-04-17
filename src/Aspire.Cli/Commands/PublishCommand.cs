@@ -94,7 +94,7 @@ internal sealed class PublishCommand : BaseCommand
                         $"{nameof(ExecuteAsync)}-Action-GetPublishers",
                         ActivityKind.Client);
 
-                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                    var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
                     var pendingInspectRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
@@ -156,7 +156,7 @@ internal sealed class PublishCommand : BaseCommand
                         $"{nameof(ExecuteAsync)}-Action-GenerateArtifacts",
                         ActivityKind.Internal);
                     
-                    var backchannelCompletionSource = new TaskCompletionSource<AppHostBackchannel>();
+                    var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
                     var launchingAppHostTask = context.AddTask(":play_button:  Launching apphost");
                     launchingAppHostTask.IsIndeterminate();

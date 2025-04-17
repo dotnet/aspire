@@ -22,19 +22,22 @@ internal sealed class RunCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
+    private readonly IAnsiConsole _ansiConsole;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
+        ArgumentNullException.ThrowIfNull(ansiConsole);
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
+        _ansiConsole = ansiConsole;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -134,8 +137,8 @@ internal sealed class RunCommand : BaseCommand
 
                 var table = new Table().Border(TableBorder.Rounded);
 
-                await AnsiConsole.Live(table).StartAsync(async context => {
-
+                await _ansiConsole.Live(table).StartAsync(async context =>
+                {
                     var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
 
                     table.AddColumn("Resource");
@@ -147,7 +150,7 @@ internal sealed class RunCommand : BaseCommand
 
                     try
                     {
-                        await foreach(var resourceState in resourceStates)
+                        await foreach (var resourceState in resourceStates)
                         {
                             knownResources[resourceState.Resource] = resourceState;
 
@@ -159,7 +162,8 @@ internal sealed class RunCommand : BaseCommand
 
                                 var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
 
-                                var stateRenderable = knownResource.Value.State switch {
+                                var stateRenderable = knownResource.Value.State switch
+                                {
                                     "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
                                     "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
                                     "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
@@ -207,6 +211,11 @@ internal sealed class RunCommand : BaseCommand
             {
                 return await pendingRun;
             }
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        {
+            _interactionService.DisplayMessage("stop_sign", "The run command was cancelled by user.");
+            return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
         {

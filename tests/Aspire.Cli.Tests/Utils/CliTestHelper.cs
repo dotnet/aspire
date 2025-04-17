@@ -24,6 +24,7 @@ internal static class CliTestHelper
         var services = new ServiceCollection();
         services.AddLogging();
 
+        services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractiveServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
@@ -44,6 +45,19 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
 {
+    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Yes,
+            Interactive = InteractionSupport.Yes,
+            ColorSystem = ColorSystemSupport.Standard,
+            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        return ansiConsole;
+    };
+
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
@@ -62,14 +76,8 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
     };
 
     public Func<IServiceProvider, IInteractionService> InteractiveServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
-        {
-            Ansi = AnsiSupport.Yes,
-            Interactive = InteractionSupport.Yes,
-            ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
-        };
-        return new InteractionService(AnsiConsole.Create(settings));
+        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        return new InteractionService(ansiConsole);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {

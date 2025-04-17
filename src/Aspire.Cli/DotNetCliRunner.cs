@@ -454,7 +454,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             try
             {
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
-                await backchannel.ConnectAsync(process, socketPath, cancellationToken).ConfigureAwait(false);
+                await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;

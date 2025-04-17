@@ -19,7 +19,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run --help");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -35,7 +35,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -51,7 +51,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -67,7 +67,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run --project /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -91,7 +91,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -125,8 +125,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_CompletesSuccessfully()
     {
+        var getResourceStatesAsyncCalled = new TaskCompletionSource();
+
         var backchannelFactory = (IServiceProvider sp) => {
             var backchannel = new TestAppHostBackchannel();
+
+            backchannel.GetResourceStatesAsyncCalled = getResourceStatesAsyncCalled;
+
             return backchannel;
         };
 
@@ -143,13 +148,15 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.GetAppHostInformationAsyncCallback = (projectFile, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
-            runner.RunAsyncCallback = (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
             {
                 // Make a backchannel and return it, but don't return from the run call until the backchannel 
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
-                ct.WaitHandle.WaitOne();
+                // Just simulate the process running until the user cancels.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+
                 return 0;
             };
 
@@ -166,10 +173,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         });
 
         var provider = services.BuildServiceProvider();
-        var command = provider.GetRequiredService<RunCommand>();
+        var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
+        using var cts = new CancellationTokenSource();
+        var pendingRun = result.InvokeAsync(cts.Token);
+
+        await getResourceStatesAsyncCalled.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Simulate CTRL-C.
+        cts.Cancel();
+
+        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }
