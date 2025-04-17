@@ -7,7 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("env");
 
-builder.AddDockerComposePublisher();
+builder.AddDockerComposeEnvironment("docker-env");
 
 builder.AddKubernetesPublisher();
 

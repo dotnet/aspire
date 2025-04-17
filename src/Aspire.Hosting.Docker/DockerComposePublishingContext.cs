@@ -99,6 +99,14 @@ internal sealed class DockerComposePublishingContext(
                     defaultNetwork.Name,
                 ];
 
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<DockerComposeServiceCustomizationAnnotation>(out var annotations))
+                {
+                    foreach (var a in annotations)
+                    {
+                        a.Configure(serviceResource, composeService);
+                    }
+                }
+
                 composeFile.AddService(composeService);
             }
         }

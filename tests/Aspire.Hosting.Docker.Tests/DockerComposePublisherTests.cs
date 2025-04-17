@@ -267,6 +267,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
                 // Set a restart policy
                 composeService.Restart = "always";
+
+                // Add a custom network
+                composeService.Networks.Add("custom-network");
             });
 
         var app = builder.Build();
@@ -301,6 +304,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   CUSTOM_ENV: "custom-value"
                 networks:
                   - "aspire"
+                    - "custom-network"
                 restart: "always"
                 labels:
                   custom-label: "test-value"
