@@ -78,7 +78,8 @@ var _ = frontend.GetEndpoint("https").Exists ? frontend.WithHttpsHealthCheck("/h
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
         .WithReference(messaging).WaitFor(messaging);
 
-builder.AddProject<Projects.ApiGateway>("apigateway")
+builder.AddYarp("apigateway")
+       .WithConfigFile("yarp.json")
        .WithReference(basketService)
        .WithReference(catalogService);
 
@@ -89,7 +90,7 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 // dashboard launch experience, Refer to Directory.Build.props for the path to
 // the dashboard binary (defaults to the Aspire.Dashboard bin output in the
 // artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+//builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
 builder.Build().Run();
