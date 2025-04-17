@@ -68,7 +68,7 @@ internal sealed class DockerComposePublishingContext(
         if (environment == null)
         {
             // No Docker Compose environment found
-            return;
+            throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
         }
 
         var defaultNetwork = new Network
