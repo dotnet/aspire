@@ -184,6 +184,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
@@ -222,13 +224,20 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
                 return runner;
             };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestPublishCommandPrompter(interactionService);
+                return prompter;
+            };
         });
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("publish --project valid.csproj --publisher test-publisher --output-path /output/path");
+        var result = command.Parse("publish");
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
