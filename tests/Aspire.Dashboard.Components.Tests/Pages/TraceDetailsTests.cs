@@ -187,7 +187,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         JSInterop.SetupVoid("initializeContinuousScroll");
-        JSInterop.Setup<string>("getUserAgent");
+        JSInterop.Setup<string>("getUserAgent").SetResult("TestBrowser");
 
         loggerFactory ??= NullLoggerFactory.Instance;
 

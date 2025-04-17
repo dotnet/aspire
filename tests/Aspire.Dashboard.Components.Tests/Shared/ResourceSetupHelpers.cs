@@ -56,7 +56,7 @@ internal static class ResourceSetupHelpers
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
-        context.JSInterop.Setup<string>("getUserAgent");
+        context.JSInterop.Setup<string>("getUserAgent").SetResult("TestBrowser");
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
@@ -96,6 +96,8 @@ internal static class ResourceSetupHelpers
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
+        context.JSInterop.Setup<string>("getUserAgent").SetResult("TestBrowser");
+
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         context.Services.AddSingleton<PauseManager>();
@@ -114,6 +116,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddFluentUIComponents();
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<DashboardTelemetryService>();
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();

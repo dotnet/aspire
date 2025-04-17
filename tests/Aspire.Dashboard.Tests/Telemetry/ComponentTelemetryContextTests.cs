@@ -29,23 +29,23 @@ public class ComponentTelemetryContextTests
         Assert.Equal("/telemetry/userTask - $aspire/dashboard/component/initialize", initializeOperation.Name);
 
         Assert.Single(initializeOperation.Properties);
-        Assert.Single(telemetryContext.Properties);
+        Assert.Equal(2, telemetryContext.Properties.Count);
 
         OperationContext? parametersUpdateOperation;
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
-        Assert.Equal(2, telemetryContext.Properties.Count);
+        Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
         Assert.Equal("/telemetry/operation - $aspire/dashboard/component/paramsSet", parametersUpdateOperation.Name);
         Assert.Single(parametersUpdateOperation.Properties);
 
         // If value didn't change, we shouldn't post again
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
-        Assert.Equal(2, telemetryContext.Properties.Count);
+        Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("NewValue"))]);
-        Assert.Equal(2, telemetryContext.Properties.Count);
+        Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
         telemetryContext.Dispose();
@@ -64,7 +64,7 @@ public class ComponentTelemetryContextTests
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
-        Assert.Equal(2, telemetryContext.Properties.Count);
+        Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
         telemetryContext.Dispose();

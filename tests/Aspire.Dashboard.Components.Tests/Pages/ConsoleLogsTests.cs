@@ -530,7 +530,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         JSInterop.SetupVoid("initializeContinuousScroll");
         JSInterop.SetupVoid("resetContinuousScrollPosition");
-        JSInterop.Setup<string>("getUserAgent");
+        JSInterop.Setup<string>("getUserAgent").SetResult("TestBrowser");
 
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
