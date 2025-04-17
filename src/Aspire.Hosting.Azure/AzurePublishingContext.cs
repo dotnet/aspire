@@ -217,9 +217,17 @@ public sealed class AzurePublishingContext(
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
+        void CaptureBicepOutputs(object value)
+        {
+            if (value is BicepOutputReference bo)
+            {
+                outputs[bo.ValueExpression] = bo;
+            }
+        }
+
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is AzureBicepResource br)
+            if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
                 var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -229,15 +237,18 @@ public sealed class AzurePublishingContext(
 
                 File.Copy(file.Path, modulePath, true);
 
+                // Capture any bicep outputs from the registry info as it may be needed
+                Visit(annotation.ContainerRegistryInfo?.Name, CaptureBicepOutputs);
+                Visit(annotation.ContainerRegistryInfo?.Endpoint, CaptureBicepOutputs);
+
+                if (annotation.ContainerRegistryInfo is IAzureContainerRegistry acr)
+                {
+                    Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
+                }
+
                 foreach (var parameter in br.Parameters)
                 {
-                    Visit(parameter.Value, v =>
-                    {
-                        if (v is BicepOutputReference bo)
-                        {
-                            outputs[bo.ValueExpression] = bo;
-                        }
-                    });
+                    Visit(parameter.Value, CaptureBicepOutputs);
                 }
             }
         }
@@ -273,7 +284,7 @@ public sealed class AzurePublishingContext(
     }
 
     private static void Visit(object? value, Action<object> visitor) =>
-        Visit(value, visitor, new HashSet<object>());
+        Visit(value, visitor, []);
 
     private static void Visit(object? value, Action<object> visitor, HashSet<object> visited)
     {
