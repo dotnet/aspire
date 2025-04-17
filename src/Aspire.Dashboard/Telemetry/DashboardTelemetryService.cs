@@ -8,8 +8,7 @@ namespace Aspire.Dashboard.Telemetry;
 
 public sealed class DashboardTelemetryService(
     ILogger<DashboardTelemetryService> logger,
-    IDashboardTelemetrySender telemetrySender,
-    IJSRuntime js)
+    IDashboardTelemetrySender telemetrySender)
 {
     private bool? _telemetryEnabled;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
@@ -350,7 +349,7 @@ public sealed class DashboardTelemetryService(
         };
     }
 
-    public ValueTask<string> GetUserAgentAsync()
+    public ValueTask<string> GetUserAgentAsync(IJSRuntime js)
     {
         return js.InvokeAsync<string>("getUserAgent");
     }

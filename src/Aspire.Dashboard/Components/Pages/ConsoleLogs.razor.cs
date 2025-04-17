@@ -169,7 +169,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        await TelemetryContext.InitializeAsync(TelemetryService, JS);
 
         async Task TrackResourceSnapshotsAsync()
         {

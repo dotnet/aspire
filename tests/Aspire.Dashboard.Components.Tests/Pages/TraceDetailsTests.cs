@@ -187,6 +187,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         JSInterop.SetupVoid("initializeContinuousScroll");
+        JSInterop.Setup<string>("getUserAgent");
 
         loggerFactory ??= NullLoggerFactory.Instance;
 
@@ -204,6 +205,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
     }
 

@@ -82,7 +82,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }));
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        await TelemetryContext.InitializeAsync(TelemetryService, JS);
     }
 
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)

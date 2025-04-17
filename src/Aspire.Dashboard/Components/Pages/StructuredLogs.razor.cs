@@ -204,7 +204,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             StateHasChanged();
         }));
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        await TelemetryContext.InitializeAsync(TelemetryService, JS);
     }
 
     protected override async Task OnParametersSetAsync()

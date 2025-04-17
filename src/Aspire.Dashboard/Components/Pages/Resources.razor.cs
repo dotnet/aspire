@@ -217,7 +217,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        await TelemetryContext.InitializeAsync(TelemetryService, JS);
         _isLoading = false;
 
         async Task SubscribeResourcesAsync()

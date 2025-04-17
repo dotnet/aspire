@@ -77,6 +77,8 @@ internal static class MetricsSetupHelpers
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
+        context.JSInterop.Setup<string>("getUserAgent");
+
         SetupChartContainer(context);
 
         context.Services.AddLocalization();

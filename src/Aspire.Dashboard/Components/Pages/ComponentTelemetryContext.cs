@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Telemetry;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -15,10 +16,10 @@ public class ComponentTelemetryContext(string componentType) : IDisposable
 
     private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
 
-    public async Task InitializeAsync(DashboardTelemetryService telemetryService)
+    public async Task InitializeAsync(DashboardTelemetryService telemetryService, IJSRuntime js)
     {
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(componentType);
-        Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(await telemetryService.GetUserAgentAsync());
+        Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(await telemetryService.GetUserAgentAsync(js));
 
         _telemetryService = telemetryService;
         await telemetryService.InitializeAsync();

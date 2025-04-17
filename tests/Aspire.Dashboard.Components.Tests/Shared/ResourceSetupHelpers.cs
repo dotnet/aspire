@@ -29,6 +29,8 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        context.Services.AddSingleton<DashboardTelemetryService>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -53,6 +55,8 @@ internal static class ResourceSetupHelpers
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+
+        context.JSInterop.Setup<string>("getUserAgent");
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
