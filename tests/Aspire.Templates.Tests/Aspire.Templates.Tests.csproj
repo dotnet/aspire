@@ -7,7 +7,6 @@
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForTemplateTests)</TestArchiveTestsDir>
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
