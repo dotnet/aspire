@@ -68,7 +68,7 @@ internal sealed class DockerComposePublishingContext(
         if (environment == null)
         {
             // No Docker Compose environment found
-            return;
+            throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
         }
 
         var defaultNetwork = new Network
@@ -98,6 +98,14 @@ internal sealed class DockerComposePublishingContext(
                 [
                     defaultNetwork.Name,
                 ];
+
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<DockerComposeServiceCustomizationAnnotation>(out var annotations))
+                {
+                    foreach (var a in annotations)
+                    {
+                        a.Configure(serviceResource, composeService);
+                    }
+                }
 
                 composeFile.AddService(composeService);
             }

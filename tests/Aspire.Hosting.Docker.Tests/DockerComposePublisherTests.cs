@@ -157,6 +157,37 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishAsync_ThrowsWhenDockerComposeEnvironmentNotAdded()
+    {
+        using var tempDir = new TempDirectory();
+        // Arrange
+        var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Add a simple container resource
+        builder.AddContainer("cache", "redis");
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var publisher = new DockerComposePublisher("test",
+            options,
+            NullLogger<DockerComposePublisher>.Instance,
+            builder.ExecutionContext,
+            new MockImageBuilder()
+        );
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => publisher.PublishAsync(model, default)
+        );
+
+        Assert.Contains("No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling AddDockerComposeEnvironment.", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task DockerComposeCorrectlyEmitsPortMappings()
     {
         using var tempDir = new TempDirectory();
@@ -267,6 +298,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
                 // Set a restart policy
                 composeService.Restart = "always";
+
+                // Add a custom network
+                composeService.Networks.Add("custom-network");
             });
 
         var app = builder.Build();
@@ -301,6 +335,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   CUSTOM_ENV: "custom-value"
                 networks:
                   - "aspire"
+                    - "custom-network"
                 restart: "always"
                 labels:
                   custom-label: "test-value"

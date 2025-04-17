@@ -28,6 +28,14 @@ public static class DockerComposeEnvironmentExtensions
         var resource = new DockerComposeEnvironmentResource(name);
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
         builder.AddDockerComposePublisher(name);
+        if (builder.ExecutionContext.IsRunMode)
+        {
+
+            // Return a builder that isn't added to the top-level application builder
+            // so it doesn't surface as a resource.
+            return builder.CreateResourceBuilder(resource);
+
+        }
         return builder.AddResource(resource);
     }
 }
