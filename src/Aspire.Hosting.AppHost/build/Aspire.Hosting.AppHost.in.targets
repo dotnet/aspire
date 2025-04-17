@@ -268,8 +268,9 @@ namespace Projects%3B
 
   <Target Name="__ErrorOnMininumSdkVersionMissing" BeforeTargets="PrepareForBuild"
   Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '9.0.0')))">
-    <Error Code="ASPIRE006"
-      Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`." />
+    <Error Code="ASPIRE007"
+      Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`."
+      File="$(MSBuildProjectFullPath)"/>
   </Target>
 
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->
