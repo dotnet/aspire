@@ -87,8 +87,15 @@ public static class QdrantBuilderExtensions
                 }
             })
             .WithHealthCheck(healthCheckKey)
-            .WithUrlForEndpoint(QdrantServerResource.PrimaryEndpointName, c => c.DisplayText = "Qdrant (GRPC)")
-            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)");
+            .WithUrlForEndpoint(QdrantServerResource.PrimaryEndpointName, c =>
+            {
+                c.DisplayText = "Qdrant (GRPC)";
+                // https://github.com/dotnet/aspire/issues/8809
+                c.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+            })
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)")
+            .WithUrl(ReferenceExpression.Create($"{qdrant.HttpEndpoint.Property(EndpointProperty.Url)}/dashboard"), "Qdrant Dashboard");
+
     }
 
     /// <summary>

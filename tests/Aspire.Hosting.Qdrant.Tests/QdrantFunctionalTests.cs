@@ -239,8 +239,9 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
         await tcs.Task;
 
         var urls = qdrant.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Endpoint!.EndpointName == "grpc" && u.DisplayText == "Qdrant (GRPC)");
-        Assert.Single(urls, u => u.Endpoint!.EndpointName == "http" && u.DisplayText == "Qdrant (HTTP)");
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "grpc" && u.DisplayText == "Qdrant (GRPC)" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "http" && u.DisplayText == "Qdrant (HTTP)");
+        Assert.Single(urls, u => u.DisplayText == "Qdrant Dashboard" && u.Url.EndsWith("/dashboard"));
 
         await app.StopAsync();
     }
