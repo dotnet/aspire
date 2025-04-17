@@ -24,6 +24,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        builder.AddDockerComposeEnvironment("docker-compose");
+
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
         var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
@@ -161,6 +163,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
                                                              .WithTestAndResourceLogging(outputHelper);
 
+        builder.AddDockerComposeEnvironment("docker-compose");
         builder.AddDockerComposePublisher();
 
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
@@ -205,6 +208,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "docker-compose", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
 
+        builder.AddDockerComposeEnvironment("docker-compose");
+
         var options = new OptionsMonitor(new DockerComposePublisherOptions
         {
             OutputPath = tempDir.Path,
@@ -238,6 +243,73 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
         Assert.Equal(shouldBuildImages, mockImageBuilder.BuildImageCalled);
+    }
+
+    [Fact]
+    public async Task DockerComposeAppliesServiceCustomizations()
+    {
+        using var tempDir = new TempDirectory();
+        var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container to the application
+        var container = builder.AddContainer("service", "nginx")
+            .WithEnvironment("ORIGINAL_ENV", "value")
+            .PublishAsDockerComposeService((serviceResource, composeService) =>
+            {
+                // Add a custom label
+                composeService.Labels["custom-label"] = "test-value";
+
+                // Add a custom environment variable
+                composeService.AddEnvironmentalVariable("CUSTOM_ENV", "custom-value");
+
+                // Set a restart policy
+                composeService.Restart = "always";
+            });
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var publisher = new DockerComposePublisher("test",
+            options,
+            NullLogger<DockerComposePublisher>.Instance,
+            builder.ExecutionContext,
+            new MockImageBuilder()
+        );
+
+        // Act
+        await publisher.PublishAsync(model, default);
+
+        // Assert
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var content = await File.ReadAllTextAsync(composePath);
+
+        Assert.Equal(
+            """
+            services:
+              service:
+                image: "nginx:latest"
+                environment:
+                  ORIGINAL_ENV: "value"
+                  CUSTOM_ENV: "custom-value"
+                networks:
+                  - "aspire"
+                restart: "always"
+                labels:
+                  custom-label: "test-value"
+            networks:
+              aspire:
+                driver: "bridge"
+
+            """,
+            content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
