@@ -148,10 +148,10 @@ public class ResourceLoggerService
     }
 
     /// <summary>
-    /// 
+    /// Get all logs for a resource. This will return all logs that have been written to the log stream for the resource and then complete.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <returns></returns>
+    /// <param name="resource">The resource to get all logs for.</param>
+    /// <returns>An async enumerable that returns all logs that have been written to the log stream and then completes.</returns>
     public IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -187,42 +187,11 @@ public class ResourceLoggerService
         }
     }
 
-    private static async IAsyncEnumerable<IReadOnlyList<LogLine>> CombineMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> fetch)
-    {
-        var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
-        var readTasks = resourceNames.Select(async (name) =>
-        {
-            await foreach (var logLines in fetch(name).ConfigureAwait(false))
-            {
-                channel.Writer.TryWrite(logLines);
-            }
-        });
-
-        var completionTask = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.WhenAll(readTasks).ConfigureAwait(false);
-            }
-            finally
-            {
-                channel.Writer.Complete();
-            }
-        });
-
-        await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
-        {
-            yield return item;
-        }
-
-        await completionTask.ConfigureAwait(false);
-    }
-
     /// <summary>
-    /// Watch for changes to the log stream for a resource.
+    /// Get all logs for a resource. This will return all logs that have been written to the log stream for the resource and then complete.
     /// </summary>
     /// <param name="resourceName">The resource name</param>
-    /// <returns>An async enumerable that returns the logs as they are written.</returns>
+    /// <returns>An async enumerable that returns all logs that have been written to the log stream and then completes.</returns>
     public IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
@@ -321,6 +290,37 @@ public class ResourceLoggerService
         {
             logger.ClearBacklog();
         }
+    }
+
+    private static async IAsyncEnumerable<IReadOnlyList<LogLine>> CombineMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> fetch)
+    {
+        var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+        var readTasks = resourceNames.Select(async (name) =>
+        {
+            await foreach (var logLines in fetch(name).ConfigureAwait(false))
+            {
+                channel.Writer.TryWrite(logLines);
+            }
+        });
+
+        var completionTask = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.WhenAll(readTasks).ConfigureAwait(false);
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        });
+
+        await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            yield return item;
+        }
+
+        await completionTask.ConfigureAwait(false);
     }
 
     // Internal for testing.

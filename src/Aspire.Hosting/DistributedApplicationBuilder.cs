@@ -10,7 +10,6 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
-using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
@@ -345,9 +344,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff
-            _innerBuilder.Services.AddSingleton<DcpExecutor>();
-            _innerBuilder.Services.AddSingleton<IDcpExecutor>(sp => sp.GetRequiredService<DcpExecutor>());
-            _innerBuilder.Services.AddSingleton<IConsoleLogsService>(sp => sp.GetRequiredService<DcpExecutor>());
+            _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
             _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
             _innerBuilder.Services.AddSingleton<DcpHost>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
