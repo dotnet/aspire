@@ -97,7 +97,7 @@ internal sealed class KubernetesPublishingContext(
             }
         }
 
-        await WriteKubernetesHelmChartAsync().ConfigureAwait(false);
+        await WriteKubernetesHelmChartAsync(environment).ConfigureAwait(false);
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
@@ -161,14 +161,14 @@ internal sealed class KubernetesPublishingContext(
         await File.WriteAllTextAsync(outputFile, valuesYaml, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteKubernetesHelmChartAsync()
+    private async Task WriteKubernetesHelmChartAsync(KubernetesEnvironmentResource environment)
     {
         var helmChart = new HelmChart
         {
-            Name = publisherOptions.HelmChartName,
-            Version = publisherOptions.HelmChartVersion,
-            AppVersion = publisherOptions.HelmChartVersion,
-            Description = publisherOptions.HelmChartDescription,
+            Name = environment.HelmChartName,
+            Version = environment.HelmChartVersion,
+            AppVersion = environment.HelmChartVersion,
+            Description = environment.HelmChartDescription,
             Type = "application",
             ApiVersion = "v2",
             Keywords = ["aspire", "kubernetes"],

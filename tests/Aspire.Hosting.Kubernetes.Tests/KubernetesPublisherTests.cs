@@ -106,14 +106,15 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddKubernetesEnvironment("env");
+        builder.AddKubernetesEnvironment("env")
+            .WithProperties(e => e.DefaultStorageSize = "2Gi");
 
         // Add a container to the application
         var container = builder.AddContainer("service", "nginx")
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                serviceResource.StorageSize = "2Gi";
+                // TODO: set stuff here
             });
 
         var app = builder.Build();

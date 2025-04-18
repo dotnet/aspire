@@ -129,7 +129,7 @@ internal static class ResourceExtensions
             Spec =
             {
                 Selector = context.Labels.ToDictionary(),
-                Type = context.ServiceType,
+                Type = context.Parent.DefaultServiceType,
             },
         };
 
@@ -182,7 +182,7 @@ internal static class ResourceExtensions
                 Name = volume.Name,
             };
 
-            switch (context.StorageType.ToLowerInvariant())
+            switch (context.Parent.DefaultStorageType.ToLowerInvariant())
             {
                 case "emptydir":
                     podVolume.EmptyDir = new();
@@ -206,7 +206,7 @@ internal static class ResourceExtensions
                     break;
 
                 default:
-                    throw new InvalidOperationException($"Unsupported storage type: {context.StorageType}");
+                    throw new InvalidOperationException($"Unsupported storage type: {context.Parent.DefaultStorageType}");
             }
 
             podTemplateSpec.Spec.Volumes.Add(podVolume);
@@ -220,7 +220,7 @@ internal static class ResourceExtensions
         var container = new ContainerV1
         {
             Name = resource.Name,
-            ImagePullPolicy = context.ImagePullPolicy,
+            ImagePullPolicy = context.Parent.DefaultImagePullPolicy,
         };
 
         return container
@@ -369,18 +369,18 @@ internal static class ResourceExtensions
             {
                 Capacity = new()
                 {
-                    ["storage"] = context.StorageSize,
+                    ["storage"] = context.Parent.DefaultStorageSize,
                 },
-                AccessModes = { context.StorageReadWritePolicy },
+                AccessModes = { context.Parent.DefaultStorageReadWritePolicy },
             },
         };
 
-        if (!string.IsNullOrEmpty(context.StorageClassName))
+        if (!string.IsNullOrEmpty(context.Parent.DefaultStorageClassName))
         {
-            newPv.Spec.StorageClassName = context.StorageClassName;
+            newPv.Spec.StorageClassName = context.Parent.DefaultStorageClassName;
         }
 
-        if (context.StorageType.Equals("hostpath", StringComparison.OrdinalIgnoreCase))
+        if (context.Parent.DefaultStorageType.Equals("hostpath", StringComparison.OrdinalIgnoreCase))
         {
             newPv.Spec.HostPath = new()
             {
@@ -415,12 +415,12 @@ internal static class ResourceExtensions
             },
         };
 
-        pvc.Spec.AccessModes.Add(context.StorageReadWritePolicy);
-        pvc.Spec.Resources.Requests.Add("storage", context.StorageSize);
+        pvc.Spec.AccessModes.Add(context.Parent.DefaultStorageReadWritePolicy);
+        pvc.Spec.Resources.Requests.Add("storage", context.Parent.DefaultStorageSize);
 
-        if (!string.IsNullOrEmpty(context.StorageClassName))
+        if (!string.IsNullOrEmpty(context.Parent.DefaultStorageClassName))
         {
-            pvc.Spec.StorageClassName = context.StorageClassName;
+            pvc.Spec.StorageClassName = context.Parent.DefaultStorageClassName;
         }
 
         context.TemplatedResources.Add(pvc);
