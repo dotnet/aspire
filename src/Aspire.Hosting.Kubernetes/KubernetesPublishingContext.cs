@@ -18,8 +18,6 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    private readonly Dictionary<IResource, KubernetesResourceContext> _kubernetesComponents = [];
-
     private readonly Dictionary<string, object> _helmValues = new()
     {
         [HelmExtensions.ParametersKey] = new Dictionary<string, object>(),
@@ -67,31 +65,43 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model)
     {
+        var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
+
+        if (kubernetesEnvironments.Length > 1)
+        {
+            throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
+        }
+
+        var environment = kubernetesEnvironments.FirstOrDefault();
+
+        if (environment == null)
+        {
+            // No Kubernetes environment found
+            throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
+        }
+
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) &&
-                lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is KubernetesServiceResource serviceResource)
             {
-                continue;
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
+                {
+                    foreach (var a in annotations)
+                    {
+                        a.Configure(serviceResource);
+                    }
+                }
+
+                await WriteKubernetesTemplatesForResource(resource, serviceResource.TemplatedResources).ConfigureAwait(false);
+                AppendResourceContextToHelmValues(resource, serviceResource);
             }
-
-            if (!resource.IsContainer() && resource is not ProjectResource)
-            {
-                continue;
-            }
-
-            var kubernetesComponentContext = await ProcessResourceAsync(resource).ConfigureAwait(false);
-            kubernetesComponentContext.BuildKubernetesResources();
-
-            await WriteKubernetesTemplatesForResource(resource, kubernetesComponentContext.TemplatedResources).ConfigureAwait(false);
-            AppendResourceContextToHelmValues(resource, kubernetesComponentContext);
         }
 
         await WriteKubernetesHelmChartAsync().ConfigureAwait(false);
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
-    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResourceContext resourceContext)
+    private void AppendResourceContextToHelmValues(IResource resource, KubernetesServiceResource resourceContext)
     {
         AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
         AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
@@ -100,7 +110,7 @@ internal sealed class KubernetesPublishingContext(
 
     private void AddValuesToHelmSection(
         IResource resource,
-        Dictionary<string, KubernetesResourceContext.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesServiceResource.HelmExpressionWithValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
@@ -169,16 +179,5 @@ internal sealed class KubernetesPublishingContext(
         var outputFile = Path.Combine(publisherOptions.OutputPath!, "Chart.yaml");
         Directory.CreateDirectory(publisherOptions.OutputPath!);
         await File.WriteAllTextAsync(outputFile, chartYaml, cancellationToken).ConfigureAwait(false);
-    }
-
-    internal async Task<KubernetesResourceContext> ProcessResourceAsync(IResource resource)
-    {
-        if (!_kubernetesComponents.TryGetValue(resource, out var context))
-        {
-            _kubernetesComponents[resource] = context = new(resource, this, publisherOptions);
-            await context.ProcessResourceAsync(executionContext, cancellationToken).ConfigureAwait(false);
-        }
-
-        return context;
     }
 }

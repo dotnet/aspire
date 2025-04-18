@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
+using static Aspire.Hosting.Kubernetes.Tests.KubernetesPublisherFixture;
 
 namespace Aspire.Hosting.Kubernetes.Tests;
 
@@ -45,6 +46,8 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+            builder.AddKubernetesEnvironment("env");
+
             var param0 = builder.AddParameter("param0");
             var param1 = builder.AddParameter("param1", secret: true);
             var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
@@ -72,8 +75,6 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 
             var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-            await ExecuteBeforeStartHooksAsync(app, default);
-
             var publisher = new KubernetesPublisher(
                 "test", options,
                 NullLogger<KubernetesPublisher>.Instance,
@@ -91,6 +92,70 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         Assert.True(File.Exists(file), $"File not found: {file}");
         var outputContent = await File.ReadAllTextAsync(file);
         Assert.Equal(s_expectedFilesCache[expectedFile], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task PublishAppliesServiceCustomizations()
+    {
+        using var tempDir = new TempDirectory();
+        var options = new OptionsMonitor(
+            new()
+            {
+                OutputPath = tempDir.Path,
+            });
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Add a container to the application
+        var container = builder.AddContainer("service", "nginx")
+            .WithEnvironment("ORIGINAL_ENV", "value")
+            .PublishAsKubernetesService(serviceResource =>
+            {
+                serviceResource.StorageSize = "2Gi";
+            });
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var publisher = new KubernetesPublisher(
+            "test", options,
+            NullLogger<KubernetesPublisher>.Instance,
+            builder.ExecutionContext);
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var content = await File.ReadAllTextAsync(composePath);
+
+        Assert.Equal(
+            """
+            services:
+              service:
+                image: "nginx:latest"
+                environment:
+                  ORIGINAL_ENV: "value"
+                  CUSTOM_ENV: "custom-value"
+                networks:
+                  - "aspire"
+                    - "custom-network"
+                restart: "always"
+                labels:
+                  custom-label: "test-value"
+            networks:
+              aspire:
+                driver: "bridge"
+
+            """,
+            content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

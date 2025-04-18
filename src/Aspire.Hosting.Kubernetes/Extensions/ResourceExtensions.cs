@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Kubernetes.Extensions;
 
 internal static class ResourceExtensions
 {
-    internal static Deployment ToDeployment(this IResource resource, KubernetesResourceContext context)
+    internal static Deployment ToDeployment(this IResource resource, KubernetesServiceResource context)
     {
         var deployment = new Deployment
         {
@@ -36,7 +36,7 @@ internal static class ResourceExtensions
         return deployment;
     }
 
-    internal static StatefulSet ToStatefulSet(this IResource resource, KubernetesResourceContext context)
+    internal static StatefulSet ToStatefulSet(this IResource resource, KubernetesServiceResource context)
     {
         var statefulSet = new StatefulSet
         {
@@ -55,7 +55,7 @@ internal static class ResourceExtensions
         return statefulSet;
     }
 
-    internal static Secret? ToSecret(this IResource resource, KubernetesResourceContext context)
+    internal static Secret? ToSecret(this IResource resource, KubernetesServiceResource context)
     {
         if (context.Secrets.Count == 0)
         {
@@ -86,7 +86,7 @@ internal static class ResourceExtensions
         return secret;
     }
 
-    internal static ConfigMap? ToConfigMap(this IResource resource, KubernetesResourceContext context)
+    internal static ConfigMap? ToConfigMap(this IResource resource, KubernetesServiceResource context)
     {
         if (context.EnvironmentVariables.Count == 0)
         {
@@ -113,7 +113,7 @@ internal static class ResourceExtensions
         return configMap;
     }
 
-    internal static Service? ToService(this IResource resource, KubernetesResourceContext context)
+    internal static Service? ToService(this IResource resource, KubernetesServiceResource context)
     {
         if (context.EndpointMappings.Count == 0)
         {
@@ -129,7 +129,7 @@ internal static class ResourceExtensions
             Spec =
             {
                 Selector = context.Labels.ToDictionary(),
-                Type = context.PublisherOptions.ServiceType,
+                Type = context.ServiceType,
             },
         };
 
@@ -148,7 +148,7 @@ internal static class ResourceExtensions
         return service;
     }
 
-    private static PodTemplateSpecV1 ToPodTemplateSpec(this IResource resource, KubernetesResourceContext context)
+    private static PodTemplateSpecV1 ToPodTemplateSpec(this IResource resource, KubernetesServiceResource context)
     {
         var podTemplateSpec = new PodTemplateSpecV1
         {
@@ -168,7 +168,7 @@ internal static class ResourceExtensions
         return podTemplateSpec.WithPodSpecVolumes(context);
     }
 
-    private static PodTemplateSpecV1 WithPodSpecVolumes(this PodTemplateSpecV1 podTemplateSpec, KubernetesResourceContext context)
+    private static PodTemplateSpecV1 WithPodSpecVolumes(this PodTemplateSpecV1 podTemplateSpec, KubernetesServiceResource context)
     {
         if (context.Volumes.Count == 0)
         {
@@ -182,7 +182,7 @@ internal static class ResourceExtensions
                 Name = volume.Name,
             };
 
-            switch (context.PublisherOptions.StorageType.ToLowerInvariant())
+            switch (context.StorageType.ToLowerInvariant())
             {
                 case "emptydir":
                     podVolume.EmptyDir = new();
@@ -206,7 +206,7 @@ internal static class ResourceExtensions
                     break;
 
                 default:
-                    throw new InvalidOperationException($"Unsupported storage type: {context.PublisherOptions.StorageType}");
+                    throw new InvalidOperationException($"Unsupported storage type: {context.StorageType}");
             }
 
             podTemplateSpec.Spec.Volumes.Add(podVolume);
@@ -215,12 +215,12 @@ internal static class ResourceExtensions
         return podTemplateSpec;
     }
 
-    private static ContainerV1 ToContainerV1(this IResource resource, KubernetesResourceContext context)
+    private static ContainerV1 ToContainerV1(this IResource resource, KubernetesServiceResource context)
     {
         var container = new ContainerV1
         {
             Name = resource.Name,
-            ImagePullPolicy = context.PublisherOptions.ImagePullPolicy,
+            ImagePullPolicy = context.ImagePullPolicy,
         };
 
         return container
@@ -233,7 +233,7 @@ internal static class ResourceExtensions
             .WithContainerVolumes(context);
     }
 
-    private static ContainerV1 WithContainerVolumes(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerVolumes(this ContainerV1 container, KubernetesServiceResource context)
     {
         if (context.Volumes.Count == 0)
         {
@@ -253,7 +253,7 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerPorts(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerPorts(this ContainerV1 container, KubernetesServiceResource context)
     {
         if (context.EndpointMappings.Count == 0)
         {
@@ -274,11 +274,12 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerImage(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerImage(this ContainerV1 container, KubernetesServiceResource context)
     {
-        if (!context.TryGetContainerImageName(context.Resource, out var containerImageName))
+        if (!context.TryGetContainerImageName(context.TargetResource, out var containerImageName))
         {
-            context.Logger.FailedToGetContainerImage(context.Resource.Name);
+            // TODO eerhardt: get a Logger here
+            // context.Logger.FailedToGetContainerImage(context.TargetResource.Name);
         }
 
         if (containerImageName is not null)
@@ -289,9 +290,9 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerEntrypoint(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerEntrypoint(this ContainerV1 container, KubernetesServiceResource context)
     {
-        if (context.Resource is ContainerResource {Entrypoint: { } entrypoint})
+        if (context.TargetResource is ContainerResource {Entrypoint: { } entrypoint})
         {
             container.Command.Add(entrypoint);
         }
@@ -299,7 +300,7 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerArgs(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerArgs(this ContainerV1 container, KubernetesServiceResource context)
     {
         if (context.Commands.Count == 0)
         {
@@ -314,7 +315,7 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerEnvironmentalVariables(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerEnvironmentalVariables(this ContainerV1 container, KubernetesServiceResource context)
     {
         if (context.EnvironmentVariables.Count > 0)
         {
@@ -323,7 +324,7 @@ internal static class ResourceExtensions
                 {
                     ConfigMapRef = new()
                     {
-                        Name = context.Resource.Name.ToConfigMapName(),
+                        Name = context.TargetResource.Name.ToConfigMapName(),
                     },
                 });
         }
@@ -331,7 +332,7 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static ContainerV1 WithContainerSecrets(this ContainerV1 container, KubernetesResourceContext context)
+    private static ContainerV1 WithContainerSecrets(this ContainerV1 container, KubernetesServiceResource context)
     {
         if (context.Secrets.Count > 0)
         {
@@ -340,7 +341,7 @@ internal static class ResourceExtensions
                 {
                     SecretRef = new()
                     {
-                        Name = context.Resource.Name.ToSecretName(),
+                        Name = context.TargetResource.Name.ToSecretName(),
                     },
                 });
         }
@@ -348,9 +349,9 @@ internal static class ResourceExtensions
         return container;
     }
 
-    private static PersistentVolume CreatePersistentVolume(KubernetesResourceContext context, VolumeMountV1 volume)
+    private static PersistentVolume CreatePersistentVolume(KubernetesServiceResource context, VolumeMountV1 volume)
     {
-        var pvName = context.Resource.Name.ToPvName(volume.Name);
+        var pvName = context.TargetResource.Name.ToPvName(volume.Name);
 
         if (context.TemplatedResources.OfType<PersistentVolume>().FirstOrDefault(pv => pv.Metadata.Name == pvName) is { } existingVolume)
         {
@@ -368,18 +369,18 @@ internal static class ResourceExtensions
             {
                 Capacity = new()
                 {
-                    ["storage"] = context.PublisherOptions.StorageSize,
+                    ["storage"] = context.StorageSize,
                 },
-                AccessModes = { context.PublisherOptions.StorageReadWritePolicy },
+                AccessModes = { context.StorageReadWritePolicy },
             },
         };
 
-        if (!string.IsNullOrEmpty(context.PublisherOptions.StorageClassName))
+        if (!string.IsNullOrEmpty(context.StorageClassName))
         {
-            newPv.Spec.StorageClassName = context.PublisherOptions.StorageClassName;
+            newPv.Spec.StorageClassName = context.StorageClassName;
         }
 
-        if (context.PublisherOptions.StorageType.Equals("hostpath", StringComparison.OrdinalIgnoreCase))
+        if (context.StorageType.Equals("hostpath", StringComparison.OrdinalIgnoreCase))
         {
             newPv.Spec.HostPath = new()
             {
@@ -392,9 +393,9 @@ internal static class ResourceExtensions
         return newPv;
     }
 
-    private static PersistentVolumeClaim CreatePersistentVolumeClaim(KubernetesResourceContext context, VolumeMountV1 volume)
+    private static PersistentVolumeClaim CreatePersistentVolumeClaim(KubernetesServiceResource context, VolumeMountV1 volume)
     {
-        var pvcName = context.Resource.Name.ToPvcName(volume.Name);
+        var pvcName = context.TargetResource.Name.ToPvcName(volume.Name);
 
         if (context.TemplatedResources.OfType<PersistentVolumeClaim>().FirstOrDefault(pvc => pvc.Metadata.Name == pvcName) is { } existingVolumeClaim)
         {
@@ -414,12 +415,12 @@ internal static class ResourceExtensions
             },
         };
 
-        pvc.Spec.AccessModes.Add(context.PublisherOptions.StorageReadWritePolicy);
-        pvc.Spec.Resources.Requests.Add("storage", context.PublisherOptions.StorageSize);
+        pvc.Spec.AccessModes.Add(context.StorageReadWritePolicy);
+        pvc.Spec.Resources.Requests.Add("storage", context.StorageSize);
 
-        if (!string.IsNullOrEmpty(context.PublisherOptions.StorageClassName))
+        if (!string.IsNullOrEmpty(context.StorageClassName))
         {
-            pvc.Spec.StorageClassName = context.PublisherOptions.StorageClassName;
+            pvc.Spec.StorageClassName = context.StorageClassName;
         }
 
         context.TemplatedResources.Add(pvc);

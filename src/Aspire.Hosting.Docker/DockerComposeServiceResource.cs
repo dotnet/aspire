@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using System.Globalization;
 using System.Text;
@@ -15,6 +14,8 @@ namespace Aspire.Hosting.Docker;
 /// </summary>
 public class DockerComposeServiceResource(string name, IResource resource, DockerComposeEnvironmentResource composeEnvironmentResource) : Resource(name), IResourceWithParent<DockerComposeEnvironmentResource>
 {
+    private Service? _composeService;
+
     /// <summary>
     /// Most common shell executables used as container entrypoints in Linux containers.
     /// These are used to identify when a container's entrypoint is a shell that will execute commands.
@@ -60,8 +61,12 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
     /// </summary>
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
 
-    public Service ComposeService => GetComposeService();
+    /// <summary>
+    /// Gets the Docker Compose service definition for this resource.
+    /// </summary>
+    public Service ComposeService => _composeService ??= GetComposeService();
 
+    /// <inheritdoc/>
     public DockerComposeEnvironmentResource Parent => composeEnvironmentResource;
 
     private Service GetComposeService()
