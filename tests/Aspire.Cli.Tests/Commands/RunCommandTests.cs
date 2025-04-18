@@ -39,7 +39,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     [Fact]
@@ -71,7 +71,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run --project /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator

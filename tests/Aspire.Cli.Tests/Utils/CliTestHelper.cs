@@ -26,10 +26,11 @@ internal static class CliTestHelper
 
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
-        services.AddSingleton(options.InteractiveServiceFactory);
+        services.AddSingleton(options.InteractionServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
+        services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddTransient<RootCommand>();
@@ -70,12 +71,18 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         return new AddCommandPrompter(interactionService);
     };
 
+    public Func<IServiceProvider, IPublishCommandPrompter> PublishCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new PublishCommandPrompter(interactionService);
+    };
+
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         return new ProjectLocator(logger, Directory.GetCurrentDirectory());
     };
 
-    public Func<IServiceProvider, IInteractionService> InteractiveServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
         return new InteractionService(ansiConsole);
     };
