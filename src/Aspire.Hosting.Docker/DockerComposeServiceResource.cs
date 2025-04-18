@@ -76,6 +76,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             SetContainerImage(containerImageName, composeService);
         }
 
+        SetContainerName(composeService);
         SetEntryPoint(composeService);
         AddEnvironmentVariablesAndCommandLineArgs(composeService);
         AddPorts(composeService);
@@ -99,6 +100,14 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         }
 
         return resourceInstance.TryGetContainerImageName(out containerImageName);
+    }
+
+    private void SetContainerName(Service composeService)
+    {
+        if (TargetResource.TryGetLastAnnotation<ContainerNameAnnotation>(out var containerNameAnnotation))
+        {
+            composeService.ContainerName = containerNameAnnotation.Name;
+        }
     }
 
     private void SetEntryPoint(Service composeService)

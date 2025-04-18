@@ -37,7 +37,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                     .WithArgs("-c", "hello $MSG")
                     .WithEnvironment("MSG", "world");
 
-        var migration = builder.AddContainer("something", "dummy/migration:latest");
+        var migration = builder.AddContainer("something", "dummy/migration:latest")
+                         .WithContainerName("cn");
 
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
                          .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -98,6 +99,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   - "aspire"
               something:
                 image: "dummy/migration:latest"
+                container_name: "cn"
                 networks:
                   - "aspire"
               myapp:
