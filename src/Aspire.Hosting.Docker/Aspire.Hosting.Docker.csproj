@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting docker docker-compose</PackageTags>
-    <Description>docker-compose publishing for .NET Aspire.</Description>
+    <Description>Docker Compose publishing for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
