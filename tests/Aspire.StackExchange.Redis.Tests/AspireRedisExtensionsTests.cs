@@ -247,7 +247,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         builder.AddKeyedRedisClient("redis", settings =>
         {
             settings.ConnectionString = "localhost";
-            settings.DisableTracing = ! true;
+            settings.DisableTracing = !true;
         });
         using var host = builder.Build();
 
@@ -381,6 +381,40 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Empty(connection1.GetServers().Single().Keys());
         Assert.Single(connection2.GetServers().Single().Keys());
         Assert.Single(connection3.GetServers().Single().Keys());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AddRedisClientShouldSetHealthCheckTags(bool usedKeyedServices)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        PopulateConfiguration(builder.Configuration);
+
+        IList<string> tags = ["aspire-redis", "stack-exchange-redis"];
+
+        if (usedKeyedServices)
+        {
+            builder.AddKeyedRedisClient("redis", configureSettings: settings =>
+            {
+                settings.HealthCheckTags = tags;
+            });
+        }
+        else
+        {
+            builder.AddRedisClient("redis", configureSettings: settings =>
+            {
+                settings.HealthCheckTags = tags;
+            });
+        }
+
+        using var host = builder.Build();
+
+        var healthcheckName = usedKeyedServices ? "StackExchange.Redis_redis" : "StackExchange.Redis";
+
+        var options = host.Services.GetRequiredService<IOptions<HealthCheckServiceOptions>>();
+        Assert.NotNull(options);
+        Assert.Contains(options.Value.Registrations, health => health.Name == healthcheckName && health.Tags.Contains("aspire-redis") && health.Tags.Contains("stack-exchange-redis"));
     }
 
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>

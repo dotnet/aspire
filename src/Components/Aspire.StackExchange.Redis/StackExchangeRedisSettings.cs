@@ -28,4 +28,9 @@ public sealed class StackExchangeRedisSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
+
+    /// <summary>
+    /// Gets or sets a list of tags that can be used to filter sets of health checks.
+    /// </summary>
+    public IList<string> HealthCheckTags { get; set; } = [];
 }
