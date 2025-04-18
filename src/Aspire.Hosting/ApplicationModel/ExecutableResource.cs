@@ -11,9 +11,12 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">The working directory of the executable.</param>
+/// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
 public class ExecutableResource(string name, string command, string workingDirectory)
-    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
+    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    IComputeResource
+#pragma warning restore ASPIRECOMPUTE001
 {
     /// <summary>
     /// Gets the command associated with this executable resource.
@@ -23,7 +26,7 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = ThrowIfNullOrEmpty(workingDirectory);
+    public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {

@@ -21,7 +21,7 @@
            Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
     <ItemGroup>
-      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot; --filter-trait &quot;scenario=$(_TestScenarioEnvVar)&quot;" />
+      <_TestRunCommandArguments Include="--filter &quot;(quarantined!=true)&amp;(scenario=$(_TestScenarioEnvVar))&quot;" />
     </ItemGroup>
 
     <PropertyGroup>

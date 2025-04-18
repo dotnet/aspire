@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -18,19 +17,22 @@ internal sealed class AddCommand : BaseCommand
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
+    private readonly IAddCommandPrompter _prompter;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
-        
+        ArgumentNullException.ThrowIfNull(prompter);
+
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
+        _prompter = prompter;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
@@ -39,7 +41,6 @@ internal sealed class AddCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the project file to add the integration to.";
-        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -170,23 +171,11 @@ internal sealed class AddCommand : BaseCommand
     {
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
-        var packagePrompt = new SelectionPrompt<(string FriendlyName, NuGetPackage Package)>()
-            .Title("Select an integration to add:")
-            .UseConverter(PackageNameWithFriendlyNameIfAvailable)
-            .PageSize(10)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"))
-            .AddChoices(distinctPackages);
-
         // If there is only one package, we can skip the prompt and just use it.
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
-            > 1 => await _interactionService.PromptForSelectionAsync(
-                "Select an integration to add:",
-                distinctPackages,
-                PackageNameWithFriendlyNameIfAvailable,
-                cancellationToken),
+            > 1 => await _prompter.PromptForIntegrationAsync(distinctPackages, cancellationToken),
             _ => throw new InvalidOperationException("Unexpected number of packages found.")
         };
 
@@ -201,25 +190,9 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var version = await _interactionService.PromptForSelectionAsync(
-            $"Select a version of the {selectedPackage.Package.Id}:",
-            packageVersions,
-            p => p.Package.Version,
-            cancellationToken);
+        var version = await _prompter.PromptForIntegrationVersionAsync(packageVersions, cancellationToken);
 
         return version;
-
-        static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
-        {
-            if (packageWithFriendlyName.FriendlyName is { } friendlyName)
-            {
-                return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
-            }
-            else
-            {
-                return packageWithFriendlyName.Package.Id;
-            }
-        }
     }
 
     private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
@@ -242,5 +215,47 @@ internal sealed class AddCommand : BaseCommand
         var lastSegment = package.Id.Split('.').Last().ToLower();
         shortNameBuilder.Append(lastSegment);
         return (shortNameBuilder.ToString(), package);
+    }
+}
+
+internal interface IAddCommandPrompter
+{
+    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
+    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
+}
+
+internal class  AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
+{
+    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    {
+        var selectedPackage = packages.First();
+        var version = await interactionService.PromptForSelectionAsync(
+            $"Select a version of the {selectedPackage.Package.Id}:",
+            packages,
+            p => p.Package.Version,
+            cancellationToken);
+        return version;
+    }
+
+    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    {
+        var selectedIntegration = await interactionService.PromptForSelectionAsync(
+                 "Select an integration to add:",
+                 packages,
+                 PackageNameWithFriendlyNameIfAvailable,
+                 cancellationToken);
+        return selectedIntegration;
+    }
+
+    private static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
+    {
+        if (packageWithFriendlyName.FriendlyName is { } friendlyName)
+        {
+            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+        }
+        else
+        {
+            return packageWithFriendlyName.Package.Id;
+        }
     }
 }

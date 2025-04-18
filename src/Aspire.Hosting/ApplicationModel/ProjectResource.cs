@@ -7,7 +7,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a specified .NET project.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport
+public class ProjectResource(string name)
+    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport,
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    IComputeResource
+#pragma warning restore ASPIRECOMPUTE001
 {
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
