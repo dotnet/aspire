@@ -59,7 +59,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     public Service? Service { get; set; }
 
     /// <summary>
-    /// Gets the resource that is the target of this Docker Compose service.
+    /// Gets the resource that is the target of this Kubernetes service.
     /// </summary>
     internal IResource TargetResource => resource;
 
