@@ -9,9 +9,9 @@ using Aspire.Hosting.Kubernetes.Resources;
 namespace Aspire.Hosting.Kubernetes;
 
 /// <summary>
-/// Represents a compute resource for Kubernetes with strongly-typed properties.
+/// Represents a compute resource for Kubernetes.
 /// </summary>
-public class KubernetesServiceResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
+public class KubernetesResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
 {
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;

@@ -32,7 +32,7 @@ public static class KubernetesServiceExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsKubernetesService<T>(this IResourceBuilder<T> builder, Action<KubernetesServiceResource> configure)
+    public static IResourceBuilder<T> PublishAsKubernetesService<T>(this IResourceBuilder<T> builder, Action<KubernetesResource> configure)
         where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);

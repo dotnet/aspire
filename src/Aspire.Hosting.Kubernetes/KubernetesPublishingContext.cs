@@ -18,7 +18,7 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    private readonly Dictionary<string, object> _helmValues = new()
+    private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
         [HelmExtensions.ParametersKey] = new Dictionary<string, object>(),
         [HelmExtensions.SecretsKey] = new Dictionary<string, object>(),
@@ -82,7 +82,7 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is KubernetesServiceResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is KubernetesResource serviceResource)
             {
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {
@@ -101,7 +101,7 @@ internal sealed class KubernetesPublishingContext(
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
-    private void AppendResourceContextToHelmValues(IResource resource, KubernetesServiceResource resourceContext)
+    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResource resourceContext)
     {
         AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
         AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
@@ -110,7 +110,7 @@ internal sealed class KubernetesPublishingContext(
 
     private void AddValuesToHelmSection(
         IResource resource,
-        Dictionary<string, KubernetesServiceResource.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)

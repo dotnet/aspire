@@ -4,13 +4,13 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
-using static Aspire.Hosting.Kubernetes.KubernetesServiceResource;
+using static Aspire.Hosting.Kubernetes.KubernetesResource;
 
 namespace Aspire.Hosting.Kubernetes;
 
 internal static class KubernetesServiceResourceExtensions
 {
-    internal static async Task<object> ProcessValueAsync(this KubernetesServiceResource resource, KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    internal static async Task<object> ProcessValueAsync(this KubernetesResource resource, KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
     {
         while (true)
         {

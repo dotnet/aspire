@@ -12,10 +12,10 @@ namespace Aspire.Hosting.Kubernetes;
 /// Initializes a new instance of the <see cref="KubernetesServiceCustomizationAnnotation"/> class.
 /// </remarks>
 /// <param name="configure">The configuration action for customizing the Kubernetes service.</param>
-public sealed class KubernetesServiceCustomizationAnnotation(Action<KubernetesServiceResource> configure) : IResourceAnnotation
+public sealed class KubernetesServiceCustomizationAnnotation(Action<KubernetesResource> configure) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the configuration action for customizing the Kubernetes service.
     /// </summary>
-    public Action<KubernetesServiceResource> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
+    public Action<KubernetesResource> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }
