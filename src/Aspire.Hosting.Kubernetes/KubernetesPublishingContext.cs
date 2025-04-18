@@ -92,7 +92,7 @@ internal sealed class KubernetesPublishingContext(
                     }
                 }
 
-                await WriteKubernetesTemplatesForResource(resource, serviceResource.TemplatedResources).ConfigureAwait(false);
+                await WriteKubernetesTemplatesForResource(resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
                 AppendResourceContextToHelmValues(resource, serviceResource);
             }
         }
@@ -136,7 +136,7 @@ internal sealed class KubernetesPublishingContext(
         }
     }
 
-    private async Task WriteKubernetesTemplatesForResource(IResource resource, List<BaseKubernetesResource> templatedItems)
+    private async Task WriteKubernetesTemplatesForResource(IResource resource, IEnumerable<BaseKubernetesResource> templatedItems)
     {
         var templatesFolder = Path.Combine(publisherOptions.OutputPath!, "templates", resource.Name);
         Directory.CreateDirectory(templatesFolder);

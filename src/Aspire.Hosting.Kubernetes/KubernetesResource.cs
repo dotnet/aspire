@@ -22,22 +22,88 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Parameters { get; } = [];
     internal Dictionary<string, string> Labels { get; private set; } = [];
-    internal List<BaseKubernetesResource> TemplatedResources { get; } = [];
     internal List<string> Commands { get; } = [];
     internal List<VolumeMountV1> Volumes { get; } = [];
+    internal List<PersistentVolume> PersistentVolumes { get; } = [];
+    internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
+
+    /// <summary>
+    /// Gets or sets the Kubernetes <see cref="Deployment"/> associated with this resource.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
+    /// </remarks>
+    public Deployment? Deployment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes <see cref="StatefulSet"/> associated with this resource.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
+    /// </remarks>
+    public StatefulSet? StatefulSet { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes ConfigMap associated with this resource.
+    /// </summary>
+    public ConfigMap? ConfigMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes Secret associated with this resource.
+    /// </summary>
+    public Secret? Secret { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes Service associated with this resource.
+    /// </summary>
+    public Service? Service { get; set; }
 
     /// <summary>
     /// Gets the resource that is the target of this Docker Compose service.
     /// </summary>
     internal IResource TargetResource => resource;
 
-    internal void BuildKubernetesResources()
+    internal IEnumerable<BaseKubernetesResource> GetTemplatedResources()
+    {
+        if (Deployment is not null)
+        {
+            yield return Deployment;
+        }
+        if (StatefulSet is not null)
+        {
+            yield return StatefulSet;
+        }
+        if (ConfigMap is not null)
+        {
+            yield return ConfigMap;
+        }
+        if (Secret is not null)
+        {
+            yield return Secret;
+        }
+        if (Service is not null)
+        {
+            yield return Service;
+        }
+
+        foreach (var volume in PersistentVolumes)
+        {
+            yield return volume;
+        }
+
+        foreach (var volumeClaim in PersistentVolumeClaims)
+        {
+            yield return volumeClaim;
+        }
+    }
+
+    private void BuildKubernetesResources()
     {
         SetLabels();
         CreateApplication();
-        AddIfExists(resource.ToConfigMap(this));
-        AddIfExists(resource.ToSecret(this));
-        AddIfExists(resource.ToService(this));
+        ConfigMap = resource.ToConfigMap(this);
+        Secret = resource.ToSecret(this);
+        Service = resource.ToService(this);
     }
 
     private void SetLabels()
@@ -53,21 +119,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         if (resource is IResourceWithConnectionString)
         {
-            var statefulSet = resource.ToStatefulSet(this);
-            TemplatedResources.Add(statefulSet);
+            StatefulSet = resource.ToStatefulSet(this);
             return;
         }
 
-        var deployment = resource.ToDeployment(this);
-        TemplatedResources.Add(deployment);
-    }
-
-    private void AddIfExists(BaseKubernetesResource? instance)
-    {
-        if (instance is not null)
-        {
-            TemplatedResources.Add(instance);
-        }
+        Deployment = resource.ToDeployment(this);
     }
 
     internal bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)

@@ -353,7 +353,7 @@ internal static class ResourceExtensions
     {
         var pvName = context.TargetResource.Name.ToPvName(volume.Name);
 
-        if (context.TemplatedResources.OfType<PersistentVolume>().FirstOrDefault(pv => pv.Metadata.Name == pvName) is { } existingVolume)
+        if (context.PersistentVolumes.FirstOrDefault(pv => pv.Metadata.Name == pvName) is { } existingVolume)
         {
             return existingVolume;
         }
@@ -388,7 +388,7 @@ internal static class ResourceExtensions
             };
         }
 
-        context.TemplatedResources.Add(newPv);
+        context.PersistentVolumes.Add(newPv);
 
         return newPv;
     }
@@ -397,7 +397,7 @@ internal static class ResourceExtensions
     {
         var pvcName = context.TargetResource.Name.ToPvcName(volume.Name);
 
-        if (context.TemplatedResources.OfType<PersistentVolumeClaim>().FirstOrDefault(pvc => pvc.Metadata.Name == pvcName) is { } existingVolumeClaim)
+        if (context.PersistentVolumeClaims.FirstOrDefault(pvc => pvc.Metadata.Name == pvcName) is { } existingVolumeClaim)
         {
             return existingVolumeClaim;
         }
@@ -423,7 +423,7 @@ internal static class ResourceExtensions
             pvc.Spec.StorageClassName = context.Parent.DefaultStorageClassName;
         }
 
-        context.TemplatedResources.Add(pvc);
+        context.PersistentVolumeClaims.Add(pvc);
 
         return pvc;
     }
