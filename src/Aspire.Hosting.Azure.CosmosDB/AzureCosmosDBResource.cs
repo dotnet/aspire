@@ -98,6 +98,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         // Always inject the connection string associated with the top-level resource
         // for the Azure Functions host.
         target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
+        target[$"{connectionName}__clientId"] = default!;
         // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
         target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
         target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;

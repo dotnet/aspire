@@ -224,6 +224,14 @@ public static class AzureFunctionsProjectResourceExtensions
         {
             connectionName ??= source.Resource.Name;
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
+
+            // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference?tabs=blob&pivots=programming-language-csharp#azure-sdk-environment-variables
+            if (context.EnvironmentVariables.TryGetValue($"{connectionName}__clientId", out var clientId) &&
+                clientId is null &&
+                context.Resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityResourceAnnotation))
+            {
+                context.EnvironmentVariables[$"{connectionName}__clientId"] = appIdentityResourceAnnotation.IdentityResource.ClientId;
+            }
         });
     }
 
