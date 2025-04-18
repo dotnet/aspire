@@ -94,8 +94,7 @@ public static class QdrantBuilderExtensions
                 c.DisplayLocation = UrlDisplayLocation.DetailsOnly;
             })
             .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)")
-            .WithUrl(ReferenceExpression.Create($"{qdrant.HttpEndpoint.Property(EndpointProperty.Url)}/dashboard"), "Qdrant Dashboard");
-
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, e => new ResourceUrlAnnotation() { Url = "/dashboard", DisplayText = "Qdrant Dashboard" });
     }
 
     /// <summary>
