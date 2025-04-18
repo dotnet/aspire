@@ -126,11 +126,14 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         Deployment = resource.ToDeployment(this);
     }
 
-    internal bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
+    internal string GetContainerImageName(IResource resourceInstance)
     {
         if (!resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) && resourceInstance is not ProjectResource)
         {
-            return resourceInstance.TryGetContainerImageName(out containerImageName);
+            if (resourceInstance.TryGetContainerImageName(out var containerImageName))
+            {
+                return containerImageName;
+            }
         }
 
         var imageEnvName = $"{resourceInstance.Name.ToManifestFriendlyResourceName()}_image";
@@ -138,9 +141,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
         Parameters[imageEnvName] = new(expression, value);
-        containerImageName = expression;
-        return false;
-
+        return expression;
     }
 
     internal async Task ProcessResourceAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)

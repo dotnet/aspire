@@ -37,7 +37,7 @@ internal sealed class KubernetesInfrastructure(
             return;
         }
 
-        var dockerComposeEnvironmentContext = new KubernetesEnvironmentContext(environment, logger);
+        var environmentContext = new KubernetesEnvironmentContext(environment, logger);
 
         foreach (var r in appModel.Resources)
         {
@@ -52,8 +52,8 @@ internal sealed class KubernetesInfrastructure(
                 continue;
             }
 
-            // Create a Docker Compose compute resource for the resource
-            var serviceResource = await dockerComposeEnvironmentContext.CreateKubernetesServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+            // Create a Kubernetes compute resource for the resource
+            var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
             // Add deployment target annotation to the resource
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

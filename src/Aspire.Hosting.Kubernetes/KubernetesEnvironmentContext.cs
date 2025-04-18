@@ -12,7 +12,7 @@ internal sealed class KubernetesEnvironmentContext(KubernetesEnvironmentResource
 
     public ILogger Logger => logger;
 
-    public async Task<KubernetesResource> CreateKubernetesServiceResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public async Task<KubernetesResource> CreateKubernetesResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (_kubernetesComponents.TryGetValue(resource, out var existingResource))
         {

@@ -23,7 +23,7 @@ internal static class KubernetesServiceResourceExtensions
             {
                 var referencedResource = ep.Resource == resource
                     ? resource
-                    : await context.CreateKubernetesServiceResourceAsync(ep.Resource, executionContext, default).ConfigureAwait(false);
+                    : await context.CreateKubernetesResourceAsync(ep.Resource, executionContext, default).ConfigureAwait(false);
 
                 var mapping = referencedResource.EndpointMappings[ep.EndpointName];
 
@@ -53,7 +53,7 @@ internal static class KubernetesServiceResourceExtensions
             {
                 var referencedResource = epExpr.Endpoint.Resource == resource
                     ? resource
-                    : await context.CreateKubernetesServiceResourceAsync(epExpr.Endpoint.Resource, executionContext, default).ConfigureAwait(false);
+                    : await context.CreateKubernetesResourceAsync(epExpr.Endpoint.Resource, executionContext, default).ConfigureAwait(false);
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 

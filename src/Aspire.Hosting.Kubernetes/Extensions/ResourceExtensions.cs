@@ -276,23 +276,14 @@ internal static class ResourceExtensions
 
     private static ContainerV1 WithContainerImage(this ContainerV1 container, KubernetesResource context)
     {
-        if (!context.TryGetContainerImageName(context.TargetResource, out var containerImageName))
-        {
-            // TODO eerhardt: get a Logger here
-            // context.Logger.FailedToGetContainerImage(context.TargetResource.Name);
-        }
-
-        if (containerImageName is not null)
-        {
-            container.Image = containerImageName;
-        }
+        container.Image = context.GetContainerImageName(context.TargetResource);
 
         return container;
     }
 
     private static ContainerV1 WithContainerEntrypoint(this ContainerV1 container, KubernetesResource context)
     {
-        if (context.TargetResource is ContainerResource {Entrypoint: { } entrypoint})
+        if (context.TargetResource is ContainerResource { Entrypoint: { } entrypoint })
         {
             container.Command.Add(entrypoint);
         }
