@@ -107,14 +107,14 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddKubernetesEnvironment("env")
-            .WithProperties(e => e.DefaultStorageSize = "2Gi");
+            .WithProperties(e => e.DefaultImagePullPolicy = "Always");
 
         // Add a container to the application
         var container = builder.AddContainer("service", "nginx")
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                // TODO: set stuff here
+                serviceResource.Deployment?.Spec.RevisionHistoryLimit = 5;
             });
 
         var app = builder.Build();
@@ -132,29 +132,44 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         await publisher.PublishAsync(model, CancellationToken.None);
 
         // Assert
-        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
+        var deploymentPath = Path.Combine(tempDir.Path, "templates/service/deployment.yaml");
+        Assert.True(File.Exists(deploymentPath));
 
-        var content = await File.ReadAllTextAsync(composePath);
+        var content = await File.ReadAllTextAsync(deploymentPath);
 
         Assert.Equal(
             """
-            services:
-              service:
-                image: "nginx:latest"
-                environment:
-                  ORIGINAL_ENV: "value"
-                  CUSTOM_ENV: "custom-value"
-                networks:
-                  - "aspire"
-                    - "custom-network"
-                restart: "always"
-                labels:
-                  custom-label: "test-value"
-            networks:
-              aspire:
-                driver: "bridge"
-
+            ---
+            apiVersion: "apps/v1"
+            kind: "Deployment"
+            metadata:
+              name: "service-deployment"
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: "aspire"
+                    component: "service"
+                spec:
+                  containers:
+                    - image: "nginx:latest"
+                      name: "service"
+                      envFrom:
+                        - configMapRef:
+                            name: "service-config"
+                      imagePullPolicy: "Always"
+              selector:
+                matchLabels:
+                  app: "aspire"
+                  component: "service"
+              replicas: 1
+              revisionHistoryLimit: 5
+              strategy:
+                rollingUpdate:
+                  maxSurge: 1
+                  maxUnavailable: 1
+                type: "RollingUpdate"
+            
             """,
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
