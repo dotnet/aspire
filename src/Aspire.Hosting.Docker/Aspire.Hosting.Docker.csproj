@@ -4,8 +4,8 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire hosting kubernetes</PackageTags>
-    <Description>Kubernetes publishing for .NET Aspire.</Description>
+    <PackageTags>aspire hosting docker docker-compose</PackageTags>
+    <Description>docker-compose publishing for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
