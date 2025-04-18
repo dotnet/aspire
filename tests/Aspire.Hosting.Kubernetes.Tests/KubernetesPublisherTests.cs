@@ -114,7 +114,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                serviceResource.Deployment?.Spec.RevisionHistoryLimit = 5;
+                serviceResource.Deployment!.Spec.RevisionHistoryLimit = 5;
             });
 
         var app = builder.Build();
