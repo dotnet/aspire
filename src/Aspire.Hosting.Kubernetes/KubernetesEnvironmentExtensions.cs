@@ -27,7 +27,7 @@ public static class KubernetesEnvironmentExtensions
 
         var resource = new KubernetesEnvironmentResource(name);
         builder.Services.TryAddLifecycleHook<KubernetesInfrastructure>();
-        builder.AddKubernetesPublisher(name);
+        builder.AddKubernetesPublisher();
         if (builder.ExecutionContext.IsRunMode)
         {
 
