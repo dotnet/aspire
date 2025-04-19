@@ -24,8 +24,6 @@ if (builder.ExecutionContext.PublisherName == "kubernetes" ||
     builder.AddKubernetesEnvironment("k8s-env");
 }
 
-builder.AddAzurePublisher();
-
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);
 var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
