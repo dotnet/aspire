@@ -4,10 +4,7 @@
 using System.IO.Hashing;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
-using Azure.Provisioning.Authorization;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -120,51 +117,71 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
         // The name of the user assigned identity for the container app
         var principalName = roleAssignmentContext.PrincipalName;
+        var principalId = roleAssignmentContext.PrincipalId;
 
         // Get a reference to the user assigned identity that is used for the deployment
         // c.f. AzureContainerAppExtensions.AddAzureContainerAppEnvironment()
         var userManagedIdentity = UserAssignedIdentity.FromExisting("mi");
         infra.Add(userManagedIdentity);
 
-        // Identity requires Directory Reader role to be added as a user
-        // https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-directory-readers-role
-
-        var ra = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"roleAssignment"))
-        {
-            Scope = new IdentifierExpression(sqlserver.BicepIdentifier),
-            RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", "88d8e3e3-8f55-4a1e-953a-9b9898b8876b"),
-            PrincipalId = roleAssignmentContext.PrincipalId,
-            PrincipalType = roleAssignmentContext.PrincipalType,
-        };
-        infra.Add(ra);
-
         foreach (var database in Databases.Keys)
         {
+            // Create a unique resource identifier for the script resource
             var hash = new XxHash3();
             hash.Append(Encoding.UTF8.GetBytes(database));
             hash.Append(Encoding.UTF8.GetBytes(infra.AspireResource.GetBicepIdentifier()));
 
-            var scriptResource = new SqlServerScriptProvisioningResource($"dbroles_{Convert.ToHexString(hash.GetCurrentHash()).ToLowerInvariant()}");
+            var scriptResource = new SqlServerScriptProvisioningResource($"script_{Convert.ToHexString(hash.GetCurrentHash()).ToLowerInvariant()}");
 
+            scriptResource.Kind = "AzurePowerShell";
+            scriptResource.AZPowerShellVersion = "7.4";
+
+            // Run the script as the administrator
             scriptResource.Identity.IdentityType = ArmDeploymentScriptManagedIdentityType.UserAssigned;
             scriptResource.Identity.UserAssignedIdentities["${mi.id}"] = new UserAssignedIdentityDetails();
 
+            // Script don't support Bicep expression, they need to be passed as ENVs
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "IDENTITY", Value = principalName });
+            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "USERNAME", Value = principalName });
+            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "CLIENTID", Value = principalId });
 
             scriptResource.ScriptContent = $$"""
-                    echo "Downloading go-sqlcmd"
-                    wget https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2
-                    tar x -f sqlcmd-linux-amd64.tar.bz2 -C .
-                    echo "Creating database roles for '${DBNAME}' on '${DBSERVER}' on user assigned identity '${IDENTITY}'"
-                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "CREATE USER [${IDENTITY}] FROM EXTERNAL PROVIDER;"
-                    echo "Assign db_datareader"
-                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "ALTER ROLE db_datareader ADD MEMBER [${IDENTITY}];"
-                    echo "Assign db_datawriter"
-                    ./sqlcmd -S ${DBSERVER} -d ${DBNAME} -G -Q "ALTER ROLE db_datawriter ADD MEMBER [${IDENTITY}];"
-                    echo "Done"
-                    """;
+                $sqlServerFqdn = "$env:DBSERVER"
+                $sqlDatabaseName = "$env:DBNAME"
+                $username = "$env:USERNAME"
+                $clientId = "$env:CLIENTID"
+
+                # Install SqlServer module
+                Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
+                Import-Module SqlServer
+
+                $sqlCmd = @"
+                    DECLARE @principal_name SYSNAME = '$username';
+                    DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
+
+                    -- Convert the guid to the right type
+                    DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
+
+                    -- Construct command: CREATE USER [@principal_name] WITH SID = @castClientId, TYPE = E;
+                    DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
+                    EXEC (@cmd);
+
+                    -- Assign roles to the new user
+                    DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_datareader ADD MEMBER [' + @principal_name + ']';
+                    EXEC (@role1);
+
+                    DECLARE @role2 NVARCHAR(MAX) = N'ALTER ROLE db_datawriter ADD MEMBER [' + @principal_name + ']';
+                    EXEC (@role2);
+                "@
+                # Note: the string terminator must not have whitespace before it, therefore it is not indented.
+
+                Write-Host $sqlCmd
+
+                $connectionString = "Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Authentication=Active Directory Default;"
+
+                Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
+                """;
 
             infra.Add(scriptResource);
         }

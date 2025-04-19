@@ -12,13 +12,12 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
     private BicepValue<string>? _scriptContent;
     private BicepValue<string>? _kind;
     private BicepValue<string>? _azCliVersion;
+    private BicepValue<string>? _azPowerShellVersion;
     private BicepValue<TimeSpan>? _retentionInterval;
     private BicepList<ContainerAppEnvironmentVariable>? _environmentVariables;
 
     public SqlServerScriptProvisioningResource(string bicepIdentifier) : base(bicepIdentifier)
     {
-        Kind = "AzureCLI";
-        AZCliVersion = "2.59.0";
         RetentionInterval = TimeSpan.FromHours(1);
     }
 
@@ -50,6 +49,15 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
     }
 
     /// <summary>
+    /// Azure CLI module version to be used.
+    /// </summary>
+    public BicepValue<string> AZPowerShellVersion
+    {
+        get { Initialize(); return _azPowerShellVersion!; }
+        set { Initialize(); _azPowerShellVersion!.Assign(value); }
+    }
+
+    /// <summary>
     /// Interval for which the service retains the script resource after it reaches a terminal state. Resource will be deleted when this duration expires. Duration is based on ISO 8601 pattern (for example P1D means one day).
     /// </summary>
     public BicepValue<TimeSpan> RetentionInterval
@@ -71,6 +79,7 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
         _kind = DefineProperty<string>(nameof(Kind), ["kind"], isRequired: true);
         _scriptContent = DefineProperty<string>(nameof(ScriptContent), ["properties", "scriptContent"]);
         _azCliVersion = DefineProperty<string>(nameof(AZCliVersion), ["properties", "azCliVersion"]);
+        _azPowerShellVersion = DefineProperty<string>(nameof(AZPowerShellVersion), ["properties", "azPowerShellVersion"]);
         _retentionInterval = DefineProperty<TimeSpan>(nameof(RetentionInterval), ["properties", "retentionInterval"], format: "P");
         _environmentVariables = DefineListProperty<ContainerAppEnvironmentVariable>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
     }
