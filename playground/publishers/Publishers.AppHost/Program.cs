@@ -18,7 +18,11 @@ if (builder.ExecutionContext.PublisherName == "docker-compose" ||
     builder.AddDockerComposeEnvironment("docker-env");
 }
 
-builder.AddKubernetesPublisher();
+if (builder.ExecutionContext.PublisherName == "kubernetes" ||
+    builder.ExecutionContext.IsInspectMode)
+{
+    builder.AddKubernetesEnvironment("k8s-env");
+}
 
 builder.AddAzurePublisher();
 
