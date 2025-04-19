@@ -2,12 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001
+#pragma warning disable ASPIREPUBLISHERS001
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureContainerAppEnvironment("env");
+if (builder.ExecutionContext.PublisherName == "azure" ||
+    builder.ExecutionContext.IsInspectMode)
+{
+    builder.AddAzureContainerAppEnvironment("env");
+}
 
-builder.AddDockerComposeEnvironment("docker-env");
+if (builder.ExecutionContext.PublisherName == "docker-compose" ||
+    builder.ExecutionContext.IsInspectMode)
+{
+    builder.AddDockerComposeEnvironment("docker-env");
+}
 
 builder.AddKubernetesPublisher();
 
