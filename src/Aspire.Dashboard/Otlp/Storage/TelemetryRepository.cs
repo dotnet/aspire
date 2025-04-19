@@ -96,19 +96,23 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public List<OtlpApplication> GetApplications()
+    public List<OtlpApplication> GetApplications(bool includeUninstrumentedPeers = false)
     {
-        return GetApplicationsCore(name: null);
+        return GetApplicationsCore(includeUninstrumentedPeers, name: null);
     }
 
-    public List<OtlpApplication> GetApplicationsByName(string name)
+    public List<OtlpApplication> GetApplicationsByName(string name, bool includeUninstrumentedPeers = false)
     {
-        return GetApplicationsCore(name);
+        return GetApplicationsCore(includeUninstrumentedPeers, name);
     }
 
-    private List<OtlpApplication> GetApplicationsCore(string? name)
+    private List<OtlpApplication> GetApplicationsCore(bool includeUninstrumentedPeers, string? name)
     {
         IEnumerable<OtlpApplication> results = _applications.Values;
+        if (!includeUninstrumentedPeers)
+        {
+            results = results.Where(a => !a.UninstrumentedPeer);
+        }
         if (name != null)
         {
             results = results.Where(a => string.Equals(a.ApplicationKey.Name, name, StringComparisons.ResourceName));
@@ -204,14 +208,7 @@ public sealed class TelemetryRepository : IDisposable
 
         var key = resource.GetApplicationKey();
 
-        // Fast path.
-        if (_applications.TryGetValue(key, out var application))
-        {
-            return application.GetView(resource.Attributes);
-        }
-
-        // Slower get or add path.
-        (application, var isNew) = GetOrAddApplication(key);
+        var (application, isNew) = GetOrAddApplication(key, uninstrumentedPeer: false);
         if (isNew)
         {
             RaiseSubscriptionChanged(_applicationSubscriptions);
@@ -220,16 +217,28 @@ public sealed class TelemetryRepository : IDisposable
         return application.GetView(resource.Attributes);
     }
 
-    private (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key)
+    private (OtlpApplication Application, bool IsNew) GetOrAddApplication(ApplicationKey key, bool uninstrumentedPeer)
     {
+        // Fast path.
+        if (_applications.TryGetValue(key, out var application))
+        {
+            application.SetUninstrumentedPeer(uninstrumentedPeer);
+            return (Application: application, IsNew: false);
+        }
+
+        // Slower get or add path.
         // This GetOrAdd allocates a closure, so we avoid it if possible.
         var newApplication = false;
-        var application = _applications.GetOrAdd(key, _ =>
+        application = _applications.GetOrAdd(key, _ =>
         {
             newApplication = true;
-            return new OtlpApplication(key.Name, key.InstanceId!, _otlpContext);
+            return new OtlpApplication(key.Name, key.InstanceId!, uninstrumentedPeer, _otlpContext);
         });
-        return (application, newApplication);
+        if (!newApplication)
+        {
+            application.SetUninstrumentedPeer(uninstrumentedPeer);
+        }
+        return (Application: application, IsNew: newApplication);
     }
 
     public Subscription OnNewApplications(Func<Task> callback)
@@ -1092,7 +1101,7 @@ public sealed class TelemetryRepository : IDisposable
                 }
 
                 var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
-                var (app, _) = GetOrAddApplication(appKey);
+                var (app, _) = GetOrAddApplication(appKey, uninstrumentedPeer: true);
                 span.UninstrumentedPeer = app;
             }
             else

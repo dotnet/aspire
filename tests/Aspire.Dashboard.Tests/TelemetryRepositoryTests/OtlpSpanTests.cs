@@ -18,7 +18,7 @@ public class OtlpSpanTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
 

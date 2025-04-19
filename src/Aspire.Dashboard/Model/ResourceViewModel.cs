@@ -220,7 +220,7 @@ public sealed class EnvironmentVariableViewModel : IPropertyGridItem
     }
 }
 
-[DebuggerDisplay("Name = {Name}, Value = {Value}, IsValueSensitive = {IsValueSensitive}, IsValueMasked = {IsValueMasked}")]
+[DebuggerDisplay("{_propertyViewModel}")]
 public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
 {
     private readonly Lazy<string> _displayValue;

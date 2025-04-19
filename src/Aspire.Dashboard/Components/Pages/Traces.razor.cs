@@ -187,7 +187,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications();
+        _applications = TelemetryRepository.GetApplications(includeUninstrumentedPeers: true);
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();

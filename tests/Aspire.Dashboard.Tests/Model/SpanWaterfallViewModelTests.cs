@@ -16,8 +16,8 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
-        var app2 = new OtlpApplication("app2", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
+        var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
 
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
@@ -51,7 +51,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app = new OtlpApplication("app1", "instance", context);
+        var app = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
 
@@ -91,7 +91,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
         var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
@@ -113,7 +113,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
         var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
