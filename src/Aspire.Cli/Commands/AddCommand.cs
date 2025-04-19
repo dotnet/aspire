@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -190,7 +191,8 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var version = await _prompter.PromptForIntegrationVersionAsync(packageVersions, cancellationToken);
+        var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        var version = await _prompter.PromptForIntegrationVersionAsync(orderedPackageVersions, cancellationToken);
 
         return version;
     }
