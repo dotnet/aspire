@@ -130,6 +130,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // This is here so hosting does not throw an exception when CTRL+C during startup.
+        }
         catch
         {
             _shutdownCancellation.Cancel();
@@ -679,6 +683,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
 
         }
+        /*catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Ignore. This might be reason why hosting fails when CTRL+C
+        }*/
         finally
         {
             AspireEventSource.Instance.DcpServicesCreationStop();
