@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
-    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
   </ItemGroup>
 
   <ItemGroup>

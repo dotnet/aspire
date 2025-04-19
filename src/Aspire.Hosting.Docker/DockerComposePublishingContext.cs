@@ -82,8 +82,7 @@ internal sealed class DockerComposePublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTargetAnnotation) &&
-                deploymentTargetAnnotation.DeploymentTarget is DockerComposeServiceResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
                 if (PublisherOptions.BuildImages)
                 {
