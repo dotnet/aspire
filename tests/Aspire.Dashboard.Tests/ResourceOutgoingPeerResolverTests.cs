@@ -194,7 +194,7 @@ public class ResourceOutgoingPeerResolverTests
 
     private static bool TryResolvePeerName(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? peerName)
     {
-        return ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, attributes, out peerName);
+        return ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, attributes, out peerName, out _);
     }
 
     private sealed class MockDashboardClient(Task<ResourceViewModelSubscription> subscribeResult) : IDashboardClient

@@ -254,7 +254,8 @@ internal static class TelemetryTestHelpers
         var repository = new TelemetryRepository(
             loggerFactory ?? NullLoggerFactory.Instance,
             Options.Create(new DashboardOptions { TelemetryLimits = options }),
-            pauseManager ?? new PauseManager());
+            pauseManager ?? new PauseManager(),
+            []);
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;

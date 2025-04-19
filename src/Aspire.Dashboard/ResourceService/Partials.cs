@@ -18,7 +18,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(ILogger logger)
+    public ResourceViewModel ToViewModel(IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -31,7 +31,7 @@ partial class Resource
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),
-                Properties = CreatePropertyViewModels(Properties, logger),
+                Properties = CreatePropertyViewModels(Properties, knownPropertyLookup, logger),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
@@ -149,15 +149,19 @@ partial class Resource
         }
     }
 
-    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, ILogger logger)
+    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         var builder = ImmutableDictionary.CreateBuilder<string, ResourcePropertyViewModel>(StringComparers.ResourcePropertyName);
 
         foreach (var property in properties)
         {
+            var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
             var propertyViewModel = new ResourcePropertyViewModel(
                 name: ValidateNotNull(property.Name),
-                value: ValidateNotNull(property.Value));
+                value: ValidateNotNull(property.Value),
+                isValueSensitive: property.IsSensitive,
+                knownProperty: knownProperty,
+                priority: priority);
 
             if (builder.ContainsKey(propertyViewModel.Name))
             {

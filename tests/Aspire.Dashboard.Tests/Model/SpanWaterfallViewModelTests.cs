@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Tests.Shared.Telemetry;
@@ -26,7 +25,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([]));
 
         // Assert
         Assert.Collection(vm,
@@ -78,10 +77,7 @@ public sealed class SpanWaterfallViewModelTests
 
         var vm = SpanWaterfallViewModel.Create(
             trace,
-            new SpanWaterfallViewModel.TraceDetailState(
-                [new TestPeerResolver()],
-                []
-            )).First();
+            new SpanWaterfallViewModel.TraceDetailState([])).First();
 
         // Act
         var result = vm.MatchesFilter(filter, a => a.Application.ApplicationName, out _);
@@ -103,7 +99,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([]));
         var parent = vms[0];
         var child = vms[1];
 
@@ -125,7 +121,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([]));
         var parent = vms[0];
         var child = vms[1];
 
@@ -133,27 +129,6 @@ public sealed class SpanWaterfallViewModelTests
         Assert.True(parent.MatchesFilter("parent", a => a.Application.ApplicationName, out var descendents));
         Assert.Equal("child", Assert.Single(descendents).Span.SpanId);
         Assert.False(child.MatchesFilter("parent", a => a.Application.ApplicationName, out _));
-    }
-
-    private sealed class TestPeerResolver : IOutgoingPeerResolver
-    {
-        public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name)
-        {
-            var peerService = attributes.FirstOrDefault(a => a.Key == "peer.service");
-            if (!string.IsNullOrEmpty(peerService.Value))
-            {
-                name = peerService.Value;
-                return true;
-            }
-
-            name = null;
-            return false;
-        }
-
-        public IDisposable OnPeerChanges(Func<Task> callback)
-        {
-            return EmptyDisposable.Instance;
-        }
     }
 
     private sealed class EmptyDisposable : IDisposable

@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
@@ -15,8 +14,6 @@ public sealed class MockDashboardClientStatus : IDashboardClientStatus
 
 public sealed class MockDashboardClient : IDashboardClient
 {
-    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
-
     public MockDashboardClient(IDashboardClientStatus dashboardClientStatus)
     {
         _dashboardClientStatus = dashboardClientStatus;
@@ -36,9 +33,8 @@ public sealed class MockDashboardClient : IDashboardClient
                         StringValue = "C:/MyProjectPath/Project.csproj"
                     },
                     isValueSensitive: false,
-                    knownProperty: new(KnownProperties.Project.Path, "Path"),
-                    priority: 0,
-                    timeProvider: s_timeProvider))
+                    knownProperty: new(KnownProperties.Project.Path, loc => "Path"),
+                    priority: 0))
         }.ToDictionary(),
         state: KnownResourceState.Running);
 

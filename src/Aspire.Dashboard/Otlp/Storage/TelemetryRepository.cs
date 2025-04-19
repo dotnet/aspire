@@ -24,7 +24,7 @@ using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public sealed class TelemetryRepository
+public sealed class TelemetryRepository : IDisposable
 {
     private readonly PauseManager _pauseManager;
     private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers;
@@ -51,6 +51,7 @@ public sealed class TelemetryRepository
     private readonly Dictionary<string, OtlpScope> _traceScopes = new();
     private readonly CircularBuffer<OtlpTrace> _traces;
     private readonly List<OtlpSpanLink> _spanLinks = new();
+    private readonly List<IDisposable> _peerResolverSubscriptions = new();
     internal readonly OtlpContext _otlpContext;
 
     public bool HasDisplayedMaxLogLimitMessage { get; set; }
@@ -76,6 +77,11 @@ public sealed class TelemetryRepository
         _logs = new(_otlpContext.Options.MaxLogCount);
         _traces = new(_otlpContext.Options.MaxTraceCount);
         _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
+
+        foreach (var outgoingPeerResolver in _outgoingPeerResolvers)
+        {
+            _peerResolverSubscriptions.Add(outgoingPeerResolver.OnPeerChanges(OnPeerChanged));
+        }
     }
 
     private void TracesItemRemovedForCapacity(OtlpTrace trace)
@@ -1042,30 +1048,7 @@ public sealed class TelemetryRepository
                 // These can change
                 foreach (var (_, updatedTrace) in updatedTraces)
                 {
-                    foreach (var span in updatedTrace.Spans)
-                    {
-                        // A span may indicate a call to another service but the service isn't instrumented.
-                        var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
-                        var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-                        var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, _outgoingPeerResolvers) : null;
-
-                        if (uninstrumentedPeer != null)
-                        {
-                            if (span.UninstrumentedPeer?.ApplicationKey.EqualsCompositeName(uninstrumentedPeer.Name) ?? false)
-                            {
-                                // Already the correct value. No changes needed.
-                                continue;
-                            }
-
-                            var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
-                            var (app, _) = GetOrAddApplication(appKey);
-                            span.UninstrumentedPeer = app;
-                        }
-                        else
-                        {
-                            span.UninstrumentedPeer = null;
-                        }
-                    }
+                    CalculateTraceUninstrumentedPeers(updatedTrace);
                 }
             }
         }
@@ -1088,6 +1071,34 @@ public sealed class TelemetryRepository
 
             trace = null;
             return false;
+        }
+    }
+
+    private void CalculateTraceUninstrumentedPeers(OtlpTrace trace)
+    {
+        foreach (var span in trace.Spans)
+        {
+            // A span may indicate a call to another service but the service isn't instrumented.
+            var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
+            var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
+            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, _outgoingPeerResolvers) : null;
+
+            if (uninstrumentedPeer != null)
+            {
+                if (span.UninstrumentedPeer?.ApplicationKey.EqualsCompositeName(uninstrumentedPeer.Name) ?? false)
+                {
+                    // Already the correct value. No changes needed.
+                    continue;
+                }
+
+                var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
+                var (app, _) = GetOrAddApplication(appKey);
+                span.UninstrumentedPeer = app;
+            }
+            else
+            {
+                span.UninstrumentedPeer = null;
+            }
         }
     }
 
@@ -1296,6 +1307,34 @@ public sealed class TelemetryRepository
                 KnownAttributeValues = allKnownAttributes,
                 HasOverflow = hasOverflow
             };
+        }
+    }
+
+    private Task OnPeerChanged()
+    {
+        _tracesLock.EnterWriteLock();
+
+        try
+        {
+            // When peers change then we need to recalculate the uninstrumented peers of spans.
+            foreach (var trace in _traces)
+            {
+                CalculateTraceUninstrumentedPeers(trace);
+            }
+        }
+        finally
+        {
+            _tracesLock.ExitWriteLock();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        foreach (var subscription in _peerResolverSubscriptions)
+        {
+            subscription.Dispose();
         }
     }
 }

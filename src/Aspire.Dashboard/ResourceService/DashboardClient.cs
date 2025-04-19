@@ -48,6 +48,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly ILoggerFactory _loggerFactory;
     private readonly IDashboardClientStatus _dashboardClientStatus;
+    private readonly IKnownPropertyLookup _knownPropertyLookup;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
 
@@ -71,10 +72,12 @@ internal sealed class DashboardClient : IDashboardClient
         IConfiguration configuration,
         IOptions<DashboardOptions> dashboardOptions,
         IDashboardClientStatus dashboardClientStatus,
+        IKnownPropertyLookup knownPropertyLookup,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
         _dashboardClientStatus = dashboardClientStatus;
+        _knownPropertyLookup = knownPropertyLookup;
         _dashboardOptions = dashboardOptions.Value;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
@@ -335,7 +338,7 @@ internal sealed class DashboardClient : IDashboardClient
                                 foreach (var resource in response.InitialData.Resources)
                                 {
                                     // Add to map.
-                                    var viewModel = resource.ToViewModel(_logger);
+                                    var viewModel = resource.ToViewModel(_knownPropertyLookup, _logger);
                                     _resourceByName[resource.Name] = viewModel;
 
                                     // Send this update to any subscribers too.
@@ -355,7 +358,7 @@ internal sealed class DashboardClient : IDashboardClient
                                     if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
                                         // Upsert (i.e. add or replace)
-                                        var viewModel = change.Upsert.ToViewModel(_logger);
+                                        var viewModel = change.Upsert.ToViewModel(_knownPropertyLookup, _logger);
                                         _resourceByName[change.Upsert.Name] = viewModel;
                                         changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                     }
@@ -600,7 +603,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel(_logger);
+                    _resourceByName[data.Name] = data.ToViewModel(_knownPropertyLookup, _logger);
                 }
             }
         }
