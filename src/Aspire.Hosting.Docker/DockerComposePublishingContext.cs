@@ -73,7 +73,7 @@ internal sealed class DockerComposePublishingContext(
 
         var defaultNetwork = new Network
         {
-            Name = PublisherOptions.ExistingNetworkName ?? "aspire",
+            Name = environment.DefaultNetworkName ?? "aspire",
             Driver = "bridge",
         };
 

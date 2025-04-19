@@ -285,7 +285,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+               .WithProperties(e => e.DefaultNetworkName = "default-network");
 
         // Add a container to the application
         var container = builder.AddContainer("service", "nginx")
@@ -336,13 +337,13 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   ORIGINAL_ENV: "value"
                   CUSTOM_ENV: "custom-value"
                 networks:
-                  - "aspire"
-                    - "custom-network"
+                  - "default-network"
+                  - "custom-network"
                 restart: "always"
                 labels:
                   custom-label: "test-value"
             networks:
-              aspire:
+              default-network:
                 driver: "bridge"
 
             """,
