@@ -14,7 +14,7 @@ namespace Aspire.Hosting;
 /// Provides extension methods for adding the Azure SQL resources to the application model.
 /// </summary>
 public static class AzureSqlExtensions
-{
+{    
     [Obsolete]
     private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
@@ -97,8 +97,9 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <param name="skuName">SKU of the database. If not provided, this defaults to the free database tier.<paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null, string skuName = AzureSqlDatabaseResource.FREE_SKU)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -107,9 +108,9 @@ public static class AzureSqlExtensions
         databaseName ??= name;
 
         var azureResource = builder.Resource;
-        var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
+        var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, skuName, azureResource);
 
-        builder.Resource.AddDatabase(name, databaseName);
+        builder.Resource.AddDatabase(azureSqlDatabase);
 
         if (azureResource.InnerResource is null)
         {
@@ -176,7 +177,7 @@ public static class AzureSqlExtensions
                 throw new InvalidOperationException($"Could not find a {nameof(AzureSqlDatabaseResource)} with name {database.Key}.");
             }
 
-            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value);
+            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value.DatabaseName);
             existingDb.SetInnerResource(innerDb.Resource);
         }
 
@@ -195,9 +196,63 @@ public static class AzureSqlExtensions
     }
 
     private static void CreateSqlServer(
-        AzureResourceInfrastructure infrastructure,
+           AzureResourceInfrastructure infrastructure,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
+    {
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
+
+        foreach (var database in databases)
+        {
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(database.Key);
+            var databaseName = database.Value;
+            var sqlDatabase = new SqlDatabase(bicepIdentifier)
+            {
+                Parent = sqlServer,
+                Name = databaseName,
+            };
+            
+            sqlDatabase.Sku = new SqlSku() { Name = "GP_S_Gen5_2" };
+            sqlDatabase.UseFreeLimit = true;
+            sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static void CreateSqlServer(
+        AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder,
+        IReadOnlyDictionary<string, AzureSqlDatabaseResource> databases)
+    {
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
+
+        foreach (var database in databases)
+        {
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(database.Key);
+            var databaseName = database.Value.DatabaseName;
+            var sqlDatabase = new SqlDatabase(bicepIdentifier)
+            {
+                Parent = sqlServer,
+                Name = databaseName,
+            };
+
+            if (database.Value.SkuName == AzureSqlDatabaseResource.FREE_SKU)
+            {
+                sqlDatabase.Sku = new SqlSku() { Name = "GP_S_Gen5_2" };
+                sqlDatabase.UseFreeLimit = true;
+                sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+            } else
+            {
+                sqlDatabase.Sku = new SqlSku() { Name = database.Value.SkuName };
+            }
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static SqlServer CreateSqlServerResourceOnly(AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder)
     {
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
@@ -263,22 +318,12 @@ public static class AzureSqlExtensions
             });
         }
 
-        foreach (var databaseNames in databases)
-        {
-            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
-            var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(bicepIdentifier)
-            {
-                Parent = sqlServer,
-                Name = databaseName
-            };
-            infrastructure.Add(sqlDatabase);
-        }
-
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+
+        return sqlServer;
     }
 
     internal static SqlServerAzureADAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, SqlServer sqlServer, BicepValue<Guid> principalId, BicepValue<string> principalName)

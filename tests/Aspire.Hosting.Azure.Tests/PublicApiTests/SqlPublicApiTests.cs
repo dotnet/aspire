@@ -18,7 +18,7 @@ public class SqlPublicApiTests
         const string databaseName = "db";
         var parent = new AzureSqlServerResource("sql-server", (_) => { });
 
-        var action = () => new AzureSqlDatabaseResource(name, databaseName, parent);
+        var action = () => new AzureSqlDatabaseResource(name, databaseName, AzureSqlDatabaseResource.FREE_SKU, parent);
 
         var exception = isNull
            ? Assert.Throws<ArgumentNullException>(action)
@@ -35,7 +35,7 @@ public class SqlPublicApiTests
         var databaseName = isNull ? null! : string.Empty;
         var parent = new AzureSqlServerResource("sql-server", (_) => { });
 
-        var action = () => new AzureSqlDatabaseResource(name, databaseName, parent);
+        var action = () => new AzureSqlDatabaseResource(name, databaseName, AzureSqlDatabaseResource.FREE_SKU, parent);
 
         var exception = isNull
            ? Assert.Throws<ArgumentNullException>(action)
@@ -50,7 +50,7 @@ public class SqlPublicApiTests
         const string databaseName = "db";
         AzureSqlServerResource parent = null!;
 
-        var action = () => new AzureSqlDatabaseResource(name, databaseName, parent);
+        var action = () => new AzureSqlDatabaseResource(name, databaseName, AzureSqlDatabaseResource.FREE_SKU, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(parent), exception.ParamName);

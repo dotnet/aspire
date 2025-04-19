@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Sql library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL Server.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL DB.
 
 ## Getting started
 
@@ -52,6 +52,24 @@ The `WithReference` method configures a connection in the `MyService` project na
 
 ```csharp
 builder.AddSqlServerClient("sqldata");
+```
+
+## Azure SQL DB defaults
+
+Unless otherwise specified, the Azure SQL DB created will be a 2vCores General Purpose Serverless database (GP_S_Gen5_2) with the free offer enabled.
+
+Read more about the free offer here: [Deploy Azure SQL Database for free](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer?view=azuresql)
+
+The free offer is configured so that when the maximum usage limit is reached, the database is stopped to avoid incurring in unexpected costs.
+
+If you want don't want to use the free offer and instead deploy the database with the service level of your choice, specify the SKU name when adding the database resource:
+
+```csharp
+var sql = builder.AddAzureSqlServer("sql")
+                 .AddDatabase("db", "my-db-name", "HS_Gen5_2");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(sql);
 ```
 
 ## Additional documentation
