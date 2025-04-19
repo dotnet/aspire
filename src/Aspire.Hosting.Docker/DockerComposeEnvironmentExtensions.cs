@@ -41,9 +41,9 @@ public static class DockerComposeEnvironmentExtensions
     }
 
     /// <summary>
-    /// Allows setting the properties of a Docker compose environment resource.
+    /// Allows setting the properties of a Docker Compose environment resource.
     /// </summary>
-    /// <param name="builder">The Docker compose environment resource builder.</param>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="DockerComposeEnvironmentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<DockerComposeEnvironmentResource> WithProperties(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<DockerComposeEnvironmentResource> configure)
