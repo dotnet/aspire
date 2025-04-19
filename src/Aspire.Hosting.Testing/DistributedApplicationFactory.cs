@@ -187,8 +187,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         SetDefault("DcpPublisher:WaitForResourceCleanup", "true");
 
         // Make sure we have a dashboard URL and OTLP endpoint URL.
-        SetDefault("ASPNETCORE_URLS", "http://localhost:8080");
-        SetDefault("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
+        SetDefault(KnownConfigNames.AspNetCoreUrls, "http://localhost:8080");
+        SetDefaultFallback(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, "http://localhost:4317");
 
         var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
         if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
@@ -204,6 +204,14 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             if (existingConfig[key] is null)
             {
                 additionalConfig[key] = value;
+            }
+        }
+
+        void SetDefaultFallback(string primaryKey, string secondaryKey, string? value)
+        {
+            if (existingConfig[primaryKey] is null && existingConfig[secondaryKey] is null)
+            {
+                additionalConfig[primaryKey] = value;
             }
         }
     }

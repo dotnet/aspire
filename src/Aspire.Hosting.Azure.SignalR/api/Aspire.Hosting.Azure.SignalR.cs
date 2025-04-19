@@ -15,6 +15,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureSignalREmulatorResource>>? configureContainer = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> target, params global::Azure.Provisioning.SignalR.SignalRBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
@@ -29,6 +32,8 @@ namespace Aspire.Hosting.ApplicationModel
         public Azure.BicepOutputReference HostName { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }
 

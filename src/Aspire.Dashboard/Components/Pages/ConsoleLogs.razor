@@ -27,32 +27,41 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
 
-            @foreach (var command in _highlightedCommands)
+            @if (PageViewModel.SelectedResource is { } selectedResource)
             {
-                <FluentButton Appearance="Appearance.Lightweight"
-                              Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
-                              Disabled="@(command.State == CommandViewModelState.Disabled)"
-                              OnClick="@(() => ExecuteResourceCommandAsync(command))"
-                              Class="highlighted-command">
-                    @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
-                    {
-                        <FluentIcon Value="@icon" Width="16px" />
-                    }
-                    else
-                    {
-                        @command.DisplayName
-                    }
-                </FluentButton>
-            }
+                if (_highlightedCommands.Count > 0)
+                {
+                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]</span>
 
-            @if (_resourceMenuItems.Count > 0)
-            {
-                <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-                                  Items="@_resourceMenuItems"
-                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+                    @foreach (var command in _highlightedCommands)
+                    {
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                                      Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selectedResource.Name, command.Name))"
+                                      OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                                      Class="highlighted-command">
+                            @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
+                            {
+                                <FluentIcon Value="@icon" Width="16px" />
+                            }
+                            else
+                            {
+                                @command.DisplayName
+                            }
+                        </FluentButton>
+                    }
+                }
+
+                if (_resourceMenuItems.Count > 0)
+                {
+                    <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                      Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                                      Items="@_resourceMenuItems"
+                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]" />
+                }
             }
 
             @if (ViewportInformation.IsDesktop)
@@ -82,7 +91,11 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" ShowTimestamp="@_showTimestamp" IsTimestampUtc="@_isTimestampUtc" />
+            <LogViewer
+                LogEntries="@_logEntries"
+                ShowTimestamp="@_showTimestamp"
+                IsTimestampUtc="@_isTimestampUtc"
+                ApplicationName="@PageViewModel.SelectedResource?.Name"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

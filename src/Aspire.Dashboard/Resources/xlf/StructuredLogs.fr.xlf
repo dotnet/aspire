@@ -17,6 +17,11 @@
         <target state="translated">Limite de journaux structurés dépassée</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">La capture des journaux structurés a été suspendue à {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Ajouter un filtre</target>

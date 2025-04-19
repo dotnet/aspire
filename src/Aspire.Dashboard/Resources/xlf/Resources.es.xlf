@@ -197,6 +197,11 @@
         <target state="translated">Alejar</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Ocultar tipos de recursos</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">No hay ningún filtro</target>
@@ -205,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Estado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Mostrar tipos de recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

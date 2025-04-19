@@ -29,6 +29,7 @@ public static class ExpectedValues
         secrets:
           myapp:
             param1: ""
+            param3: ""
         config:
           myapp:
             ASPNETCORE_ENVIRONMENT: "Development"
@@ -39,7 +40,7 @@ public static class ExpectedValues
             OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
             OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
             services__myapp__http__0: "http://myapp:8080"
-
+        
         """;
 
     public const string ProjectOneDeployment =
@@ -194,6 +195,7 @@ public static class ExpectedValues
             component: "myapp"
         stringData:
           param1: "{{ .Values.secrets.myapp.param1 }}"
+          param3: "{{ .Values.secrets.myapp.param3 }}"
           ConnectionStrings__cs: "Url={{ .Values.config.myapp.param0 }}, Secret={{ .Values.secrets.myapp.param1 }}"
         type: "Opaque"
 

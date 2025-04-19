@@ -212,7 +212,7 @@
     <value>Close</value>
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
-    <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
+    <value>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</value>
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
@@ -466,10 +466,25 @@
   <data name="EndpointNameColumnHeader" xml:space="preserve">
     <value>Endpoint name</value>
   </data>
-  <data name="LinkColumnHeader" xml:space="preserve">
-    <value>Link</value>
+  <data name="LinkAddressColumnHeader" xml:space="preserve">
+    <value>Address</value>
   </data>
   <data name="ResourceGraphNoEndpoints" xml:space="preserve">
     <value>No endpoints</value>
+  </data>
+  <data name="PauseButtonTitle" xml:space="preserve">
+    <value>Pause incoming data</value>
+  </data>
+  <data name="ResumeButtonTitle" xml:space="preserve">
+    <value>Resume incoming data</value>
+  </data>
+  <data name="ClearSignalsButtonTitle" xml:space="preserve">
+    <value>Remove data</value>
+  </data>
+  <data name="TotalItemsFooterCapturePaused" xml:space="preserve">
+    <value>Capture paused</value>
+  </data>
+  <data name="LinkTextColumnHeader" xml:space="preserve">
+    <value>Text</value>
   </data>
 </root>

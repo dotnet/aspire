@@ -177,6 +177,7 @@ public partial class StructuredLogsTests : DashboardTestContext
 
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        Services.AddSingleton<PauseManager>();
         Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));

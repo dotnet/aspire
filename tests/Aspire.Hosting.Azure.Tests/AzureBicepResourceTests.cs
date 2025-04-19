@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -237,6 +238,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
+    [Fact]
+    public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
+
+#pragma warning disable ASPIRECOSMOSDB001
+        builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("mykeyvault")]
@@ -264,16 +283,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
         db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
-        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kv = model.Resources.OfType<AzureKeyVaultResource>().Single();
+
+        Assert.Equal(kvName, kv.Name);
 
         var secrets = new Dictionary<string, string>
         {
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -533,9 +560,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
         };
 
-        kv.Resource.SecretResolver = (name, _) =>
+        kv.Resource.SecretResolver = (secretRef, _) =>
         {
-            if (!secrets.TryGetValue(name, out var value))
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
             {
                 return Task.FromResult<string?>(null);
             }
@@ -1246,133 +1273,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultViaRunMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var mykv = builder.AddAzureKeyVault("mykv");
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-
-            output id string = mykv.id
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultViaPublishMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var mykv = builder.AddAzureKeyVault("mykv");
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await GetManifestWithBicep(model, mykv.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-
-            output id string = mykv.id
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-
-        var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"mykv-roles"));
-        var kvRolesManifest = await GetManifestWithBicep(kvRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param mykv_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: mykv_outputs_name
-            }
-
-            resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-                principalType: principalType
-              }
-              scope: mykv
-            }
-            """;
-        output.WriteLine(kvRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, kvRolesManifest.BicepText);
     }
 
     [Fact]
@@ -2879,9 +2779,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault, bool useObsoleteApis)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -2896,9 +2798,30 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
                     account.Properties.DisableLocalAuth = false;
                 }
-            })
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
-            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+            });
+
+        if (useObsoleteApis)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            openai.AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
+                .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            openai.AddDeployment("mymodel", "gpt-35-turbo", "0613")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+            openai.AddDeployment("embedding-model", "text-embedding-ada-002", "2")
+                .WithProperties(d =>
+                {
+                    d.SkuName = "Basic";
+                    d.SkuCapacity = 4;
+                });
+        }
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -3110,6 +3033,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ToString());
         Assert.Equal(expectedBicep, bicep);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class ProjectA : IProjectMetadata
     {

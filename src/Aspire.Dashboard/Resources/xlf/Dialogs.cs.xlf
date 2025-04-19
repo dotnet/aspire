@@ -62,6 +62,26 @@
         <target state="translated">Podmínka</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Zakázat vše</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Zakázat filtr</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Povolit vše</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableFilterButtonText">
+        <source>Enable filter</source>
+        <target state="translated">Povolit filtr</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Pole</target>

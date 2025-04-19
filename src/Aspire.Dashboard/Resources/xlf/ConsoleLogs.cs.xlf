@@ -42,9 +42,19 @@
         <target state="translated">Protokoly konzoly aplikace {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Příkazy prostředku</target>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;Zachytávání protokolu bylo pozastaveno v {0}, odfiltrované protokoly: {1}&gt;</target>
+        <note>{0} is a date, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;Zachytávání protokolů bylo pozastaveno mezi {0} a {1}, odfiltrované protokoly: {2} &gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Akce prostředku</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

@@ -30,6 +30,13 @@ public partial class TraceDetailsTests : DashboardTestContext
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public TraceDetailsTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     [Fact]
     public void Render_HasTrace_SubscriptionRemovedOnDispose()
     {
@@ -85,7 +92,10 @@ public partial class TraceDetailsTests : DashboardTestContext
     public async Task Render_ChangeTrace_RowsRendered()
     {
         // Arrange
-        SetupTraceDetailsServices();
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var logger = loggerFactory.CreateLogger(nameof(Render_ChangeTrace_RowsRendered));
+
+        SetupTraceDetailsServices(loggerFactory: loggerFactory);
 
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
@@ -123,10 +133,13 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         // Assert
-        var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
-        var rows = grid.FindAll(".fluent-data-grid-row", enableAutoRefresh: true);
-
-        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => rows.Count == 3, "Expected rows to be rendered.");
+        logger.LogInformation($"Assert row count for '{traceId}'");
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
+            var rows = grid.FindAll(".fluent-data-grid-row");
+            return rows.Count == 3;
+        }, "Expected rows to be rendered.", logger);
 
         traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("2"));
         cut.SetParametersAndRender(builder =>
@@ -134,10 +147,16 @@ public partial class TraceDetailsTests : DashboardTestContext
             builder.Add(p => p.TraceId, traceId);
         });
 
-        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => rows.Count == 2, "Expected rows to be rendered.");
+        logger.LogInformation($"Assert row count for '{traceId}'");
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
+            var rows = grid.FindAll(".fluent-data-grid-row");
+            return rows.Count == 2;
+        }, "Expected rows to be rendered.", logger);
     }
 
-    private void SetupTraceDetailsServices()
+    private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -168,13 +187,16 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
+        loggerFactory ??= NullLoggerFactory.Instance;
+
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        Services.AddSingleton<PauseManager>();
         Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
-        Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
+        Services.AddSingleton<ILoggerFactory>(loggerFactory);
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();

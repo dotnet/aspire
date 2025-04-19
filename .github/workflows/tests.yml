@@ -17,6 +17,7 @@ jobs:
 
   setup_for_tests_lin:
     name: Setup for tests (Linux)
+    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -32,6 +33,7 @@ jobs:
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
+    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: windows-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -47,6 +49,7 @@ jobs:
 
   build_packages:
     name: Build packages
+    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -74,6 +77,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -86,6 +90,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
   templates_test_lin:
     name: Templates Linux
@@ -98,10 +103,9 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
-      # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
       requiresTestSdk: true
 
@@ -116,10 +120,9 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeoutMs: 1200000
+      testSessionTimeout: 20m
       testHangTimeout: 12m
-      # append '.' to the name so only the test class with exactly that name is run
-      extraTestArgs: "--filter FullyQualifiedName~Aspire.Templates.Tests.${{ matrix.shortname }}."
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       requiresNugets: true
       requiresTestSdk: true
 
@@ -135,7 +138,7 @@ jobs:
       requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
-    if: ${{ always() }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]

@@ -5,6 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.Postgres;
 using Testcontainers.PostgreSql;
 using Xunit;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Npgsql.Tests;
 
@@ -15,7 +16,7 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
     public string GetConnectionString() => Container?.GetConnectionString() ??
         throw new InvalidOperationException("The test container was not initialized.");
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -26,7 +27,7 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Container is not null)
         {

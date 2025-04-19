@@ -93,7 +93,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7920", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
         using var fakeCliProcess = RemoteExecutor.Invoke(

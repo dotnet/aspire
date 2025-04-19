@@ -163,6 +163,41 @@ public class ExpressionResolverTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
+
+    [Fact]
+    public async Task ContainerToContainerEndpointShouldResolve()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var connectionStringResource = builder.AddResource(new MyContainerResource("myContainer"))
+           .WithImage("redis")
+           .WithHttpEndpoint(targetPort: 8080)
+           .WithEndpoint("http", e =>
+           {
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, "ContainerHostName", "{{ targetPort }}");
+           });
+
+        var dep = builder.AddContainer("container", "redis")
+           .WithReference(connectionStringResource)
+           .WaitFor(connectionStringResource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+
+        Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
+    }
+}
+
+sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
+{
+    public MyContainerResource(string name) : base(name)
+    {
+        PrimaryEndpoint = new(this, "http");
+    }
+
+    public EndpointReference PrimaryEndpoint { get; }
+
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 }
 
 sealed class TestValueProviderResource(string name) : Resource(name), IValueProvider

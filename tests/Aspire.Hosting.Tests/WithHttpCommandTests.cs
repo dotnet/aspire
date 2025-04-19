@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -130,7 +131,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(404, false)]
     [InlineData(500, false)]
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8194")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
@@ -261,7 +261,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8192")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
@@ -306,7 +305,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
@@ -352,7 +350,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange

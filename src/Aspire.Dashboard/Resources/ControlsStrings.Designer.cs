@@ -250,6 +250,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove data.
+        /// </summary>
+        public static string ClearSignalsButtonTitle {
+            get {
+                return ResourceManager.GetString("ClearSignalsButtonTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string DetailsColumnHeader {
@@ -502,11 +511,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Link.
+        ///   Looks up a localized string similar to Address.
         /// </summary>
-        public static string LinkColumnHeader {
+        public static string LinkAddressColumnHeader {
             get {
-                return ResourceManager.GetString("LinkColumnHeader", resourceCulture);
+                return ResourceManager.GetString("LinkAddressColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        public static string LinkTextColumnHeader {
+            get {
+                return ResourceManager.GetString("LinkTextColumnHeader", resourceCulture);
             }
         }
         
@@ -615,6 +633,15 @@ namespace Aspire.Dashboard.Resources {
         public static string PageToolbarLandmark {
             get {
                 return ResourceManager.GetString("PageToolbarLandmark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pause incoming data.
+        /// </summary>
+        public static string PauseButtonTitle {
+            get {
+                return ResourceManager.GetString("PauseButtonTitle", resourceCulture);
             }
         }
         
@@ -777,6 +804,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceLabel {
             get {
                 return ResourceManager.GetString("ResourceLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resume incoming data.
+        /// </summary>
+        public static string ResumeButtonTitle {
+            get {
+                return ResourceManager.GetString("ResumeButtonTitle", resourceCulture);
             }
         }
         
@@ -1033,7 +1069,16 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Total: &lt;strong&gt;{0} results found&lt;/strong&gt;.
+        ///   Looks up a localized string similar to Capture paused.
+        /// </summary>
+        public static string TotalItemsFooterCapturePaused {
+            get {
+                return ResourceManager.GetString("TotalItemsFooterCapturePaused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;.
         /// </summary>
         public static string TotalItemsFooterText {
             get {

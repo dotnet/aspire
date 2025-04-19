@@ -2,7 +2,25 @@
 @namespace Aspire.Dashboard.Components
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="total-items-footer">@((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))</div>
+<div class="items-footer">
+    <span class="result-count">
+        @((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))
+    </span>
+
+    @if (PauseText is not null)
+    {
+        <div class="block-warning">
+            <div class="block-warning-icon">
+                <FluentIcon Value="new Icons.Filled.Size16.Warning()" Color="Color.Warning" />
+            </div>
+
+            <div class="block-warning-message">
+                <span class="title">@Loc[nameof(ControlsStrings.TotalItemsFooterCapturePaused)]</span>
+                @PauseText
+            </div>
+        </div>
+    }
+</div>
 
 @code {
     // Total item count can be set via the parameter or via method.
@@ -14,6 +32,9 @@
     /// </summary>
     [Parameter]
     public int TotalItemCount { get; set; }
+
+    [Parameter]
+    public string? PauseText { get; set; }
 
     /// <summary>
     /// Called when data grid data is refreshed. This sets the count explicitly and forces the control to re-render.

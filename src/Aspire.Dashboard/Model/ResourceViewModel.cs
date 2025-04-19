@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -119,6 +118,23 @@ public sealed class ResourceViewModel
 
         return resource.DisplayName;
     }
+
+    public static bool TryGetResourceByName(string resourceName, IDictionary<string, ResourceViewModel> resourceByName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (resourceByName.TryGetValue(resourceName, out resource))
+        {
+            return true;
+        }
+
+        var resourcesWithDisplayName = resourceByName.Values.Where(r => string.Equals(resourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
+        if (resourcesWithDisplayName.Count == 1)
+        {
+            resource = resourcesWithDisplayName.Single();
+            return true;
+        }
+
+        return false;
+    }
 }
 
 public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
@@ -147,9 +163,6 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
-    private sealed record IconKey(string IconName, IconVariant IconVariant);
-    private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
-
     public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
@@ -174,46 +187,6 @@ public sealed class CommandViewModel
         IsHighlighted = isHighlighted;
         IconName = iconName;
         IconVariant = iconVariant;
-    }
-
-    public static CustomIcon? ResolveIconName(string iconName, IconVariant? iconVariant)
-    {
-        // Icons.GetInstance isn't efficient. Cache icon lookup.
-        return s_iconCache.GetOrAdd(new IconKey(iconName, iconVariant ?? IconVariant.Regular), static key =>
-        {
-            // We display 16px icons in the UI. Some icons aren't available in 16px size so fall back to 20px.
-            CustomIcon? icon;
-            if (TryGetIcon(key, IconSize.Size16, out icon))
-            {
-                return icon;
-            }
-            if (TryGetIcon(key, IconSize.Size20, out icon))
-            {
-                return icon;
-            }
-
-            return null;
-        });
-    }
-
-    private static bool TryGetIcon(IconKey key, IconSize size, [NotNullWhen(true)] out CustomIcon? icon)
-    {
-        try
-        {
-            icon = (new IconInfo
-            {
-                Name = key.IconName,
-                Variant = key.IconVariant,
-                Size = size
-            }).GetInstance();
-            return true;
-        }
-        catch
-        {
-            // Icon name or size couldn't be found.
-            icon = null;
-            return false;
-        }
     }
 }
 

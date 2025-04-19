@@ -13,14 +13,19 @@ namespace Aspire.Hosting.Cli;
 
 internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
 {
-    private const string UnixSocketPathEnvironmentVariable = "ASPIRE_BACKCHANNEL_PATH";
-    private readonly List<JsonRpc> _rpcs = new();
+    private JsonRpc? _rpc;
+    
+    public bool IsBackchannelExpected => configuration.GetValue<string>(KnownConfigNames.UnixSocketPath) is {};
+
+    private readonly TaskCompletionSource _backchannelConnectedTcs = new();
+
+    public Task BackchannelConnected => _backchannelConnectedTcs.Task;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            var unixSocketPath = configuration.GetValue<string>(UnixSocketPathEnvironmentVariable);
+            var unixSocketPath = configuration.GetValue<string>(KnownConfigNames.UnixSocketPath);
 
             if (string.IsNullOrEmpty(unixSocketPath))
             {
@@ -40,21 +45,24 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
 
-            do
-            {
-                var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
-                var stream = new NetworkStream(clientSocket, true);
-                var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
-                _rpcs.Add(rpc);
+            var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
+            var stream = new NetworkStream(clientSocket, true);
+            var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
+            _rpc = rpc;
 
-                var backchannelConnectedEvent = new BackchannelConnectedEvent(serviceProvider, unixSocketPath);
-                await eventing.PublishAsync(
-                    backchannelConnectedEvent,
-                    EventDispatchBehavior.NonBlockingConcurrent,
-                    stoppingToken).ConfigureAwait(false);
+            // NOTE: The DistributedApplicationRunner will await this TCS
+            //       when a backchannel is expected, and will not stop
+            //       the application itself - it will instead wait for
+            //       the CLI to stop the application explicitly.
+            _backchannelConnectedTcs.SetResult();
 
-                logger.LogDebug("Accepted backchannel connection from {RemoteEndPoint}", clientSocket.RemoteEndPoint);
-            } while (!stoppingToken.IsCancellationRequested);
+            var backchannelConnectedEvent = new BackchannelConnectedEvent(serviceProvider, unixSocketPath);
+            await eventing.PublishAsync(
+                backchannelConnectedEvent,
+                EventDispatchBehavior.NonBlockingConcurrent,
+                stoppingToken).ConfigureAwait(false);
+
+            logger.LogDebug("Accepted backchannel connection from {RemoteEndPoint}", clientSocket.RemoteEndPoint);
         }
         catch (TaskCanceledException ex)
         {

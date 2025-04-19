@@ -25,7 +25,7 @@
                        HighlightText="@HighlightText" />
         </AspireTemplateColumn>
         <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
-            <GridValue ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
+            <GridValue ValueDescription="@(context.Name ?? ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
                        Value="@context.Value"
                        ContentAfterValue="@GetContentAfterValue(context)"
                        EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"

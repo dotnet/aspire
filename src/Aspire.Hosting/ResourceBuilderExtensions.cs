@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -52,6 +53,8 @@ public static class ResourceBuilderExtensions
 
         var expression = value.GetExpression();
 
+        builder.WithReferenceRelationship(expression);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = expression;
@@ -72,6 +75,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
+
+        builder.WithReferenceRelationship(value);
 
         return builder.WithEnvironment(context =>
         {
@@ -140,6 +145,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(endpointReference);
 
+        builder.WithReferenceRelationship(endpointReference.Resource);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = endpointReference;
@@ -159,6 +166,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(parameter);
+
+        builder.WithReferenceRelationship(parameter.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -183,6 +192,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(envVarName);
         ArgumentNullException.ThrowIfNull(resource);
+
+        builder.WithReferenceRelationship(resource.Resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -216,6 +227,8 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(args);
+
+        WalkAndLinkResourceReferences(builder, args);
 
         return builder.WithArgs(context => context.Args.AddRange(args));
     }
@@ -325,7 +338,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects a connection string as an environment variable from the source resource into the destination resource, using the source resource's name as the connection string name (if not overridden).
-    /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}."
+    /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
     /// <para>
     /// Each resource defines the format of the connection string value. The
     /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionStringAsync(CancellationToken)"/>.
@@ -351,7 +364,7 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        builder.WithRelationship(resource, KnownRelationshipTypes.Reference);
+        builder.WithReferenceRelationship(resource);
 
         return builder.WithEnvironment(context =>
         {
@@ -363,7 +376,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -410,7 +423,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -457,7 +470,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
 
-        builder.WithRelationship(resourceWithEndpoints, KnownRelationshipTypes.Reference);
+        builder.WithReferenceRelationship(resourceWithEndpoints);
     }
 
     /// <summary>
@@ -472,7 +485,7 @@ public static class ResourceBuilderExtensions
     /// <para>
     /// The <see cref="WithEndpoint{T}(IResourceBuilder{T}, string, Action{EndpointAnnotation}, bool)"/> method allows
     /// developers to mutate any aspect of an endpoint annotation. Note that changing one value does not automatically change
-    /// other values to compatable/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
+    /// other values to compatible/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
     /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
     /// All values should be set in the callback if the defaults are not acceptable.
     /// </para>
@@ -787,7 +800,58 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Registers a callback to customize the URL displayed for the endpoint with the specified name.
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">The interpolated string that produces the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, in ReferenceExpression.ExpressionInterpolatedStringHandler url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var expression = url.GetExpression();
+
+        return builder.WithUrl(expression, displayText);
+    }
+
+    /// <summary>
+    /// Adds a URL to be displayed for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="url">A <see cref="ReferenceExpression"/> that will produce the URL.</param>
+    /// <param name="displayText">The display text to show when the link is displayed.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Use this method to add a URL to be displayed for the resource.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// </remarks>
+    public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+
+        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(async c =>
+        {
+            var endpoint = url.ValueProviders.OfType<EndpointReference>().FirstOrDefault();
+            var urlValue = await url.GetValueAsync(c.CancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(urlValue))
+            {
+                c.Urls.Add(new() { Endpoint = endpoint, Url = urlValue, DisplayText = displayText });
+            }
+        }));
+    }
+
+    /// <summary>
+    /// Registers a callback to update the URL displayed for the endpoint with the specified name.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
@@ -796,11 +860,15 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.
+    /// Use this method to customize the URL that is automatically added for an endpoint on the resource.<br/>
+    /// To add another URL for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Func{EndpointReference, ResourceUrlAnnotation})"/>.
     /// </para>
     /// <para>
     /// The callback will be executed after endpoints have been allocated and the URL has been generated.<br/>
     /// This allows you to modify the URL or its display text.
+    /// </para>
+    /// <para>
+    /// If the URL returned by <paramref name="callback"/> is relative, it will be combined with the endpoint URL to create an absolute URL.
     /// </para>
     /// <para>
     /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
@@ -811,6 +879,13 @@ public static class ResourceBuilderExtensions
     /// <code lang="C#">
     /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
     ///                       .WithUrlForEndpoint("https", url => url.DisplayText = "Home");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Customize the URL for the "https" endpoint to deep to the "/home" path:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", url => url.Url = "/home");
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
@@ -826,6 +901,53 @@ public static class ResourceBuilderExtensions
             else
             {
                 context.Logger.LogWarning("Could not execute callback to customize endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a callback to add a URL for the endpoint with the specified name.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="endpointName">The name of the endpoint to add the URL for.</param>
+    /// <param name="callback">The callback that will create the URL.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method to add another URL for an endpoint on the resource.<br/>
+    /// To customize the URL that is automatically added for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
+    /// </para>
+    /// <para>
+    /// The callback will be executed after endpoints have been allocated and the resource is about to start.
+    /// </para>
+    /// <para>
+    /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a URL for the "https" endpoint that deep-links to an admin page with the text "Admin":
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrlForEndpoint("https", ep => new() { Url = "/admin", DisplayText = "Admin" });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
+        where T : IResourceWithEndpoints
+    {
+        builder.WithUrls(context =>
+        {
+            var endpoint = builder.GetEndpoint(endpointName);
+            if (endpoint.Exists)
+            {
+                var url = callback(endpoint).WithEndpoint(endpoint);
+                context.Urls.Add(url);
+            }
+            else
+            {
+                context.Logger.LogWarning("Could not execute callback to add an endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
             }
         });
 
@@ -1661,6 +1783,99 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a reference to another resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resource">The resource that the relationship is to.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource resource) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, KnownRelationshipTypes.Reference));
+    }
+
+    /// <summary>
+    /// Walks the reference expression and adds <see cref="ResourceRelationshipAnnotation"/>s for all resources found in the expression.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="expression">The reference expression.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        ReferenceExpression expression) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(expression);
+
+        WalkAndLinkResourceReferences(builder, expression.ValueProviders);
+
+        return builder;
+    }
+
+    private static void WalkAndLinkResourceReferences<T>(IResourceBuilder<T> builder, IEnumerable<object> values)
+        where T : IResource
+    {
+        var processed = new HashSet<object>();
+
+        void AddReference(IResource resource)
+        {
+            builder.WithReferenceRelationship(resource);
+        }
+
+        void Walk(object value)
+        {
+            if (!processed.Add(value))
+            {
+                return;
+            }
+
+            if (value is IResource resource)
+            {
+                AddReference(resource);
+            }
+            else if (value is IResourceBuilder<IResource> resourceBuilder)
+            {
+                AddReference(resourceBuilder.Resource);
+            }
+            else if (value is IValueWithReferences valueWithReferences)
+            {
+                foreach (var reference in valueWithReferences.References)
+                {
+                    Walk(reference);
+                }
+            }
+        }
+
+        foreach (var value in values)
+        {
+            Walk(value);
+        }
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a reference to another resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resourceBuilder">The resource builder that the relationship is to.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithReferenceRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResource> resourceBuilder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resourceBuilder.Resource, KnownRelationshipTypes.Reference));
+    }
+
+    /// <summary>
     /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
@@ -1718,5 +1933,25 @@ public static class ResourceBuilderExtensions
         IResource parent) where T : IResource
     {
         return builder.WithRelationship(parent, KnownRelationshipTypes.Parent);
+    }
+
+    /// <summary>
+    /// Configures the compute environment for the compute resource.
+    /// </summary>
+    /// <param name="builder">The compute resource builder.</param>
+    /// <param name="computeEnvironmentResource">The compute environment resource to associate with the compute resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method allows associating a specific compute environment with the compute resource.
+    /// </remarks>
+    [Experimental("ASPIRECOMPUTE001")]
+    public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(computeEnvironmentResource);
+
+        builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
+        return builder;
     }
 }

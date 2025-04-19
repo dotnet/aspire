@@ -107,6 +107,11 @@
         <target state="translated">Bu işlem için {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">Verileri kaldır</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Ayrıntılar</target>
@@ -247,9 +252,14 @@
         <target state="translated">(Ayarı Kaldır)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Bağlantı</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Adres</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Metin</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +320,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Sayfa araç çubuğu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">Gelen verileri duraklat</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -400,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Kaynak</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">Gelen verileri sürdür</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +547,11 @@
         <target state="translated">Zaman damgası</target>
         <note />
       </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">Yakalama duraklatıldı</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Öznitelikler</target>
@@ -558,7 +583,7 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
         <target state="translated">Toplam: &lt;strong&gt;{0} sonuç bulundu&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>

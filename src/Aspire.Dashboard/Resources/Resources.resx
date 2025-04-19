@@ -287,4 +287,10 @@
   <data name="ResourcesGraphResetButton" xml:space="preserve">
     <value>Reset</value>
   </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
+  </data>
 </root>

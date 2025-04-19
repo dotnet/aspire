@@ -120,6 +120,10 @@ public class ContainerResourceTests
             arg => Assert.Equal("http://c1:1234", arg), // this is the container hostname
             arg => Assert.Equal("connectionString", arg));
 
+        // We don't yet process relationships set via the callbacks
+        // so we don't see the testResource2 nor exe1
+        Assert.False(c2.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+
         var manifest = await ManifestUtils.GetManifest(c2.Resource);
 
         var expectedManifest =

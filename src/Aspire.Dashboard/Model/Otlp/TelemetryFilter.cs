@@ -15,6 +15,7 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
+    public bool Enabled { get; set; } = true;
 
     private string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 

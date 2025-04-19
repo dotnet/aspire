@@ -8,7 +8,7 @@ See [machine-requirements.md](machine-requirements.md).
 
 ## (Optional) Create a local nuget.config file
 
-Since dogfooding will require using nightly build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
+Since dogfooding will require using daily build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
 
 ```bash
 dotnet new nugetconfig
@@ -33,7 +33,7 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 </packageSourceMapping>
 ```
 
-## Install the nightly .NET Aspire templates
+## Install the daily .NET Aspire templates
 
 To be able to create aspire projects, you will need to install the latest Aspire templates. You can do this by running the following command:
 

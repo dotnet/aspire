@@ -81,6 +81,15 @@ namespace Aspire.Hosting
             where T : Azure.AzureProvisioningResource { throw null; }
     }
 
+    public static partial class AzurePublisherExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+        public static IDistributedApplicationBuilder AddAzurePublisher(this IDistributedApplicationBuilder builder, System.Action<Azure.AzurePublisherOptions>? configureOptions = null) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+        public static IDistributedApplicationBuilder AddAzurePublisher(this IDistributedApplicationBuilder builder, string name, System.Action<Azure.AzurePublisherOptions>? configureOptions = null) { throw null; }
+    }
+
     public static partial class AzureResourceExtensions
     {
         public static string GetBicepIdentifier(this ApplicationModel.IAzureResource resource) { throw null; }
@@ -120,6 +129,13 @@ namespace Aspire.Hosting.ApplicationModel
 
 namespace Aspire.Hosting.Azure
 {
+    public partial class AppIdentityAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AppIdentityAnnotation(IAppIdentityResource identityResource) { }
+
+        public IAppIdentityResource IdentityResource { get { throw null; } }
+    }
+
     public sealed partial class AspireV8ResourceNamePropertyResolver : global::Azure.Provisioning.Primitives.DynamicResourceNamePropertyResolver
     {
         public override global::Azure.Provisioning.BicepValue<string>? ResolveName(global::Azure.Provisioning.ProvisioningBuildOptions options, global::Azure.Provisioning.Primitives.ProvisionableResource resource, global::Azure.Provisioning.Primitives.ResourceNameRequirements requirements) { throw null; }
@@ -153,6 +169,7 @@ namespace Aspire.Hosting.Azure
             public static readonly string PrincipalId;
             public static readonly string PrincipalName;
             public static readonly string PrincipalType;
+            public static readonly string UserPrincipalId;
         }
     }
 
@@ -173,6 +190,8 @@ namespace Aspire.Hosting.Azure
     public sealed partial class AzureProvisioningOptions
     {
         public global::Azure.Provisioning.ProvisioningBuildOptions ProvisioningBuildOptions { get { throw null; } }
+
+        public bool SupportsTargetedRoleAssignments { get { throw null; } set { } }
     }
 
     public partial class AzureProvisioningResource : AzureBicepResource
@@ -183,12 +202,21 @@ namespace Aspire.Hosting.Azure
 
         public global::Azure.Provisioning.ProvisioningBuildOptions? ProvisioningBuildOptions { get { throw null; } set { } }
 
+        public virtual global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public virtual void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
+
         public static T CreateExistingOrNewProvisionableResource<T>(AzureResourceInfrastructure infrastructure, System.Func<string, global::Azure.Provisioning.BicepValue<string>, T> createExisting, System.Func<AzureResourceInfrastructure, T> createNew)
             where T : global::Azure.Provisioning.Primitives.ProvisionableResource { throw null; }
 
         public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) { throw null; }
 
         public override string GetBicepTemplateString() { throw null; }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public sealed partial class AzurePublisherOptions : Publishing.PublishingOptions
+    {
     }
 
     public sealed partial class AzureResourceInfrastructure : global::Azure.Provisioning.Infrastructure
@@ -243,6 +271,13 @@ namespace Aspire.Hosting.Azure
         public readonly void Dispose() { }
     }
 
+    public partial class DefaultRoleAssignmentsAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public DefaultRoleAssignmentsAnnotation(System.Collections.Generic.IReadOnlySet<RoleDefinition> roles) { }
+
+        public System.Collections.Generic.IReadOnlySet<RoleDefinition> Roles { get { throw null; } }
+    }
+
     public sealed partial class ExistingAzureResourceAnnotation : ApplicationModel.IResourceAnnotation
     {
         public ExistingAzureResourceAnnotation(object name, object? resourceGroup = null) { }
@@ -252,8 +287,91 @@ namespace Aspire.Hosting.Azure
         public object? ResourceGroup { get { throw null; } }
     }
 
+    public partial interface IAddRoleAssignmentsContext
+    {
+        AzureResourceInfrastructure Infrastructure { get; }
+
+        global::Azure.Provisioning.BicepValue<System.Guid> PrincipalId { get; }
+
+        global::Azure.Provisioning.BicepValue<string> PrincipalName { get; }
+
+        global::Azure.Provisioning.BicepValue<global::Azure.Provisioning.Authorization.RoleManagementPrincipalType> PrincipalType { get; }
+
+        System.Collections.Generic.IEnumerable<RoleDefinition> Roles { get; }
+    }
+
+    public partial interface IAppIdentityResource
+    {
+        BicepOutputReference ClientId { get; }
+
+        BicepOutputReference Id { get; }
+
+        BicepOutputReference PrincipalId { get; }
+
+        BicepOutputReference PrincipalName { get; }
+    }
+
+    public partial interface IAzureKeyVaultResource : ApplicationModel.IResource, ApplicationModel.IAzureResource
+    {
+        BicepOutputReference NameOutputReference { get; }
+
+        System.Func<IAzureKeyVaultSecretReference, System.Threading.CancellationToken, System.Threading.Tasks.Task<string?>>? SecretResolver { get; set; }
+
+        BicepOutputReference VaultUriOutputReference { get; }
+
+        IAzureKeyVaultSecretReference GetSecret(string secretName);
+    }
+
+    public partial interface IAzureKeyVaultSecretReference : ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider
+    {
+        IAzureKeyVaultResource Resource { get; }
+
+        string SecretName { get; }
+    }
+
     public partial interface IResourceWithAzureFunctionsConfig : ApplicationModel.IResource
     {
         void ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName);
+    }
+
+    public partial class RoleAssignmentAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public RoleAssignmentAnnotation(AzureProvisioningResource target, System.Collections.Generic.IReadOnlySet<RoleDefinition> roles) { }
+
+        public System.Collections.Generic.IReadOnlySet<RoleDefinition> Roles { get { throw null; } }
+
+        public AzureProvisioningResource Target { get { throw null; } }
+    }
+
+    public partial struct RoleDefinition : System.IEquatable<RoleDefinition>
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        public RoleDefinition(string Id, string Name) { }
+
+        public string Id { get { throw null; } set { } }
+
+        public string Name { get { throw null; } set { } }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public readonly void Deconstruct(out string Id, out string Name) { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public readonly bool Equals(RoleDefinition other) { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public override readonly bool Equals(object obj) { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public override readonly int GetHashCode() { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public static bool operator ==(RoleDefinition left, RoleDefinition right) { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public static bool operator !=(RoleDefinition left, RoleDefinition right) { throw null; }
+
+        [System.Runtime.CompilerServices.CompilerGenerated]
+        public override readonly string ToString() { throw null; }
     }
 }

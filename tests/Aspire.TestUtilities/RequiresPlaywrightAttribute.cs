@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Xunit.Sdk;
+using Microsoft.DotNet.XUnitExtensions;
 
 namespace Aspire.TestUtilities;
 
-[TraitDiscoverer("Aspire.TestUtilities.RequiresPlaywrightDiscoverer", "Aspire.TestUtilities")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITraitAttribute
 {
@@ -22,4 +21,14 @@ public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITr
         || PlatformDetection.IsRunningOnGithubActions; // Else supported on linux/GHA only
 
     public string? Reason { get; init; } = reason;
+
+    public IReadOnlyCollection<KeyValuePair<string, string>> GetTraits()
+    {
+        if (!IsSupported)
+        {
+            return [new KeyValuePair<string, string>(XunitConstants.Category, "failing")];
+        }
+
+        return [];
+    }
 }

@@ -46,6 +46,7 @@
         "params": {
           "infra_outputs_volumes_cache_0": "{infra.outputs.volumes_cache_0}",
           "cache_password_value": "{cache-password.value}",
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
@@ -108,6 +109,7 @@
         "type": "azure.bicep.v0",
         "path": "pythonapp.module.bicep",
         "params": {
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
@@ -130,6 +132,7 @@
           "account_kv_outputs_name": "{account-kv.outputs.name}",
           "secretparam_value": "{secretparam.value}",
           "api_identity_outputs_principalname": "{api-identity.outputs.principalName}",
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",

@@ -21,7 +21,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
 
     internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
     internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
-    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Storage__Tables";
+    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Data__Tables";
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.

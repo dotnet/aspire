@@ -22,6 +22,4 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
-  <Import Project="MEAIPackageOverrides.targets" />
-
 </Project>

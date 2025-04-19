@@ -13,7 +13,7 @@ internal sealed class PublisherAdvertisementEvent : IDistributedApplicationEvent
         _advertisements.Add(advertisement);
     }
 
-    private readonly List<PublisherAdvertisement> _advertisements = [];
+    private readonly HashSet<PublisherAdvertisement> _advertisements = [];
 
     public IEnumerable<PublisherAdvertisement> Advertisements => _advertisements;
 }
@@ -21,4 +21,14 @@ internal sealed class PublisherAdvertisementEvent : IDistributedApplicationEvent
 internal sealed class PublisherAdvertisement(string name)
 {
     public string Name { get; } = name;
+
+    public override bool Equals(object? obj)
+    {
+        return obj is PublisherAdvertisement other && Name == other.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        return Name.GetHashCode();
+    }
 }

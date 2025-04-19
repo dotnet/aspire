@@ -30,7 +30,7 @@ internal sealed class AzureResourcePreparer(
         }
 
         var options = provisioningOptions.Value;
-        if (!options.SupportsTargetedRoleAssignments)
+        if (!EnvironmentSupportsTargetedRoleAssignments(options))
         {
             // If the app infrastructure does not support targeted role assignments, then we need to ensure that
             // there are no role assignment annotations in the app model because they won't be honored otherwise.
@@ -79,13 +79,20 @@ internal sealed class AzureResourcePreparer(
         return azureResources;
     }
 
+    private bool EnvironmentSupportsTargetedRoleAssignments(AzureProvisioningOptions options)
+    {
+        // run mode always supports targeted role assignments
+        // publish mode only supports targeted role assignments if the environment supports it
+        return executionContext.IsRunMode || options.SupportsTargetedRoleAssignments;
+    }
+
     private static void EnsureNoRoleAssignmentAnnotations(DistributedApplicationModel appModel)
     {
         foreach (var resource in appModel.Resources)
         {
             if (resource.HasAnnotationOfType<RoleAssignmentAnnotation>())
             {
-                throw new InvalidOperationException("The application model does not support role assignments. Ensure you are using a publisher that supports role assignments, for example AddAzureContainerAppsInfrastructure.");
+                throw new InvalidOperationException("The application model does not support role assignments. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
             }
         }
     }
@@ -94,7 +101,7 @@ internal sealed class AzureResourcePreparer(
     {
         var globalRoleAssignments = new Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>>();
 
-        if (!options.SupportsTargetedRoleAssignments)
+        if (!EnvironmentSupportsTargetedRoleAssignments(options))
         {
             // when the app infrastructure doesn't support targeted role assignments, just copy all the default role assignments to applied role assignments
             foreach (var resource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
@@ -180,6 +187,19 @@ internal sealed class AzureResourcePreparer(
                         {
                             appModel.Resources.Add(roleAssignmentResource);
                         }
+                    }
+                }
+            }
+
+            if (executionContext.IsRunMode)
+            {
+                // in RunMode, any Azure resources that are not referenced by a compute resource should have their default role assignments applied
+                foreach (var azureResource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
+                {
+                    if (!globalRoleAssignments.TryGetValue(azureResource, out _) &&
+                        azureResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments))
+                    {
+                        AppendGlobalRoleAssignments(globalRoleAssignments, azureResource, defaultRoleAssignments.Roles);
                     }
                 }
             }
@@ -362,7 +382,7 @@ internal sealed class AzureResourcePreparer(
             return;
         }
 
-        if (value is IKeyVaultSecretReference keyVaultSecretReference)
+        if (value is IAzureKeyVaultSecretReference keyVaultSecretReference)
         {
             azureReferences.Add(keyVaultSecretReference.Resource);
             return;

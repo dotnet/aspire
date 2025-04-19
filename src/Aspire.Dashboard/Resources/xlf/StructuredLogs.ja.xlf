@@ -17,6 +17,11 @@
         <target state="translated">構造化ログの制限を超えました</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">構造化ログ キャプチャが {0} で一時停止されました</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">フィルターの追加</target>

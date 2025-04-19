@@ -69,6 +69,18 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
+        public static string FilterDialogEnableFilterButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogEnableFilterButtonText", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogDisableFilterButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogDisableFilterButtonText", resourceCulture);
+            }
+        }
+        
         public static string FilterDialogRemoveFilterButtonText {
             get {
                 return ResourceManager.GetString("FilterDialogRemoveFilterButtonText", resourceCulture);
@@ -354,6 +366,18 @@ namespace Aspire.Dashboard.Resources {
         public static string TextVisualizerSecretWarningAcknowledge {
             get {
                 return ResourceManager.GetString("TextVisualizerSecretWarningAcknowledge", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogDisableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogDisableAll", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogEnableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
             }
         }
     }

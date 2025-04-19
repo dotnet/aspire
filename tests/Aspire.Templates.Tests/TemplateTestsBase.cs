@@ -50,35 +50,44 @@ public partial class TemplateTestsBase
         AspireProject project,
         TestTargetFramework? tfm = null,
         BuildEnvironment? buildEnvironment = null,
-        TemplatesCustomHive? templateHive = null,
-        Func<AspireProject, Task>? onBuildAspireProject = null)
+        string? extraArgs = null,
+        Func<AspireProject, Task>? onBuildAspireProject = null,
+        string? overrideRootDir = null)
     {
         buildEnvironment ??= BuildEnvironment.ForDefaultFramework;
         var tmfArg = tfm is not null ? $"-f {tfm.Value.ToTFMString()}" : "";
 
+        string rootDirToUse = overrideRootDir ?? project.RootDir;
         // Add test project
-        var testProjectName = $"{id}.{testTemplateName}Tests";
+        var testProjectName = $"{id}.{FixupSymbolName(testTemplateName)}Tests";
         using var newTestCmd = new DotNetNewCommand(
                                     _testOutput,
                                     label: $"new-test-{testTemplateName}",
-                                    buildEnv: buildEnvironment,
-                                    hiveDirectory: templateHive?.CustomHiveDirectory)
-                                .WithWorkingDirectory(project.RootDir);
-        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\"");
+                                    buildEnv: buildEnvironment)
+                                .WithWorkingDirectory(rootDirToUse);
+        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\" {extraArgs}");
         res.EnsureSuccessful();
 
-        var testProjectDir = Path.Combine(project.RootDir, testProjectName);
+        var testProjectDir = Path.Combine(rootDirToUse, testProjectName);
         Assert.True(Directory.Exists(testProjectDir), $"Expected tests project at {testProjectDir}");
 
         var testProjectPath = Path.Combine(testProjectDir, testProjectName + ".csproj");
         Assert.True(File.Exists(testProjectPath), $"Expected tests project file at {testProjectPath}");
 
-        PrepareTestCsFile(project.Id, testProjectDir, testTemplateName);
-        PrepareTestProject(project, testProjectPath);
+        var appHostProjectName = Path.GetFileName(project.AppHostProjectDirectory)!;
+        PrepareTestCsFile(
+            id: project.Id,
+            projectDir: testProjectDir,
+            appHostProjectName: appHostProjectName,
+            testTemplateName: testTemplateName);
+        PrepareTestProject(
+            project: project,
+            projectPath: testProjectPath,
+            appHostProjectName: appHostProjectName);
 
         return testProjectDir;
 
-        static void PrepareTestProject(AspireProject project, string projectPath)
+        static void PrepareTestProject(AspireProject project, string projectPath, string appHostProjectName)
         {
             // Insert <ProjectReference Include="$(MSBuildThisFileDirectory)..\aspire-starter0.AppHost\aspire-starter0.AppHost.csproj" /> in the project file
 
@@ -86,18 +95,18 @@ public partial class TemplateTestsBase
             StringBuilder output = new();
             using (var w = XmlWriter.Create(output, s_xmlWriterSettings))
             {
-                w.WriteString(project.Id);
+                w.WriteString(appHostProjectName);
             }
             var xmlEncodedId = output.ToString();
 
-            var projectReference = $@"<ProjectReference Include=""$(MSBuildThisFileDirectory)..\{xmlEncodedId}.AppHost\{xmlEncodedId}.AppHost.csproj"" />";
+            var projectReference = $@"<ProjectReference Include=""$(MSBuildThisFileDirectory)..\{xmlEncodedId}\{xmlEncodedId}.csproj"" />";
 
             var newContents = File.ReadAllText(projectPath)
                                     .Replace("</Project>", $"<ItemGroup>{projectReference}</ItemGroup>\n</Project>");
             File.WriteAllText(projectPath, newContents);
         }
 
-        static void PrepareTestCsFile(string id, string projectDir, string testTemplateName)
+        static void PrepareTestCsFile(string id, string projectDir, string appHostProjectName, string testTemplateName)
         {
             var testCsPath = Path.Combine(projectDir, "IntegrationTest1.cs");
             var sb = new StringBuilder();
@@ -128,8 +137,8 @@ public partial class TemplateTestsBase
                 sb.AppendLine(line);
             }
 
-            var classNameFromId = GeneratedClassNameFixupRegex().Replace(id, "_");
-            sb.Replace("Projects.MyAspireApp_AppHost", $"Projects.{classNameFromId}_AppHost");
+            var classNameFromId = GeneratedClassNameFixupRegex().Replace(appHostProjectName, "_");
+            sb.Replace("Projects.MyAspireApp_AppHost", $"Projects.{classNameFromId}");
             File.WriteAllText(testCsPath, sb.ToString());
         }
     }
@@ -139,10 +148,10 @@ public partial class TemplateTestsBase
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 
-    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
-        => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, logPath, timeoutSecs);
+    protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(WrapperForIPage dashboardPageWrapper, IEnumerable<ResourceRow> expectedResources, string logPath, int timeoutSecs = 120)
+        => CheckDashboardHasResourcesAsync(dashboardPageWrapper, expectedResources, _testOutput, logPath, timeoutSecs);
 
-    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage,
+    protected static async Task<ResourceRow[]> CheckDashboardHasResourcesAsync(WrapperForIPage dashboardPageWrapper,
                                                                                IEnumerable<ResourceRow> expectedResources,
                                                                                ITestOutputHelper testOutput,
                                                                                string logPath,
@@ -150,22 +159,23 @@ public partial class TemplateTestsBase
     {
         try
         {
-            return await CheckDashboardHasResourcesActualAsync(dashboardPage, expectedResources, testOutput, timeoutSecs);
+            return await CheckDashboardHasResourcesActualAsync(dashboardPageWrapper, expectedResources, testOutput, timeoutSecs);
         }
         catch
         {
             string screenshotPath = Path.Combine(logPath, "dashboard-fail.png");
-            await dashboardPage.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            await dashboardPageWrapper.Page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
             testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
             throw;
         }
     }
 
-    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
+    private static async Task<ResourceRow[]> CheckDashboardHasResourcesActualAsync(WrapperForIPage dashboardPageWrapper, IEnumerable<ResourceRow> expectedResources, ITestOutputHelper testOutput, int timeoutSecs = 120)
     {
         // FIXME: check the page has 'Resources' label
         // fluent-toolbar/h1 resources
 
+        var numAttempts = 0;
         testOutput.WriteLine($"Waiting for resources to appear on the dashboard");
         await Task.Delay(500);
 
@@ -178,10 +188,22 @@ public partial class TemplateTestsBase
 
         while (foundNames.Count < expectedRowsTable.Count && !cts.IsCancellationRequested)
         {
+            if (dashboardPageWrapper.HasErrors)
+            {
+                if (numAttempts >= 3)
+                {
+                    throw new InvalidOperationException($"Failed to load dashboard page after {numAttempts} attempts");
+                }
+
+                testOutput.WriteLine($"----- Reloading dashboard page");
+                await dashboardPageWrapper.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load });
+                numAttempts++;
+            }
+
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            var rowsLocator = dashboardPage.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
+            var rowsLocator = dashboardPageWrapper.Page.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
@@ -215,62 +237,17 @@ public partial class TemplateTestsBase
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    // testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
-                AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
-
-                // Match endpoints
-
-                var matchingEndpoints = 0;
-                var expectedEndpoints = expectedRow.Endpoints;
-
-                var overflowItems = await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync();
-                IEnumerable<ILocator> endpointsTextLocs;
-                if (overflowItems.Count == 0)
-                {
-                    var tdItems = (await rowLoc.Locator("td").AllAsync()).ToArray();
-                    endpointsTextLocs = [tdItems[5]];
-                }
-                else
-                {
-                    endpointsTextLocs = overflowItems;
-                }
-                var endpointsFound = endpointsTextLocs
-                        .Select(async e => await e.InnerTextAsync())
-                        .Select(t => t.Result.Trim(','))
-                        .ToArray();
-
-                if (expectedEndpoints.Length != endpointsFound.Length)
-                {
-                    // _testOutput.WriteLine($"For resource '{resourceName}, found ")
-                    // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
-                    continue;
-                }
-
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
-
-                // endpointsFound: ["foo", "https://localhost:7589/"]
-                foreach (var endpointFound in endpointsFound)
-                {
-                    // matchedEndpoints: ["https://localhost:7589/"]
-                    string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
-                    if (matchedEndpoints.Length == 0)
-                    {
-                        Assert.Fail($"Unexpected endpoint found: {endpointFound} for resource named {resourceName}. Expected endpoints: {string.Join(',', expectedEndpoints)}");
-                    }
-                    matchingEndpoints++;
-                }
-
-                AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
+                AssertEqual(expectedRow.State, actualState, $"State for {resourceName}");
 
                 // Check 'Source' column
-                var sourceCell = cellLocs[4];
+                var sourceCell = cellLocs[3];
                 // Since this will be the entire command, we can just confirm that the path of the executable contains
                 // the expected source (executable/project)
                 Assert.Contains(expectedRow.SourceContains, await sourceCell.InnerTextAsync());
 
-                foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
+                foundRows.Add(expectedRow);
                 foundNames.Add(resourceName);
             }
         }
@@ -317,16 +294,16 @@ public partial class TemplateTestsBase
         if (context is not null)
         {
             var page = await project.OpenDashboardPageAsync(context);
-            var resourceRows = await CheckDashboardHasResourcesAsync(
+            await CheckDashboardHasResourcesAsync(
                 page,
                 StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
                 _testOutput,
                 project.LogPath).ConfigureAwait(false);
 
-            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            string apiServiceUrl = project.InfoTable["apiservice"].Endpoints[0].Uri;
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
 
-            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            string webFrontEnd = project.InfoTable["webfrontend"].Endpoints[0].Uri;
             await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
@@ -368,34 +345,22 @@ public partial class TemplateTestsBase
         }
     }
 
-    public static TheoryData<string, TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestDataForNewAndBuildTemplateTests(string templateName) => new()
+    public static TheoryData<string, string, TestSdk, TestTargetFramework, string?> TestDataForNewAndBuildTemplateTests(string templateName, string extraArgs) => new()
         {
-            // Previous Sdk
-            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
-            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
-            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+            // Previous Sdk, Previous TFM
+            { templateName, extraArgs, TestSdk.Previous, TestTargetFramework.Previous, null },
+            // Previous Sdk - Current TFM
+            { templateName, extraArgs, TestSdk.Previous, TestTargetFramework.Current, "The current .NET SDK does not support targeting .NET 9.0" },
 
-            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
-            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0" },
-            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0" },
+            // Current SDK, Previous TFM
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Previous, null },
+            // Current SDK, Current TFM
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Current, null },
 
-            // Current SDK
-            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
-            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
-            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
-
-            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
-            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
-            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
-
-            // Current SDK + previous runtime
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
-
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
-            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
+            // Current SDK + previous runtime, Previous TFM
+            { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, null },
+            // Current SDK + previous runtime, Current TFM
+            { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, null },
         };
 
     // Taken from dotnet/runtime src/tasks/Common/Utils.cs

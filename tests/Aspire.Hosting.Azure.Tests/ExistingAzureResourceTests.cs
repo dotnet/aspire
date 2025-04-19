@@ -3,7 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -171,7 +173,9 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
         serviceBus.AddServiceBusQueue("queue");
 
-        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var (ManifestNode, BicepText) = await GetManifestWithBicep(model, serviceBus.Resource);
 
         var expectedManifest = """
             {
@@ -186,7 +190,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               }
             }
             """;
-
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
         var expectedBicep = """
@@ -208,7 +211,54 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             output name string = existingResourceName
             """;
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
 
+        // ensure the role assignments resource has the correct manifest and bicep, specifically the correct scope property
+
+        var messagingRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"messaging-roles"));
+        (ManifestNode, BicepText) = await GetManifestWithBicep(messagingRoles, skipPreparer: true);
+
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "path": "messaging-roles.module.bicep",
+              "params": {
+                "messaging_outputs_name": "{messaging.outputs.name}",
+                "principalType": "",
+                "principalId": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param messaging_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
+              name: messaging_outputs_name
+            }
+
+            resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(messaging.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: messaging
+            }
+            """;
         output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
@@ -496,8 +546,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             output vaultUri string = keyVault.properties.vaultUri
 
             output name string = existingResourceName
-
-            output id string = keyVault.id
             """;
 
         output.WriteLine(BicepText);
@@ -1100,8 +1148,13 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
         var openAI = builder.AddAzureOpenAI("openAI")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName)
-            .AddDeployment(new AzureOpenAIDeployment("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+        openAI.AddDeployment("mymodel", "gpt-35-turbo", "0613")
+            .WithProperties(d =>
+            {
+                d.SkuName = "Basic";
+                d.SkuCapacity = 4;
+            });
 
         var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(openAI.Resource);
 

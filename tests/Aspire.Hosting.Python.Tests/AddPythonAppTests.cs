@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0612
+
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
@@ -87,6 +89,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8466")]
     public async Task PythonResourceFinishesSuccessfully()
     {
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);

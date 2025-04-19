@@ -13,6 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="modelVersion">The version of the model.</param>
 /// <param name="skuName">The name of the SKU.</param>
 /// <param name="skuCapacity">The capacity of the SKU.</param>
+[Obsolete("AzureOpenAIDeployment is deprecated. Please use AzureOpenAIDeploymentResource instead.")]
 public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string? skuName = null, int? skuCapacity = null)
 {
     /// <value>"Standard"</value>

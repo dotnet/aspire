@@ -197,6 +197,11 @@
         <target state="translated">Verkleinern</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Ressourcentypen ausblenden</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">Keine Filter</target>
@@ -205,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Zustand</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Ressourcentypen anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

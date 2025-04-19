@@ -69,16 +69,14 @@ Note that the username and password will be automatically inferred from the cred
 
 ### Use configuration providers
 
-The .NET Aspire Azure Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlSettings` from configuration by using the `Aspire:Azure:Npgsql` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
-    "Azure": {
-      "Npgsql": {
-        "DisableHealthChecks": true,
-        "DisableTracing": true
-      }
+    "Npgsql": {
+      "DisableHealthChecks": true,
+      "DisableTracing": true
     }
   }
 }

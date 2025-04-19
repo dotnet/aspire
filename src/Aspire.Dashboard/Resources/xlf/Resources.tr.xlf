@@ -197,6 +197,11 @@
         <target state="translated">Uzaklaştır</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Kaynak türlerini gizle</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">Filtre mevcut değil</target>
@@ -205,6 +210,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Durum</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Kaynak türlerini göster</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

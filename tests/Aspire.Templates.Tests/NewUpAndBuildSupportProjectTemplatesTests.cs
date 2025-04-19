@@ -8,14 +8,18 @@ namespace Aspire.Templates.Tests;
 public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
     [Theory]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-servicedefaults")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-mstest")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-nunit")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-xunit")]
-    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-apphost")]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-servicedefaults")]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-mstest", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
+    public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
-        var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
+        var id = GetNewProjectId(prefix: $"new_build_{FixupSymbolName(templateName)}");
+        var topLevelDir = Path.Combine(BuildEnvironment.TestRootPath, id + "_root");
         string config = "Debug";
 
         var buildEnvToUse = sdk switch
@@ -26,24 +30,23 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 
-        var templateHive = templates switch
+        if (Directory.Exists(topLevelDir))
         {
-            TestTemplatesInstall.Net8 => TemplatesCustomHive.TemplatesHive,
-            TestTemplatesInstall.Net9 => TemplatesCustomHive.TemplatesHive,
-            TestTemplatesInstall.Net9AndNet8 => TemplatesCustomHive.TemplatesHive,
-            _ => throw new ArgumentOutOfRangeException(nameof(templates))
-        };
+            Directory.Delete(topLevelDir, recursive: true);
+        }
+        Directory.CreateDirectory(topLevelDir);
 
-        await templateHive.EnsureInstalledAsync(buildEnvToUse);
         try
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                id: id,
-                template: "aspire",
+                id: id + ".AppHost",
+                template: "aspire-apphost",
                 testOutput: _testOutput,
                 buildEnvironment: buildEnvToUse,
                 targetFramework: tfm,
-                customHiveForTemplates: templateHive.CustomHiveDirectory);
+                addEndpointsHook: false,
+                overrideRootDir: topLevelDir);
+            project.AppHostProjectDirectory = Path.Combine(topLevelDir, id + ".AppHost");
 
             var testProjectDir = await CreateAndAddTestTemplateProjectAsync(
                                         id: id,
@@ -51,7 +54,8 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
                                         project: project,
                                         tfm: tfm,
                                         buildEnvironment: buildEnvToUse,
-                                        templateHive: templateHive);
+                                        extraArgs: extraTestCreationArgs,
+                                        overrideRootDir: topLevelDir);
 
             await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
         }

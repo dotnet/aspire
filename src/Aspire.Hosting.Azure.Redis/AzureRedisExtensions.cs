@@ -96,7 +96,7 @@ public static class AzureRedisExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
     ///
-    /// You can use the <see cref="WithAccessKeyAuthentication(IResourceBuilder{AzureRedisCacheResource}, IResourceBuilder{IKeyVaultResource})"/> method to configure the resource to use access key authentication.
+    /// You can use the <see cref="WithAccessKeyAuthentication(IResourceBuilder{AzureRedisCacheResource}, IResourceBuilder{IAzureKeyVaultResource})"/> method to configure the resource to use access key authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
@@ -195,6 +195,20 @@ public static class AzureRedisExtensions
         var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
                                            .WithParentRelationship(builder.Resource);
 
+        // remove the KeyVault from the model if the emulator is used during run mode.
+        // need to do this later in case builder becomes an emulator after this method is called.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            {
+                if (builder.Resource.IsContainer())
+                {
+                    data.Model.Resources.Remove(kv.Resource);
+                }
+                return Task.CompletedTask;
+            });
+        }
+
         return builder.WithAccessKeyAuthentication(kv);
     }
 
@@ -204,13 +218,13 @@ public static class AzureRedisExtensions
     /// <param name="builder">The Azure Cache for Redis resource builder.</param>
     /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IKeyVaultResource> keyVaultBuilder)
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(keyVaultBuilder);
 
         var azureResource = builder.Resource;
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{azureResource.Name}");
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated

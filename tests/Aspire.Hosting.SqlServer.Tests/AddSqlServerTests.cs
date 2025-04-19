@@ -249,4 +249,36 @@ public class AddSqlServerTests
         Assert.Equal("{sqlserver1.connectionString};Initial Catalog=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{sqlserver2.connectionString};Initial Catalog=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
+
+    [Fact]
+    public void VerifySqlServerServerResourceWithHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddSqlServer("sqlserver1")
+            .WithHostPort(1000);
+
+        var resource = Assert.Single(builder.Resources.OfType<SqlServerServerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Fact]
+    public async Task VerifySqlServerServerResourceWithPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
+        appBuilder
+            .AddSqlServer("sqlserver")
+            .WithPassword(pass)
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", connectionString);
+        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
 }

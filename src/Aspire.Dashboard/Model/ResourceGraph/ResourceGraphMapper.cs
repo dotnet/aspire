@@ -8,16 +8,11 @@ using Aspire.Dashboard.Resources;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components.Extensions;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model.ResourceGraph;
 
 public static class ResourceGraphMapper
 {
-    private static readonly string s_databaseIcon = GetIconPathData(new Icons.Filled.Size24.Database());
-    private static readonly string s_containerIcon = GetIconPathData(new Icons.Filled.Size24.Box());
-    private static readonly string s_executableIcon = GetIconPathData(new Icons.Filled.Size24.SettingsCogMultiple());
-    private static readonly string s_projectIcon = GetIconPathData(new Icons.Filled.Size24.CodeCircle());
 
     public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc)
     {
@@ -41,13 +36,7 @@ public static class ResourceGraphMapper
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
         var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
 
-        var icon = r.ResourceType switch
-        {
-            KnownResourceTypes.Executable => s_executableIcon,
-            KnownResourceTypes.Project => s_projectIcon,
-            KnownResourceTypes.Container => s_containerIcon,
-            string t => t.Contains("database", StringComparison.OrdinalIgnoreCase) ? s_databaseIcon : s_executableIcon
-        };
+        var icon = GetIconPathData(ResourceIconHelpers.GetIconForResource(r, IconSize.Size24));
 
         var stateIcon = ResourceStateViewModel.GetStateViewModel(r, columnsLoc);
 
@@ -79,7 +68,7 @@ public static class ResourceGraphMapper
 
     private static string ResolvedEndpointText(DisplayedUrl? endpoint)
     {
-        var text = endpoint?.Url;
+        var text = endpoint?.OriginalUrlString;
         if (string.IsNullOrEmpty(text))
         {
             return ControlsStrings.ResourceGraphNoEndpoints;
@@ -93,7 +82,7 @@ public static class ResourceGraphMapper
         return text;
     }
 
-    private static string GetIconPathData(Icon icon)
+    public static string GetIconPathData(Icon icon)
     {
         var p = icon.Content;
         var e = XElement.Parse(p);

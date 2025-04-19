@@ -17,6 +17,11 @@
         <target state="translated">Překročil se limit strukturovaných protokolů</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Zachytávání strukturovaných protokolů bylo pozastaveno v {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Přidat filtr</target>

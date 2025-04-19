@@ -26,7 +26,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyEfOracle()
     {
@@ -67,7 +67,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("BatMobile", cars[0].Brand);
     }
 
-    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
     [RequiresDocker]
@@ -242,7 +242,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
     [RequiresDocker]
@@ -345,7 +345,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWaitForOnOracleBlocksDependentResources()
     {

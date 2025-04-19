@@ -19,7 +19,8 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
-    ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
+    ResourceLoggerService loggerService,
+    TokenCredentialHolder tokenCredentialHolder) : AzureResourceProvisioner<AzureBicepResource>
 {
     public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
         => !resource.IsContainer();
@@ -67,6 +68,12 @@ internal sealed class BicepProvisioner(
             }
         }
 
+        if (resource is IAzureKeyVaultResource kvr)
+        {
+            ConfigureSecretResolver(kvr);
+        }
+
+        // Populate secret outputs from key vault (if any)
         foreach (var item in section.GetSection("SecretOutputs").GetChildren())
         {
             resource.SecretOutputs[item.Key] = item.Value;
@@ -103,13 +110,18 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
+    private static object? GetExistingResourceGroup(AzureBicepResource resource) =>
+        resource.Scope?.ResourceGroup ??
+            (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
+                existingResource.ResourceGroup :
+                null);
+
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var resourceGroup = context.ResourceGroup;
         var resourceLogger = loggerService.GetLogger(resource);
 
-        if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) &&
-            existingResource.ResourceGroup is { } existingResourceGroup)
+        if (GetExistingResourceGroup(resource) is { } existingResourceGroup)
         {
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
                 ? parameterResource.Value
@@ -273,17 +285,9 @@ internal sealed class BicepProvisioner(
         }
 
         // Populate secret outputs from key vault (if any)
-        if (resource is IKeyVaultResource kvr)
+        if (resource is IAzureKeyVaultResource kvr)
         {
-            var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
-
-            // Set the client for resolving secrets at runtime
-            var client = new SecretClient(new(vaultUri), context.Credential);
-            kvr.SecretResolver = async (secretName, ct) =>
-            {
-                var secret = await client.GetSecretAsync(secretName, cancellationToken: ct).ConfigureAwait(false);
-                return secret.Value.Value;
-            };
+            ConfigureSecretResolver(kvr);
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -301,6 +305,21 @@ internal sealed class BicepProvisioner(
             };
         })
         .ConfigureAwait(false);
+    }
+
+    private void ConfigureSecretResolver(IAzureKeyVaultResource kvr)
+    {
+        var resource = (AzureBicepResource)kvr;
+
+        var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
+
+        // Set the client for resolving secrets at runtime
+        var client = new SecretClient(new(vaultUri), tokenCredentialHolder.Credential);
+        kvr.SecretResolver = async (secretRef, ct) =>
+        {
+            var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);
+            return secret.Value.Value;
+        };
     }
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
@@ -477,20 +496,14 @@ internal sealed class BicepProvisioner(
     {
         // Resolve the scope from the AzureBicepResource if it has already been set
         // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
-        var targetScope = resource.Scope;
-        if (targetScope is null
-            && resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource)
-            && existingResource.ResourceGroup is { } existingResourceGroup)
-        {
-            targetScope = new AzureBicepResourceScope(existingResourceGroup);
-        }
+        var targetScope = GetExistingResourceGroup(resource);
 
-        scope["resourceGroup"] = targetScope?.ResourceGroup switch
+        scope["resourceGroup"] = targetScope switch
         {
             string s => s,
             IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
             null => null,
-            _ => throw new NotSupportedException($"The scope value type {targetScope.ResourceGroup.GetType()} is not supported.")
+            _ => throw new NotSupportedException($"The scope value type {targetScope.GetType()} is not supported.")
         };
     }
 

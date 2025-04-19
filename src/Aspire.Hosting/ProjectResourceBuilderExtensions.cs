@@ -688,7 +688,11 @@ public static class ProjectResourceBuilderExtensions
         var cb = builder.ApplicationBuilder.AddResource(container);
         // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
-        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+
+        var projectFilePath = builder.Resource.GetProjectMetadata().ProjectPath;
+        var projectDirectoryPath = Path.GetDirectoryName(projectFilePath) ?? throw new InvalidOperationException($"Unable to get directory name for {projectFilePath}");
+
+        cb.WithDockerfile(contextPath: projectDirectoryPath);
         // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());

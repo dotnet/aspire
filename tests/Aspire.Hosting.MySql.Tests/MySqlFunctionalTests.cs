@@ -6,6 +6,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -27,7 +28,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnMySqlBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -58,14 +59,14 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(cts.Token);
     }
 
     [Fact]
     [RequiresDocker]
     public async Task VerifyMySqlResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -79,9 +80,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(cts.Token);
 
-        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -94,7 +95,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(cts.Token);
         await pipeline.ExecuteAsync(async token =>
         {
             using var connection = host.Services.GetRequiredService<MySqlConnection>();
@@ -119,7 +120,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
@@ -151,9 +152,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(cts.Token);
 
-                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+                await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
                 try
                 {
@@ -168,7 +169,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(cts.Token);
 
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
@@ -199,7 +200,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(cts.Token);
                 }
             }
 
@@ -220,9 +221,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(cts.Token);
 
-                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+                await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
                 try
                 {
@@ -230,14 +231,14 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
                     });
 
                     hb.AddMySqlDataSource(db2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(cts.Token);
 
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
@@ -264,7 +265,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(cts.Token);
                 }
             }
 
@@ -296,7 +297,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -323,22 +324,22 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var app = builder.Build();
 
-            await app.StartAsync();
+            await app.StartAsync(cts.Token);
 
-            await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+            await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
             var hb = Host.CreateApplicationBuilder();
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
             });
 
             hb.AddMySqlDataSource(db.Resource.Name);
 
             using var host = hb.Build();
 
-            await host.StartAsync();
+            await host.StartAsync(cts.Token);
 
             // Wait until the database is available
             await pipeline.ExecuteAsync(async token =>
@@ -379,7 +380,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyEfMySql()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -393,22 +394,22 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(cts.Token);
 
-        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
         });
 
         hb.AddMySqlDbContext<TestDbContext>(db.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(cts.Token);
 
         // Wait until the database is available
         await pipeline.ExecuteAsync(async token =>
@@ -452,7 +453,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         // it generates and mounts a config.user.inc.php file instead of using environment variables.
         // For this reason we need to test with and without multiple instances to cover both scenarios.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
 
         // Use the same path for both runs
         var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
@@ -510,7 +511,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             resourceEvent = await rns.WaitForResourceHealthyAsync("resource-phpmyadmin", cts.Token);
             var phpMyAdminId = GetContainerId(resourceEvent);
 
-            await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
+            await app.StopAsync(cts.Token).WaitAsync(cts.Token);
 
             return [mySqlId, mySqlId2, phpMyAdminId];
         }

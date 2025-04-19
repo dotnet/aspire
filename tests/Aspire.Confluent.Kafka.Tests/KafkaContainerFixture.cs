@@ -10,6 +10,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using Testcontainers.Kafka;
 using Xunit;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Confluent.Kafka.Tests;
 
@@ -85,7 +86,7 @@ public partial class KafkaContainerFixture : IAsyncLifetime
         private static partial Regex KafkaReadyRegex();
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -96,7 +97,7 @@ public partial class KafkaContainerFixture : IAsyncLifetime
 
     public KafkaContainer? Container { get; private set; }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Container is not null)
         {

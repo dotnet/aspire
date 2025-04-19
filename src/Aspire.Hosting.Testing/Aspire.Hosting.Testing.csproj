@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
+    <Compile Include="$(SharedDir)\KnownConfigNames.cs" Link="KnownConfigNames.cs" />
     <Compile Include="$(ComponentsDir)\Common\ArgumentExceptionExtensions.cs" Link="ArgumentExceptionExtensions.cs" />
   </ItemGroup>
 

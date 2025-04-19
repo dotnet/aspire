@@ -82,14 +82,14 @@ public sealed class ContainerFileSystemCallbackAnnotation : IResourceAnnotation
     public required string DestinationPath { get; init; }
 
     /// <summary>
-    /// The UID of the default owner for files/directories to be created or updated in the container. Defaults to 0 for root.
+    /// The UID of the default owner for files/directories to be created or updated in the container. The UID defaults to 0 for root if null.
     /// </summary>
-    public int DefaultOwner { get; init; }
+    public int? DefaultOwner { get; init; }
 
     /// <summary>
-    /// The GID of the default group for files/directories to be created or updated in the container. Defaults to 0 for root.
+    /// The GID of the default group for files/directories to be created or updated in the container. The GID defaults to 0 for root if null.
     /// </summary>
-    public int DefaultGroup { get; init; }
+    public int? DefaultGroup { get; init; }
 
     /// <summary>
     /// The umask to apply to files or folders without an explicit mode permission. If set to null, a default umask value of 0022 (octal) will be used.

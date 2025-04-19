@@ -65,13 +65,12 @@ public static class AzureKeyVaultResourceExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = keyVault.Id });
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(KeyVaultBuiltInRole.GetBuiltInRoleName,
-                KeyVaultBuiltInRole.KeyVaultAdministrator);
+                KeyVaultBuiltInRole.KeyVaultSecretsUser);
     }
 
     /// <summary>

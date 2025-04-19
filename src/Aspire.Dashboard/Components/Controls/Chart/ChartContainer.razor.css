@@ -5,38 +5,3 @@
 ::deep .metric-tab {
     margin-top: 10px;
 }
-
-.overflow-warning {
-    font-family: var(--body-font);
-    border: 1px solid var(--messagebar-warning-border-color);
-    background-color: var(--messagebar-warning-background-color);
-    color: var(--neutral-foreground-rest);
-    display: grid;
-    grid-template-columns: 24px auto;
-    width: fit-content;
-    align-items: center;
-    min-height: 36px;
-    border-radius: calc(var(--control-corner-radius)* 1px);
-    padding: 0 12px;
-    column-gap: 8px;
-}
-
-.overflow-warning-icon {
-    grid-column: 1;
-    display: flex;
-    justify-content: center;
-}
-
-.overflow-warning-message {
-    grid-column: 2;
-    padding: 10px 0;
-    align-self: center;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-}
-
-.overflow-warning-message .title {
-    font-weight: 600;
-    padding: 0 4px 0 0;
-}

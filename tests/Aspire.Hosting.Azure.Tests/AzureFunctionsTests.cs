@@ -288,7 +288,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
     public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
@@ -378,7 +378,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
     public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
@@ -460,7 +460,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
     public async Task AddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage_WithRoleAssignments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
@@ -523,7 +523,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
     public async Task MultipleAddAzureFunctionsProject_WorksWithAddAzureContainerAppsInfrastructure_WithHostStorage_WithRoleAssignments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();

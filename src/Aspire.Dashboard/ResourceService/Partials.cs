@@ -9,6 +9,7 @@ using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant
 using CommandsResources = Aspire.Dashboard.Resources.Commands;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting;
+using Google.Protobuf.Collections;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -17,7 +18,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup)
+    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -30,21 +31,7 @@ partial class Resource
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),
-                Properties = Properties.ToImmutableDictionary(
-                    keyComparer: StringComparers.ResourcePropertyName,
-                    keySelector: property => ValidateNotNull(property.Name),
-                    elementSelector: property =>
-                    {
-                        var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
-
-                        return new ResourcePropertyViewModel(
-                            name: ValidateNotNull(property.Name),
-                            value: ValidateNotNull(property.Value),
-                            isValueSensitive: property.IsSensitive,
-                            knownProperty: knownProperty,
-                            priority: priority,
-                            timeProvider: timeProvider);
-                    }),
+                Properties = CreatePropertyViewModels(Properties, timeProvider, knownPropertyLookup, logger),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
@@ -160,16 +147,42 @@ partial class Resource
                 };
             }
         }
+    }
 
-        T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, ResourcePropertyViewModel>(StringComparers.ResourcePropertyName);
+
+        foreach (var property in properties)
         {
-            if (value is null)
+            var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
+            var propertyViewModel = new ResourcePropertyViewModel(
+                name: ValidateNotNull(property.Name),
+                value: ValidateNotNull(property.Value),
+                isValueSensitive: property.IsSensitive,
+                knownProperty: knownProperty,
+                priority: priority,
+                timeProvider: timeProvider);
+
+            if (builder.ContainsKey(propertyViewModel.Name))
             {
-                throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
+                logger.LogWarning("Duplicate property '{PropertyName}' found in resource '{ResourceName}'.", propertyViewModel.Name, Name);
             }
 
-            return value;
+            builder[propertyViewModel.Name] = propertyViewModel;
         }
+
+        return builder.ToImmutable();
+    }
+
+    private T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+    {
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
+        }
+
+        return value;
     }
 }
 

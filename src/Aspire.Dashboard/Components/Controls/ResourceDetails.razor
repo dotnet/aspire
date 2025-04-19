@@ -1,11 +1,10 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Humanizer
 @using Microsoft.Extensions.Diagnostics.HealthChecks
-@using System.Net
+@using Aspire.Dashboard.Model.Otlp
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IStringLocalizer<Resources> Loc
@@ -13,7 +12,7 @@
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName))" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
@@ -74,20 +73,28 @@
                                 ResizeType="DataGridResizeType.Discrete"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
-                                GridTemplateColumns="1fr 1.5fr"
+                                GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkColumnHeader)]">
-                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkColumnHeader)]"
+                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkAddressColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkAddressColumnHeader)]"
                                    Value="@context.OriginalUrlString"
-                                   ValueTemplate="@(_ => RenderUrlValue(context, _filter))"
+                                   ValueTemplate="@(_ => RenderAddressValue(context, _filter))"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
                                    HighlightText="@_filter" />
                     </AspireTemplateColumn>
-                                <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
+                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkTextColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkTextColumnHeader)]"
+                                   Value="@context.DisplayName"
+                                   ValueTemplate="@(_ => RenderTextValue(context, _filter))"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && !string.IsNullOrEmpty(context.DisplayName))"
+                                   IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
                                    Value="@context.Name"
-                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && context.Name != "-")"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter" />
                     </AspireTemplateColumn>
                 </FluentDataGrid>
@@ -279,10 +286,10 @@
 </div>
 
 @code {
-    private static RenderFragment RenderUrlValue(DisplayedUrl vm, string filter)
+    private static RenderFragment RenderAddressValue(DisplayedUrl vm, string filter)
     {
-        var highlighting = !string.IsNullOrEmpty(filter) && vm.Text != "-";
-        
+        var highlighting = !string.IsNullOrEmpty(filter);
+
         // If there's no URL, e.g. this is a tcp:// URI, just show the text
         if (vm.Url is null)
         {
@@ -292,8 +299,8 @@
             }
             return @<span>@vm.Text</span>;
         }
-        // If the URL and text are the same, render a link for the URL
-        else if (string.Equals(vm.Url, vm.Text, StringComparison.Ordinal))
+        // Otherwise, render a link for the URL
+        else
         {
             if (highlighting)
             {
@@ -301,14 +308,25 @@
             }
             return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
         }
+    }
+
+    private static RenderFragment RenderTextValue(DisplayedUrl vm, string filter)
+    {
+        var highlighting = !string.IsNullOrEmpty(filter) && !string.IsNullOrEmpty(vm.DisplayName);
+
+        // If there's no DisplayName then show nothing
+        if (string.IsNullOrEmpty(vm.DisplayName))
+        {
+            return @<span class="empty-data"></span>;
+        }
         // Otherwise, render a link with the text as the anchor text & title as the URL
         else
         {
             if (highlighting)
             {
-                return @<a href="@vm.Url" title="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Text" /></a>;
+                return @<a href="@vm.Url" title="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.DisplayName" /></a>;
             }
-            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;
+            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.DisplayName</a>;
         }
     }
 }

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestUtilities;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -49,7 +48,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("Enrich doesn't use ConnectionString");
+        Assert.Skip("Enrich doesn't use ConnectionString");
     }
 
     [Fact]

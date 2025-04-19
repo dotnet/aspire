@@ -42,9 +42,19 @@
         <target state="translated">{0} log della console</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Comandi risorsa</target>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;L'acquisizione del log è stata sospesa alle {0}, {1} log filtrati&gt;</target>
+        <note>{0} is a date, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;L'acquisizione dei log è stata sospesa tra {0} e {1}, {2} log filtrati&gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Azioni delle risorse</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

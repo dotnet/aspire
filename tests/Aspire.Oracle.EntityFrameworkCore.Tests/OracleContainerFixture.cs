@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.TestUtilities;
 using DotNet.Testcontainers.Builders;
 using Testcontainers.Oracle;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
@@ -22,7 +24,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         _diagnosticMessageSink = diagnosticMessageSink;
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -39,7 +41,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Container is not null)
         {

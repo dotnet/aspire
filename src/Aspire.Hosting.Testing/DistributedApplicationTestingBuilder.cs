@@ -291,7 +291,7 @@ public static class DistributedApplicationTestingBuilder
                 DistributedApplicationFactory.ConfigureBuilder(args, applicationOptions, hostBuilderOptions, FindApplicationAssembly(), configureBuilder);
             });
 
-            if (!builder.Configuration.GetValue("ASPIRE_TESTING_DISABLE_HTTP_CLIENT", false))
+            if (!builder.Configuration.GetValue(KnownConfigNames.TestingDisableHttpClient, false))
             {
                 builder.Services.AddHttpClient();
                 builder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());

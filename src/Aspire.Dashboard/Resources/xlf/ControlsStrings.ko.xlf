@@ -107,6 +107,11 @@
         <target state="translated">{0} 제거</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">데이터 제거</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">세부 정보</target>
@@ -247,9 +252,14 @@
         <target state="translated">(설정 해제)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">링크</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">주소</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">텍스트</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +320,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">페이지 도구 모음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">들어오는 데이터 일시 중지</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -400,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">리소스</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">들어오는 데이터 다시 시작</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +547,11 @@
         <target state="translated">타임스탬프</target>
         <note />
       </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">캡처 일시 중지됨</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">특성</target>
@@ -558,8 +583,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">합계: &lt;strong&gt;{0}개 검색 결과를 찾음&lt;/strong&gt;</target>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
+        <target state="translated">총: &lt;strong&gt;{0}개 결과 찾음&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

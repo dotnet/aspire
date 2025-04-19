@@ -117,7 +117,7 @@ public class ResourceWithAzureFunctionsConfigTests
         Assert.True(target.ContainsKey("myconnection"));
         Assert.True(target.ContainsKey("Aspire__Azure__Storage__Blobs__myconnection__ConnectionString"));
         Assert.True(target.ContainsKey("Aspire__Azure__Storage__Queues__myconnection__ConnectionString"));
-        Assert.True(target.ContainsKey("Aspire__Azure__Storage__Tables__myconnection__ConnectionString"));
+        Assert.True(target.ContainsKey("Aspire__Azure__Data__Tables__myconnection__ConnectionString"));
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class ResourceWithAzureFunctionsConfigTests
         Assert.True(target.ContainsKey("myconnection__tableServiceUri"));
         Assert.True(target.ContainsKey("Aspire__Azure__Storage__Blobs__myconnection__ServiceUri"));
         Assert.True(target.ContainsKey("Aspire__Azure__Storage__Queues__myconnection__ServiceUri"));
-        Assert.True(target.ContainsKey("Aspire__Azure__Storage__Tables__myconnection__ServiceUri"));
+        Assert.True(target.ContainsKey("Aspire__Azure__Data__Tables__myconnection__ServiceUri"));
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class ResourceWithAzureFunctionsConfigTests
 
         // Assert
         Assert.True(target.ContainsKey("mytables"));
-        Assert.True(target.ContainsKey("Aspire__Azure__Storage__Tables__mytables__ConnectionString"));
+        Assert.True(target.ContainsKey("Aspire__Azure__Data__Tables__mytables__ConnectionString"));
     }
 
     [Fact]

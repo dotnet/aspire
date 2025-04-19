@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -534,7 +534,7 @@ public class ManifestGenerationTests
 
     private static string[] GetManifestArgs()
     {
-        var manifestPath = Path.GetTempFileName();
+        var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
         return ["--publisher", "manifest", "--output-path", manifestPath];
     }
 }

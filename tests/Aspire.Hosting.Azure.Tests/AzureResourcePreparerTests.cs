@@ -13,10 +13,12 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureResourcePreparerTests(ITestOutputHelper output)
 {
-    [Fact]
-    public void ThrowsExceptionsIfRoleAssignmentUnsupported()
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    [InlineData(DistributedApplicationOperation.Run)]
+    public async Task ThrowsExceptionsIfRoleAssignmentUnsupported(DistributedApplicationOperation operation)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
 
         var storage = builder.AddAzureStorage("storage");
 
@@ -25,8 +27,16 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
 
         var app = builder.Build();
 
-        var ex = Assert.Throws<InvalidOperationException>(app.Start);
-        Assert.Contains("role assignments", ex.Message);
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(app.Start);
+            Assert.Contains("role assignments", ex.Message);
+        }
+        else
+        {
+            await app.StartAsync();
+            // no exception is thrown in Run mode
+        }
     }
 
     [Theory]
@@ -39,7 +49,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(operation);
         if (addContainerAppsInfra)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var storage = builder.AddAzureStorage("storage");
@@ -125,7 +135,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task AppliesRoleAssignmentsInRunMode(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
@@ -216,7 +226,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task FindsAzureReferencesFromArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");

@@ -1,0 +1,28 @@
+<Project>
+  <ItemGroup>
+    <PackageVersion Include="xunit.v3" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.v3.core" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.analyzers" Version="$(XunitAnalyzersVersion)" />
+    <PackageVersion Include="xunit.v3.assert" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.v3.runner.console" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Platform" Version="$(MicrosoftTestingPlatformVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Platform.MSBuild" Version="$(MicrosoftTestingPlatformVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="$(MicrosoftTestingPlatformVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CrashDump" Version="$(MicrosoftTestingPlatformVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingPlatformVersion)" />
+
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.core" />
+    <PackageReference Include="xunit.analyzers" />
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Testing.Platform" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CrashDump" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+  </ItemGroup>
+
+  <Import Project="Microsoft.Testing.Platform.targets" />
+</Project>

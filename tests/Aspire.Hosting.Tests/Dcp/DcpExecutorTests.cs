@@ -1222,7 +1222,7 @@ public class DcpExecutorTests
             var builder = new ConfigurationBuilder();
             builder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+                [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
                 ["AppHost:BrowserToken"] = "TestBrowserToken!",
                 ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
             });
