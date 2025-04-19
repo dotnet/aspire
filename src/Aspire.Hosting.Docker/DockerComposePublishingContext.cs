@@ -110,6 +110,9 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
+        // Call the environment's ConfigureComposeFile method to allow for custom modifications
+        environment.ConfigureComposeFile?.Invoke(composeFile);
+
         var composeOutput = composeFile.ToYaml();
         var outputFile = Path.Combine(PublisherOptions.OutputPath!, "docker-compose.yaml");
         Directory.CreateDirectory(PublisherOptions.OutputPath!);

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
+using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
@@ -52,6 +53,21 @@ public static class DockerComposeEnvironmentExtensions
 
         configure(builder.Resource);
 
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Docker Compose file for the environment resource.
+    /// </summary>
+    /// <param name="builder"> The Docker compose environment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="ComposeFile"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureComposeFile(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<ComposeFile> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Resource.ConfigureComposeFile += configure;
         return builder;
     }
 }

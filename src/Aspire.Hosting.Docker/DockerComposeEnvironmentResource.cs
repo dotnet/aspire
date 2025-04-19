@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Docker.Resources;
 
 namespace Aspire.Hosting.Docker;
 
@@ -25,6 +26,8 @@ public class DockerComposeEnvironmentResource(string name) : Resource(name), ICo
     /// The name of an existing network to be used.
     /// </summary>
     public string? DefaultNetworkName { get; set; }
+
+    internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.
