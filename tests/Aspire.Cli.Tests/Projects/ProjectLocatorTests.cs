@@ -10,7 +10,7 @@ namespace Aspire.Cli.Tests.Projects;
 public class ProjectLocatorTests
 {
     [Fact]
-    public void UseOrFindAppHostProjectFileThrowsIfExplicitProjectFileDoesNotExist()
+    public async Task UseOrFindAppHostProjectFileThrowsIfExplicitProjectFileDoesNotExist()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         var tempDirectory = Path.GetTempPath();
@@ -19,8 +19,8 @@ public class ProjectLocatorTests
         var projectFile = new FileInfo(Path.Combine(projectDirectory, "AppHost.csproj"));
         var projectLocator = new ProjectLocator(logger, projectDirectory);
 
-        var ex = Assert.Throws<ProjectLocatorException>(() =>{
-            projectLocator.UseOrFindAppHostProjectFile(projectFile);
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
         });
 
         Assert.Equal("Project file does not exist.", ex.Message);
@@ -41,15 +41,15 @@ public class ProjectLocatorTests
         
         var projectLocator = new ProjectLocator(logger, projectDirectory);
 
-        var ex = Assert.Throws<ProjectLocatorException>(() =>{
-            projectLocator.UseOrFindAppHostProjectFile(null);
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         });
 
         Assert.Equal("Multiple project files found.", ex.Message);
     }
 
     [Fact]
-    public void UseOrFindAppHostProjectFileThrowsIfNoProjectWasFound()
+    public async Task UseOrFindAppHostProjectFileThrowsIfNoProjectWasFound()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         var tempDirectory = Path.GetTempPath();
@@ -58,8 +58,8 @@ public class ProjectLocatorTests
         
         var projectLocator = new ProjectLocator(logger, projectDirectory);
 
-        var ex = Assert.Throws<ProjectLocatorException>(() =>{
-            projectLocator.UseOrFindAppHostProjectFile(null);
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
+            await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         });
 
         Assert.Equal("No project file found.", ex.Message);
@@ -77,7 +77,7 @@ public class ProjectLocatorTests
 
         var projectLocator = new ProjectLocator(logger, projectDirectory);
 
-        var returnedProjectFile = projectLocator.UseOrFindAppHostProjectFile(projectFile);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
 
         Assert.Equal(projectFile, returnedProjectFile);
     }
@@ -94,7 +94,7 @@ public class ProjectLocatorTests
 
         var projectLocator = new ProjectLocator(logger, projectDirectory);
 
-        var returnedProjectFile = projectLocator.UseOrFindAppHostProjectFile(null);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
     }
 }
