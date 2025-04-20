@@ -44,7 +44,5 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, string curr
 
 internal class ProjectLocatorException : System.Exception
 {
-    public ProjectLocatorException() { }
     public ProjectLocatorException(string message) : base(message) { }
-    public ProjectLocatorException(string message, System.Exception inner) : base(message, inner) { }
 }
