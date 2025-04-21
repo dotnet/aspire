@@ -81,7 +81,7 @@ public static class AzureSqlExtensions
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-            CreateSqlServer(infrastructure, builder, azureResource.Databases);
+            CreateSqlServer(infrastructure, builder, azureResource.AzureSqlDatabases);
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
@@ -97,9 +97,8 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
-    /// <param name="skuName">SKU of the database. If not provided, this defaults to the free database tier.<paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null, string skuName = AzureSqlDatabaseResource.FREE_SKU_NAME)
+    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -109,7 +108,7 @@ public static class AzureSqlExtensions
 
         var azureResource = builder.Resource;
         var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
-        azureSqlDatabase.SkuName = skuName;
+        azureSqlDatabase.SkuName = AzureSqlDatabaseResource.FREE_SKU_NAME;
 
         builder.Resource.AddDatabase(azureSqlDatabase);
 
@@ -183,7 +182,7 @@ public static class AzureSqlExtensions
 
         azureResource.SetInnerResource(sqlContainer.Resource);
 
-        foreach (var database in azureResource.Databases)
+        foreach (var database in azureResource.AzureSqlDatabases)
         {
             if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
             {

@@ -19,12 +19,12 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <summary>
     /// Free Azure SQL database offer
     /// </summary>
-    public const string FREE_SKU_NAME = "Free";
+    internal const string FREE_SKU_NAME = "Free";
 
     /// <summary>
     /// SKU associated with the free offer
     /// </summary>
-    public const string FREE_DB_SKU = "GP_S_Gen5_2";
+    internal const string FREE_DB_SKU = "GP_S_Gen5_2";
 
     private string _skuName = FREE_SKU_NAME;
 

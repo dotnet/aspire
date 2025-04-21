@@ -75,9 +75,17 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
-    /// A dictionary where the key is the resource name and the value is the database name.
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database resource.
     /// </summary>
-    public IReadOnlyDictionary<string, AzureSqlDatabaseResource> Databases => _databases;
+    public IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases => _databases;
+
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Databases => _databases.ToDictionary(
+        kvp => kvp.Key,
+        kvp => kvp.Value.DatabaseName
+    );
 
     internal void AddDatabase(AzureSqlDatabaseResource db)
     {

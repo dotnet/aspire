@@ -32,7 +32,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
 
         // set the database name, set the sku to Basic
-        sql.AddDatabase("db4", "db4Name", "Basic");
+        sql.AddDatabase("db4", "db4Name"). WithSku("Basic");
 
         // set the database name, explicitly ask for the free tier
         // (which does not exist in reality, but we using the "Free" moniker
@@ -226,9 +226,9 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name", "HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name", "Basic");
-            db5 = sql.AddDatabase("db5", "db5Name", "Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
+            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
+            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
         }
         sql.RunAsContainer(c =>
         {
@@ -239,9 +239,9 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name", "HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name", "Basic");
-            db5 = sql.AddDatabase("db5", "db5Name", "Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
+            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
+            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
         }
 
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
@@ -290,9 +290,9 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name", "HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name", "Basic");
-            db5 = sql.AddDatabase("db5", "db5Name", "Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
+            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
+            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
@@ -310,9 +310,9 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name", "HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name", "Basic");
-            db5 = sql.AddDatabase("db5", "db5Name", "Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
+            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
+            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
         }
 
         var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
