@@ -145,7 +145,7 @@ internal static class TelemetryTestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, Span.Types.SpanKind? kind = null)
     {
         var span = new Span
         {
@@ -154,7 +154,8 @@ internal static class TelemetryTestHelpers
             ParentSpanId = parentSpanId is null ? ByteString.Empty : ByteString.CopyFrom(Encoding.UTF8.GetBytes(parentSpanId)),
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
-            Name = $"Test span. Id: {spanId}"
+            Name = $"Test span. Id: {spanId}",
+            Kind = kind ?? Span.Types.SpanKind.Internal
         };
         if (events != null)
         {
@@ -227,7 +228,8 @@ internal static class TelemetryTestHelpers
         int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null,
         ILoggerFactory? loggerFactory = null,
-        PauseManager? pauseManager = null)
+        PauseManager? pauseManager = null,
+        IOutgoingPeerResolver[]? outgoingPeerResolvers = null)
     {
         var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
@@ -255,7 +257,7 @@ internal static class TelemetryTestHelpers
             loggerFactory ?? NullLoggerFactory.Instance,
             Options.Create(new DashboardOptions { TelemetryLimits = options }),
             pauseManager ?? new PauseManager(),
-            []);
+            outgoingPeerResolvers ?? []);
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;

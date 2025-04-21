@@ -113,6 +113,6 @@ public class BrowserLinkOutgoingPeerResolverTests
 
     private static bool TryResolvePeerName(IOutgoingPeerResolver resolver, KeyValuePair<string, string>[] attributes, out string? peerName)
     {
-        return resolver.TryResolvePeerName(attributes, out peerName, out _);
+        return resolver.TryResolvePeer(attributes, out peerName, out _);
     }
 }

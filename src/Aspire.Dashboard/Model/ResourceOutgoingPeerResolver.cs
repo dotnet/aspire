@@ -82,7 +82,10 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         for (var i = 0; i < urls1.Length; i++)
         {
-            if (!urls1[i].Equals(urls2[i]))
+            var url1 = urls1[i].Url;
+            var url2 = urls2[i].Url;
+
+            if (!url1.Equals(url2))
             {
                 return false;
             }
@@ -91,7 +94,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         return true;
     }
 
-    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
+    public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
         return TryResolvePeerNameCore(_resourceByName, attributes, out name, out matchedResource);
     }

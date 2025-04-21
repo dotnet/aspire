@@ -3,9 +3,11 @@
 
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
@@ -72,6 +74,7 @@ public class TraceTests
             {
                 Assert.Equal("TestService", app.ApplicationName);
                 Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
@@ -1921,6 +1924,243 @@ public class TraceTests
             s =>
             {
                 AssertId("3-2", s.SpanId);
+            });
+    }
+
+    private sealed class TestOutgoingPeerResolver : IOutgoingPeerResolver, IDisposable
+    {
+        private readonly Func<KeyValuePair<string, string>[], (string? Name, ResourceViewModel? Resource)>? _onResolve;
+        private readonly List<Func<Task>> _callbacks;
+
+        public TestOutgoingPeerResolver(Func<KeyValuePair<string, string>[], (string? Name, ResourceViewModel? Resource)>? onResolve = null)
+        {
+            _onResolve = onResolve;
+            _callbacks = new();
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public IDisposable OnPeerChanges(Func<Task> callback)
+        {
+            _callbacks.Add(callback);
+            return this;
+        }
+
+        public async Task InvokePeerChanges()
+        {
+            foreach (var callback in _callbacks)
+            {
+                await callback();
+            }
+        }
+
+        public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResourced)
+        {
+            if (_onResolve != null)
+            {
+                (name, matchedResourced) = _onResolve(attributes);
+                return (name != null);
+            }
+
+            name = "TestPeer";
+            matchedResourced = ModelTestHelpers.CreateResource(appName: "TestPeer");
+            return true;
+        }
+    }
+
+    [Fact]
+    public void AddTraces_HaveUninstrumentedPeers()
+    {
+        // Arrange
+        var outgoingPeerResolver = new TestOutgoingPeerResolver();
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Null(app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var uninstrumentedPeerApp = applications.Single(a => a.UninstrumentedPeer);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        var trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.NotNull(s.UninstrumentedPeer);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
+            });
+    }
+
+    [Fact]
+    public async Task AddTraces_OnPeerUpdated_HaveUninstrumentedPeers()
+    {
+        // Arrange
+        var matchPeer = false;
+        var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes =>
+        {
+            if (matchPeer)
+            {
+                var name = "TestPeer";
+                var matchedResourced = ModelTestHelpers.CreateResource(appName: "TestPeer");
+
+                return (name, matchedResourced);
+            }
+            else
+            {
+                return (null, null);
+            }
+        });
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        var trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            });
+
+        matchPeer = true;
+        await outgoingPeerResolver.InvokePeerChanges();
+
+        applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Null(app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var uninstrumentedPeerApp = applications.Single(a => a.UninstrumentedPeer);
+
+        traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.NotNull(s.UninstrumentedPeer);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
             });
     }
 }

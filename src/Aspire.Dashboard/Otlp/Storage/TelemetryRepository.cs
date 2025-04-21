@@ -146,14 +146,20 @@ public sealed class TelemetryRepository : IDisposable
         return application;
     }
 
-    public List<OtlpApplication> GetApplications(ApplicationKey key)
+    public List<OtlpApplication> GetApplications(ApplicationKey key, bool includeUninstrumentedPeers = false)
     {
         if (key.InstanceId == null)
         {
-            return GetApplicationsByName(key.Name);
+            return GetApplicationsByName(key.Name, includeUninstrumentedPeers: includeUninstrumentedPeers);
         }
 
-        return [GetApplication(key)];
+        var app = GetApplication(key);
+        if (app == null || (app.UninstrumentedPeer && !includeUninstrumentedPeers))
+        {
+            return [];
+        }
+
+        return [app];
     }
 
     public Dictionary<ApplicationKey, int> GetApplicationUnviewedErrorLogsCount()
@@ -478,7 +484,7 @@ public sealed class TelemetryRepository : IDisposable
         List<OtlpApplication>? applications = null;
         if (applicationKey != null)
         {
-            applications = GetApplications(applicationKey.Value);
+            applications = GetApplications(applicationKey.Value, includeUninstrumentedPeers: true);
         }
 
         _tracesLock.EnterReadLock();
@@ -505,7 +511,7 @@ public sealed class TelemetryRepository : IDisposable
         List<OtlpApplication>? applications = null;
         if (context.ApplicationKey is { } key)
         {
-            applications = GetApplications(key);
+            applications = GetApplications(key, includeUninstrumentedPeers: true);
 
             if (applications.Count == 0)
             {
@@ -625,7 +631,7 @@ public sealed class TelemetryRepository : IDisposable
         List<OtlpApplication>? applications = null;
         if (applicationKey.HasValue)
         {
-            applications = GetApplications(applicationKey.Value);
+            applications = GetApplications(applicationKey.Value, includeUninstrumentedPeers: true);
         }
 
         _tracesLock.EnterWriteLock();
@@ -1089,8 +1095,8 @@ public sealed class TelemetryRepository : IDisposable
         {
             // A span may indicate a call to another service but the service isn't instrumented.
             var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
-            var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, _outgoingPeerResolvers) : null;
+            var hasUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
+            var uninstrumentedPeer = hasUninstrumentedPeer ? ResolveUninstrumentedPeerResource(span, _outgoingPeerResolvers) : null;
 
             if (uninstrumentedPeer != null)
             {
@@ -1111,18 +1117,18 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    private static ResourceViewModel? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    private static ResourceViewModel? ResolveUninstrumentedPeerResource(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
         foreach (var resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span.Attributes, out _, out var matchedResourced))
+            if (resolver.TryResolvePeer(span.Attributes, out _, out var matchedResourced))
             {
                 return matchedResourced;
             }
         }
 
-        return null; ;
+        return null;
     }
 
     [Conditional("DEBUG")]

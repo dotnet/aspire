@@ -19,7 +19,7 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         }
     }
 
-    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
+    public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
         // There isn't a good way to identify the HTTP request the BrowserLink middleware makes to
         // the IDE to get the script tag. The logic below looks at the host and URL and identifies
