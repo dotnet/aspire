@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Projects;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -17,7 +18,9 @@ public class ProjectLocatorTests
         var projectDirectory = Path.Combine(tempDirectory, "Aspire.Cli.Tests", "Projects", Guid.NewGuid().ToString());
         Directory.CreateDirectory(projectDirectory);
         var projectFile = new FileInfo(Path.Combine(projectDirectory, "AppHost.csproj"));
-        var projectLocator = new ProjectLocator(logger, projectDirectory);
+     
+        var runner = new TestDotNetCliRunner();
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
@@ -39,7 +42,9 @@ public class ProjectLocatorTests
         var projectFile2 = new FileInfo(Path.Combine(projectDirectory, "AppHost2.csproj"));
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
         
-        var projectLocator = new ProjectLocator(logger, projectDirectory);
+        var runner = new TestDotNetCliRunner();
+        
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(null);
@@ -56,7 +61,8 @@ public class ProjectLocatorTests
         var projectDirectory = Path.Combine(tempDirectory, "Aspire.Cli.Tests", "Projects", Guid.NewGuid().ToString());
         Directory.CreateDirectory(projectDirectory);
         
-        var projectLocator = new ProjectLocator(logger, projectDirectory);
+        var runner = new TestDotNetCliRunner();
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
             await projectLocator.UseOrFindAppHostProjectFileAsync(null);
@@ -75,7 +81,8 @@ public class ProjectLocatorTests
         var projectFile = new FileInfo(Path.Combine(projectDirectory, "MalformedProjectFile.csproj"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
-        var projectLocator = new ProjectLocator(logger, projectDirectory);
+        var runner = new TestDotNetCliRunner();
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
 
@@ -92,7 +99,8 @@ public class ProjectLocatorTests
         var projectFile = new FileInfo(Path.Combine(projectDirectory, "MalformedProjectFile.csproj"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
-        var projectLocator = new ProjectLocator(logger, projectDirectory);
+        var runner = new TestDotNetCliRunner();
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);

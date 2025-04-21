@@ -56,7 +56,7 @@ internal sealed class RunCommand : BaseCommand
             using var activity = _activitySource.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
             
             if (effectiveAppHostProjectFile is null)
             {

@@ -114,7 +114,8 @@ public class Program
     private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        return new ProjectLocator(logger, runner, Directory.GetCurrentDirectory());
     }
 
     public static async Task<int> Main(string[] args)
