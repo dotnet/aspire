@@ -18,7 +18,8 @@ public static class KeycloakResourceBuilderExtensions
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
-    private const string RealmImportDirectory = "/opt/keycloak/data/import";
+
+    private const string KeycloakDataDirectory = "/opt/keycloak/data";
 
     /// <summary>
     /// Adds a Keycloak container to the application model.
@@ -163,14 +164,38 @@ public static class KeycloakResourceBuilderExtensions
 
         if (Directory.Exists(importFullPath))
         {
-            return builder.WithBindMount(importFullPath, RealmImportDirectory, isReadOnly);
+            return builder.WithContainerFiles(
+                KeycloakDataDirectory,
+                [
+                    new ContainerDirectory
+                    {
+                        Name = "import",
+                        Entries = Directory.GetFiles(importFullPath)
+                            .Select(file => new ContainerFile{
+                                Name = Path.GetFileName(file),
+                                SourcePath = file,
+                            }),
+                    },
+                ]);
         }
 
         if (File.Exists(importFullPath))
         {
-            var fileName = Path.GetFileName(import);
-
-            return builder.WithBindMount(importFullPath, $"{RealmImportDirectory}/{fileName}", isReadOnly);
+            return builder.WithContainerFiles(
+                KeycloakDataDirectory,
+                [
+                    new ContainerDirectory
+                    {
+                        Name = "import",
+                        Entries = [
+                            new ContainerFile
+                            {
+                                Name = Path.GetFileName(importFullPath),
+                                SourcePath = importFullPath,
+                            },
+                        ],
+                    },
+                ]);
         }
 
         throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
