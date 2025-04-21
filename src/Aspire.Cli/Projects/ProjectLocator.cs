@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -11,7 +12,7 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, string currentDirectory) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory) : IProjectLocator
 {
     private readonly ActivitySource _activitySource = new(nameof(ProjectLocator));
 
@@ -44,6 +45,47 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         return appHostProjects;
     }
 
+    private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
+    {
+        var searchDirectory = currentDirectory;
+
+        while (true)
+        {
+            var settingsFile = new FileInfo(Path.Combine(searchDirectory.FullName, ".aspire", "settings.json"));
+
+            if (settingsFile.Exists)
+            {
+                using var stream = settingsFile.OpenRead();
+                var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+                if (json.RootElement.TryGetProperty("appHostPath", out var appHostPathProperty) && appHostPathProperty.GetString() is { } appHostPath )
+                {
+                    
+                    var qualifiedAppHostPath = Path.IsPathRooted(appHostPath) ? appHostPath : Path.Combine(settingsFile.Directory!.FullName, appHostPath);
+                    var appHostFile = new FileInfo(qualifiedAppHostPath);
+
+                    if (appHostFile.Exists)
+                    {
+                        return appHostFile;
+                    }
+                    else
+                    {
+                        throw new ProjectLocatorException($"AppHost file was specified in '{settingsFile.FullName}' but it does not exist.");
+                    }
+                }
+            }
+
+            if (searchDirectory.Parent is not null)
+            {
+                searchDirectory = searchDirectory.Parent;
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
     public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Finding project file in {CurrentDirectory}", currentDirectory);
@@ -61,8 +103,15 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             return projectFile;
         }
 
+        projectFile = await GetAppHostProjectFileFromSettingsAsync(cancellationToken);
+
+        if (projectFile is not null)
+        {
+            return projectFile;
+        }
+
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", currentDirectory);
-        var appHostProjects = await FindAppHostProjectFilesAsync(new DirectoryInfo(currentDirectory), cancellationToken);
+        var appHostProjects = await FindAppHostProjectFilesAsync(currentDirectory, cancellationToken);
 
         logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
 

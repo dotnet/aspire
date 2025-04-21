@@ -6,16 +6,16 @@ using Xunit;
 
 namespace Aspire.Cli.Tests.Utils;
 
-internal sealed class TemporaryRepo(ITestOutputHelper outputHelper, DirectoryInfo repoDirectory) : IDisposable
+internal sealed class TemporaryWorkspace(ITestOutputHelper outputHelper, DirectoryInfo repoDirectory) : IDisposable
 {
-    public DirectoryInfo RootDirectory => repoDirectory;
+    public DirectoryInfo WorkspaceRoot => repoDirectory;
 
     public DirectoryInfo CreateDirectory(string name)
     {
         return repoDirectory.CreateSubdirectory(name);
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public async Task InitializeGitAsync(CancellationToken cancellationToken = default)
     {
         outputHelper.WriteLine($"Initializing git repository at: {repoDirectory.FullName}");
 
@@ -55,13 +55,13 @@ internal sealed class TemporaryRepo(ITestOutputHelper outputHelper, DirectoryInf
         }
     }
 
-    internal static TemporaryRepo Create(ITestOutputHelper outputHelper)
+    internal static TemporaryWorkspace Create(ITestOutputHelper outputHelper)
     {
         var tempPath = Path.GetTempPath();
-        var path = Path.Combine(tempPath, "Aspire.Cli.Tests", "TemporaryRepo", Guid.NewGuid().ToString());
+        var path = Path.Combine(tempPath, "Aspire.Cli.Tests", "TemporaryWorkspaces", Guid.NewGuid().ToString());
         var repoDirectory = Directory.CreateDirectory(path);
-        outputHelper.WriteLine($"Temporary repo created at: {repoDirectory.FullName}");
+        outputHelper.WriteLine($"Temporary workspace created at: {repoDirectory.FullName}");
 
-        return new TemporaryRepo(outputHelper, repoDirectory);
+        return new TemporaryWorkspace(outputHelper, repoDirectory);
     }
 }
