@@ -132,22 +132,33 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
     public bool Apply(OtlpSpan span)
     {
         var fieldValue = OtlpSpan.GetFieldValue(span, Field);
-        if (fieldValue.Value1 == null)
+        var isNot = Condition is FilterCondition.NotEqual or FilterCondition.NotContains;
+
+        if (!isNot)
         {
-            return false;
+            // Or
+            if (fieldValue.Value1 != null && IsMatch(fieldValue.Value1, Value, Condition))
+            {
+                return true;
+            }
+            if (fieldValue.Value2 != null && IsMatch(fieldValue.Value2, Value, Condition))
+            {
+                return true;
+            }
+        }
+        else
+        {
+            // And
+            if (fieldValue.Value1 != null && IsMatch(fieldValue.Value1, Value, Condition))
+            {
+                if (fieldValue.Value2 != null && IsMatch(fieldValue.Value2, Value, Condition))
+                {
+                    return true;
+                }
+            }
         }
 
-        if (!IsMatch(fieldValue.Value1, Value, Condition))
-        {
-            return false;
-        }
-
-        if (fieldValue.Value2 != null && !IsMatch(fieldValue.Value2, Value, Condition))
-        {
-            return false;
-        }
-
-        return true;
+        return false;
 
         static bool IsMatch(string fieldValue, string filterValue, FilterCondition condition)
         {

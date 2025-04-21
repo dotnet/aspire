@@ -1234,13 +1234,15 @@ public class TraceTests
     [InlineData(KnownTraceFields.TraceIdField, "31")]
     [InlineData(KnownTraceFields.SpanIdField, "312d31")]
     [InlineData(KnownTraceFields.StatusField, "Unset")]
-    [InlineData(KnownTraceFields.KindField, "Internal")]
+    [InlineData(KnownTraceFields.KindField, "Client")]
     [InlineData(KnownResourceFields.ServiceNameField, "app1")]
+    [InlineData(KnownResourceFields.ServiceNameField, "TestPeer")]
     [InlineData(KnownSourceFields.NameField, "TestScope")]
     public void GetTraces_KnownFilters(string name, string value)
     {
         // Arrange
-        var repository = CreateRepository();
+        var outgoingPeerResolver = new TestOutgoingPeerResolver();
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
 
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
@@ -1253,7 +1255,7 @@ public class TraceTests
                     new ScopeSpans
                     {
                         Scope = CreateScope(),
-                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1")]) }
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1"), KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client) }
                     }
                 }
             }
