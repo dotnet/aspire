@@ -1,7 +1,7 @@
 {
   "author": "Microsoft",
   "name": ".NET Aspire Empty App",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "Build cloud-native systems without preset services.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

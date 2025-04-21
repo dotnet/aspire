@@ -12,7 +12,7 @@
   ],
   "name": ".NET Aspire Service Defaults",
   "defaultName": "ServiceDefaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "Service and cloud defaults wired up — just add your app logic.",
   "shortName": "aspire-servicedefaults",
   "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,

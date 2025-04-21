@@ -1,7 +1,7 @@
 {
   "author": "Microsoft",
   "name": ".NET Aspire App Host",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": "Manages and runs multiple services in your .NET Aspire app from one place.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
