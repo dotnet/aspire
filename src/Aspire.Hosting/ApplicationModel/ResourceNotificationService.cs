@@ -545,7 +545,7 @@ public class ResourceNotificationService : IDisposable
                     "State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
                     "HeathStatus = {HealthStatus}, " +
                     "ResourceReady = {ResourceReady}, " +
-                    "ExitCode = {ExitCode}," +
+                    "ExitCode = {ExitCode}, " +
                     "Urls = {{ {Urls} }}, " +
                     "EnvironmentVariables = {{ {EnvironmentVariables} }}, " +
                     "Properties = {{ {Properties} }}, " +
