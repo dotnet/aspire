@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
+using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.InternalTesting;
@@ -260,6 +262,35 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
         Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+    }
+
+    [Fact]
+    public async Task Configuration_OptionsMonitor_DebugSession()
+    {
+        // Arrange
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData[DashboardConfigNames.DebugSessionAddressName.ConfigKey] = "address_name!";
+                initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal("address_name!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Address);
+
+        var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
+        Assert.NotNull(cert);
+        Assert.Equal(testCert.Thumbprint, cert.Thumbprint);
+
+        Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
+        Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
     }
 
     [Fact]
