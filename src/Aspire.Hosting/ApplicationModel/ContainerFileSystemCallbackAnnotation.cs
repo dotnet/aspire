@@ -53,9 +53,15 @@ public abstract class ContainerFileSystemItem
 public sealed class ContainerFile : ContainerFileSystemItem
 {
     /// <summary>
-    /// The contents of the file. If null, the file will be created as an empty file.
+    /// The contents of the file. Setting Contents is mutually exclusive with <see cref="SourcePath"/>. If both are set, an exception will be thrown.
     /// </summary>
     public string? Contents { get; set; }
+
+    /// <summary>
+    /// The path to a file on the host system to copy into the container. This path must be absolute and point to a file on the host system.
+    /// Setting SourcePath is mutually exclusive with <see cref="Contents"/>. If both are set, an exception will be thrown.
+    /// </summary>
+    public string? SourcePath { get; set; }
 }
 
 /// <summary>
