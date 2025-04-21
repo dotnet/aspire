@@ -30,9 +30,9 @@
       "condition": "AspireVersionActual == 9.2"
     },
     {
-      "source": "./9.1",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 9.1"
+      "condition": "AspireVersionActual == 9.3"
     },
   ],
   "symbols": {
@@ -65,9 +65,9 @@
           "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.2"
@@ -85,9 +85,9 @@
           "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.2"
@@ -105,9 +105,9 @@
           "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.2"
@@ -119,16 +119,16 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.1",
-            "value": "9.1"
+            "condition": "AspireVersionCli == 9.3",
+            "value": "9.3"
           },
           {
-            "condition": "AspireVersion == 9.1",
-            "value": "9.1"
+            "condition": "AspireVersion == 9.3",
+            "value": "9.3"
           },
           {
-            "condition": "AspireVersionNet9 == 9.1",
-            "value": "9.1"
+            "condition": "AspireVersionNet9 == 9.3",
+            "value": "9.3"
           },
           {
             "condition": "",
