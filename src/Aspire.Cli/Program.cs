@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Microsoft.Extensions.Configuration;
+
 
 #if DEBUG
 using OpenTelemetry;
@@ -27,6 +29,11 @@ namespace Aspire.Cli;
 public class Program
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
+
+    private static void AddConfigurationFiles(HostApplicationBuilder builder)
+    {
+        
+    }
 
     private static IHost BuildApplication(string[] args)
     {

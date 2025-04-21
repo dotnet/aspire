@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -38,12 +39,12 @@ public class ProjectLocatorTests
         Directory.CreateDirectory(projectDirectory);
         var projectFile1 = new FileInfo(Path.Combine(projectDirectory, "AppHost1.csproj"));
         await File.WriteAllTextAsync(projectFile1.FullName, "Not a real project file.");
-        
+
         var projectFile2 = new FileInfo(Path.Combine(projectDirectory, "AppHost2.csproj"));
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
-        
+
         var runner = new TestDotNetCliRunner();
-        
+
         var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
@@ -51,6 +52,37 @@ public class ProjectLocatorTests
         });
 
         Assert.Equal("Multiple project files found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileOnlyConsidersValidAppHostProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        var tempDirectory = Path.GetTempPath();
+        var projectDirectory = Path.Combine(tempDirectory, "Aspire.Cli.Tests", "Projects", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(projectDirectory);
+        var appHostProject = new FileInfo(Path.Combine(projectDirectory, "AppHost.csproj"));
+        await File.WriteAllTextAsync(appHostProject.FullName, "Not a real apphost project.");
+
+        var webProject = new FileInfo(Path.Combine(projectDirectory, "WebProject.csproj"));
+        await File.WriteAllTextAsync(webProject.FullName, "Not a real web project.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) => {
+            if (projectFile.FullName == appHostProject.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                return (0, false, null);
+            }
+        };
+
+        var projectLocator = new ProjectLocator(logger, runner, projectDirectory);
+
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
 
     [Fact]
