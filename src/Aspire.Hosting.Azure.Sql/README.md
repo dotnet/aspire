@@ -66,7 +66,7 @@ If you want don't want to use the free offer and instead deploy the database wit
 
 ```csharp
 var sql = builder.AddAzureSqlServer("sql")
-                 .AddDatabase("db", "my-db-name", "HS_Gen5_2");
+                 .AddDatabase("db", "my-db-name").WithSku("HS_Gen5_2");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(sql);

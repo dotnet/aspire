@@ -79,11 +79,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// </summary>
     public IReadOnlyDictionary<string, AzureSqlDatabaseResource> Databases => _databases;
 
-    internal void AddDatabase(string name, string databaseName, string skuName)
-    {
-        _databases.TryAdd(name, new AzureSqlDatabaseResource(name, databaseName, skuName, this));
-    }
-
     internal void AddDatabase(AzureSqlDatabaseResource db)
     {
         _databases.TryAdd(db.Name, db);

@@ -108,7 +108,8 @@ public static class AzureSqlExtensions
         databaseName ??= name;
 
         var azureResource = builder.Resource;
-        var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, skuName, azureResource);
+        var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
+        azureSqlDatabase.SkuName = skuName;
 
         builder.Resource.AddDatabase(azureSqlDatabase);
 
@@ -126,6 +127,18 @@ public static class AzureSqlExtensions
             // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azureSqlDatabase);
         }
+    }
+
+    /// <summary>
+    /// Configures the Azure SQL Database to be deployed with the specified SKU
+    /// </summary>
+    /// <param name="builder">The builder for the Azure SQL resource.</param>
+    /// <param name="skuName">SKU of the database. If not provided, this defaults to the free database tier.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureSqlDatabaseResource> WithSku(this IResourceBuilder<AzureSqlDatabaseResource> builder, string skuName)
+    {
+        builder.Resource.SkuName = skuName;
+        return builder;
     }
 
     /// <summary>

@@ -12,15 +12,16 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
-/// <param name="skuName">The database SKU name.</param>
 /// <param name="parent">The Azure SQL Database (server) parent resource associated with this database.</param>
-public class AzureSqlDatabaseResource(string name, string databaseName, string skuName, AzureSqlServerResource parent)
+public class AzureSqlDatabaseResource(string name, string databaseName, AzureSqlServerResource parent)
     : Resource(name), IResourceWithParent<AzureSqlServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Free Azure SQL database offer
     /// </summary>
     public const string FREE_SKU = "Free";
+
+    private string _skuName = FREE_SKU;
 
     /// <summary>
     /// Gets the parent Azure SQL Database (server) resource.
@@ -39,9 +40,13 @@ public class AzureSqlDatabaseResource(string name, string databaseName, string s
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
     /// <summary>
-    /// Gets the database SKU name
+    /// Gets or Sets the database SKU name
     /// </summary>
-    public string SkuName { get; } = ThrowIfNullOrEmpty(skuName);
+    internal string SkuName
+    {
+        get { return _skuName; }
+        set { ThrowIfNullOrEmpty(value); _skuName = value; }
+    }
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.

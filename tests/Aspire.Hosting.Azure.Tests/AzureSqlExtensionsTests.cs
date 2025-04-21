@@ -29,7 +29,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         sql.AddDatabase("db2", "db2Name");
 
         // set the database name, set the sku to HS_Gen5_2
-        sql.AddDatabase("db3", "db3Name", "HS_Gen5_2");
+        sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
 
         // set the database name, set the sku to Basic
         sql.AddDatabase("db4", "db4Name", "Basic");
@@ -37,7 +37,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         // set the database name, explicitly ask for the free tier
         // (which does not exist in reality, but we using the "Free" moniker
         // to indicate that we want to take advantage of the free offer
-        sql.AddDatabase("db5", "db5Name", "Free");
+        sql.AddDatabase("db5", "db5Name").WithSku("Free");
 
         if (useAcaInfrastructure)
         {
