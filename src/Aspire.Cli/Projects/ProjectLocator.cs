@@ -115,12 +115,36 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
 
-        return appHostProjects.Count switch {
+        var selectedAppHost = appHostProjects.Count switch {
             0 => throw new ProjectLocatorException("No project file found."),
             > 1 => throw new ProjectLocatorException("Multiple project files found."),
             1 => appHostProjects[0],
             _ => throw new ProjectLocatorException("Unexpected number of project files found.")
         };
+
+        await CreateSettingsFileIfNotExistsAsync(selectedAppHost, cancellationToken);
+        return selectedAppHost;
+    }
+
+    private async Task CreateSettingsFileIfNotExistsAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        var settingsFile = new FileInfo(Path.Combine(currentDirectory.FullName, ".aspire", "settings.json"));
+
+        if (!settingsFile.Exists)
+        {
+            if (!settingsFile.Directory!.Exists)
+            {
+                settingsFile.Directory.Create();
+            }
+
+            var settings = new CliSettings
+            {
+                AppHostPath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName)
+            };
+
+            using var stream = settingsFile.OpenWrite();
+            await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
+        }
     }
 }
 
