@@ -3,85 +3,85 @@
 
   <ItemGroup Label="Aspire packages">
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Messaging.WebPubSub" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Search.Documents" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Confluent.Kafka" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Messaging.WebPubSub" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Search.Documents" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Confluent.Kafka" Version="9.2.1" />
     <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="$(PackageVersion)" />
 
-    <PackageVersion Include="Aspire.Hosting" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.AppConfiguration" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Hosting" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppConfiguration" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="9.2.1" />
     <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="9.2.1" />
     <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Garnet" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Kafka" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Garnet" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Kafka" Version="9.2.1" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Milvus" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.MySql" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Nats" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Oracle" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Orleans" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Python" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.2.0" />
-    <PackageVersion Include="Aspire.AppHost.Sdk" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Seq" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Valkey" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Milvus" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.MySql" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Nats" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Oracle" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Orleans" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Python" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.2.1" />
+    <PackageVersion Include="Aspire.AppHost.Sdk" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Seq" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Valkey" Version="9.2.1" />
 
     <PackageVersion Include="Aspire.Keycloak.Authentication" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="9.2.1" />
     <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.MongoDB.Driver" Version="9.2.0" />
-    <PackageVersion Include="Aspire.MongoDB.Driver.v3" Version="9.2.0" />
-    <PackageVersion Include="Aspire.MySqlConnector" Version="9.2.0" />
-    <PackageVersion Include="Aspire.NATS.Net" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Npgsql" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Oracle.EntityFrameworkCore" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Qdrant.Client" Version="9.2.0" />
-    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="9.2.0" />
-    <PackageVersion Include="Aspire.RabbitMQ.Client.v7" Version="9.2.0" />
-    <PackageVersion Include="Aspire.Seq" Version="9.2.0" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.2.0" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.2.0" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.2.0" />
+    <PackageVersion Include="Aspire.MongoDB.Driver" Version="9.2.1" />
+    <PackageVersion Include="Aspire.MongoDB.Driver.v3" Version="9.2.1" />
+    <PackageVersion Include="Aspire.MySqlConnector" Version="9.2.1" />
+    <PackageVersion Include="Aspire.NATS.Net" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Npgsql" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Oracle.EntityFrameworkCore" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Qdrant.Client" Version="9.2.1" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="9.2.1" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client.v7" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Seq" Version="9.2.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.2.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.2.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.2.1" />
 
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="9.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="9.2.1" />
   </ItemGroup>
 
   <ItemGroup Label="For tests">
