@@ -254,7 +254,8 @@ public static class AzureSqlExtensions
                 sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
                 sqlDatabase.UseFreeLimit = true;
                 sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
-            } else
+            }
+            else
             {
                 sqlDatabase.Sku = new SqlSku() { Name = database.Value.SkuName };
             }

@@ -26,8 +26,6 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// </summary>
     internal const string FREE_DB_SKU = "GP_S_Gen5_2";
 
-    private string _skuName = FREE_SKU_NAME;
-
     /// <summary>
     /// Gets the parent Azure SQL Database (server) resource.
     /// </summary>
@@ -52,6 +50,7 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
         get { return _skuName; }
         set { ThrowIfNullOrEmpty(value); _skuName = value.Trim(); }
     }
+    private string _skuName = FREE_SKU_NAME;
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.
