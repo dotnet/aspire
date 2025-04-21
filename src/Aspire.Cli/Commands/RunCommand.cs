@@ -226,7 +226,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files"))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
