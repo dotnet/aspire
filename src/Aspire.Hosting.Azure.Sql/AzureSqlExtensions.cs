@@ -99,7 +99,7 @@ public static class AzureSqlExtensions
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <param name="skuName">SKU of the database. If not provided, this defaults to the free database tier.<paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null, string skuName = AzureSqlDatabaseResource.FREE_SKU)
+    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null, string skuName = AzureSqlDatabaseResource.FREE_SKU_NAME)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -225,7 +225,7 @@ public static class AzureSqlExtensions
                 Name = databaseName,
             };
             
-            sqlDatabase.Sku = new SqlSku() { Name = "GP_S_Gen5_2" };
+            sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
             sqlDatabase.UseFreeLimit = true;
             sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
 
@@ -250,9 +250,9 @@ public static class AzureSqlExtensions
                 Name = databaseName,
             };
 
-            if (database.Value.SkuName == AzureSqlDatabaseResource.FREE_SKU)
+            if (string.Equals(database.Value.SkuName, AzureSqlDatabaseResource.FREE_SKU_NAME, StringComparison.InvariantCultureIgnoreCase))
             {
-                sqlDatabase.Sku = new SqlSku() { Name = "GP_S_Gen5_2" };
+                sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
                 sqlDatabase.UseFreeLimit = true;
                 sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
             } else
