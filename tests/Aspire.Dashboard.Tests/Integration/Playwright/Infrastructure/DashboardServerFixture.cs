@@ -58,7 +58,7 @@ public class DashboardServerFixture : IAsyncLifetime
             {
                 builder.Configuration.AddConfiguration(config);
                 builder.Services.AddSingleton<IDashboardClientStatus, MockDashboardClientStatus>();
-                builder.Services.AddScoped<IDashboardClient, MockDashboardClient>();
+                builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
             });
 
         await DashboardApp.StartAsync();
