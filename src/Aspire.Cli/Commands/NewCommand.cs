@@ -56,6 +56,11 @@ internal sealed class NewCommand : BaseCommand
         var prereleaseOption = new Option<bool>("--prerelease");
         prereleaseOption.Description = "Include prerelease versions when searching for project templates.";
         Options.Add(prereleaseOption);
+
+        var languageOption = new Option<string?>("--language", "-l");
+        languageOption.Description = "Language used for the generated app host.";
+        languageOption.Hidden = true; // TODO: Remove this when we are ready to ship this feature.
+        Options.Add(languageOption);
     }
 
     private async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -129,7 +134,7 @@ internal sealed class NewCommand : BaseCommand
         }
     }
 
-    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> CreateNewDotNetProjectAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -179,6 +184,41 @@ internal sealed class NewCommand : BaseCommand
         _interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
 
         return ExitCodeConstants.Success;
+    }
+
+    private async Task<int> CreateNewTypeScriptProjectAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        try
+        {
+            var outputPath = await GetOutputPathAsync(parseResult, "apphost.ts", cancellationToken);
+
+            await File.WriteAllTextAsync(
+                outputPath,
+                """
+                console.log("Just imagine the apphost running here!");
+                """,
+                cancellationToken);
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _interactionService.DisplayError($"An error occurred while creating the TypeScript project: {ex.Message}");
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
+    }
+
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        return parseResult.GetValue<string?>("--language") switch
+        {
+            "ts" or "typescript" => await CreateNewTypeScriptProjectAsync(parseResult, cancellationToken),
+            _ => await CreateNewDotNetProjectAsync(parseResult, cancellationToken)
+        };
     }
 }
 
