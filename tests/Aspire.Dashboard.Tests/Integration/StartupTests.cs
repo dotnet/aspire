@@ -273,7 +273,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: initialData =>
             {
-                initialData[DashboardConfigNames.DebugSessionAddressName.ConfigKey] = "address_name!";
+                initialData[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
                 initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
                 initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
                 initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
@@ -283,7 +283,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync().DefaultTimeout();
 
         // Assert
-        Assert.Equal("address_name!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Address);
+        Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
 
         var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
         Assert.NotNull(cert);

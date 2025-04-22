@@ -9,11 +9,22 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target)
+internal interface IAppHostBackchannel
+{
+    Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
+    Task RequestStopAsync(CancellationToken cancellationToken);
+    Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync(CancellationToken cancellationToken);
+    Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
+    Task<string[]> GetPublishersAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
+    Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
+}
+
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
 {
     private readonly ActivitySource _activitySource = new(nameof(AppHostBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
-    private Process? _process;
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -86,13 +97,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public async Task ConnectAsync(Process process, string socketPath, CancellationToken cancellationToken)
+    public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
     {
         try
         {
             using var activity = _activitySource.StartActivity();
-
-            _process = process;
 
             if (_rpcTaskCompletionSource.Task.IsCompleted)
             {

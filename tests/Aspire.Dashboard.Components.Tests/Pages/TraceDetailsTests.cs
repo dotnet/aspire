@@ -157,6 +157,158 @@ public partial class TraceDetailsTests : DashboardTestContext
         }, "Expected rows to be rendered.", logger);
     }
 
+    [Fact]
+    public async Task Render_SpansOrderedByStartTime_RowsRenderedInCorrectOrder()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10),
+                                    parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10),
+                                    parentSpanId: "2-1"),
+                                CreateSpan(traceId: "1", spanId: "3-3",
+                                    startTime: s_testTime.AddMinutes(3),
+                                    endTime: s_testTime.AddMinutes(5),
+                                    parentSpanId: "2-1"),
+                                CreateSpan(traceId: "1", spanId: "3-2",
+                                    startTime: s_testTime.AddMinutes(2),
+                                    endTime: s_testTime.AddMinutes(6),
+                                    parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        // Act
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        var data = await cut.Instance.GetData(new GridItemsProviderRequest<SpanWaterfallViewModel>());
+
+        // Assert
+        Assert.Collection(data.Items,
+            item => Assert.Equal("Test span. Id: 1-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 2-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-2", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-3", item.Span.Name));
+    }
+
+    [Fact]
+    public void ToggleCollapse_SpanStateChanges()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(5),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(6),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
+        // Act and assert
+
+        // Collapse the middle span
+        cut.FindAll(".main-grid-expand-button")[1].Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be two containers since the 3rd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-expanded")),
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+
+        // Collapse the parent span
+        cut.FindAll(".main-grid-expand-button")[0].Click();
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be one container since the 2nd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+
+        // Expand the parent span, we should now see the same two containers as before
+        cut.FindAll(".main-grid-expand-button")[0].Click();
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be two containers since the 3rd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-expanded")),
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+    }
+
     private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;

@@ -34,13 +34,17 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
-    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
+    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(_displayedResourcePropertyViewModels).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private readonly List<DisplayedResourcePropertyViewModel> _displayedResourcePropertyViewModels = new();
     private readonly HashSet<string> _unmaskedItemNames = new();
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
@@ -76,7 +80,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+    internal IQueryable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
             .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -113,6 +117,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             }
 
             _resource = Resource;
+            _displayedResourcePropertyViewModels.Clear();
+            _displayedResourcePropertyViewModels.AddRange(_resource.Properties.Select(p => new DisplayedResourcePropertyViewModel(p.Value, Loc, TimeProvider)));
 
             // Collapse details sections when they have no data.
             _isUrlsExpanded = GetUrls().Count > 0;
@@ -224,13 +230,13 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         return ResourceUrlHelpers.GetUrls(Resource, includeInternalUrls: true, includeNonEndpointUrls: true);
     }
 
-    private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)
+    private IEnumerable<DisplayedResourcePropertyViewModel> GetResourceProperties(bool ordered)
     {
-        var vms = Resource.Properties.Values
+        var vms = _displayedResourcePropertyViewModels
             .Where(vm => vm.Value is { HasNullValue: false } and not { KindCase: Value.KindOneofCase.ListValue, ListValue.Values.Count: 0 });
 
         return ordered
-            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.Name)
+            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.DisplayName)
             : vms;
     }
 

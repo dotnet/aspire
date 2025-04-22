@@ -229,8 +229,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Data from the server.
-        builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
-        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
+        builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         builder.Services.AddSingleton<PauseManager>();
@@ -249,8 +248,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddTransient<OtlpMetricsService>();
 
         builder.Services.AddTransient<TracesViewModel>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
 
@@ -266,7 +265,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
         builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
 
-        builder.Services.AddScoped<IKnownPropertyLookup, KnownPropertyLookup>();
+        builder.Services.AddSingleton<IKnownPropertyLookup, KnownPropertyLookup>();
 
         builder.Services.AddScoped<DimensionManager>();
 
@@ -358,7 +357,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);

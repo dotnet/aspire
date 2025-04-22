@@ -16,7 +16,7 @@ public sealed class DashboardOptions
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
-    public DebugSessionOptions DebugSession { get; set;} = new();
+    public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
 }
 
@@ -311,7 +311,7 @@ public sealed class DebugSessionOptions
 {
     private X509Certificate2? _serverCertificate;
 
-    public string? Address { get; set; }
+    public int? Port { get; set; }
     public string? Token { get; set; }
     public string? ServerCertificate { get; set; }
     public bool? TelemetryOptOut { get; set; }

@@ -30,7 +30,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        // The azure publisher is not tied to azure container apps but this is 
+        // The azure publisher is not tied to azure container apps but this is
         // a good way to test the end to end scenario
         builder.AddAzureContainerAppEnvironment("acaEnv");
 
@@ -230,6 +230,12 @@ public class AzurePublisherTests(ITestOutputHelper output)
               }
             }
 
+            output acaEnv_AZURE_CONTAINER_REGISTRY_NAME string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_NAME
+
+            output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+
+            output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+
             output myapp_identity_id string = myapp_identity.outputs.id
 
             output myapp_identity_clientId string = myapp_identity.outputs.clientId
@@ -245,10 +251,6 @@ public class AzurePublisherTests(ITestOutputHelper output)
             output fe_identity_clientId string = fe_identity.outputs.clientId
 
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
-
-            output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-
-            output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
             """;
         output.WriteLine(content);
         Assert.Equal(expectedBicep, content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);

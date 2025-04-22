@@ -16,6 +16,7 @@
     <XUnitAnalyzersVersion>1.20.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.0.2</XunitRunnerVisualStudioVersion>
     <MicrosoftTestingPlatformVersion>1.6.3</MicrosoftTestingPlatformVersion>
+    <MicrosoftNETTestSdkVersion>17.13.0</MicrosoftNETTestSdkVersion>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
     <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>
@@ -24,13 +25,13 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.13.0</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.13.0</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.13.0</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.13.0</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanewindows386Version>0.13.0</MicrosoftDeveloperControlPlanewindows386Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.13.0</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.13.0</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.13.1</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.13.1</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.13.1</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.13.1</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanewindows386Version>0.13.1</MicrosoftDeveloperControlPlanewindows386Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.13.1</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.13.1</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25208.6</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25178.1</MicrosoftDotNetXUnitV3ExtensionsVersion>

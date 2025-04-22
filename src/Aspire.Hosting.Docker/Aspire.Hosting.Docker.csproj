@@ -4,15 +4,15 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire hosting kubernetes</PackageTags>
-    <Description>Kubernetes publishing for .NET Aspire.</Description>
+    <PackageTags>aspire hosting docker docker-compose</PackageTags>
+    <Description>Docker Compose publishing for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Shared\PortAllocator.cs" />
-    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
   </ItemGroup>
 
   <ItemGroup>

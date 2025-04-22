@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -21,13 +23,19 @@ internal static class CliTestHelper
         configure?.Invoke(options);
 
         var services = new ServiceCollection();
+
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddSingleton<IConfiguration>(configuration);
+
         services.AddLogging();
 
+        services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
-        services.AddSingleton(options.InteractiveServiceFactory);
+        services.AddSingleton(options.InteractionServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
+        services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddTransient<RootCommand>();
@@ -35,6 +43,7 @@ internal static class CliTestHelper
         services.AddTransient<RunCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<PublishCommand>();
+        services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
     }
@@ -42,6 +51,19 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
 {
+    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Yes,
+            Interactive = InteractionSupport.Yes,
+            ColorSystem = ColorSystemSupport.Standard,
+            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        return ansiConsole;
+    };
+
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
@@ -54,20 +76,21 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         return new AddCommandPrompter(interactionService);
     };
 
-    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
-        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
+    public Func<IServiceProvider, IPublishCommandPrompter> PublishCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new PublishCommandPrompter(interactionService);
     };
 
-    public Func<IServiceProvider, IInteractionService> InteractiveServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
-        {
-            Ansi = AnsiSupport.Yes,
-            Interactive = InteractionSupport.Yes,
-            ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
-        };
-        return new InteractionService(AnsiConsole.Create(settings));
+    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
+    };
+
+    public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        return new InteractionService(ansiConsole);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
@@ -84,6 +107,13 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         return new NuGetPackageCache(logger, runner);
+    };
+
+    public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
+        var rpcTarget = serviceProvider.GetService<CliRpcTarget>() ?? throw new InvalidOperationException("CliRpcTarget not registered");
+        return new AppHostBackchannel(logger, rpcTarget);
     };
 }
 

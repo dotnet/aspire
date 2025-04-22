@@ -23,7 +23,6 @@ public class ApplicationNameTests : DashboardTestContext
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
-        Services.AddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         Services.AddSingleton<BrowserTimeProvider>();
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
@@ -41,7 +40,6 @@ public class ApplicationNameTests : DashboardTestContext
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
-        Services.AddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         Services.AddSingleton<BrowserTimeProvider>();
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
@@ -79,6 +77,7 @@ public class ApplicationNameTests : DashboardTestContext
         public string ApplicationName => "<marquee>An HTML title!</marquee>";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }

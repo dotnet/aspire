@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +36,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return new TestAddCommandPrompter(interactionService);
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -90,6 +89,156 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task AddCommandSortsPackageVersions()
+    {
+        IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestAddCommandPrompter(interactionService);
+
+                prompter.PromptForIntegrationVersionCallback = (packages) =>
+                {
+                    promptedPackages = packages;
+                    return packages.First();
+                };
+
+                return prompter;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                {
+                    var redis92Package = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redis93Package = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.3.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { redis92Package, redis93Package } // 
+                        );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                {
+                    // Simulate adding the package.
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        Assert.Collection(
+            promptedPackages!,
+            p => Assert.Equal("9.3.0", p.Package.Version),
+            p => Assert.Equal("9.2.0", p.Package.Version)
+            );
+    }
+
+    [Fact]
+    public async Task AddCommandSortsPackageVersionsWithPrerelease()
+    {
+        IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestAddCommandPrompter(interactionService);
+
+                prompter.PromptForIntegrationVersionCallback = (packages) =>
+                {
+                    promptedPackages = packages;
+                    return packages.First();
+                };
+
+                return prompter;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                {
+                    var redis92Package = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redis94PrereleasePackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.4.0-preview1.1234"
+                    };
+
+                    var redis93Package = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.3.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { redis92Package, redis94PrereleasePackage, redis93Package } // 
+                        );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                {
+                    // Simulate adding the package.
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        Assert.Collection(
+            promptedPackages!,
+            p => Assert.Equal("9.4.0-preview1.1234", p.Package.Version),
+            p => Assert.Equal("9.3.0", p.Package.Version),
+            p => Assert.Equal("9.2.0", p.Package.Version)
+            );
+    }
+
+    [Fact]
     public async Task AddCommandDoesNotPromptForIntegrationArgumentIfSpecifiedOnCommandLine()
     {
         var promptedForIntegrationPackages = false;
@@ -110,7 +259,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -191,7 +340,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -268,7 +417,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.ProjectLocatorFactory = _ => new FakeProjectLocator();
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -328,20 +477,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("9.2.0", addedPackageVersion);
     }
 
-}
-
-internal sealed class FakeProjectLocator : IProjectLocator
-{
-    public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
-    {
-        if (projectFile != null)
-        {
-            return projectFile;
-        }
-
-        var fakeProjectFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "AppHost.csproj");
-        return new FileInfo(fakeProjectFilePath);
-    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)

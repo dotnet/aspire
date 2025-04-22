@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Utils;
+using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -42,7 +42,6 @@ internal sealed class AddCommand : BaseCommand
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the project file to add the integration to.";
-        projectOption.Validators.Add((result) => ProjectFileHelper.ValidateProjectOption(result, projectLocator));
         Options.Add(projectOption);
 
         var versionOption = new Option<string>("--version", "-v");
@@ -66,9 +65,12 @@ internal sealed class AddCommand : BaseCommand
         {
             var integrationName = parseResult.GetValue<string>("integration");
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile =  _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-            
+            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
+            {
+                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            });
+
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
@@ -147,9 +149,9 @@ internal sealed class AddCommand : BaseCommand
             _interactionService.DisplayError("The --project option specified a project that does not exist.");
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files found."))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
@@ -192,7 +194,8 @@ internal sealed class AddCommand : BaseCommand
         }
 
             // ... otherwise we had better prompt.
-        var version = await _prompter.PromptForIntegrationVersionAsync(packageVersions, cancellationToken);
+        var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        var version = await _prompter.PromptForIntegrationVersionAsync(orderedPackageVersions, cancellationToken);
 
         return version;
     }

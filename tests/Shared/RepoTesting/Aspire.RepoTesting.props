@@ -18,6 +18,10 @@
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
+
+    <!-- Workaround for VSCode issues, until it's figured out and resolved. -->
+    <!-- This basically causes Test Explorer in VS and VS Code to use VSTest -->
+    <DisableTestingPlatformServerCapability>true</DisableTestingPlatformServerCapability>
     <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
 
   </PropertyGroup>

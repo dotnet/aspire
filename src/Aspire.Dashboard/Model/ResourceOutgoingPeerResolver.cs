@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
@@ -41,36 +42,70 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
             await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token).ConfigureAwait(false))
             {
+                var hasUrlChanges = false;
+
                 foreach (var (changeType, resource) in changes)
                 {
                     if (changeType == ResourceViewModelChangeType.Upsert)
                     {
+                        if (!_resourceByName.TryGetValue(resource.Name, out var existingResource) || !AreEquivalent(resource.Urls, existingResource.Urls))
+                        {
+                            hasUrlChanges = true;
+                        }
+
                         _resourceByName[resource.Name] = resource;
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
                     {
+                        hasUrlChanges = true;
+
                         var removed = _resourceByName.TryRemove(resource.Name, out _);
                         Debug.Assert(removed, "Cannot remove unknown resource.");
                     }
                 }
 
-                await RaisePeerChangesAsync().ConfigureAwait(false);
+                if (hasUrlChanges)
+                {
+                    await RaisePeerChangesAsync().ConfigureAwait(false);
+                }
             }
         });
     }
 
-    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
+    private static bool AreEquivalent(ImmutableArray<UrlViewModel> urls1, ImmutableArray<UrlViewModel> urls2)
     {
-        return TryResolvePeerNameCore(_resourceByName, attributes, out name);
+        // Compare if the two sets of URLs are equivalent.
+        if (urls1.Length != urls2.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < urls1.Length; i++)
+        {
+            var url1 = urls1[i].Url;
+            var url2 = urls2[i].Url;
+
+            if (!url1.Equals(url2))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
+    public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
+    {
+        return TryResolvePeerNameCore(_resourceByName, attributes, out name, out matchedResource);
+    }
+
+    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
             // Match exact value.
-            if (TryMatchResourceAddress(address, out name))
+            if (TryMatchResourceAddress(address, out name, out resourceMatch))
             {
                 return true;
             }
@@ -82,7 +117,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             foreach (var transformer in s_addressTransformers)
             {
                 transformedAddress = transformer(transformedAddress);
-                if (TryMatchResourceAddress(transformedAddress, out name))
+                if (TryMatchResourceAddress(transformedAddress, out name, out resourceMatch))
                 {
                     return true;
                 }
@@ -90,9 +125,10 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         }
 
         name = null;
+        resourceMatch = null;
         return false;
 
-        bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
+        bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
         {
             foreach (var (resourceName, resource) in resources)
             {
@@ -103,12 +139,14 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {
                         name = ResourceViewModel.GetResourceName(resource, resources);
+                        resourceMatch = resource;
                         return true;
                     }
                 }
             }
 
             name = null;
+            resourceMatch = null;
             return false;
         }
     }

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -18,6 +18,8 @@
     <ToolCommandName>aspire</ToolCommandName>
     <PackageId>Aspire.Cli</PackageId>
     <RollForward>Major</RollForward>
+    <PackageTags>aspire cli</PackageTags>
+    <Description>Command line tool for Aspire developers.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +34,7 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Shared\KnownConfigNames.cs" Link="KnownConfigNames.cs" />
+    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
   </ItemGroup>
 
   <ItemGroup>
