@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -309,5 +311,21 @@ internal static class TelemetryTestHelpers
             Status = statusCode ?? OtlpSpanStatusCode.Unset,
             StatusMessage = statusMessage
         };
+    }
+
+    public static X509Certificate2 GenerateDummyCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=DummyCertificate",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+
+        var certificate = request.CreateSelfSigned(
+            DateTimeOffset.Now,
+            DateTimeOffset.Now.AddYears(1));
+
+        return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
     }
 }
