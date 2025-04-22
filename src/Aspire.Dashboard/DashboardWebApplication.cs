@@ -229,7 +229,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
-        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         builder.Services.AddSingleton<PauseManager>();
@@ -351,7 +350,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);

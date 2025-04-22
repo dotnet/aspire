@@ -57,7 +57,6 @@ public class DashboardServerFixture : IAsyncLifetime
             preConfigureBuilder: builder =>
             {
                 builder.Configuration.AddConfiguration(config);
-                builder.Services.AddSingleton<IDashboardClientStatus, MockDashboardClientStatus>();
                 builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
             });
 
