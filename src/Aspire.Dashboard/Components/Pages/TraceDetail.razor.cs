@@ -76,24 +76,31 @@ public partial class TraceDetail : ComponentBase, IDisposable
         }
     }
 
-    private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
+    // Internal to be used in unit tests
+    internal ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
         var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            if (viewModel.IsHidden || visibleViewModels.Contains(viewModel))
+            {
+                continue;
+            }
+
+            if (viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
             {
                 visibleViewModels.Add(viewModel);
-                foreach (var descendent in matchedDescendents)
+                foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))
                 {
                     visibleViewModels.Add(descendent);
                 }
             }
         }
 
-        var page = visibleViewModels.AsEnumerable();
+        var page = _spanWaterfallViewModels.Where(visibleViewModels.Contains).AsEnumerable();
+        var totalItemCount = page.Count();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -103,7 +110,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
             Items = page.ToList(),
-            TotalItemCount = visibleViewModels.Count
+            TotalItemCount = totalItemCount
         });
     }
 
@@ -236,6 +243,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
             _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
 
+        UpdateDetailViewData();
         await _dataGrid.SafeRefreshDataAsync();
     }
 
