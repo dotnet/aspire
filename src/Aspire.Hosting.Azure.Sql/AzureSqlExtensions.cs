@@ -14,7 +14,7 @@ namespace Aspire.Hosting;
 /// Provides extension methods for adding the Azure SQL resources to the application model.
 /// </summary>
 public static class AzureSqlExtensions
-{    
+{
     [Obsolete]
     private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
