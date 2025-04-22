@@ -58,14 +58,13 @@
     <PropertyGroup>
       <_TestEnvironment>%(TestToRun.EnvironmentDisplay)</_TestEnvironment>
       <_TestAssembly>%(TestToRun.Identity)</_TestAssembly>
+      <_TestAssembly Condition="'$(OS)'=='Windows_NT'">$([System.IO.Path]::ChangeExtension($(_TestAssembly), '.exe'))</_TestAssembly>
+      <_TestAssembly Condition="'$(OS)'!='Windows_NT'">$(_TestAssembly.TrimEnd('.dll'))</_TestAssembly>
       <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
-      <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
 
       <_TargetDir>$([System.IO.Path]::GetDirectoryName('$(_TestAssembly)'))\</_TargetDir>
 
-      <_TestRunnerCommand>&quot;$(DotNetTool)&quot; test $(_TestAssembly) --list-tests --logger:"console%3Bverbosity=normal" "--Framework:%(TestToRun.TargetFrameworkIdentifier),Version=%(TestToRun.TargetFrameworkVersion)"</_TestRunnerCommand>
-      <_TestRunnerCommand Condition="'$(VSTestRunSettingsFile)' != ''">$(_TestRunnerCommand) "--settings:$(VSTestRunSettingsFile)"</_TestRunnerCommand>
-      <_TestRunnerCommand Condition="'$(_TestRunnerAdditionalArguments)' != ''">$(_TestRunnerCommand) $(_TestRunnerAdditionalArguments)</_TestRunnerCommand>
+      <_TestRunnerCommand>$(_TestAssembly) --list-tests $(_QuarantinedTestRunAdditionalArgs)</_TestRunnerCommand>
 
       <!--
         Redirect std output of the runner.
@@ -92,52 +91,26 @@
           WorkingDirectory="$(_TargetDir)"
           IgnoreExitCode="true"
           Timeout="$(_TestTimeout)"
+          EnvironmentVariables="DOTNET_ROOT=$(DotNetRoot);DOTNET_ROOT_X86=$(DotNetRoot)x86"
           ContinueOnError="WarnAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="_TestErrorCode" />
     </Exec>
-
-    <!--
-      Report test status.
-      -->
-    <Message Text="Search complete: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '0'" Importance="high" />
 
     <PropertyGroup>
       <_ResultsFileToDisplay>%(TestToRun.ResultsStdOutPath)</_ResultsFileToDisplay>
     </PropertyGroup>
 
     <!--
-      Ideally we would set ContinueOnError="ErrorAndContinue" so that when a test fails in multi-targeted test project
-      we'll still run tests for all target frameworks. ErrorAndContinue doesn't work well on Linux though: https://github.com/Microsoft/msbuild/issues/3961.
-    -->
-    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' != '0'" File="QuarantinedTestRunsheetBuilder" />
-
-    <!--
-      Read the test result and see if the string "No test matches the given testcase filter" is present.
-      This indicates that there are no quarantined tests to run.
+      Report test status.
       -->
-    <ReadLinesFromFile File="$(_ResultsFileToDisplay)">
-      <Output TaskParameter="Lines" ItemName="FileLines" />
-    </ReadLinesFromFile>
-
-    <ItemGroup>
-      <Lines Include="@(FileLines)" >
-        <Sanitized>$([System.String]::Copy('%(FileLines.Identity)').Replace('`', ''))</Sanitized>
-      </Lines>
-
-      <_UnhandledExceptionLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`Unhandled exception`)) " />
-      <_ExceptionDiscoveringTestsLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`Exception discovering tests`)) " />
-      <_NoTestMatchesLines Include="@(Lines)" Condition=" $([MSBuild]::ValueOrDefault(`%(Lines.Sanitized)`, '').Contains(`No test matches the given testcase filter`)) " />
-    </ItemGroup>
+    <Message Text="Search complete, no quarantined tests found: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '8'" Importance="high" />
+    <Message Text="💡 Search complete, quarantined tests found: $(_TestAssembly) [$(_TestEnvironment)]" Condition="'$(_TestErrorCode)' == '0'" Importance="high" />
+    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition=" '$(_TestErrorCode)' != '0' and '$(_TestErrorCode)' != '8' " File="QuarantinedTestRunsheetBuilder" />
 
     <PropertyGroup>
-      <_FailedToEnumerateTests Condition=" '@(_UnhandledExceptionLines)' != '' or '@(_ExceptionDiscoveringTestsLines)' != '' ">true</_FailedToEnumerateTests>
-
       <_HasQuarantinedTests>true</_HasQuarantinedTests>
-      <_HasQuarantinedTests Condition=" '@(_NoTestMatchesLines)' != '' ">false</_HasQuarantinedTests>
+      <_HasQuarantinedTests Condition=" '$(_TestErrorCode)' == '8' ">false</_HasQuarantinedTests>
     </PropertyGroup>
-
-    <Error Text="Search failed: $(_ResultsFileToDisplay) [$(_TestEnvironment)]" Condition="'$(_FailedToEnumerateTests)' == 'true'" File="QuarantinedTestRunsheetBuilder" />
-    <Message Text="💡 Quarantined tests found in $(_TestAssembly) [$(_TestEnvironment)]" Condition=" '$(_HasQuarantinedTests)' == 'true' " Importance="high" />
 
     <!--
       Generate test runsheet, if there are quarantined tests.
@@ -159,6 +132,12 @@
       <_TestRunnerWindows>./eng/build.ps1</_TestRunnerWindows>
       <_TestRunnerLinux>./eng/build.sh</_TestRunnerLinux>
       <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci /p:RunQuarantinedTests=true /p:CI=false</_TestCommand>
+
+      <!--
+        Some quarantinted test may only be executable on Windows or Linux, however we can't possibly know that at this time.
+        The MTP runner will return exit code 8 if no tests are found, and we need to ignore it instead of failing the test.
+        -->
+      <_TestCommand>$(_TestCommand) /p:IgnoreZeroTestResult=true</_TestCommand>
 
       <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
       <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>

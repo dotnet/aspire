@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
+using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
@@ -27,7 +28,7 @@ public static class DockerComposeEnvironmentExtensions
 
         var resource = new DockerComposeEnvironmentResource(name);
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
-        builder.AddDockerComposePublisher(name);
+        builder.AddDockerComposePublisher();
         if (builder.ExecutionContext.IsRunMode)
         {
 
@@ -37,5 +38,36 @@ public static class DockerComposeEnvironmentExtensions
 
         }
         return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of a Docker Compose environment resource.
+    /// </summary>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="DockerComposeEnvironmentResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithProperties(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<DockerComposeEnvironmentResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Docker Compose file for the environment resource.
+    /// </summary>
+    /// <param name="builder"> The Docker compose environment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="ComposeFile"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureComposeFile(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<ComposeFile> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Resource.ConfigureComposeFile += configure;
+        return builder;
     }
 }

@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
+using Semver;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
@@ -122,7 +123,8 @@ internal sealed class NewCommand : BaseCommand
                 () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
-            var selectedPackage = await _prompter.PromptForTemplatesVersionAsync(candidatePackages, cancellationToken);
+            var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
+            var selectedPackage = await _prompter.PromptForTemplatesVersionAsync(orderedCandidatePackages, cancellationToken);
             return selectedPackage.Version;
         }
     }

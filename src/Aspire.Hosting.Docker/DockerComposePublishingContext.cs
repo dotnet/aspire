@@ -73,7 +73,7 @@ internal sealed class DockerComposePublishingContext(
 
         var defaultNetwork = new Network
         {
-            Name = PublisherOptions.ExistingNetworkName ?? "aspire",
+            Name = environment.DefaultNetworkName ?? "aspire",
             Driver = "bridge",
         };
 
@@ -82,8 +82,7 @@ internal sealed class DockerComposePublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTargetAnnotation) &&
-                deploymentTargetAnnotation.DeploymentTarget is DockerComposeServiceResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
                 if (PublisherOptions.BuildImages)
                 {
@@ -110,6 +109,9 @@ internal sealed class DockerComposePublishingContext(
                 composeFile.AddService(composeService);
             }
         }
+
+        // Call the environment's ConfigureComposeFile method to allow for custom modifications
+        environment.ConfigureComposeFile?.Invoke(composeFile);
 
         var composeOutput = composeFile.ToYaml();
         var outputFile = Path.Combine(PublisherOptions.OutputPath!, "docker-compose.yaml");

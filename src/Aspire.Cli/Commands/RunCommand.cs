@@ -55,8 +55,11 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _activitySource.StartActivity();
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
+            {
+                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            });
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -223,7 +226,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files"))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))

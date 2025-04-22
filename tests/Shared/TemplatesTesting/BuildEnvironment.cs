@@ -173,8 +173,6 @@ public class BuildEnvironment
         // Avoid using the msbuild terminal logger, so the output can be read
         // in the tests
         EnvVars["_MSBUILDTLENABLED"] = "0";
-        // .. and disable new output style for vstest
-        EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");

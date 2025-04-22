@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 using DashboardServiceBase = Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase;
@@ -131,7 +130,6 @@ public sealed class DashboardClientAuthTests
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
             dashboardClientStatus: new TestDashboardClientStatus(),
-            timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
             knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 

@@ -6,7 +6,6 @@ using Aspire.Dashboard.Resources;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 using Enum = System.Enum;
@@ -73,7 +72,7 @@ public class ResourceStateViewModelTests
         var propertiesDictionary = new Dictionary<string, ResourcePropertyViewModel>();
         if (exitCode is not null)
         {
-            propertiesDictionary.TryAdd(KnownProperties.Resource.ExitCode, new ResourcePropertyViewModel(KnownProperties.Resource.ExitCode, Value.ForNumber((double)exitCode), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            propertiesDictionary.TryAdd(KnownProperties.Resource.ExitCode, new ResourcePropertyViewModel(KnownProperties.Resource.ExitCode, Value.ForNumber((double)exitCode), false, null, 0));
         }
 
         var resource = ModelTestHelpers.CreateResource(
@@ -86,7 +85,7 @@ public class ResourceStateViewModelTests
 
         if (exitCode is not null)
         {
-            resource.Properties.TryAdd(KnownProperties.Resource.ExitCode, new ResourcePropertyViewModel(KnownProperties.Resource.ExitCode, Value.ForNumber((double)exitCode), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            resource.Properties.TryAdd(KnownProperties.Resource.ExitCode, new ResourcePropertyViewModel(KnownProperties.Resource.ExitCode, Value.ForNumber((double)exitCode), false, null, 0));
         }
 
         var localizer = new TestStringLocalizer<Columns>();

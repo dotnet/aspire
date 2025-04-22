@@ -97,8 +97,9 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
                .WithInitialState(new () {
                     ResourceType = "TestResource",
                     State = new ("Running", null),
-                   Properties = [new("A", "B")]
-                });
+                    Properties = [new("A", "B"), new("c", "d")],
+                    EnvironmentVariables = [new("e", "f", true), new("g", "h", false)]
+               });
 
         var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
         builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
