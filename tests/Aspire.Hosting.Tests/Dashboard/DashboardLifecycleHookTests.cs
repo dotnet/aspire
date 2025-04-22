@@ -98,19 +98,19 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData("http://localhost", "1234", "cert", true)]
-    [InlineData("http://localhost", "1234", "cert", false)]
-    [InlineData(null, null, null, null)]
-    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionAddress, string? debugSessionToken, string? debugSessionCert, bool? telemetryEnabled)
+    [InlineData("localhost:8080", 8080, "1234", "cert", true)]
+    [InlineData("localhost:8080", 8080, "1234", "cert", false)]
+    [InlineData(null, null, null, null, null)]
+    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionPort, int? expectedDebugSessionPort, string? debugSessionToken, string? debugSessionCert, bool? telemetryEnabled)
     {
         // Arrange
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configurationBuilder = new ConfigurationBuilder();
 
-        if (debugSessionAddress is not null)
+        if (debugSessionPort is not null)
         {
-            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_PORT", debugSessionAddress)]);
+            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_PORT", debugSessionPort)]);
         }
 
         if (debugSessionToken is not null)
@@ -143,7 +143,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger()).DefaultTimeout();
 
         // Assert
-        Assert.Equal(debugSessionAddress, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionAddressName.EnvVarName));
+        Assert.Equal(expectedDebugSessionPort?.ToString(), dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionPortName.EnvVarName));
         Assert.Equal(debugSessionToken, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTokenName.EnvVarName));
         Assert.Equal(debugSessionCert, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName));
         Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName, null), out var b) ? b : null);

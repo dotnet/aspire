@@ -3,14 +3,16 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +20,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspire.Hosting.Devcontainers;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -277,7 +278,17 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         // Details for contacting AspireServer in an IDE debug session.
         if (configuration["DEBUG_SESSION_PORT"] is { Length: > 0 } sessionPort)
         {
-            context.EnvironmentVariables[DashboardConfigNames.DebugSessionAddressName.EnvVarName] = sessionPort;
+            // DEBUG_SESSION_PORT env var is in the format localhost:port.
+            // We assume the address is localhost and only want the port value.
+            if (sessionPort.Split(':') is { Length: 2 } parts &&
+                int.TryParse(parts[1], CultureInfo.InvariantCulture, out var port))
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionPortName.EnvVarName] = port;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unexpected DEBUG_SESSION_PORT value. Expected localhost:port, got '{sessionPort}'.");
+            }
         }
         if (configuration["DEBUG_SESSION_TOKEN"] is { Length: > 0 } sessionToken)
         {

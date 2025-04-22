@@ -49,11 +49,11 @@ internal static class DebugSessionHelpers
         [NotNullWhen(true)] out Uri? debugSessionUri,
         [NotNullWhen(true)] out string? token)
     {
-        if (debugSession.Address is not null && debugSession.Token is not null)
+        if (debugSession.Port is not null && debugSession.Token is not null)
         {
             serverCert = debugSession.GetServerCertificate();
             var scheme = serverCert is null ? "http" : "https";
-            debugSessionUri = new Uri($"{scheme}://{debugSession.Address}");
+            debugSessionUri = new Uri($"{scheme}://localhost:{debugSession.Port}");
             token = debugSession.Token;
             return true;
         }
