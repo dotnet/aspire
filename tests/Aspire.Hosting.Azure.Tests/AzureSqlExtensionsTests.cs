@@ -402,11 +402,41 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         Assert.Single(dbAnnotations);
     }
 
+    [Fact]
+    public void VerifyDesiredSku()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var sql = builder.AddAzureSqlServer("sql");
+
+        // database name same as the aspire resource name, free tier 
+        var db1 = sql.AddDatabase("db1");
+        Assert.Equal("Free", db1.Resource.SkuName);
+
+        // set the database name, free tier 
+        var db2 = sql.AddDatabase("db2", "db2Name");
+        Assert.Equal("Free", db2.Resource.SkuName);
+
+        // set the database name, set the sku to HS_Gen5_2
+        var db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
+        Assert.Equal("HS_Gen5_2", db3.Resource.SkuName);
+
+        // set the database name, set the sku to Basic
+        var db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
+        Assert.Equal("Basic", db4.Resource.SkuName);
+
+        // set the database name, explicitly ask for the free tier
+        // (which does not exist in reality, but we using the "Free" moniker
+        // to indicate that we want to take advantage of the free offer
+        var db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
+        Assert.Equal("Free", db5.Resource.SkuName);
+    }
+
     private sealed class Dummy1Annotation : IResourceAnnotation
     {
     }
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
-    }
+    }    
 }

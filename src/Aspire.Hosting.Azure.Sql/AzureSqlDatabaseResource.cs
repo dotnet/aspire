@@ -45,10 +45,10 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <summary>
     /// Gets or Sets the database SKU name
     /// </summary>
-    internal string SkuName
+    public string SkuName
     {
         get { return _skuName; }
-        set { ThrowIfNullOrEmpty(value); _skuName = value.Trim(); }
+        internal set { ThrowIfNullOrEmpty(value); _skuName = value.Trim(); }
     }
     private string _skuName = FREE_SKU_NAME;
 
