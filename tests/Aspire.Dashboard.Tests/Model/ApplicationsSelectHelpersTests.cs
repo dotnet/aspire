@@ -214,6 +214,6 @@ public sealed class ApplicationsSelectHelpersTests
         };
         var applicationKey = OtlpHelpers.GetApplicationKey(resource);
 
-        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, TelemetryTestHelpers.CreateContext());
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, uninstrumentedPeer: false, TelemetryTestHelpers.CreateContext());
     }
 }
