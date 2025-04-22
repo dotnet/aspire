@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
@@ -77,7 +78,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
@@ -107,17 +108,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         }
     }
 
-    private sealed class NoProjectFileProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    private sealed class NoProjectFileProjectLocator : IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
     }
 
-    private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }

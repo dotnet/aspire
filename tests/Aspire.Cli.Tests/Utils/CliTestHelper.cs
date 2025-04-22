@@ -7,6 +7,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -22,6 +23,10 @@ internal static class CliTestHelper
         configure?.Invoke(options);
 
         var services = new ServiceCollection();
+
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddSingleton<IConfiguration>(configuration);
+
         services.AddLogging();
 
         services.AddSingleton(options.AnsiConsoleFactory);
@@ -79,7 +84,8 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
 
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
