@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.JSInterop;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Telemetry;
@@ -17,8 +16,9 @@ public class ComponentTelemetryContextTests
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
+        telemetryService.SetBrowserUserAgent("mozilla");
 
-        await telemetryContext.InitializeAsync(telemetryService, new TestJSRuntime());
+        await telemetryContext.InitializeAsync(telemetryService);
         for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
         {
             Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var postPropertyOperation));
@@ -59,8 +59,9 @@ public class ComponentTelemetryContextTests
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = false };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
+        telemetryService.SetBrowserUserAgent("mozilla");
 
-        await telemetryContext.InitializeAsync(telemetryService, new TestJSRuntime());
+        await telemetryContext.InitializeAsync(telemetryService);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
@@ -69,18 +70,5 @@ public class ComponentTelemetryContextTests
 
         telemetryContext.Dispose();
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
-    }
-
-    private sealed class TestJSRuntime : IJSRuntime
-    {
-        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
-        {
-            return typeof(TValue) == typeof(string) ? new ValueTask<TValue>((TValue)(object)string.Empty) : new ValueTask<TValue>(default(TValue)!);
-        }
-
-        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
-        {
-            return typeof(TValue) == typeof(string) ? new ValueTask<TValue>((TValue)(object)string.Empty) : new ValueTask<TValue>(default(TValue)!);
-        }
     }
 }

@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -138,6 +139,8 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<ITooltipService, TooltipService>();
         Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<GlobalState>();
+        Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.Configure<DashboardOptions>(o => o.Otlp.AuthMode = OtlpAuthMode.Unsecured);
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
@@ -152,7 +155,7 @@ public partial class MainLayoutTests : DashboardTestContext
         JSInterop.SetupModule("window.registerGlobalKeydownListener", _ => true);
         JSInterop.SetupModule("window.registerOpenTextVisualizerOnClick", _ => true);
 
-        JSInterop.Setup<string>("window.getBrowserTimeZone").SetResult("abc");
+        JSInterop.Setup<BrowserInfo>("window.getBrowserInfo").SetResult(new BrowserInfo { TimeZone = "abc", UserAgent = "mozilla" });
     }
 
     private static string GetFluentFile(string filePath, Version version)

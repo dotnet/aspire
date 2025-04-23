@@ -289,10 +289,13 @@ window.unregisterGlobalKeydownListener = function (obj) {
     window.document.removeEventListener('keydown', obj.keydownListener);
 };
 
-window.getBrowserTimeZone = function () {
+window.getBrowserInfo = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
-    return options.timeZone;
+    return {
+        timeZone: options.timeZone,
+        userAgent: navigator.userAgent
+    };
 };
 
 window.focusElement = function (selector) {

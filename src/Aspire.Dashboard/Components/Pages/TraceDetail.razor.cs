@@ -82,7 +82,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }));
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService, JS);
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     // Internal to be used in unit tests

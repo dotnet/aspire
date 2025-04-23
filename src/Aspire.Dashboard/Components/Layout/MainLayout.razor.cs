@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -34,6 +35,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required DashboardTelemetryService DashboardTelemetryService { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -98,8 +102,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             });
         }
 
-        var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
-        TimeProvider.SetBrowserTimeZone(result);
+        var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
+        TimeProvider.SetBrowserTimeZone(result.TimeZone);
+        DashboardTelemetryService.SetBrowserUserAgent(result.UserAgent);
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
         {

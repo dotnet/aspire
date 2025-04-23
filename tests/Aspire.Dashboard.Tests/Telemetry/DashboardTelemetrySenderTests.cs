@@ -36,7 +36,7 @@ public class DashboardTelemetrySenderTests
         {
             DebugSession = new DebugSessionOptions
             {
-                Address = "http://localhost:5000",
+                Port = 5000,
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
                 Token = "test",
                 TelemetryOptOut = true
@@ -63,7 +63,7 @@ public class DashboardTelemetrySenderTests
         {
             DebugSession = new DebugSessionOptions
             {
-                Address = "http://localhost:5000",
+                Port = 5000,
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
                 Token = "test"
             }
@@ -102,15 +102,15 @@ public class DashboardTelemetrySenderTests
     }
 
     [Theory]
-    [InlineData(false, "localhost:5000", "http://localhost:5000/")]
-    [InlineData(true, "localhost:5000", "https://localhost:5000/")]
-    public void CreateTelemetrySender_WithDebugSession_UsesCorrectScheme(bool isHttps, string address, string expectedUrl)
+    [InlineData(false, "http://localhost:5000/")]
+    [InlineData(true, "https://localhost:5000/")]
+    public void CreateTelemetrySender_WithDebugSession_UsesCorrectScheme(bool isHttps, string expectedUrl)
     {
         var options = new TestDashboardOptions(new DashboardOptions
         {
             DebugSession = new DebugSessionOptions
             {
-                Address = address,
+                Port = 5000,
                 ServerCertificate = isHttps ? Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)) : null,
                 Token = "test"
             }

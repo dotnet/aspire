@@ -141,7 +141,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             }
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService, JS);
+        await TelemetryContext.InitializeAsync(TelemetryService);
         UpdateTelemetryProperties();
     }
 

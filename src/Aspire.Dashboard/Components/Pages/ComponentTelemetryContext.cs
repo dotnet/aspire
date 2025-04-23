@@ -1,8 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Telemetry;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -16,10 +15,13 @@ public class ComponentTelemetryContext(string componentType) : IDisposable
 
     private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
 
-    public async Task InitializeAsync(DashboardTelemetryService telemetryService, IJSRuntime js)
+    public async Task InitializeAsync(DashboardTelemetryService telemetryService)
     {
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(componentType);
-        Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(await telemetryService.GetUserAgentAsync(js));
+        if (telemetryService.BrowserUserAgent != null)
+        {
+            Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(telemetryService.BrowserUserAgent);
+        }
 
         _telemetryService = telemetryService;
         await telemetryService.InitializeAsync();

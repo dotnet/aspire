@@ -110,7 +110,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             StateHasChanged();
         }));
 
-        await TelemetryContext.InitializeAsync(TelemetryService, JS);
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     protected override async Task OnParametersSetAsync()

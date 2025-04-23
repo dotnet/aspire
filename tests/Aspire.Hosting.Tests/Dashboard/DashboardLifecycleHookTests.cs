@@ -149,58 +149,6 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName, null), out var b) ? b : null);
     }
 
-    [Theory]
-    [InlineData("http://localhost", "1234", "cert", true)]
-    [InlineData("http://localhost", "1234", "cert", false)]
-    [InlineData(null, null, null, null)]
-    public async Task BeforeStartAsync_DashboardContainsDebugSessionInfo(string? debugSessionAddress, string? debugSessionToken, string? debugSessionCert, bool? telemetryEnabled)
-    {
-        // Arrange
-        var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-        var configurationBuilder = new ConfigurationBuilder();
-
-        if (debugSessionAddress is not null)
-        {
-            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_PORT", debugSessionAddress)]);
-        }
-
-        if (debugSessionToken is not null)
-        {
-            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_TOKEN", debugSessionToken)]);
-        }
-
-        if (debugSessionCert is not null)
-        {
-            configurationBuilder.AddInMemoryCollection([new KeyValuePair<string, string?>("DEBUG_SESSION_SERVER_CERTIFICATE", debugSessionCert)]);
-        }
-
-        var configuration = configurationBuilder.Build();
-        var dashboardOptions = Options.Create(new DashboardOptions
-        {
-            TelemetryOptOut = telemetryEnabled,
-            DashboardPath = "test.dll",
-            DashboardUrl = "http://localhost:8080",
-            OtlpGrpcEndpointUrl = "http://localhost:4317"
-        });
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
-
-        var model = new DistributedApplicationModel(new ResourceCollection());
-
-        // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
-        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
-        var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
-        var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
-        await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger()).DefaultTimeout();
-
-        // Assert
-        Assert.Equal(debugSessionAddress, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionAddressName.EnvVarName));
-        Assert.Equal(debugSessionToken, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTokenName.EnvVarName));
-        Assert.Equal(debugSessionCert, dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName));
-        Assert.Equal(telemetryEnabled, bool.TryParse(dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName, null), out var b) ? b : null);
-    }
-
     [Fact]
     public async Task ConfigureEnvironmentVariables_HasAspireDashboardEnvVars_CopiedToDashboard()
     {

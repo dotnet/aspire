@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Telemetry;
 
@@ -11,7 +10,13 @@ public sealed class DashboardTelemetryService(
     IDashboardTelemetrySender telemetrySender)
 {
     private bool? _telemetryEnabled;
+    private string? _browserUserAgent;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
+
+    /// <summary>
+    /// Gets the browser user agent string. This is set by the dashboard web application when it starts up.
+    /// </summary>
+    public string? BrowserUserAgent => _browserUserAgent;
 
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
@@ -349,11 +354,6 @@ public sealed class DashboardTelemetryService(
         };
     }
 
-    public ValueTask<string> GetUserAgentAsync(IJSRuntime js)
-    {
-        return js.InvokeAsync<string>("getUserAgent");
-    }
-
     private static async Task<TResponse> PostRequestAsync<TRequest, TResponse>(HttpClient client, string endpoint, TRequest request)
     {
         var httpResponseMessage = await client.PostAsJsonAsync(endpoint, request).ConfigureAwait(false);
@@ -369,6 +369,11 @@ public sealed class DashboardTelemetryService(
     private static string GetCompositeEventName(string eventName, string endpoint)
     {
         return $"{endpoint} - ${eventName}";
+    }
+
+    public void SetBrowserUserAgent(string? userAgent)
+    {
+        _browserUserAgent = userAgent;
     }
 }
 

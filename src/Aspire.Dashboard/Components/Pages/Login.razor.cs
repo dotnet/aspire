@@ -62,7 +62,7 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
             }
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService, JS);
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

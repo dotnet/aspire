@@ -27,7 +27,7 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
         {
             DebugSession = new DebugSessionOptions
             {
-                Address = "http://localhost:5000",
+                Port = 5000,
                 Token = "test",
                 TelemetryOptOut = true
             }
@@ -88,7 +88,7 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
         {
             DebugSession = new DebugSessionOptions
             {
-                Address = "http://localhost:5000",
+                Port = 5000,
                 ServerCertificate = Convert.ToBase64String(TelemetryTestHelpers.GenerateDummyCertificate().Export(X509ContentType.Cert)),
                 Token = "test"
             }
