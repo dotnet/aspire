@@ -31,7 +31,7 @@ namespace Aspire.Dashboard.Model;
 /// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
 /// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
 /// <see cref="IDashboardClient.SubscribeResourcesAsync"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
-/// will throw if <see cref="IDashboardClientStatus.IsEnabled"/> is <see langword="false"/>. Callers should
+/// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
 /// check this property first, before calling these methods.
 /// </para>
 /// </remarks>
@@ -47,7 +47,6 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IDashboardClientStatus _dashboardClientStatus;
     private readonly IKnownPropertyLookup _knownPropertyLookup;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
@@ -71,12 +70,10 @@ internal sealed class DashboardClient : IDashboardClient
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
         IOptions<DashboardOptions> dashboardOptions,
-        IDashboardClientStatus dashboardClientStatus,
         IKnownPropertyLookup knownPropertyLookup,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
-        _dashboardClientStatus = dashboardClientStatus;
         _knownPropertyLookup = knownPropertyLookup;
         _dashboardOptions = dashboardOptions.Value;
 
@@ -85,7 +82,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        if (!_dashboardClientStatus.IsEnabled)
+        if (dashboardOptions.Value.ResourceServiceClient.GetUri() is null)
         {
             _state = StateDisabled;
             _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");

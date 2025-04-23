@@ -3,7 +3,9 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +14,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class ResourceDetails
+public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -28,6 +30,9 @@ public partial class ResourceDetails
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -135,6 +140,8 @@ public partial class ResourceDetails
                 }
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -153,6 +160,7 @@ public partial class ResourceDetails
     protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()
@@ -272,6 +280,21 @@ public partial class ResourceDetails
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
         return Task.CompletedTask;
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new("ResourceDetails");
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(Resource.ResourceType))
+        ]);
+    }
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
     }
 }
 

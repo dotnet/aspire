@@ -13,6 +13,7 @@ internal static class DashboardUrls
     public const string MetricsBasePath = "metrics";
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
+    public const string LoginBasePath = "login";
 
     public static string ResourcesUrl(string? resource = null, string? view = null)
     {
@@ -129,7 +130,7 @@ internal static class DashboardUrls
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)
     {
-        var url = "/login";
+        var url = $"/{LoginBasePath}";
         if (returnUrl != null)
         {
             url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);

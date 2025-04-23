@@ -7,18 +7,8 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
-public sealed class MockDashboardClientStatus : IDashboardClientStatus
-{
-    public bool IsEnabled => true;
-}
-
 public sealed class MockDashboardClient : IDashboardClient
 {
-    public MockDashboardClient(IDashboardClientStatus dashboardClientStatus)
-    {
-        _dashboardClientStatus = dashboardClientStatus;
-    }
-
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
         appName: "TestResource",
         resourceType: KnownResourceTypes.Project,
@@ -38,9 +28,7 @@ public sealed class MockDashboardClient : IDashboardClient
         }.ToDictionary(),
         state: KnownResourceState.Running);
 
-    private readonly IDashboardClientStatus _dashboardClientStatus;
-
-    public bool IsEnabled => _dashboardClientStatus.IsEnabled;
+    public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;
     public string ApplicationName => "IntegrationTestApplication";
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
