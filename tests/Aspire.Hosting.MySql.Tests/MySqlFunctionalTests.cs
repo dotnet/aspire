@@ -476,7 +476,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         async Task<string?[]> RunContainersAsync()
         {
-            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
                 .WithTempAspireStore(aspireStorePath)
                 .WithResourceCleanUp(false);
 
