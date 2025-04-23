@@ -26,7 +26,7 @@ public partial class Error : IComponentWithTelemetry, IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        await TelemetryService.InitializeAsync();
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     protected override void OnParametersSet()

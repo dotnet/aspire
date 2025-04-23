@@ -8,14 +8,14 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class NotFound : IComponentWithTelemetry, IDisposable
 {
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init;  }
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new("NotFound");
 
     protected override async Task OnInitializedAsync()
     {
-        await TelemetryService.InitializeAsync();
+        await TelemetryContext.InitializeAsync(TelemetryService);
     }
 
     public void Dispose()

@@ -36,7 +36,7 @@ public class ComponentTelemetryContext(string componentType) : IDisposable
             });
     }
 
-    public bool UpdateTelemetryProperties(IEnumerable<ComponentTelemetryProperty> modifiedProperties)
+    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties)
     {
         var anyChange = false;
 

@@ -841,6 +841,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             properties.Add(new ComponentTelemetryProperty($"{TelemetryPropertyKeys.ResourceType}.{resourceTypeGroup.Key}", new AspireTelemetryProperty(resourceTypeGroup.Count(), AspireTelemetryPropertyType.Metric)));
         }
 
-        TelemetryContext.UpdateTelemetryProperties(properties);
+        TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
     }
 }
