@@ -7,5 +7,14 @@ public interface IDashboardTelemetrySender : IAsyncDisposable
 {
     public Task<bool> TryStartTelemetrySessionAsync();
 
+    public TelemetrySessionState State { get; }
+
     public void QueueRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc);
+}
+
+public enum TelemetrySessionState
+{
+    Uninitialized,
+    Enabled,
+    Disabled
 }

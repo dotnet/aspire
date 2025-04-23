@@ -235,8 +235,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<PauseManager>();
 
         // Telemetry
-        builder.Services.TryAddScoped<DashboardTelemetryService>();
-        builder.Services.TryAddScoped<IDashboardTelemetrySender, DashboardTelemetrySender>();
+        builder.Services.TryAddSingleton<DashboardTelemetryService>();
+        builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -347,6 +347,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
                 }
             }
+
+            // One-off async initialization of telemetry service.
+            var telemetryService = _app.Services.GetRequiredService<DashboardTelemetryService>();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await telemetryService.InitializeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error initializing telemetry service.");
+                }
+            });
         });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.

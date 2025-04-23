@@ -12,10 +12,8 @@ public class LoggingErrorBoundary : ErrorBoundary
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
 
-    protected override async Task OnErrorAsync(Exception ex)
+    protected override Task OnErrorAsync(Exception ex)
     {
-        await TelemetryService.InitializeAsync().ConfigureAwait(false);
-
         TelemetryService.PostFault(
             TelemetryEventKeys.Error,
             $"{ex.GetType().FullName}: {ex.Message}",
@@ -27,5 +25,7 @@ public class LoggingErrorBoundary : ErrorBoundary
                 [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(ex.StackTrace ?? string.Empty)
             }
         );
+
+        return Task.CompletedTask;
     }
 }

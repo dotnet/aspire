@@ -15,16 +15,15 @@ public class ComponentTelemetryContext(string componentType) : IDisposable
 
     private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
 
-    public async Task InitializeAsync(DashboardTelemetryService telemetryService)
+    public void Initialize(DashboardTelemetryService telemetryService)
     {
+        _telemetryService = telemetryService;
+
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(componentType);
         if (telemetryService.BrowserUserAgent != null)
         {
             Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(telemetryService.BrowserUserAgent);
         }
-
-        _telemetryService = telemetryService;
-        await telemetryService.InitializeAsync();
 
         _initializeCorrelation = telemetryService.PostUserTask(
             TelemetryEventKeys.ComponentInitialize,

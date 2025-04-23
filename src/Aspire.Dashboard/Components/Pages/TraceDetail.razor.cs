@@ -64,7 +64,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
@@ -82,7 +82,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }));
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     // Internal to be used in unit tests

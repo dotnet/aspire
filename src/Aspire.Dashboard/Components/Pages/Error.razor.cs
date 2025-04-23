@@ -15,19 +15,17 @@ public partial class Error : IComponentWithTelemetry, IDisposable
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+        TelemetryContext.Initialize(TelemetryService);
+    }
 
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init;  }
 
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new("Error");
-
-    protected override async Task OnInitializedAsync()
-    {
-        await TelemetryContext.InitializeAsync(TelemetryService);
-    }
 
     protected override void OnParametersSet()
     {

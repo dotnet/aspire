@@ -13,9 +13,9 @@ public partial class NotFound : IComponentWithTelemetry, IDisposable
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new("NotFound");
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     public void Dispose()

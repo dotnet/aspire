@@ -9,7 +9,6 @@ public sealed class DashboardTelemetryService(
     ILogger<DashboardTelemetryService> logger,
     IDashboardTelemetrySender telemetrySender)
 {
-    private bool? _telemetryEnabled;
     private string? _browserUserAgent;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
 
@@ -21,7 +20,7 @@ public sealed class DashboardTelemetryService(
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
     /// </summary>
-    public bool IsTelemetryInitialized => _telemetryEnabled is not null;
+    public bool IsTelemetryInitialized => telemetrySender.State != TelemetrySessionState.Uninitialized;
 
     /// <summary>
     /// Whether telemetry is enabled in the current environment. This will be false if:
@@ -31,7 +30,7 @@ public sealed class DashboardTelemetryService(
     /// <item>The IDE instance has opted out of telemetry</item>
     /// </list>
     /// </summary>
-    public bool IsTelemetryEnabled => _telemetryEnabled ?? throw new ArgumentNullException(nameof(_telemetryEnabled), "InitializeAsync has not been called yet");
+    public bool IsTelemetryEnabled => telemetrySender.State == TelemetrySessionState.Enabled;
 
     /// <summary>
     /// Call before using any telemetry methods. This will initialize the telemetry service and ensure that <see cref="DashboardTelemetryService.IsTelemetryEnabled"/> is set
@@ -39,7 +38,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public async Task InitializeAsync()
     {
-        if (_telemetryEnabled is not null)
+        if (IsTelemetryInitialized)
         {
             return;
         }
@@ -49,17 +48,17 @@ public sealed class DashboardTelemetryService(
 
         try
         {
-            if (_telemetryEnabled is not null)
+            if (IsTelemetryInitialized)
             {
                 return;
             }
 
             logger.LogDebug("Initializing telemetry service.");
-            _telemetryEnabled = await telemetrySender.TryStartTelemetrySessionAsync().ConfigureAwait(false);
-            logger.LogDebug("Initialized telemetry service. Telemetry enabled: {TelemetryEnabled}", _telemetryEnabled);
+            await telemetrySender.TryStartTelemetrySessionAsync().ConfigureAwait(false);
+            logger.LogDebug("Initialized telemetry service. Telemetry sender state: {TelemetrySenderState}", telemetrySender.State);
 
             // Post session property values after initialization, if telemetry has been enabled.
-            if (_telemetryEnabled is true)
+            if (IsTelemetryEnabled)
             {
                 foreach (var (key, value) in GetDefaultProperties())
                 {
@@ -73,13 +72,11 @@ public sealed class DashboardTelemetryService(
         }
     }
 
-    private bool IsEnabled()
+    private bool SkipQueuingRequests()
     {
-        if (_telemetryEnabled is null)
-        {
-            throw new InvalidOperationException("InitializeAsync has not been called yet");
-        }
-        return _telemetryEnabled.Value;
+        // Don't queue requests if we know the sender isn't enabled. This is a performance optimization.
+        // Queue requests if enabled or not yet initialized.
+        return !IsTelemetryEnabled;
     }
 
     /// <summary>
@@ -88,7 +85,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext StartOperation(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<OperationContextProperty>? correlations = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -116,7 +113,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public void EndOperation(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (!IsEnabled() || operationId is null)
+        if (SkipQueuingRequests() || operationId is null)
         {
             return;
         }
@@ -134,7 +131,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext StartUserTask(string eventName, Dictionary<string, AspireTelemetryProperty> startEventProperties, TelemetrySeverity severity = TelemetrySeverity.Normal, bool isOptOutFriendly = false, bool postStartEvent = true, IEnumerable<OperationContextProperty>? correlations = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -162,7 +159,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public void EndUserTask(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (!IsEnabled() || operationId is null)
+        if (SkipQueuingRequests() || operationId is null)
         {
             return;
         }
@@ -181,7 +178,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext PostOperation(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -209,7 +206,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext PostUserTask(string eventName, TelemetryResult result, string? resultSummary = null, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -237,7 +234,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext PostFault(string eventName, string description, FaultSeverity severity, Dictionary<string, AspireTelemetryProperty>? properties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -266,7 +263,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public OperationContext PostAsset(string eventName, string assetId, int assetEventVersion, Dictionary<string, AspireTelemetryProperty>? additionalProperties = null, IEnumerable<OperationContextProperty>? correlatedWith = null)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return OperationContext.Empty;
         }
@@ -293,7 +290,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public void PostProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return;
         }
@@ -311,7 +308,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public void PostRecurringProperty(string propertyName, AspireTelemetryProperty propertyValue)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return;
         }
@@ -329,7 +326,7 @@ public sealed class DashboardTelemetryService(
     /// </summary>
     public void PostCommandLineFlags(List<string> flagPrefixes, Dictionary<string, AspireTelemetryProperty> additionalProperties)
     {
-        if (!IsEnabled())
+        if (SkipQueuingRequests())
         {
             return;
         }

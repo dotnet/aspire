@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
@@ -15,17 +16,20 @@ public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
     private readonly IOptions<DashboardOptions> _options;
     private readonly ILogger<DashboardTelemetrySender> _logger;
     private readonly Channel<(OperationContext, Func<HttpClient, Func<OperationContextProperty, object>, Task>)> _channel;
-    private bool? _isEnabled;
     private Task? _sendLoopTask;
 
     // Internal for testing.
     internal Func<HttpClientHandler, HttpMessageHandler>? CreateHandler { get; set; }
     internal HttpClient? Client { get; private set; }
 
+    public TelemetrySessionState State { get; private set; }
+
     public DashboardTelemetrySender(IOptions<DashboardOptions> options, ILogger<DashboardTelemetrySender> logger)
     {
         _options = options;
         _logger = logger;
+        // Limit channel of telemetry to send to 1000 items.
+        // This is to provide an upper bound on memory usage.
         var channelOptions = new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
@@ -85,40 +89,53 @@ public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
 
     public async Task<bool> TryStartTelemetrySessionAsync()
     {
-        Debug.Assert(_isEnabled is null, "Telemetry session has already been started.");
+        Debug.Assert(State == TelemetrySessionState.Uninitialized, "Telemetry session has already been started.");
 
-        _isEnabled = await TryStartTelemetrySessionCoreAsync().ConfigureAwait(false);
-        if (_isEnabled.Value)
+        var isEnabled = await TryStartTelemetrySessionCoreAsync().ConfigureAwait(false);
+
+        if (isEnabled)
         {
+            State = TelemetrySessionState.Enabled;
             StartSendLoop();
         }
+        else
+        {
+            State = TelemetrySessionState.Disabled;
 
-        return _isEnabled.Value;
+            // Drain any items added to the channel before disabled.
+            _channel.Writer.TryComplete();
+            while (_channel.Reader.TryRead(out _))
+            {
+            }
+        }
+
+        return isEnabled;
     }
 
-    internal bool CreateHttpClient()
+    internal bool TryCreateHttpClient([NotNullWhen(true)] out HttpClient? client)
     {
         if (DebugSessionHelpers.HasDebugSession(_options.Value.DebugSession, out var certificate, out var debugSessionUri, out var token))
         {
             if (_options.Value.DebugSession.TelemetryOptOut is not true)
             {
-                Client = DebugSessionHelpers.CreateHttpClient(debugSessionUri, token, certificate, CreateHandler);
+                client = DebugSessionHelpers.CreateHttpClient(debugSessionUri, token, certificate, CreateHandler);
                 return true;
             }
         }
 
         _logger.LogInformation("Telemetry is not configured.");
+        client = null;
         return false;
     }
 
     private async Task<bool> TryStartTelemetrySessionCoreAsync()
     {
-        if (!CreateHttpClient())
+        if (!TryCreateHttpClient(out var client))
         {
             return false;
         }
 
-        Debug.Assert(Client is not null);
+        Client = client;
 
         try
         {
@@ -144,7 +161,7 @@ public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
 
     public void QueueRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
     {
-        if (Client is null)
+        if (State == TelemetrySessionState.Disabled)
         {
             return;
         }
@@ -154,7 +171,7 @@ public sealed class DashboardTelemetrySender : IDashboardTelemetrySender
 
     public async ValueTask DisposeAsync()
     {
-        _channel.Writer.Complete();
+        _channel.Writer.TryComplete();
         if (_sendLoopTask is { } task)
         {
             await task.ConfigureAwait(false);

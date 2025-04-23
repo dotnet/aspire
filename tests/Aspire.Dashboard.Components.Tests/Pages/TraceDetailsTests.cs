@@ -12,6 +12,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;

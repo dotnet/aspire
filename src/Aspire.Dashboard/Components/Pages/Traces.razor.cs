@@ -148,7 +148,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -170,7 +170,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             StateHasChanged();
         }));
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     protected override async Task OnParametersSetAsync()

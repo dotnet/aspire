@@ -38,8 +38,6 @@ public sealed class DashboardCommandExecutor(
             _executingCommands.Add(executingCommandKey);
         }
 
-        await telemetryService.InitializeAsync().ConfigureAwait(false);
-
         var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
             new Dictionary<string, AspireTelemetryProperty>
             {

@@ -104,7 +104,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     private readonly GridSort<DisplayedUrl> _urlValueSort = GridSort<DisplayedUrl>.ByAscending(vm => vm.Url ?? vm.Text);
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (!ReferenceEquals(Resource, _resource))
         {
@@ -141,7 +141,6 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             }
         }
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
         UpdateTelemetryProperties();
     }
 
@@ -161,6 +160,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
-using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Tests.Shared.Telemetry;
@@ -167,28 +166,6 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
         await telemetryService.InitializeAsync();
 
         return telemetryService;
-    }
-
-    public class TestDashboardTelemetrySender : IDashboardTelemetrySender
-    {
-        public bool IsTelemetryEnabled { get; init; }
-        public Channel<OperationContext> ContextChannel { get; } = Channel.CreateUnbounded<OperationContext>();
-
-        public Task<bool> TryStartTelemetrySessionAsync()
-        {
-            return Task.FromResult(IsTelemetryEnabled);
-        }
-
-        public void QueueRequest(OperationContext context, Func<HttpClient, Func<OperationContextProperty, object>, Task> requestFunc)
-        {
-            ContextChannel.Writer.TryWrite(context);
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            ContextChannel.Writer.Complete();
-            return ValueTask.CompletedTask;
-        }
     }
 
     public class TestDashboardOptions(DashboardOptions value) : IOptions<DashboardOptions>

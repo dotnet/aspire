@@ -76,7 +76,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _durations = new List<SelectViewModel<TimeSpan>>
         {
@@ -110,7 +110,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             StateHasChanged();
         }));
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     protected override async Task OnParametersSetAsync()

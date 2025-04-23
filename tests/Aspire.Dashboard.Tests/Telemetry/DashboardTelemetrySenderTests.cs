@@ -119,9 +119,8 @@ public class DashboardTelemetrySenderTests
         Assert.True(options.Value.DebugSession.TryParseOptions(out _));
 
         var telemetrySender = new DashboardTelemetrySender(options, NullLogger<DashboardTelemetrySender>.Instance);
-        Assert.True(telemetrySender.CreateHttpClient());
+        Assert.True(telemetrySender.TryCreateHttpClient(out var client));
 
-        var client = telemetrySender.Client;
         Assert.NotNull(client);
         Assert.Equal(expectedUrl, client.BaseAddress?.ToString());
     }

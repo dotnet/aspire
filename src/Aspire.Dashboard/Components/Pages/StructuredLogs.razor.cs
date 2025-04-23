@@ -146,7 +146,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -204,7 +204,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             StateHasChanged();
         }));
 
-        await TelemetryContext.InitializeAsync(TelemetryService);
+        TelemetryContext.Initialize(TelemetryService);
     }
 
     protected override async Task OnParametersSetAsync()

@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;

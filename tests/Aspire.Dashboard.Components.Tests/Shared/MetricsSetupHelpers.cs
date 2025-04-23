@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

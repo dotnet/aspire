@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
