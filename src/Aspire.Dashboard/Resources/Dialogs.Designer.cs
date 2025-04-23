@@ -380,5 +380,23 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
             }
         }
+        
+        public static string SettingsDialogEnableTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDialogEnableTelemetry", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryEnabledInfo {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryEnabledInfo", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryInfoLinkText {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkText", resourceCulture);
+            }
+        }
     }
 }

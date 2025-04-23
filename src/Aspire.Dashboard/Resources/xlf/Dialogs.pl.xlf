@@ -208,8 +208,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">Dzienniki i telemetria pulpitu nawigacyjnego</target>
+        <source>Resource logs and telemetry</source>
+        <target state="needs-review-translation">Dzienniki i telemetria pulpitu nawigacyjnego</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogEnableTelemetry">
+        <source>Enable dashboard telemetry</source>
+        <target state="new">Enable dashboard telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -230,6 +235,16 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">System</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="new">Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="new">Why?</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

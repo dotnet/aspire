@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -16,7 +17,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class TraceDetail : ComponentBase, IDisposable
+public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -60,6 +61,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     protected override void OnInitialized()
     {
         _gridColumns = [
@@ -77,6 +81,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     // Internal to be used in unit tests
@@ -171,6 +177,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
             // Navigate to remove ?spanId=xxx in the URL.
             NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
         }
+
+        UpdateTelemetryProperties();
     }
 
     private void UpdateDetailViewData()
@@ -324,5 +332,16 @@ public partial class TraceDetail : ComponentBase, IDisposable
             subscription.Dispose();
         }
         _tracesSubscription?.Dispose();
+        TelemetryContext.Dispose();
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.TraceDetailTraceId, new AspireTelemetryProperty(TraceId)),
+        ]);
     }
 }

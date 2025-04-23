@@ -11,7 +11,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Login : IAsyncDisposable
+public partial class Login : IAsyncDisposable, IComponentWithTelemetry
 {
     private IJSObjectReference? _jsModule;
     private FluentTextField? _tokenTextField;
@@ -22,6 +22,9 @@ public partial class Login : IAsyncDisposable
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -57,6 +60,8 @@ public partial class Login : IAsyncDisposable
                 return;
             }
         }
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -108,5 +113,9 @@ public partial class Login : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        TelemetryContext.Dispose();
     }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.LoginBasePath);
 }
