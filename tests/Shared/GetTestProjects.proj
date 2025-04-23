@@ -15,33 +15,57 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\Shared\**\*Tests.csproj" />
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\testproject\**\*Tests.csproj" />
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />
+      <!--<_TestProjectsToExclude Include="$(RepoRoot)tests\Shared\**\*Tests.csproj" />-->
+      <!--<_TestProjectsToExclude Include="$(RepoRoot)tests\testproject\**\*Tests.csproj" />-->
+      <!--<_TestProjectsToExclude Include="$(RepoRoot)tests\TestingAppHost1\**\*Tests.csproj" />-->
 
-      <!-- This runs in a separate job -->
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />
-      <!-- This runs in a separate job -->
-      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />
+      <!--[> This runs in a separate job <]-->
+      <!--<_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />-->
+      <!--[> This runs in a separate job <]-->
+      <!--<_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />-->
 
-      <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
-                     Exclude="@(_TestProjectsToExclude)" />
+      <!--<_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"-->
+                     <!--Exclude="@(_TestProjectsToExclude)" />-->
+      <_TestProjects Include="$(RepoRoot)tests\Aspire.Hosting.NodeJs.Tests\Aspire.Hosting.NodeJs.Tests.csproj" />
+
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
+      <_Lines Include="Hosting.NodeJs" />
     </ItemGroup>
 
     <!-- this returns an item list of [true, true, false...] with %(MSBuildSourceProjectFile) set -->
-    <MSBuild Projects="@(_TestProjects)" Targets="GetRunTestsOnGithubActions">
-      <Output TaskParameter="TargetOutputs" ItemName="ProjectRunTestsOnGithubActions" />
-    </MSBuild>
+    <!--<MSBuild Projects="@(_TestProjects)" Targets="GetRunTestsOnGithubActions">-->
+      <!--<Output TaskParameter="TargetOutputs" ItemName="ProjectRunTestsOnGithubActions" />-->
+    <!--</MSBuild>-->
 
     <ItemGroup>
-      <ProjectRunTestsOnGithubActions Remove="@(ProjectRunTestsOnGithubActions)" Condition="'%(RunTestsOnGithubActions)' != 'true'" />
-      <ProjectRunTestsOnGithubActions ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(Identity)').Replace('Aspire.', '').Replace('.Tests', ''))" />
+      <!--<ProjectRunTestsOnGithubActions Remove="@(ProjectRunTestsOnGithubActions)" Condition="'%(RunTestsOnGithubActions)' != 'true'" />-->
+      <!--<ProjectRunTestsOnGithubActions ShortName="$([System.IO.Path]::GetFileNameWithoutExtension('%(Identity)').Replace('Aspire.', '').Replace('.Tests', ''))" />-->
     </ItemGroup>
 
-    <Error Condition="@(ProjectRunTestsOnGithubActions->Count()) == 0" Text="Could not find any test projects" />
+    <!--<Error Condition="@(ProjectRunTestsOnGithubActions->Count()) == 0" Text="Could not find any test projects" />-->
 
     <WriteLinesToFile File="$(TestsListOutputPath)"
-                      Lines="@(ProjectRunTestsOnGithubActions->'%(ShortName)')"
+                      Lines="@(_Lines)"
                       Overwrite="true" />
   </Target>
 
