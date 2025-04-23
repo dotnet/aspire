@@ -12,6 +12,9 @@ jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
 
+  # Generates a runsheet for all the tests in the solution that do not require
+  # NuGet packages to be built.
+  # The runsheet generation is expected to be fast.
   generate_tests_matrix:
     name: Generate test runsheet
     runs-on: windows-latest
@@ -20,6 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      # In order to build the solution, we need to install the SDK and the toolsets first
+      # as defined in global.json. For this, create a temporary project file and run the
+      # build command with the -restore option. This will install the SDK and toolsets.
+      #
+      # We don't want to run 'build.cmd -restore' as it will also restore all the packages,
+      # which takes a long time and is not needed for this job.
       - name: Install toolsets
         shell: pwsh
         run: |
@@ -44,6 +53,10 @@ jobs:
             ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
           retention-days: 3
 
+  # Generates a runsheet for all the tests in the solution that DO require
+  # NuGet packages to be built.
+  # The runsheet generation is expected to be slow as we need to restore and build
+  # the whole solution and publish all the packages.
   generate_e2e_matrix:
     name: Generate E2E test runsheet
     runs-on: windows-latest
@@ -119,7 +132,7 @@ jobs:
           path: |
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**
-          retention-days: 3
+          retention-days: 30
 
       - name: Upload logs
         if: failure()
@@ -183,7 +196,7 @@ jobs:
           path: |
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**
-          retention-days: 3
+          retention-days: 30
 
       - name: Upload logs
         if: failure()
