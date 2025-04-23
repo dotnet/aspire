@@ -209,7 +209,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
-        <target state="needs-review-translation">Pano günlükleri ve telemetri</target>
+        <target state="new">Resource logs and telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogEnableTelemetry">
