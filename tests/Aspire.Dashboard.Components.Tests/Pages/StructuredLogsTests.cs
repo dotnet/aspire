@@ -101,7 +101,7 @@ public partial class StructuredLogsTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task Render_FiltersWithSpecialCharacters_SuccessfullyParsed()
+    public void Render_FiltersWithSpecialCharacters_SuccessfullyParsed()
     {
         // Arrange
         SetupStructureLogsServices();
@@ -126,7 +126,6 @@ public partial class StructuredLogsTests : DashboardTestContext
             builder.Add(p => p.ViewportInformation, viewport);
         });
 
-        await Task.Delay(2000);
         // Assert
         var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
 
@@ -177,7 +176,6 @@ public partial class StructuredLogsTests : DashboardTestContext
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
 
         JSInterop.SetupVoid("initializeContinuousScroll");
-        JSInterop.Setup<string>("getUserAgent").SetResult("TestBrowser");
 
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public class LoggingErrorBoundary : ErrorBoundary
+public class TelemetryErrorBoundary : ErrorBoundary
 {
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }

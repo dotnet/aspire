@@ -37,7 +37,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService DashboardTelemetryService { get; init; }
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -104,7 +104,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
-        DashboardTelemetryService.SetBrowserUserAgent(result.UserAgent);
+        TelemetryService.SetBrowserUserAgent(result.UserAgent);
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
         {

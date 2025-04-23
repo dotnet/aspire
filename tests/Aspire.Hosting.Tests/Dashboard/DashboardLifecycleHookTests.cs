@@ -279,19 +279,4 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         {
         }
     }
-
-    private sealed class TestServiceProvider : IServiceProvider
-    {
-        public static IServiceProvider Instance { get; } = new TestServiceProvider();
-
-        public object? GetService(Type serviceType)
-        {
-            if (serviceType == typeof(DistributedApplicationModel))
-            {
-                return new DistributedApplicationModel(new ResourceCollection());
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(serviceType));
-        }
-    }
 }

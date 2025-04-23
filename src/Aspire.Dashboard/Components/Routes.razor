@@ -10,7 +10,7 @@
     return;
 }
 
-<LoggingErrorBoundary>
+<TelemetryErrorBoundary>
     <CascadingValue Value="@_viewportInformation">
         <Router AppAssembly="@typeof(App).Assembly">
             <Found Context="routeData">
@@ -25,7 +25,7 @@
             </NotFound>
         </Router>
     </CascadingValue>
-</LoggingErrorBoundary>
+</TelemetryErrorBoundary>
 
 @code {
     private ViewportInformation? _viewportInformation;

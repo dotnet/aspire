@@ -303,7 +303,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        this.UpdateTelemetryProperties();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateMenuButtons()

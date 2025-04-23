@@ -12,7 +12,6 @@ using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -70,9 +69,6 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     [Inject]
     public required PauseManager PauseManager { get; init; }
 
-    [Inject]
-    public required IJSRuntime JS { get; init; }
-
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -121,7 +117,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         }
 
         UpdateSubscription();
-        this.UpdateTelemetryProperties();
+        UpdateTelemetryProperties();
     }
 
     public MetricsPageState ConvertViewModelToSerializable()
