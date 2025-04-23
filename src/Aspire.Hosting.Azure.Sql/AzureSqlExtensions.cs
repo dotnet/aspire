@@ -208,7 +208,7 @@ public static class AzureSqlExtensions
     }
 
     private static void CreateSqlServer(
-           AzureResourceInfrastructure infrastructure,
+        AzureResourceInfrastructure infrastructure,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
