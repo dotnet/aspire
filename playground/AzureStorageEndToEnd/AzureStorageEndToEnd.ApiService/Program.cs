@@ -17,7 +17,6 @@ app.MapDefaultEndpoints();
 app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc) =>
 {
     var container = bsc.GetBlobContainerClient("mycontainer");
-    await container.CreateIfNotExistsAsync();
 
     var blobNameAndContent = Guid.NewGuid().ToString();
     await container.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));

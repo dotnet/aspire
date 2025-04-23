@@ -163,4 +163,20 @@ public class AzureStorageExtensionsTests
 
         Assert.Contains("--skipApiVersionCheck", args);
     }
+
+    [Fact]
+    public async Task ResourceNamesBicepValid()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        var blobs = storage.AddBlobs("myblobs");
+        var blob = blobs.AddBlobContainer("my-blob-container");
+        var queues = storage.AddQueues("myqueues");
+        var tables = storage.AddTables("mytables");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
+    }
 }

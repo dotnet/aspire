@@ -88,4 +88,40 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
         Assert.Equal("testValue", downloadResult.Content.ToString());
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureStorageEmulatorBlobContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        var blobs = storage.AddBlobs("BlobConnection");
+        var blobContainer = blobs.AddBlobContainer("testblobcontainer");
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureBlobClient("BlobConnection");
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, CancellationToken.None);
+
+        var serviceClient = host.Services.GetRequiredService<BlobServiceClient>();
+        var blobContainerClient = serviceClient.GetBlobContainerClient("testblobcontainer");
+
+        var exists = await blobContainerClient.ExistsAsync();
+
+        var blobNameAndContent = Guid.NewGuid().ToString();
+        var response = await blobContainerClient.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
+
+        var blobClient = blobContainerClient.GetBlobClient(blobNameAndContent);
+
+        var downloadResult = (await blobClient.DownloadContentAsync()).Value;
+        Assert.Equal(blobNameAndContent, downloadResult.Content.ToString());
+    }
 }
