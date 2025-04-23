@@ -362,7 +362,8 @@ public static class AzureServiceBusExtensions
                 Registry = ServiceBusEmulatorContainerImageTags.Registry,
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
-            });
+            })
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         var sqlEdgeResource = builder.ApplicationBuilder
                 .AddContainer($"{builder.Resource.Name}-sqledge",
