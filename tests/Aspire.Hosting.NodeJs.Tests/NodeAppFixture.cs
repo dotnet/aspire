@@ -118,21 +118,25 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 
         public void Write(string message)
         {
+            Console.WriteLine(message);
             messageSink.OnMessage(new DiagnosticMessage(message));
         }
 
         public void Write(string format, params object[] args)
         {
+            System.Console.WriteLine(string.Format(CultureInfo.CurrentCulture, format, args));
             messageSink.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
         }
 
         public void WriteLine(string message)
         {
+            System.Console.WriteLine(message);
             messageSink.OnMessage(new DiagnosticMessage(message));
         }
 
         public void WriteLine(string format, params object[] args)
         {
+            System.Console.WriteLine(string.Format(CultureInfo.CurrentCulture, format, args));
             messageSink.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
         }
     }
