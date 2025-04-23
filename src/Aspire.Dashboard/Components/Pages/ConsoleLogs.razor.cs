@@ -726,9 +726,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        var selectedResourceName = PageViewModel.SelectedOption.Id is not null
-            ? PageViewModel.SelectedOption.Name
-            // _noSelection, which doesn't have a resource attached to it
+        var selectedResourceName = PageViewModel.SelectedResource is { } selectedResource
+            ? GetResourceName(selectedResource)
             : null;
         return new ConsoleLogsPageState(selectedResourceName);
     }
