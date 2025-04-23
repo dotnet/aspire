@@ -107,7 +107,7 @@ public class KeycloakResourceBuilderTests
     }
 
     [Fact]
-    public async Task VerifyManifestForHttp()
+    public async Task VerifyManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var keycloak = builder.AddKeycloak("keycloak");
@@ -136,54 +136,6 @@ public class KeycloakResourceBuilderTests
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 8080
-                },
-                "management": {
-                  "scheme": "http",
-                  "protocol": "tcp",
-                  "transport": "http",
-                  "targetPort": 9000
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task VerifyManifestForHttps()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var keycloak = builder.AddKeycloak("keycloak", 8443);
-
-        var manifest = await ManifestUtils.GetManifest(keycloak.Resource);
-
-        var expectedManifest = $$"""
-            {
-              "type": "container.v0",
-              "image": "{{KeycloakContainerImageTags.Registry}}/{{KeycloakContainerImageTags.Image}}:{{KeycloakContainerImageTags.Tag}}",
-              "args": [
-                "start-dev",
-                "--import-realm"
-              ],
-              "env": {
-                "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
-                "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
-                "KC_HEALTH_ENABLED": "true",
-                "KC_PROXY": "edge",
-                "KC_HTTP_PORT": "8443",
-                "KC_HTTP_ENABLED": "true",
-                "KC_HOSTNAME_PORT": "8443",
-                "KC_HOSTNAME_STRICT_BACKCHANNEL": "false",
-                "KC_PROXY_HEADERS": "xforwarded",
-                "KC_HOSTNAME_STRICT": "false",
-                "KC_HOSTNAME_STRICT_HTTPS": "false"
-              },
-              "bindings": {
-                "http": {
-                  "scheme": "http",
-                  "protocol": "tcp",
-                  "transport": "http",
-                  "targetPort": 8443
                 },
                 "management": {
                   "scheme": "http",

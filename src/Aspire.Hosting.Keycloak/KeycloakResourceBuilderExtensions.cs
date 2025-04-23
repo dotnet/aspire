@@ -20,7 +20,6 @@ public static class KeycloakResourceBuilderExtensions
     private const string HostNameStrictEnvVarName = "KC_HOSTNAME_STRICT";
 
     private const int DefaultContainerPort = 8080;
-    private const int HttpsContainerPort = 8443;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
@@ -61,14 +60,12 @@ public static class KeycloakResourceBuilderExtensions
 
         var resource = new KeycloakResource(name, adminUsername?.Resource, passwordParameter);
 
-        var targetPort = port == HttpsContainerPort ? HttpsContainerPort : DefaultContainerPort;
-
         var keycloak = builder
             .AddResource(resource)
             .WithImage(KeycloakContainerImageTags.Image)
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
-            .WithHttpEndpoint(port: port, targetPort: targetPort)
+            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
             .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
             .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
