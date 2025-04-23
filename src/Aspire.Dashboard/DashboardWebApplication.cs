@@ -13,6 +13,7 @@ using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
@@ -235,6 +236,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<PauseManager>();
 
         // Telemetry
+        builder.Services.TryAddScoped<ComponentTelemetryContextProvider>();
         builder.Services.TryAddSingleton<DashboardTelemetryService>();
         builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
 

@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components.Pages;
 /// </summary>
 public interface IComponentWithTelemetry
 {
-    public DashboardTelemetryService TelemetryService { get; }
+    public ComponentTelemetryContextProvider TelemetryContextProvider { get; }
     public ComponentTelemetryContext TelemetryContext { get; }
 
     public void UpdateTelemetryProperties()

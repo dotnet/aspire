@@ -5,6 +5,27 @@ using Aspire.Dashboard.Telemetry;
 
 namespace Aspire.Dashboard.Components.Pages;
 
+public sealed class ComponentTelemetryContextProvider
+{
+    private readonly DashboardTelemetryService _telemetryService;
+    private string? _browserUserAgent;
+
+    public ComponentTelemetryContextProvider(DashboardTelemetryService telemetryService)
+    {
+        _telemetryService = telemetryService;
+    }
+
+    public void SetBrowserUserAgent(string? userAgent)
+    {
+        _browserUserAgent = userAgent;
+    }
+
+    public void Initialize(ComponentTelemetryContext context)
+    {
+        context.Initialize(_telemetryService, _browserUserAgent);
+    }
+}
+
 public sealed class ComponentTelemetryContext : IDisposable
 {
     private DashboardTelemetryService? _telemetryService;
@@ -21,14 +42,14 @@ public sealed class ComponentTelemetryContext : IDisposable
 
     private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
 
-    public void Initialize(DashboardTelemetryService telemetryService)
+    public void Initialize(DashboardTelemetryService telemetryService, string? browserUserAgent)
     {
         _telemetryService = telemetryService;
 
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentType);
-        if (telemetryService.BrowserUserAgent != null)
+        if (browserUserAgent != null)
         {
-            Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(telemetryService.BrowserUserAgent);
+            Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(browserUserAgent);
         }
 
         _initializeCorrelation = telemetryService.PostUserTask(

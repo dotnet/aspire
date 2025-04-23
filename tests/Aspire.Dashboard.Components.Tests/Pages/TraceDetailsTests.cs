@@ -359,6 +359,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

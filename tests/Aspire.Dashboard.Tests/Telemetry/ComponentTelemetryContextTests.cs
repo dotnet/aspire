@@ -16,10 +16,11 @@ public class ComponentTelemetryContextTests
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
+        var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
+        telemetryContextProvider.SetBrowserUserAgent("mozilla");
         await telemetryService.InitializeAsync();
-        telemetryService.SetBrowserUserAgent("mozilla");
 
-        telemetryContext.Initialize(telemetryService);
+        telemetryContextProvider.Initialize(telemetryContext);
         for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
         {
             Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var postPropertyOperation));
@@ -60,10 +61,11 @@ public class ComponentTelemetryContextTests
         var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = false };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
+        var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
+        telemetryContextProvider.SetBrowserUserAgent("mozilla");
         await telemetryService.InitializeAsync();
-        telemetryService.SetBrowserUserAgent("mozilla");
 
-        telemetryContext.Initialize(telemetryService);
+        telemetryContextProvider.Initialize(telemetryContext);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);

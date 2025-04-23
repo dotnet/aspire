@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
@@ -142,6 +143,7 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<GlobalState>();
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.Configure<DashboardOptions>(o => o.Otlp.AuthMode = OtlpAuthMode.Unsecured);
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;

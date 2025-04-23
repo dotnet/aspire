@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
@@ -67,6 +68,7 @@ public partial class LoginTests : DashboardTestContext
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

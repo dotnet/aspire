@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -25,7 +24,7 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -62,7 +61,7 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
             }
         }
 
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
@@ -553,6 +554,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<ConsoleLogsManager>();
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.AddSingleton<PauseManager>();
     }
 

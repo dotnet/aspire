@@ -62,7 +62,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     protected override void OnInitialized()
     {
@@ -82,7 +82,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }));
         }
 
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     // Internal to be used in unit tests

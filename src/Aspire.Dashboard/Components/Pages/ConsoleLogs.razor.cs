@@ -87,7 +87,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -169,7 +169,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
 
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
 
         async Task TrackResourceSnapshotsAsync()
         {

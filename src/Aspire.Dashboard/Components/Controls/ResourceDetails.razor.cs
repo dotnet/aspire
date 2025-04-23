@@ -32,7 +32,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -160,7 +160,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

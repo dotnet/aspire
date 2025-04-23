@@ -86,7 +86,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     public required PauseManager PauseManager { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -170,7 +170,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             StateHasChanged();
         }));
 
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()

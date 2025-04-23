@@ -195,6 +195,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<GlobalState>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

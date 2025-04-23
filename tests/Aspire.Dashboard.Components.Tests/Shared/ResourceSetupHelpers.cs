@@ -32,6 +32,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<DashboardTelemetryService>();
+        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -115,6 +116,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
         context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<DashboardTelemetryService>();
+        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);

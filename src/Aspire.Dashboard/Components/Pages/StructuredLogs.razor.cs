@@ -87,7 +87,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     public required PauseManager PauseManager { get; init; }
 
     [Inject]
-    public required DashboardTelemetryService TelemetryService { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -204,7 +204,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             StateHasChanged();
         }));
 
-        TelemetryContext.Initialize(TelemetryService);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()

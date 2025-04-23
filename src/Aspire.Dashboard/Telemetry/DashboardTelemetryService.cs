@@ -7,7 +7,6 @@ namespace Aspire.Dashboard.Telemetry;
 
 public sealed class DashboardTelemetryService
 {
-    private string? _browserUserAgent;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
     private readonly ILogger<DashboardTelemetryService> _logger;
     private readonly IDashboardTelemetrySender _telemetrySender;
@@ -19,11 +18,6 @@ public sealed class DashboardTelemetryService
         _logger = logger;
         _telemetrySender = telemetrySender;
     }
-
-    /// <summary>
-    /// Gets the browser user agent string. This is set by the dashboard web application when it starts up.
-    /// </summary>
-    public string? BrowserUserAgent => _browserUserAgent;
 
     /// <summary>
     /// Whether the telemetry service has been initialized. This will be true if <see cref="InitializeAsync"/> has completed.
@@ -374,11 +368,6 @@ public sealed class DashboardTelemetryService
     private static string GetCompositeEventName(string eventName, string endpoint)
     {
         return $"{endpoint} - ${eventName}";
-    }
-
-    public void SetBrowserUserAgent(string? userAgent)
-    {
-        _browserUserAgent = userAgent;
     }
 }
 
