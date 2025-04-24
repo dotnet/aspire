@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(RepoRoot)src\Components\Aspire.Azure.AppConfiguration\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="..\Aspire.Azure.Security.KeyVault.Tests\MockTransport.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Components\Aspire.Azure.AppConfiguration\Aspire.Azure.AppConfiguration.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

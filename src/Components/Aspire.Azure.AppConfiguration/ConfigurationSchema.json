@@ -1,0 +1,40 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "AppConfiguration": {
+              "type": "object",
+              "properties": {
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
+                },
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "A 'System.Uri' to the App Config store on which the client operates. Appears as \"Endpoint\" in the Azure portal. This is likely to be similar to \"https://{store_name}.azconfig.io\"."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to Azure App Configuration."
+            }
+          }
+        }
+      }
+    }
+  }
+}
