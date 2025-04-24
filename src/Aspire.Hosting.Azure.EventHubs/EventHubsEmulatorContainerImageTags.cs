@@ -12,5 +12,5 @@ internal static class EventHubsEmulatorContainerImageTags
     public const string Image = "azure-messaging/eventhubs-emulator";
 
     /// <remarks>latest</remarks>
-    public const string Tag = "latest"; // latest is the only arch-agnostic tag
+    public const string Tag = "2.1.0"; // latest is the only arch-agnostic tag
 }
