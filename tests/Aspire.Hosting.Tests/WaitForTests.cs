@@ -114,7 +114,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // Notice we don't need to move the parameter or connection string to a running state
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     // Add a test that verifies the wait for behavior when the dependency is in varying states
@@ -237,13 +237,14 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
       dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
 
       using var app = builder.Build();
-      await app.StartAsync();
+      await app.StartAsync(TestContext.Current.CancellationToken);
 
       var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => {
         await app.ResourceNotifications.WaitForResourceHealthyAsync(
             dependency.Resource.Name,
-            WaitBehavior.StopOnResourceUnavailable
-            ).WaitAsync(TimeSpan.FromSeconds(15));
+            WaitBehavior.StopOnResourceUnavailable,
+            TestContext.Current.CancellationToken
+            ).WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
       });
 
       Assert.Equal("Stopped waiting for resource 'redis' to become healthy because it failed to start.", ex.Message);
@@ -261,13 +262,14 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
       dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
 
       using var app = builder.Build();
-      await app.StartAsync();
+      await app.StartAsync(TestContext.Current.CancellationToken);
 
       var ex = await Assert.ThrowsAsync<TimeoutException>(async () => {
         await app.ResourceNotifications.WaitForResourceHealthyAsync(
             dependency.Resource.Name,
-            WaitBehavior.WaitOnResourceUnavailable
-            ).WaitAsync(TimeSpan.FromSeconds(15));
+            WaitBehavior.WaitOnResourceUnavailable,
+            TestContext.Current.CancellationToken
+            ).WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
       });
 
       Assert.Equal("The operation has timed out.", ex.Message);
@@ -292,11 +294,11 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         dependency.WaitFor(failToStart, WaitBehavior.StopOnResourceUnavailable);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var ex = await Assert.ThrowsAsync(exceptionType, async () => {
-            await app.ResourceNotifications.WaitForResourceHealthyAsync(dependency.Resource.Name)
-                .WaitAsync(TimeSpan.FromSeconds(15));
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(dependency.Resource.Name, TestContext.Current.CancellationToken)
+                .WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         });
 
         Assert.Equal(exceptionMessage, ex.Message);
@@ -469,7 +471,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -516,7 +518,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -578,7 +580,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // Just looking for a common message in Docker build output.
         Assert.Contains(logs, log => log.Message.Contains("The resource ready event failed!"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -624,7 +626,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -677,7 +679,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -730,7 +732,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -771,7 +773,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]

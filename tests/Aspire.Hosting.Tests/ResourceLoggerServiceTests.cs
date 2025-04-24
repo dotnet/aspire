@@ -21,7 +21,7 @@ public class ResourceLoggerServiceTests
 
         var subsLoop = WatchForSubscribers(service);
 
-        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
@@ -42,7 +42,7 @@ public class ResourceLoggerServiceTests
 
         // New sub should get the previous logs
         subsLoop = WatchForSubscribers(service);
-        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
         await subsLoop.DefaultTimeout();
         allLogs = await logsLoop.DefaultTimeout();
@@ -102,7 +102,7 @@ public class ResourceLoggerServiceTests
         var logger = service.GetLogger(testResource);
 
         var subsLoop = WatchForSubscribers(service);
-        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
@@ -123,7 +123,7 @@ public class ResourceLoggerServiceTests
 
         // New sub should get the previous logs (backlog)
         subsLoop = WatchForSubscribers(service);
-        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
         await subsLoop.DefaultTimeout();
         allLogs = await logsLoop.DefaultTimeout();
@@ -136,7 +136,7 @@ public class ResourceLoggerServiceTests
         service.ClearBacklog(testResource.Name);
 
         subsLoop = WatchForSubscribers(service);
-        var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator3, 1);
         await subsLoop.DefaultTimeout();
         logger.LogInformation("The third log");
@@ -158,7 +158,7 @@ public class ResourceLoggerServiceTests
         logger.LogInformation("Before watching!");
 
         var subsLoop = WatchForSubscribers(service);
-        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 1);
 
         // Wait for subscriber to be added
@@ -181,7 +181,7 @@ public class ResourceLoggerServiceTests
 
         // New sub should get the previous logs (backlog)
         subsLoop = WatchForSubscribers(service);
-        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
         await subsLoop.DefaultTimeout();
         allLogs = await logsLoop.DefaultTimeout();
@@ -199,7 +199,7 @@ public class ResourceLoggerServiceTests
         Assert.Empty(service.GetResourceLoggerState(testResource.Name).GetBacklogSnapshot());
 
         subsLoop = WatchForSubscribers(service);
-        var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator3, 4);
         await subsLoop.DefaultTimeout();
         logger.LogInformation("While watching again!");
@@ -223,7 +223,7 @@ public class ResourceLoggerServiceTests
 
         var subsLoop = WatchForSubscribers(service);
 
-        var logsEnumerator = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsEnumerator = service.WatchAsync(testResource).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator, 4);
 
         // Wait for subscriber to be added

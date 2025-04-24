@@ -50,7 +50,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s).DefaultTimeout();
 
         string resourceId = default!;
-        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync().DefaultTimeout())
+        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync(TestContext.Current.CancellationToken).DefaultTimeout())
         {
             if (item.Name.StartsWith(KnownResourceNames.AspireDashboard) && item.AnySubscribers)
             {
@@ -66,7 +66,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         // Assert
         while (true)
         {
-            var logContext = await logChannel.Reader.ReadAsync().DefaultTimeout();
+            var logContext = await logChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
             if (logContext.LoggerName == expectedCategory)
             {
                 Assert.Equal(expectedMessage, logContext.Message);
@@ -140,7 +140,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
-        await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger()).DefaultTimeout();
+        await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger(), cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         Assert.Equal(expectedDebugSessionPort?.ToString(), dashboardEnvironmentVariables.GetValueOrDefault(DashboardConfigNames.DebugSessionPortName.EnvVarName));

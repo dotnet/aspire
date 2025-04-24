@@ -42,7 +42,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -66,7 +66,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -99,7 +99,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -171,7 +171,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -209,7 +209,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -246,7 +246,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -280,7 +280,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -316,7 +316,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -360,7 +360,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -385,7 +385,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -401,7 +401,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -464,9 +464,9 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
                     break;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
@@ -518,7 +518,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 

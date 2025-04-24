@@ -49,7 +49,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         logger.LogInformation("Test1");
         logger.LogInformation("Test2");
 
-        var context = TestServerCallContext.Create();
+        var context = TestServerCallContext.Create(cancellationToken: TestContext.Current.CancellationToken);
         var writer = new TestServerStreamWriter<WatchResourceConsoleLogsUpdate>(context);
 
         // Act
@@ -70,7 +70,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             l => Assert.Equal("Test1", l.Text.Split(' ')[1]),
             l => Assert.Equal("Test2", l.Text.Split(' ')[1]));
 
-        await getConsoleLogsChannel.Writer.WriteAsync([LogEntry.Create(null, "Test3", isErrorMessage: false)]);
+        await getConsoleLogsChannel.Writer.WriteAsync([LogEntry.Create(null, "Test3", isErrorMessage: false)], TestContext.Current.CancellationToken);
 
         var update3 = await writer.ReadNextAsync().DefaultTimeout();
         Assert.Collection(update3.LogLines,
@@ -102,7 +102,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         logger.LogInformation(new string('3', LongLineCharacters));
         logger.LogInformation(new string('4', LongLineCharacters));
 
-        var context = TestServerCallContext.Create();
+        var context = TestServerCallContext.Create(cancellationToken: TestContext.Current.CancellationToken);
         var writer = new TestServerStreamWriter<WatchResourceConsoleLogsUpdate>(context);
 
         // Act
@@ -173,7 +173,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         await dashboardServiceData.WaitForResourceAsync(testResource.Name, r =>
         {
             return r.Commands.Length == 1;
-        }).DefaultTimeout();
+        }, TestContext.Current.CancellationToken).DefaultTimeout();
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);

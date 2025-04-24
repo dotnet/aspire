@@ -67,12 +67,12 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await tcs.Task;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -91,15 +91,15 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await tcs.Task;
 
         Assert.NotNull(logger);
         Assert.True(logger is not NullLogger);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -117,14 +117,14 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -142,14 +142,14 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -168,8 +168,8 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
@@ -179,7 +179,7 @@ public class WithUrlsTests
             u => Assert.True(u.Url.EndsWith("/test") && u.DisplayText == "Example")
         );
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -197,14 +197,14 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "test");
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -221,14 +221,14 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url.EndsWith("/sub-path") && u.Endpoint?.EndpointName == "http");
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -245,14 +245,14 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "http://custom.localhost:23456/home" && u.Endpoint?.EndpointName == "http");
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -276,8 +276,8 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
@@ -287,7 +287,7 @@ public class WithUrlsTests
             && u.Endpoint?.EndpointName == "test"
             && u.DisplayOrder == 1000);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public class WithUrlsTests
 
         var httpEndpoint = servicea.Resource.GetEndpoint("http");
 
-        var app = await builder.BuildAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
         var cts = new CancellationTokenSource();
@@ -314,14 +314,14 @@ public class WithUrlsTests
                     break;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
     }
@@ -336,7 +336,7 @@ public class WithUrlsTests
         servicea.WithUrl($"{httpEndpoint}/one", "Example 1");
         servicea.WithUrl($"{httpEndpoint}/two", "Example 2");
 
-        var app = await builder.BuildAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
         var cts = new CancellationTokenSource();
@@ -350,14 +350,14 @@ public class WithUrlsTests
                     break;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Collection(initialUrlSnapshot,
             s => Assert.True(s.Name == httpEndpoint.EndpointName && s.DisplayProperties.DisplayName == ""), // <-- this is the default URL added for the endpoint
@@ -374,7 +374,7 @@ public class WithUrlsTests
         builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com");
 
-        var app = await builder.BuildAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
@@ -399,15 +399,15 @@ public class WithUrlsTests
                     }
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.All(initialUrlSnapshot, s => Assert.True(s.IsInactive));
         Assert.Single(urlSnapshotAfterRunning, s => !s.IsInactive && s.Url == "https://example.com");
@@ -426,7 +426,7 @@ public class WithUrlsTests
                 c.Urls.Add(new() { Url = "http://example.com/out-of-range", DisplayLocation = (UrlDisplayLocation)100 });
             });
 
-        var app = await builder.BuildAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         ImmutableArray<UrlSnapshot> urlSnapshot = default;
@@ -444,15 +444,15 @@ public class WithUrlsTests
                     }
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Collection(urlSnapshot,
             url => { Assert.Equal("http", url.Name); Assert.False(url.IsInternal); },
@@ -482,13 +482,13 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         Assert.False(called);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -512,13 +512,13 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         Assert.False(called);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -540,8 +540,8 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
@@ -549,7 +549,7 @@ public class WithUrlsTests
         Assert.NotNull(endpointUrl);
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -571,8 +571,8 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test" && u.Url.EndsWith("/sub-path"));
@@ -580,7 +580,7 @@ public class WithUrlsTests
         Assert.NotNull(endpointUrl);
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -602,8 +602,8 @@ public class WithUrlsTests
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test" && u.Url.EndsWith("/sub-path"));
@@ -611,7 +611,7 @@ public class WithUrlsTests
         Assert.NotNull(endpointUrl);
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class ProjectA : IProjectMetadata

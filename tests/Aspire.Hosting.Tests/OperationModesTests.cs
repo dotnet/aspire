@@ -32,11 +32,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Run, context.Operation);
         Assert.True(context.IsRunMode);
@@ -61,11 +61,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.LongTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Run, context.Operation);
         Assert.True(context.IsRunMode);
@@ -91,11 +91,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Run, context.Operation);
         Assert.True(context.IsRunMode);
@@ -122,11 +122,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Publish, context.Operation);
         Assert.True(context.IsPublishMode);
@@ -164,11 +164,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Inspect, context.Operation);
         Assert.True(context.IsInspectMode);
@@ -194,11 +194,11 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
         
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TestConstants.DefaultTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         Assert.Equal(DistributedApplicationOperation.Inspect, context.Operation);
         Assert.True(context.IsInspectMode);

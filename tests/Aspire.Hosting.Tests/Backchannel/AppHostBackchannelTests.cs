@@ -36,20 +36,20 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        _ = await backchannelConnectedTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        _ = await backchannelConnectedTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60),TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -66,13 +66,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -80,11 +80,12 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var timestampOut = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var timestampIn = await rpc.InvokeWithCancellationAsync<long>(
             "PingAsync",
-            [timestampOut]).WaitAsync(TimeSpan.FromSeconds(60));
+            [timestampOut],
+            TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         Assert.Equal(timestampOut, timestampIn);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -109,13 +110,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -123,7 +124,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var resourceEvents = await rpc.InvokeAsync<IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)>>(
             "GetResourceStatesAsync",
             Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            ).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         await foreach (var resourceEvent in resourceEvents)
         {
@@ -134,7 +135,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             break;
         }
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -154,21 +155,22 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
         var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
             "GetPublishersAsync",
-            Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            Array.Empty<object>(),
+            TestContext.Current.CancellationToken
+            ).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         Assert.Collection(
             publishers,
@@ -177,7 +179,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             x => Assert.Equal("dummy2", x)
             );
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -199,21 +201,22 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
         var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
             "GetPublishersAsync",
-            Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            Array.Empty<object>(),
+            TestContext.Current.CancellationToken
+            ).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         Assert.Collection(
             publishers,
@@ -222,7 +225,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             x => Assert.Equal("dummy2", x)
             );
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
     }
 }
 

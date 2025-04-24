@@ -26,16 +26,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         var resource = builder.AddResource(new ParentResource("resource"));
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
         }).DefaultTimeout();
 
-        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Null(startingEvent.Snapshot.HealthStatus);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
@@ -43,10 +43,10 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource", TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
 
         Assert.Contains(testSink.Writes, w => w.Message == "Resource 'resource' has no health checks to monitor.");
     }
@@ -66,16 +66,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
         }).DefaultTimeout();
 
-        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Null(startingEvent.Snapshot.HealthStatus);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
@@ -83,16 +83,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout();
         // Resource is unhealthy because it has health reports that haven't run yet.
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
 
         // Allow health check to report success.
         tcs.SetResult();
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource", TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -109,16 +109,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
         }).DefaultTimeout();
 
-        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Null(startingEvent.Snapshot.HealthStatus);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
@@ -127,12 +127,12 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource",
-            e => e.Snapshot.State?.Text == KnownResourceStates.Running && e.Snapshot.HealthReports.Single().Status == HealthStatus.Unhealthy).DefaultTimeout();
+            e => e.Snapshot.State?.Text == KnownResourceStates.Running && e.Snapshot.HealthReports.Single().Status == HealthStatus.Unhealthy, TestContext.Current.CancellationToken).DefaultTimeout();
 
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
         Assert.Equal("Error calling HealthCheckService.", runningEvent.Snapshot.HealthReports.Single().Description);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -155,21 +155,21 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             return Task.CompletedTask;
         });
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var healthService = app.Services.GetRequiredService<ResourceHealthCheckService>();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource", TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Verify resource ready event called.
-        var e1 = await channel.Reader.ReadAsync().DefaultTimeout();
+        var e1 = await channel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(resource.Resource, e1.Resource);
 
         var monitor1 = healthService.GetResourceMonitorState("resource")!;
@@ -190,17 +190,17 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             HealthReports = [new HealthReportSnapshot("healthcheck_a", Status: null, Description: null, ExceptionText: null)]
         });
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("resource", TestContext.Current.CancellationToken).DefaultTimeout();
 
         var monitor2 = healthService.GetResourceMonitorState("resource")!;
         Assert.NotEqual(monitor1, monitor2);
         Assert.False(monitor2.CancellationToken.IsCancellationRequested);
 
         // Verify resource ready event called after restart.
-        var e2 = await channel.Reader.ReadAsync().DefaultTimeout();
+        var e2 = await channel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(resource.Resource, e2.Resource);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        var pendingStart = app.StartAsync();
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
@@ -356,7 +356,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(resource.Resource, @event.Resource);
 
         await pendingStart.DefaultTimeout();
-        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -376,7 +376,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync().DefaultTimeout();
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
@@ -389,11 +389,11 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             {
                 break;
             }
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
         await pendingStart; // already has a timeout
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -423,7 +423,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutDuration);
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Verify that the health check does not get run before we move the resource into the
         // the running state. There isn't a great way to do this using a completition source
@@ -433,7 +433,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         while (!pendingStart.IsCanceled)
         {
             Assert.Equal(0, hitCount);
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
 
             if (DateTime.UtcNow > giveUpAfter)
             {
@@ -452,7 +452,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.True(hitCount > 0);
 
         await pendingStart; // already has a timeout
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -482,7 +482,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        var pendingStart = app.StartAsync().DefaultTimeout();
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         var rhcs = app.Services.GetRequiredService<ResourceHealthCheckService>();
         rhcs.HealthyHealthCheckInterval = TimeSpan.FromSeconds(1);
 
@@ -501,13 +501,13 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             {
                 break;
             }
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(1, eventHits);
 
         await pendingStart; // already has a timeout
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout();
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        var pendingStart = app.StartAsync();
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken);
 
         // Get the custom resource to a running state.
         await app.ResourceNotifications.PublishUpdateAsync(parent.Resource, s => s with
@@ -559,7 +559,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(childReadyEvent.Resource, child.Resource);
 
         await pendingStart; // already has a timeout
-        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -579,16 +579,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
         }).DefaultTimeout();
 
-        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Null(startingEvent.Snapshot.HealthStatus);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
@@ -597,17 +597,17 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         // Resource is unhealthy because ResourceReadyEvent is running.
-        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
 
         // Allow health check to complete successfully
         tcs.SetResult();
 
         // Resource is now healthy
-        var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+        var healthyEvent = await app.ResourceNotifications.WaitForResourceHealthyAsync("resource", TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -625,16 +625,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
-        await using var app = await builder.BuildAsync().DefaultTimeout();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
         }).DefaultTimeout();
 
-        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting).DefaultTimeout();
+        var startingEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Null(startingEvent.Snapshot.HealthStatus);
 
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
@@ -642,7 +642,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
+        var runningEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout();
         // Resource is unhealthy because ResourceReadyEvent is running.
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
 
@@ -650,10 +650,10 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         tcs.SetException(new InvalidOperationException("ResourceReadyEvent failed"));
 
         // Resource is still unhealthy
-        var unhealthyEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Unhealthy).DefaultTimeout();
+        var unhealthyEvent = await app.ResourceNotifications.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Unhealthy, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(HealthStatus.Unhealthy, unhealthyEvent.Snapshot.HealthStatus);
 
-        await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
     private sealed class ParentResource(string name) : Resource(name)

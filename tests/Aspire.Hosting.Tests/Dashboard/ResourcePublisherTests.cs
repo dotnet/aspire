@@ -41,7 +41,7 @@ public class ResourcePublisherTests
             {
                 tcs.TrySetResult(change);
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
@@ -171,7 +171,7 @@ public class ResourcePublisherTests
                 // Now we've received something, cancel.
                 await cts.CancelAsync().DefaultTimeout();
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Push through an update.
         await publisher.IntegrateAsync(new TestResource("A"), CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).DefaultTimeout();

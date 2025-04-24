@@ -128,29 +128,29 @@ public class DistributedApplicationTests
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
 
-        var startTask = app.StartAsync();
+        var startTask = app.StartAsync(TestContext.Current.CancellationToken);
 
-        var resourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var resourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Force resource to start.");
         await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Start resource (into waiting state)");
         var restartResourceTask = orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Force resource to start.");
         await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await restartResourceTask.DefaultTimeout(TestConstants.LongTimeoutDuration);
         await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -171,11 +171,11 @@ public class DistributedApplicationTests
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
 
-        var startTask = app.StartAsync();
+        var startTask = app.StartAsync(TestContext.Current.CancellationToken);
 
         // On start, one resource won't be started and the other is waiting on it.
-        var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Source should be populated on non-started resources.
         Assert.Contains("TestProject.ServiceA.csproj", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
@@ -183,7 +183,7 @@ public class DistributedApplicationTests
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5156", u.Url);
@@ -191,7 +191,7 @@ public class DistributedApplicationTests
         });
 
         // Dependent resource should now run.
-        var dependentResourceRunningEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceRunningEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         Assert.Collection(dependentResourceRunningEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
@@ -200,14 +200,14 @@ public class DistributedApplicationTests
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Start resource again");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -233,11 +233,11 @@ public class DistributedApplicationTests
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
 
-        var startTask = app.StartAsync();
+        var startTask = app.StartAsync(TestContext.Current.CancellationToken);
 
         // On start, one resource won't be started and the other is waiting on it.
-        var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Source should be populated on non-started resources.
         Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
@@ -245,7 +245,7 @@ public class DistributedApplicationTests
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
@@ -253,7 +253,7 @@ public class DistributedApplicationTests
         });
 
         // Dependent resource should now run.
-        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
@@ -262,14 +262,14 @@ public class DistributedApplicationTests
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Exited).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Exited, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         logger.LogInformation("Start resource again");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var appModel = await tcs.Task.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
@@ -357,13 +357,13 @@ public class DistributedApplicationTests
 
         var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         logger.LogInformation("Make sure services A and C are running");
         using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
         using var clientC = app.CreateHttpClient(testProgram.ServiceCBuilder.Resource.Name, "http");
 
-        await Task.WhenAll(clientA.GetStringAsync("/pid"), clientC.GetStringAsync("/pid")).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await Task.WhenAll(clientA.GetStringAsync("/pid", TestContext.Current.CancellationToken), clientC.GetStringAsync("/pid", TestContext.Current.CancellationToken)).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // We should get 3 distinct PIDs from service B
         Dictionary<int, bool> pids = [];
@@ -376,7 +376,7 @@ public class DistributedApplicationTests
             using var clientB = new HttpClient();
             var url = $"{uri}pid";
             logger.LogInformation("Calling PID API at {Url}", url);
-            var pidText = await clientB.GetStringAsync(url).DefaultTimeout();
+            var pidText = await clientB.GetStringAsync(url, TestContext.Current.CancellationToken).DefaultTimeout();
             if (!string.IsNullOrEmpty(pidText))
             {
                 var pid = int.Parse(pidText, CultureInfo.InvariantCulture);
@@ -392,7 +392,7 @@ public class DistributedApplicationTests
                 }
             }
 
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(3, pids.Count);
@@ -411,10 +411,10 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var list = await s.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
             item =>
@@ -424,7 +424,7 @@ public class DistributedApplicationTests
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -458,10 +458,10 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var list = await s.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
             item =>
@@ -479,7 +479,7 @@ public class DistributedApplicationTests
                 item.Spec.CreateFiles);
             });
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -507,7 +507,7 @@ public class DistributedApplicationTests
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         var token = cts.Token;
@@ -517,7 +517,7 @@ public class DistributedApplicationTests
         Assert.NotNull(redisContainer);
 
         // Initial startup event.
-        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
+        await beforeResourceStartedEvents.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         await orchestrator.StopResourceAsync(redisContainer.Metadata.Name, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
@@ -527,12 +527,12 @@ public class DistributedApplicationTests
         await orchestrator.StartResourceAsync(redisContainer.Metadata.Name, token);
 
         // Restart event.
-        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
+        await beforeResourceStartedEvents.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
         Assert.NotNull(redisContainer);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -550,23 +550,23 @@ public class DistributedApplicationTests
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var executablePattern = $"{testName}-servicea-{ReplicaIdRegex}-{suffix}";
-        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
         await orchestrator.StopResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
         await orchestrator.StartResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.NotNull(serviceA);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -592,16 +592,16 @@ public class DistributedApplicationTests
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"{testName}-servicea", suffix!, r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"{testName}-servicea", suffix!, r => r.Status?.EffectiveEnv is not null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"{testName}-nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"{testName}-nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(nodeApp);
 
         Assert.Equal(RedisImageSource, redisContainer.Spec.Image);
@@ -618,7 +618,7 @@ public class DistributedApplicationTests
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -645,10 +645,10 @@ public class DistributedApplicationTests
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("BrowserToken", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
@@ -658,7 +658,7 @@ public class DistributedApplicationTests
         var keyBytes = Convert.FromHexString(GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__PRIMARYAPIKEY")!);
         Assert.Equal(16, keyBytes.Length);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -685,16 +685,16 @@ public class DistributedApplicationTests
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -716,19 +716,19 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(s, $"{testName}-redis-{ReplicaIdRegex}-{suffix}",
-            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false)).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false), TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer);
         Assert.Equal(RedisImageSource, redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -745,20 +745,20 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal(sourcePath, redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -774,21 +774,21 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
             s,
-            $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+            $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -804,20 +804,20 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal($"{testName}-volume", redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -830,7 +830,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
@@ -849,7 +849,7 @@ public class DistributedApplicationTests
             $"{testName}-postgres"
         };
 
-        await foreach (var resource in s.WatchAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
+        await foreach (var resource in s.WatchAsync<Container>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Container.ResourceNameAnnotation, out var value));
             if (expectedContainerResources.Contains(value))
@@ -863,7 +863,7 @@ public class DistributedApplicationTests
             }
         }
 
-        await foreach (var resource in s.WatchAsync<Executable>().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
+        await foreach (var resource in s.WatchAsync<Executable>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
             if (expectedExeResources.Contains(value))
@@ -891,7 +891,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         Assert.Equal($"Resource '{testName}-servicea-{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
@@ -910,7 +910,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         Assert.Equal($"Service '{testName}-servicea-{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
@@ -932,11 +932,11 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var client = app.CreateHttpClientWithResilience($"{testName}-servicea", "http");
 
-        var result = await client.GetStringAsync("pid").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        var result = await client.GetStringAsync("pid", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(result);
 
         // Check that endpoint from launchsettings doesn't work
@@ -947,7 +947,7 @@ public class DistributedApplicationTests
                 // Provide a timeout to avoid long timeout while trying to connect.
                 ConnectTimeout = TimeSpan.FromSeconds(2)
             });
-            await client2.GetStringAsync("http://localhost:5156/pid");
+            await client2.GetStringAsync("http://localhost:5156/pid", TestContext.Current.CancellationToken);
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
@@ -976,7 +976,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
@@ -1045,23 +1045,23 @@ public class DistributedApplicationTests
             .WithReference(redisNoPort);
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
-        await clientA.GetStringAsync("/").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await clientA.GetStringAsync("/", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-        var exeList = await s.ListAsync<Executable>().DefaultTimeout();
+        var exeList = await s.ListAsync<Executable>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
 
         var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
         var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
-        var list = await s.ListAsync<Container>().DefaultTimeout();
+        var list = await s.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
         var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
@@ -1071,7 +1071,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -1095,27 +1095,27 @@ public class DistributedApplicationTests
             .WithReference(redisNoPort);
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
-        await clientA.GetStringAsync("/").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await clientA.GetStringAsync("/", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        var serviceList = await s.ListAsync<Service>().DefaultTimeout();
+        var serviceList = await s.ListAsync<Service>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.All(serviceList.Where(s => s.Metadata.Name.Contains("redis")), s => Assert.Equal(AddressAllocationModes.Proxyless, s.Spec.AddressAllocationMode));
 
-        var exeList = await s.ListAsync<Executable>().DefaultTimeout();
+        var exeList = await s.ListAsync<Executable>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
 
         var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
         var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
-        var list = await s.ListAsync<Container>().DefaultTimeout();
+        var list = await s.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken).DefaultTimeout();
         var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
@@ -1125,7 +1125,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -1142,7 +1142,7 @@ public class DistributedApplicationTests
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
     }
 
@@ -1163,7 +1163,7 @@ public class DistributedApplicationTests
         var kubernetesLifecycle = (KubernetesTestLifecycleHook)lifecycles.Where(l => l.GetType() == typeof(KubernetesTestLifecycleHook)).First();
         kubernetesLifecycle.KubernetesService = s;
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }

@@ -34,7 +34,7 @@ public class DistributedApplicationBuilderEventingTests
             return Task.CompletedTask;
         });
 
-        var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential);
+        var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential, TestContext.Current.CancellationToken);
 
         await blockAssertionTcs.Task.DefaultTimeout();
         Assert.Equal(1, hitCount);
@@ -67,7 +67,7 @@ public class DistributedApplicationBuilderEventingTests
             await blockSubscriptionCompletion.Task;
         });
 
-        var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent);
+        var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent, TestContext.Current.CancellationToken);
 
         await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task).DefaultTimeout();
         Assert.Equal(2, hitCount);
@@ -99,7 +99,7 @@ public class DistributedApplicationBuilderEventingTests
             blockAssertionSub2.SetResult();
         });
 
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingConcurrent).DefaultTimeout();
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingConcurrent, TestContext.Current.CancellationToken).DefaultTimeout();
 
         blockSubscriptionExecution.SetResult();
         await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task).DefaultTimeout();
@@ -134,7 +134,7 @@ public class DistributedApplicationBuilderEventingTests
             return Task.CompletedTask;
         });
 
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingSequential).DefaultTimeout();
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingSequential, TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Make sure that we are zero when we enter
         // the first handler.
@@ -144,7 +144,7 @@ public class DistributedApplicationBuilderEventingTests
         // Give the second handler a chance to run,
         // it shouldn't and hit count should
         // still be zero.
-        await Task.Delay(1000);
+        await Task.Delay(1000, TestContext.Current.CancellationToken);
         Assert.Equal(0, hitCount);
 
         // After we unblock the first sub
@@ -188,11 +188,11 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await beforeResourceStartedTcs.Task.DefaultTimeout();
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -215,12 +215,12 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10));
+        var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(fired);
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var allFired = ManualResetEvent.WaitAll(
             [beforeStartEventFired.WaitHandle, afterEndpointsAllocatedEventFired.WaitHandle, afterResourcesCreatedEventFired.WaitHandle],
@@ -262,7 +262,7 @@ public class DistributedApplicationBuilderEventingTests
             );
 
         Assert.True(allFired);
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     public class DummyEvent : IDistributedApplicationEvent

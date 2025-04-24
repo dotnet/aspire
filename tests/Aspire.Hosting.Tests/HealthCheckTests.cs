@@ -27,7 +27,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal(
@@ -49,7 +49,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal(
@@ -64,7 +64,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>(TestContext.Current.CancellationToken);
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
             return healthCheckTcs.Task;
@@ -80,23 +80,23 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync();
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         await pendingStart.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal("A health check registration is missing. Check logs for more details.", ex.Message);

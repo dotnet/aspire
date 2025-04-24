@@ -31,7 +31,7 @@ public class ApplicationOrchestratorTests
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
-        await appOrchestrator.RunApplicationAsync();
+        await appOrchestrator.RunApplicationAsync(TestContext.Current.CancellationToken);
 
         string? parentResourceId = null;
         string? childParentResourceId = null;
@@ -53,7 +53,7 @@ public class ApplicationOrchestratorTests
                     return;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, parentResource.Resource, parentResource.Resource.Name));
 
@@ -80,7 +80,7 @@ public class ApplicationOrchestratorTests
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
-        await appOrchestrator.RunApplicationAsync();
+        await appOrchestrator.RunApplicationAsync(TestContext.Current.CancellationToken);
 
         string? parentResourceId = null;
         string? childResourceId = null;
@@ -114,7 +114,7 @@ public class ApplicationOrchestratorTests
                     return;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, parent.Resource, parent.Resource.Name));
 
@@ -147,7 +147,7 @@ public class ApplicationOrchestratorTests
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
-        await appOrchestrator.RunApplicationAsync();
+        await appOrchestrator.RunApplicationAsync(TestContext.Current.CancellationToken);
 
         string? firstParentResourceId = null;
         string? secondParentResourceId = null;
@@ -174,7 +174,7 @@ public class ApplicationOrchestratorTests
                     return;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, firstParent.Resource, firstParent.Resource.Name));
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, secondParent.Resource, secondParent.Resource.Name));
@@ -200,7 +200,7 @@ public class ApplicationOrchestratorTests
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
-        await appOrchestrator.RunApplicationAsync();
+        await appOrchestrator.RunApplicationAsync(TestContext.Current.CancellationToken);
 
         string? projectAResourceId = null;
         string? projectBParentResourceId = null;
@@ -222,7 +222,7 @@ public class ApplicationOrchestratorTests
                     return;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, projectA.Resource, projectA.Resource.Name));
         await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, projectB.Resource, projectB.Resource.Name));

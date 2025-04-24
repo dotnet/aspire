@@ -41,7 +41,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
     {
         if (_app != null)
         {
-            await _app.StopAsync();
+            await _app.StopAsync(TestContext.Current.CancellationToken);
             await _app.DisposeAsync();
         }
 

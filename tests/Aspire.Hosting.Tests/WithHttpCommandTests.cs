@@ -141,8 +141,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -171,8 +171,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -200,8 +200,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -245,8 +245,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -288,8 +288,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -332,8 +332,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Act
         var app = builder.Build();
-        await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea", TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var context = new ExecuteCommandContext
         {
@@ -380,14 +380,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         }, watchCts.Token);
 
         // Act/Assert
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Move the resource to the starting state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
         {
             State = KnownResourceStates.Starting
         });
-        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Starting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Starting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Veriy the command is disabled
         Assert.Equal(ResourceCommandState.Disabled, commandState);
@@ -397,7 +397,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         {
             State = KnownResourceStates.Running
         });
-        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         await watchTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Verify the command is enabled
@@ -405,7 +405,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Clean up
         watchCts.Cancel();
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -449,14 +449,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         }, watchCts.Token);
 
         // Act/Assert
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Move the resource to the running state
         await app.ResourceNotifications.PublishUpdateAsync(service.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
-        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(service.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Veriy the command is hidden despite the resource being running
         Assert.Equal(ResourceCommandState.Hidden, commandState);
@@ -475,7 +475,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         // Clean up
         watchCts.Cancel();
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport

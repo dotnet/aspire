@@ -160,7 +160,7 @@ public class ResourceNotificationTests
 
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", TestContext.Current.CancellationToken);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" }).DefaultTimeout();
         await waitTask.DefaultTimeout();
@@ -194,7 +194,7 @@ public class ResourceNotificationTests
         // Publish the state update first
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" }).DefaultTimeout();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", TestContext.Current.CancellationToken);
 
         Assert.True(waitTask.IsCompletedSuccessfully);
     }
@@ -206,7 +206,7 @@ public class ResourceNotificationTests
 
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", targetState: null);
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", targetState: null, TestContext.Current.CancellationToken);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = KnownResourceStates.Running }).DefaultTimeout();
         await waitTask.DefaultTimeout();
@@ -221,7 +221,7 @@ public class ResourceNotificationTests
 
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"]);
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], TestContext.Current.CancellationToken);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeOtherState" }).DefaultTimeout();
         var reachedState = await waitTask.DefaultTimeout();
@@ -236,7 +236,7 @@ public class ResourceNotificationTests
 
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], default);
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], TestContext.Current.CancellationToken);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeOtherState" }).DefaultTimeout();
         var reachedState = await waitTask.DefaultTimeout();
@@ -252,7 +252,7 @@ public class ResourceNotificationTests
         using var hostApplicationLifetime = new TestHostApplicationLifetime();
         var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", TestContext.Current.CancellationToken);
         hostApplicationLifetime.StopApplication();
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" }).DefaultTimeout();
@@ -283,7 +283,7 @@ public class ResourceNotificationTests
     {
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", TestContext.Current.CancellationToken);
 
         notificationService.Dispose();
 
