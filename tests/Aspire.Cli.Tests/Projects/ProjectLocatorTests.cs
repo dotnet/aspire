@@ -136,7 +136,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(webProject.FullName, "Not a real web project.");
 
         var runner = new TestDotNetCliRunner();
-        runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) => {
+        runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) => {
             if (projectFile.FullName == appHostProject.FullName)
             {
                 return (0, true, VersionHelper.GetDefaultTemplateVersion());
