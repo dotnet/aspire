@@ -50,13 +50,18 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var outputCollector = new OutputCollector();
+
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
         {
             using var activity = _activitySource.StartActivity();
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
+            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
+            {
+                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            });
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -92,10 +97,17 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
+                var buildOptions = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = outputCollector.AppendOutput,
+                    StandardErrorCallback = outputCollector.AppendError,
+                };
+
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
+                    _interactionService.DisplayLines(outputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
@@ -108,6 +120,12 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
+            var runOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = outputCollector.AppendOutput,
+                StandardErrorCallback = outputCollector.AppendError,
+            };
+
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var pendingRun = _runner.RunAsync(
@@ -117,6 +135,7 @@ internal sealed class RunCommand : BaseCommand
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
+                runOptions,
                 cancellationToken);
 
             if (useRichConsole)
@@ -204,7 +223,17 @@ internal sealed class RunCommand : BaseCommand
                     }
                 });
 
-                return await pendingRun;
+                var result =  await pendingRun;
+                if (result != 0)
+                {
+                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayError($"The project could not be run. For more information run with --debug switch.");
+                    return result;
+                }
+                else
+                {
+                    return ExitCodeConstants.Success;
+                }
             }
             else
             {
@@ -223,7 +252,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files"))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
@@ -237,6 +266,12 @@ internal sealed class RunCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (Exception ex)
+        {
+            _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
+            _interactionService.DisplayLines(outputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
 }

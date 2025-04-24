@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Certificates;
 
@@ -19,19 +20,37 @@ internal sealed class CertificateService(IInteractionService interactionService)
     {
         using var activity = _activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 
+        var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(
             ":locked_with_key: Checking certificates...",
-            () => runner.CheckHttpCertificateAsync(cancellationToken));
+            async () => {
+                var options = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = ensureCertificateCollector.AppendOutput,
+                    StandardErrorCallback = ensureCertificateCollector.AppendError,
+                };
+                var result = await runner.CheckHttpCertificateAsync(
+                    options,
+                    cancellationToken);
+                return result;
+            });
 
         if (checkExitCode != 0)
         {
+            var options = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = ensureCertificateCollector.AppendOutput,
+                StandardErrorCallback = ensureCertificateCollector.AppendError,
+            };
             var trustExitCode = await interactionService.ShowStatusAsync(
                 ":locked_with_key: Trusting certificates...",
-                () => runner.TrustHttpCertificateAsync(cancellationToken)
-            );
+                () => runner.TrustHttpCertificateAsync(
+                    options,
+                    cancellationToken));
 
             if (trustExitCode != 0)
             {
+                interactionService.DisplayLines(ensureCertificateCollector.GetLines());
                 throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
             }
         }

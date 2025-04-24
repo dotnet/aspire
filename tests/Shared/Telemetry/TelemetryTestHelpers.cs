@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -145,7 +147,7 @@ internal static class TelemetryTestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, Span.Types.SpanKind? kind = null)
     {
         var span = new Span
         {
@@ -154,7 +156,8 @@ internal static class TelemetryTestHelpers
             ParentSpanId = parentSpanId is null ? ByteString.Empty : ByteString.CopyFrom(Encoding.UTF8.GetBytes(parentSpanId)),
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
-            Name = $"Test span. Id: {spanId}"
+            Name = $"Test span. Id: {spanId}",
+            Kind = kind ?? Span.Types.SpanKind.Internal
         };
         if (events != null)
         {
@@ -227,7 +230,8 @@ internal static class TelemetryTestHelpers
         int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null,
         ILoggerFactory? loggerFactory = null,
-        PauseManager? pauseManager = null)
+        PauseManager? pauseManager = null,
+        IOutgoingPeerResolver[]? outgoingPeerResolvers = null)
     {
         var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
@@ -254,7 +258,8 @@ internal static class TelemetryTestHelpers
         var repository = new TelemetryRepository(
             loggerFactory ?? NullLoggerFactory.Instance,
             Options.Create(new DashboardOptions { TelemetryLimits = options }),
-            pauseManager ?? new PauseManager());
+            pauseManager ?? new PauseManager(),
+            outgoingPeerResolvers ?? []);
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;
@@ -291,7 +296,8 @@ internal static class TelemetryTestHelpers
     }
 
     public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
-        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified)
+        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified,
+        OtlpApplication? uninstrumentedPeer = null)
     {
         return new OtlpSpan(app.GetView([]), trace, scope)
         {
@@ -307,7 +313,24 @@ internal static class TelemetryTestHelpers
             StartTime = startDate,
             State = null,
             Status = statusCode ?? OtlpSpanStatusCode.Unset,
-            StatusMessage = statusMessage
+            StatusMessage = statusMessage,
+            UninstrumentedPeer = uninstrumentedPeer
         };
+    }
+
+    public static X509Certificate2 GenerateDummyCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=DummyCertificate",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+
+        var certificate = request.CreateSelfSigned(
+            DateTimeOffset.Now,
+            DateTimeOffset.Now.AddYears(1));
+
+        return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
     }
 }

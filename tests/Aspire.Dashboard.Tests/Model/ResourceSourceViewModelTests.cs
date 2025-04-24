@@ -5,7 +5,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -24,17 +23,17 @@ public class ResourceSourceViewModelTests
 
         if (testData.ExecutableArguments is not null)
         {
-            properties.TryAdd(KnownProperties.Executable.Args, new ResourcePropertyViewModel(KnownProperties.Executable.Args, Value.ForList(testData.ExecutableArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Executable.Args, new ResourcePropertyViewModel(KnownProperties.Executable.Args, Value.ForList(testData.ExecutableArguments.Select(Value.ForString).ToArray()), false, null, 0));
         }
 
         if (testData.AppArgs is not null)
         {
-            properties.TryAdd(KnownProperties.Resource.AppArgs, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgs, Value.ForList(testData.AppArgs.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Resource.AppArgs, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgs, Value.ForList(testData.AppArgs.Select(Value.ForString).ToArray()), false, null, 0));
         }
 
         if (testData.AppArgsSensitivity is not null)
         {
-            properties.TryAdd(KnownProperties.Resource.AppArgsSensitivity, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgsSensitivity, Value.ForList(testData.AppArgsSensitivity.Select(b => Value.ForNumber(Convert.ToInt32(b))).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Resource.AppArgsSensitivity, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgsSensitivity, Value.ForList(testData.AppArgsSensitivity.Select(b => Value.ForNumber(Convert.ToInt32(b))).ToArray()), false, null, 0));
         }
 
         var resource = ModelTestHelpers.CreateResource(
@@ -57,7 +56,7 @@ public class ResourceSourceViewModelTests
 
         void AddStringProperty(string propertyName, string? propertyValue)
         {
-            properties.TryAdd(propertyName, new ResourcePropertyViewModel(propertyName, propertyValue is null ? Value.ForNull() : Value.ForString(propertyValue), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(propertyName, new ResourcePropertyViewModel(propertyName, propertyValue is null ? Value.ForNull() : Value.ForString(propertyValue), false, null, 0));
         }
     }
 
