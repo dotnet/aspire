@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
+using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -60,12 +61,12 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredRelationships =>
         GetRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredBackRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredBackRelationships =>
         GetBackRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -163,14 +164,14 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetRelationships()
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         foreach (var resourceRelationships in Resource.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
@@ -181,26 +182,21 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
             foreach (var match in matches)
             {
-                items.Add(new()
-                {
-                    Resource = match,
-                    ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
-                    Types = resourceRelationships.Select(r => r.Type).Distinct().OrderBy(r => r).ToList()
-                });
+                items.Add(ResourceDetailRelationshipViewModel.Create(match, ResourceViewModel.GetResourceName(match, ResourceByName), resourceRelationships));
             }
         }
 
         return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetBackRelationships()
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetBackRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
@@ -212,12 +208,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             {
                 if (string.Equals(resourceRelationships.Key, Resource.DisplayName, StringComparisons.ResourceName))
                 {
-                    items.Add(new()
-                    {
-                        Resource = otherResource,
-                        ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
-                        Types = resourceRelationships.Select(r => r.Type).Distinct().OrderBy(r => r).ToList()
-                    });
+                    items.Add(ResourceDetailRelationshipViewModel.Create(otherResource, ResourceViewModel.GetResourceName(otherResource, ResourceByName), resourceRelationships));
                 }
             }
         }
@@ -276,7 +267,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         }
     }
 
-    public Task OnViewRelationshipAsync(ResourceDetailRelationship relationship)
+    public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
         return Task.CompletedTask;
@@ -295,18 +286,5 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public void Dispose()
     {
         TelemetryContext.Dispose();
-    }
-}
-
-public sealed class ResourceDetailRelationship
-{
-    public required ResourceViewModel Resource { get; init; }
-    public required string ResourceName { get; init; }
-    public required List<string> Types { get; set; }
-
-    public bool MatchesFilter(string filter)
-    {
-        return Resource.DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            Types.Any(t => t.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
     }
 }
