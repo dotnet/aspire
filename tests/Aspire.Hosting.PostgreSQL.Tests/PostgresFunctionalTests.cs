@@ -376,7 +376,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO "Cars" (brand) VALUES ('BatMobile');
                 """);
 
-            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder = TestDistributedApplicationBuilder
+                .CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
             var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);

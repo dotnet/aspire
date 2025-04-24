@@ -400,7 +400,13 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+        const string initPath = "/docker-entrypoint-initdb.d";
+
+        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(
+            initPath,
+            ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
     }
 
     /// <summary>

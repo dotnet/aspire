@@ -162,42 +162,16 @@ public static class KeycloakResourceBuilderExtensions
 
         var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
-        if (Directory.Exists(importFullPath))
-        {
-            return builder.WithContainerFiles(
-                KeycloakDataDirectory,
-                [
-                    new ContainerDirectory
-                    {
-                        Name = "import",
-                        Entries = Directory.GetFiles(importFullPath)
-                            .Select(file => new ContainerFile{
-                                Name = Path.GetFileName(file),
-                                SourcePath = file,
-                            }),
-                    },
-                ]);
-        }
-
-        if (File.Exists(importFullPath))
-        {
-            return builder.WithContainerFiles(
-                KeycloakDataDirectory,
-                [
-                    new ContainerDirectory
-                    {
-                        Name = "import",
-                        Entries = [
-                            new ContainerFile
-                            {
-                                Name = Path.GetFileName(importFullPath),
-                                SourcePath = importFullPath,
-                            },
-                        ],
-                    },
-                ]);
-        }
-
-        throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
+        return builder.WithContainerFiles(
+            KeycloakDataDirectory,
+            [
+                // The import directory may not exist by default, so we need to ensure it is created.
+                new ContainerDirectory
+                {
+                    Name = "import",
+                    // Import the file (or children if a directory) into the container.
+                    Entries = ContainerDirectory.GetFileSystemItemsFromPath(importFullPath),
+                },
+            ]);
     }
 }

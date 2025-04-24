@@ -448,6 +448,12 @@ public class DistributedApplicationTests
                         Contents = "Hello World!",
                         Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
                     },
+                    new ContainerFile
+                    {
+                        Name = "test2.sh",
+                        SourcePath = "/tmp/test2.sh",
+                        Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
+                    },
                 ],
             },
         };
