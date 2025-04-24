@@ -7,7 +7,6 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
-using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
