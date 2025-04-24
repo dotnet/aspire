@@ -38,18 +38,26 @@ public static class YarpServiceExtensions
         }
 
         // Map the configuration file
-        yarpBuilder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        yarpBuilder.WithContainerFiles(YarpContainerImageTags.ConfigDirectory, async (context, ct) =>
         {
+            string contents;
             if (yarpBuilder.Resource.ConfigFilePath != null)
             {
-                yarpBuilder.WithBindMount(yarpBuilder.Resource.ConfigFilePath, YarpContainerImageTags.ConfigFilePath, isReadOnly: true);
+                contents = await File.ReadAllTextAsync(yarpBuilder.Resource.ConfigFilePath, ct).ConfigureAwait(false);
             }
             else
             {
                 // TODO: build dynamically the config file if none provided.
                 throw new DistributedApplicationException($"No configuration provided for YARP instance \"{yarpBuilder.Resource.Name}\"");
             }
-            return Task.CompletedTask;
+
+            var configFile = new ContainerFile
+            {
+                Name = YarpContainerImageTags.ConfigFileName,
+                Contents = contents
+            };
+
+            return [configFile];
         });
 
         return yarpBuilder;

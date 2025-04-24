@@ -13,5 +13,7 @@ internal static class YarpContainerImageTags
 
     public const int Port = 5000;
 
-    public const string ConfigFilePath = "/etc/yarp.config";
+    public const string ConfigDirectory = "/etc";
+
+    public const string ConfigFileName = "yarp.config";
 }
