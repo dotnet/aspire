@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Utils;
 using Semver;
 namespace Aspire.Cli.Commands;
 
@@ -140,29 +141,50 @@ internal sealed class NewCommand : BaseCommand
         var source = parseResult.GetValue<string?>("--source");
         var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
 
-        var templateInstallResult = await _interactionService.ShowStatusAsync(
+        var templateInstallCollector = new OutputCollector();
+        var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
             ":ice:  Getting latest templates...",
-            () => _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, new DotNetCliRunnerInvocationOptions(), cancellationToken));
+            async () => {
+                var options = new DotNetCliRunnerInvocationOptions()
+                {
+                    StandardOutputCallback = templateInstallCollector.AppendOutput,
+                    StandardErrorCallback = templateInstallCollector.AppendOutput,
+                };
+
+                var result = await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, options, cancellationToken);
+                return result;
+            });
 
         if (templateInstallResult.ExitCode != 0)
         {
+            _interactionService.DisplayLines(templateInstallCollector.GetLines());
             _interactionService.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToInstallTemplates;
         }
 
         _interactionService.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
 
+        var newProjectCollector = new OutputCollector();
         var newProjectExitCode = await _interactionService.ShowStatusAsync(
             ":rocket:  Creating new Aspire project...",
-            () => _runner.NewProjectAsync(
-                        template.TemplateName,
-                        name,
-                        outputPath,
-                        new DotNetCliRunnerInvocationOptions(),
-                        cancellationToken));
+            async () => {
+                var options = new DotNetCliRunnerInvocationOptions()
+                {
+                    StandardOutputCallback = newProjectCollector.AppendOutput,
+                    StandardErrorCallback = newProjectCollector.AppendOutput,
+                };
+                var result = await _runner.NewProjectAsync(
+                            template.TemplateName,
+                            name,
+                            outputPath,
+                            options,
+                            cancellationToken);
+                return result;
+            });
 
         if (newProjectExitCode != 0)
         {
+            _interactionService.DisplayLines(newProjectCollector.GetLines());
             _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
             return ExitCodeConstants.FailedToCreateNewProject;
         }

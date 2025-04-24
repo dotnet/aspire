@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 using Semver;
 using Spectre.Console;
 
@@ -60,6 +61,8 @@ internal sealed class AddCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
+
+        var outputCollector = new OutputCollector();
 
         try
         {
@@ -122,11 +125,17 @@ internal sealed class AddCommand : BaseCommand
             var addPackageResult = await _interactionService.ShowStatusAsync(
                 "Adding Aspire integration...",
                 async () => {
+
+                    var addPackageOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = outputCollector.AppendOutput,
+                        StandardErrorCallback = outputCollector.AppendError,
+                    };
                     var addPackageResult = await _runner.AddPackageAsync(
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
                         selectedNuGetPackage.Package.Version,
-                        new DotNetCliRunnerInvocationOptions(),
+                        addPackageOptions,
                         cancellationToken);
 
                     return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
@@ -135,6 +144,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
+                _interactionService.DisplayLines(outputCollector.GetLines());
                 _interactionService.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
@@ -166,6 +176,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (Exception ex)
         {
+            _interactionService.DisplayLines(outputCollector.GetLines());
             _interactionService.DisplayError($"An error occurred while adding the package: {ex.Message}");
             return ExitCodeConstants.FailedToAddPackage;
         }

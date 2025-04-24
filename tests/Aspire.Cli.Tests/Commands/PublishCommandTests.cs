@@ -153,7 +153,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.Equal(1, exitCode); // Ensure the command fails
+        Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
     }
 
     [Fact]
