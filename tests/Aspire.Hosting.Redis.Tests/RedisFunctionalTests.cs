@@ -62,7 +62,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -77,15 +77,15 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Redis Connection", resourceName: commanderBuilder.Resource.Name);
+        await app.WaitForTextAsync("Redis Connection", resourceName: commanderBuilder.Resource.Name, TestContext.Current.CancellationToken);
 
         var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
 
         var endpoint = redis.GetEndpoint("tcp");
         var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
-        var response = await client.GetAsync(path);
+        var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -99,20 +99,20 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{redis.Resource.Name}"] = await redis.Resource.GetConnectionStringAsync()
+            [$"ConnectionStrings:{redis.Resource.Name}"] = await redis.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)
         });
 
         hb.AddRedisClient(redis.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -140,10 +140,10 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).WaitAsync(cts.Token);
 
         var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
 
@@ -197,21 +197,21 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder1.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync()},allowAdmin=true"
+                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)},allowAdmin=true"
             });
 
             hb.AddRedisClient(redis1.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -226,7 +226,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -234,20 +234,20 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder2.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
+                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)
             });
 
             hb.AddRedisClient(redis2.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -259,7 +259,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         DockerUtils.AttemptDeleteDockerVolume(volumeName);
@@ -280,21 +280,21 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder1.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync()},allowAdmin=true"
+                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)},allowAdmin=true"
             });
 
             hb.AddRedisClient(redis1.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -308,7 +308,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 await redisClient.GetServers().First().SaveAsync(SaveType.BackgroundSave);
             }
 
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -316,20 +316,20 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder2.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
+                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)
             });
 
             hb.AddRedisClient(redis2.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -340,7 +340,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("value", value);
             }
 
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         try
@@ -364,21 +364,21 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder1.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync()},allowAdmin=true"
+                [$"ConnectionStrings:{redis1.Resource.Name}"] = $"{await redis1.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)},allowAdmin=true"
             });
 
             hb.AddRedisClient(redis1.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -387,7 +387,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 await db.StringSetAsync("key", "value");
             }
 
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -395,20 +395,20 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using (var app = builder2.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
+                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync(TestContext.Current.CancellationToken)
             });
 
             hb.AddRedisClient(redis2.Resource.Name);
 
             using (var host = hb.Build())
             {
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -419,7 +419,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 Assert.True(value.IsNull);
             }
 
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -466,10 +466,10 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
                 var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-                await rns.WaitForResourceAsync(redisInsightBuilder1.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
+                await rns.WaitForResourceAsync(redisInsightBuilder1.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).WaitAsync(cts.Token);
 
                 try
                 {
@@ -479,7 +479,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -501,10 +501,10 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
                 var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
+                await rns.WaitForResourceAsync(redisInsightBuilder2.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).WaitAsync(cts.Token);
 
                 try
                 {
@@ -514,7 +514,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -602,7 +602,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddHttpClient();
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
@@ -617,7 +617,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
         var client = clientFactory.CreateClient();
 
-        var httpResponse = await client.GetAsync(redisCommanderUrl!);
+        var httpResponse = await client.GetAsync(redisCommanderUrl!, TestContext.Current.CancellationToken);
         httpResponse.EnsureSuccessStatusCode();
     }
 

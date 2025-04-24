@@ -27,22 +27,22 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{valkey.Resource.Name}"] = await valkey.Resource.ConnectionStringExpression.GetValueAsync(default)
+            [$"ConnectionStrings:{valkey.Resource.Name}"] = await valkey.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
         });
 
         hb.AddRedisClient(valkey.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForHealthyAsync(valkey).WaitAsync(TestConstants.LongTimeoutTimeSpan);
+        await app.WaitForHealthyAsync(valkey, TestContext.Current.CancellationToken).WaitAsync(TestConstants.LongTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -87,7 +87,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -95,16 +95,16 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     // BGSAVE is only available in admin mode, enable it for this instance
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{valkey1.Resource.Name}"] = $"{await valkey1.Resource.ConnectionStringExpression.GetValueAsync(default)},allowAdmin=true"
+                        [$"ConnectionStrings:{valkey1.Resource.Name}"] = $"{await valkey1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)},allowAdmin=true"
                     });
 
                     hb.AddRedisClient(valkey1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
-                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
+                        await app.WaitForHealthyAsync(valkey1, TestContext.Current.CancellationToken).WaitAsync(TestConstants.LongTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -121,7 +121,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -139,23 +139,23 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{valkey2.Resource.Name}"] = await valkey2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                        [$"ConnectionStrings:{valkey2.Resource.Name}"] = await valkey2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                     });
 
                     hb.AddRedisClient(valkey2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
-                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
+                        await app.WaitForHealthyAsync(valkey2, TestContext.Current.CancellationToken).WaitAsync(TestConstants.LongTimeoutTimeSpan, TestContext.Current.CancellationToken);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -169,7 +169,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -229,6 +229,6 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 }

@@ -5,7 +5,14 @@
     <!--
       CS8002: Referenced assembly does not have a strong name
     -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!--
+      FIXME: https://github.com/dotnet/aspire/issues/8488
+      xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken  to allow test cancellation to be more responsive
+
+      This is being disabled here in addition to any central location, because this project
+      gets built independently on helix.
+    -->
+    <NoWarn>$(NoWarn);CS8002;xUnit1051</NoWarn>
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>

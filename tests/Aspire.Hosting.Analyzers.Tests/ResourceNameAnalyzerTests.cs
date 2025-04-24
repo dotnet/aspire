@@ -26,7 +26,7 @@ public class ResourceNameAnalyzerTests
             """,
             [CompilerError(diagnostic.Id).WithLocation(5, 22).WithMessage(message)]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public class ResourceNameAnalyzerTests
                 CompilerError(diagnostic.Id).WithLocation(8, 5).WithMessage(message2)
             ]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -76,7 +76,7 @@ public class ResourceNameAnalyzerTests
             builder.AddParameter("{{resourceName}}");
             """, []);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -102,6 +102,6 @@ public class ResourceNameAnalyzerTests
             }
             """, []);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 }

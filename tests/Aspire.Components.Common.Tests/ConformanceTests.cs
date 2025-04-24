@@ -135,7 +135,8 @@ public abstract class ConformanceTests<TService, TOptions>
         {
             registeredNames.Add(healthCheckRegistration.Name);
             return false;
-        }).ConfigureAwait(false);
+        },
+        TestContext.Current.CancellationToken).ConfigureAwait(false);
 #pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
 
         Assert.Equal(2, registeredNames.Count);
@@ -320,7 +321,7 @@ public abstract class ConformanceTests<TService, TOptions>
         HealthCheckService healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
 #pragma warning disable xUnit1030 // Do not call ConfigureAwait(false) in test method
-        HealthReport healthReport = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
+        HealthReport healthReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 #pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
 
         HealthStatus expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;

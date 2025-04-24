@@ -27,7 +27,7 @@ public class EndpointNameAnalyzerTests
             """,
             [CompilerError(diagnostic.Id).WithLocation(6, 37).WithMessage(message)]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public class EndpointNameAnalyzerTests
                 CompilerError(diagnostic.Id).WithLocation(9, 9).WithMessage(message2)
             ]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public class EndpointNameAnalyzerTests
                 .WithEndpoint(port: 1234, name: "{{endpointName}}");
             """, []);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -112,6 +112,6 @@ public class EndpointNameAnalyzerTests
             }
             """, []);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 }

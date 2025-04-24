@@ -57,7 +57,7 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
                                         extraArgs: extraTestCreationArgs,
                                         overrideRootDir: topLevelDir);
 
-            await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir, token: TestContext.Current.CancellationToken);
         }
         catch (ToolCommandException tce) when (error is not null)
         {

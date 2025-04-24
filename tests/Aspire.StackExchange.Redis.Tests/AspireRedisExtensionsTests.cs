@@ -376,7 +376,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Empty(connection3.GetServers().Single().Keys());
 
         // set a value in the output cache and ensure it was added to the redis3 server
-        await outputCache.SetAsync("outputKey", [1, 2, 3, 4], tags: null, validFor: TimeSpan.MaxValue, cancellationToken: default);
+        await outputCache.SetAsync("outputKey", [1, 2, 3, 4], tags: null, validFor: TimeSpan.MaxValue, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(connection1.GetServers().Single().Keys());
         Assert.Single(connection2.GetServers().Single().Keys());

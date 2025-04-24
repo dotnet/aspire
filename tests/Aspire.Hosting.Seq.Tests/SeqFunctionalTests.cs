@@ -22,17 +22,17 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Seq listening on", seq.Resource.Name);
+        await app.WaitForTextAsync("Seq listening on", seq.Resource.Name, TestContext.Current.CancellationToken);
 
-        var seqUrl = await seq.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var seqUrl = await seq.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(seqUrl);
 
         var client = CreateClient(seqUrl);
 
-        await CreateTestDataAsync(client, default);
+        await CreateTestDataAsync(client, TestContext.Current.CancellationToken);
     }
 
     private static HttpClient CreateClient(string url)
@@ -97,24 +97,24 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Seq listening on", seq1.Resource.Name);
+                await app.WaitForTextAsync("Seq listening on", seq1.Resource.Name, TestContext.Current.CancellationToken);
 
                 try
                 {
-                    var seqUrl = await seq1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    var seqUrl = await seq1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     Assert.NotNull(seqUrl);
 
                     var client = CreateClient(seqUrl);
 
-                    await CreateTestDataAsync(client, default);
+                    await CreateTestDataAsync(client, TestContext.Current.CancellationToken);
                 }
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -133,24 +133,24 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Seq listening on", seq2.Resource.Name);
+                await app.WaitForTextAsync("Seq listening on", seq2.Resource.Name, TestContext.Current.CancellationToken);
 
                 try
                 {
-                    var seqUrl = await seq2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    var seqUrl = await seq2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     Assert.NotNull(seqUrl);
 
                     var client = CreateClient(seqUrl);
 
-                    await CreateTestDataAsync(client, default);
+                    await CreateTestDataAsync(client, TestContext.Current.CancellationToken);
                 }
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
 
             }

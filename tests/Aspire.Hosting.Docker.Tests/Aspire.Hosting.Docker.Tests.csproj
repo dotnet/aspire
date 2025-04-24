@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <NoWarn>$(NoWarn);ASPIREHOSTINGPYTHON001;</NoWarn>
+    <NoWarn>$(NoWarn);ASPIREHOSTINGPYTHON001;xUnit1051</NoWarn>
 
     <!--
       Do not run tests in Helix at all

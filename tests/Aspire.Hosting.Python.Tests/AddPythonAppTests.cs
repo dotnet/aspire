@@ -99,11 +99,11 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.ResourceNotifications.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
+        await app.ResourceNotifications.WaitForResourceAsync("pyproj", "Finished", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);

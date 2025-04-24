@@ -54,10 +54,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
             ?? throw new InvalidOperationException("Generated AppHost type not found.");
 
         TestResourceNames resourcesToSkip = ~TestResourceNames.redis;
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()]);
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()], TestContext.Current.CancellationToken);
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Sanity check that the app is running as expected
         // Get an endpoint from a resource
@@ -69,7 +69,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [Fact]
     public async Task ThrowsForAssemblyWithoutAnEntrypoint()
     {
-        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions)));
+        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions), TestContext.Current.CancellationToken));
         Assert.Contains("does not have an entry point", ioe.Message);
     }
 
@@ -88,13 +88,13 @@ public class TestingBuilderTests(ITestOutputHelper output)
         };
 
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder)
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder, TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder, TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
         Assert.Equal(testEnvironmentName, builder.Environment.EnvironmentName);
 
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         foreach (var resource in appModel.GetContainerResources())
@@ -109,14 +109,14 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [Fact]
     public async Task CanSetEnvironment()
     {
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--environment=Testing"]);
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--environment=Testing"], TestContext.Current.CancellationToken);
         Assert.Equal("Testing", builder.Environment.EnvironmentName);
     }
 
     [Fact]
     public async Task EnvironmentDefaultsToDevelopment()
     {
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken);
         Assert.Equal(Environments.Development, builder.Environment.EnvironmentName);
     }
 
@@ -127,11 +127,11 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task HasEndPoints(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Get an endpoint from a resource
         var workerEndpoint = app.GetEndpoint("myworker1", "myendpoint1");
@@ -139,7 +139,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
         Assert.True(workerEndpoint.Host.Length > 0);
 
         // Get a connection string
-        var connectionString = await app.GetConnectionStringAsync("cs");
+        var connectionString = await app.GetConnectionStringAsync("cs", TestContext.Current.CancellationToken);
         Assert.NotNull(connectionString);
         Assert.True(connectionString.Length > 0);
     }
@@ -151,11 +151,11 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task CanGetResources(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Ensure that the resource which we added is present in the model.
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -169,20 +169,20 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task HttpClientGetTest(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast", TestContext.Current.CancellationToken);
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
@@ -194,10 +194,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }
 
@@ -223,25 +223,25 @@ public class TestingBuilderTests(ITestOutputHelper output)
         IDistributedApplicationTestingBuilder builder;
         if (genericEntryPoint)
         {
-            builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder);
+            builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder, TestContext.Current.CancellationToken);
         }
         else
         {
-            builder = await DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), args, configureBuilder);
+            builder = await DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), args, configureBuilder, TestContext.Current.CancellationToken);
         }
 
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg");
+        var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostArg);
         Assert.Equal("42", appHostArg);
     }
@@ -269,17 +269,17 @@ public class TestingBuilderTests(ITestOutputHelper output)
         builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
             .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
             .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg");
+        var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostArg);
         Assert.Equal("42", appHostArg);
     }
@@ -310,24 +310,24 @@ public class TestingBuilderTests(ITestOutputHelper output)
             configureBuilder = (dao, habs) => habs.Args = [arg];
         }
 
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder);
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder, TestContext.Current.CancellationToken);
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var");
+        var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostArg);
         Assert.Equal($"it-is-{launchProfileName}", appHostArg);
 
         // Check that, aside from the launch profile, the app host loaded environment settings from its launch profile
-        var appHostLaunchProfileVar = await httpClient.GetStringAsync("/get-launch-profile-var-from-app-host");
+        var appHostLaunchProfileVar = await httpClient.GetStringAsync("/get-launch-profile-var-from-app-host", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostLaunchProfileVar);
         Assert.Equal($"app-host-is-{launchProfileName}", appHostLaunchProfileVar);
     }
@@ -362,22 +362,22 @@ public class TestingBuilderTests(ITestOutputHelper output)
         builder.WithTestAndResourceLogging(output);
         builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
             .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var");
+        var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostArg);
         Assert.Equal($"it-is-{launchProfileName}", appHostArg);
 
         // Check that, aside from the launch profile, the app host loaded environment settings from its launch profile
-        var appHostLaunchProfileVar = await httpClient.GetStringAsync("/get-launch-profile-var-from-app-host");
+        var appHostLaunchProfileVar = await httpClient.GetStringAsync("/get-launch-profile-var-from-app-host", TestContext.Current.CancellationToken);
         Assert.NotNull(appHostLaunchProfileVar);
         Assert.Equal($"app-host-is-{launchProfileName}", appHostLaunchProfileVar);
     }
@@ -389,11 +389,11 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task SetsCorrectContentRoot(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         var hostEnvironment = app.Services.GetRequiredService<IHostEnvironment>();
         Assert.Contains("TestingAppHost1", hostEnvironment.ContentRootPath);
     }
@@ -405,24 +405,24 @@ public class TestingBuilderTests(ITestOutputHelper output)
     public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
     {
         var builder = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(TestContext.Current.CancellationToken)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), TestContext.Current.CancellationToken));
         builder.WithTestAndResourceLogging(output);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
+        await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         var config = app.Services.GetRequiredService<IConfiguration>();
         var profileName = config["DOTNET_LAUNCH_PROFILE"];
         Assert.Equal("https", profileName);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https", opts =>
         {
             opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
         });
-        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast", TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
     }
@@ -461,17 +461,17 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
         cts.CancelAfter(timeout);
         builder.WithTestAndResourceLogging(output);
-        using var app = await builder.BuildAsync().WaitAsync(cts.Token);
+        using var app = await builder.BuildAsync(TestContext.Current.CancellationToken).WaitAsync(cts.Token);
 
         cts.CancelAfter(timeout);
         if (crashArg == "after-build")
         {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync().WaitAsync(cts.Token));
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync( TestContext.Current.CancellationToken).WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
         }
         else
         {
-            await app.StartAsync().WaitAsync(cts.Token);
+            await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(cts.Token);
         }
 
         cts.CancelAfter(timeout);
@@ -493,7 +493,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
             using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--add-unknown-container"], cts.Token).WaitAsync(cts.Token);
             cts.CancelAfter(timeout);
             await using var app = await builder.BuildAsync(cts.Token).WaitAsync(cts.Token);
-            await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.Fail();
         }
         catch (Exception ex)
@@ -530,7 +530,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
             {
                 app = await builder.BuildAsync(cts.Token).WaitAsync(cts.Token);
 
-                await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                await app.StartAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             }
             finally
             {

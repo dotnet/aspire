@@ -34,7 +34,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");
 
-            await project.BuildAsync(extraBuildArgs: [$"-c Debug"]);
+            await project.BuildAsync(extraBuildArgs: [$"-c Debug"], token: TestContext.Current.CancellationToken);
         }
         catch (ToolCommandException tce) when (error is not null)
         {

@@ -62,7 +62,7 @@ public class OtelTracesTests
         builder.Services.AddOpenTelemetry().WithTracing(traceProviderBuilder => traceProviderBuilder.AddInMemoryExporter(activities));
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         string topic = $"otel-topic-{Guid.NewGuid()}";
         using (var producer = useKeyed
@@ -95,7 +95,7 @@ public class OtelTracesTests
             int j = 0;
             while (true)
             {
-                var consumerResult = consumer.Consume();
+                var consumerResult = consumer.Consume(TestContext.Current.CancellationToken);
                 if (consumerResult == null)
                 {
                     continue;
@@ -113,6 +113,6 @@ public class OtelTracesTests
 
         Assert.Equal(5, activities.Where(x => x.OperationName == $"{topic} receive").Count());
 
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 }

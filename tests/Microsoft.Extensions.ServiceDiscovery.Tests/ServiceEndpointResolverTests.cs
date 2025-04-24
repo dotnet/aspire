@@ -39,7 +39,7 @@ public class ServiceEndpointResolverTests
         var watcher = new ServiceEndpointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceDiscoveryOptions()));
         var exception = Assert.Throws<InvalidOperationException>(watcher.Start);
         Assert.Equal("No service endpoint providers are configured.", exception.Message);
-        exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await watcher.GetEndpointsAsync());
+        exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await watcher.GetEndpointsAsync(TestContext.Current.CancellationToken));
         Assert.Equal("No service endpoint providers are configured.", exception.Message);
     }
 
@@ -60,7 +60,7 @@ public class ServiceEndpointResolverTests
         serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo")).AddServiceDiscovery();
         var services = serviceCollection.BuildServiceProvider();
         var client = services.GetRequiredService<IHttpClientFactory>().CreateClient("foo");
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/"));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/", TestContext.Current.CancellationToken));
         Assert.Equal("No provider which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 

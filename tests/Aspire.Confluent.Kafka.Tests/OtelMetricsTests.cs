@@ -60,7 +60,7 @@ public class OtelMetricsTests
         builder.Services.AddOpenTelemetry().WithMetrics(meterProvider => meterProvider.AddInMemoryExporter(metrics));
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         IGrouping<string, Metric>[] groups;
 
         string topic = $"otel-topic-{Guid.NewGuid()}";
@@ -90,7 +90,7 @@ public class OtelMetricsTests
             int j = 0;
             while (true)
             {
-                var consumerResult = consumer.Consume();
+                var consumerResult = consumer.Consume(TestContext.Current.CancellationToken);
                 if (consumerResult == null)
                 {
                     continue;
@@ -108,7 +108,7 @@ public class OtelMetricsTests
 
         host.Services.GetRequiredService<MeterProvider>().EnsureMetricsAreFlushed();
 
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
 
         groups = metrics.Where(x => x.MeterName == "OpenTelemetry.Instrumentation.ConfluentKafka")
             .GroupBy(x => x.Name).ToArray();

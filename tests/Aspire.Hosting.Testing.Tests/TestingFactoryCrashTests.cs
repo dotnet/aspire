@@ -24,12 +24,12 @@ public class TestingFactoryCrashTests
 
         if (crashArg is "before-build" or "after-build")
         {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.StartAsync().WaitAsync(cts.Token));
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.StartAsync(TestContext.Current.CancellationToken).WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
         }
         else
         {
-            await factory.StartAsync().WaitAsync(cts.Token);
+            await factory.StartAsync(TestContext.Current.CancellationToken).WaitAsync(cts.Token);
         }
 
         await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);

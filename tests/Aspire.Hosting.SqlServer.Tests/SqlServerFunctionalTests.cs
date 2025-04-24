@@ -53,7 +53,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -78,14 +78,14 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name);
         hb.AddSqlServerClient(newDb.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         // Test SqlConnection
         await pipeline.ExecuteAsync(async token =>
@@ -174,7 +174,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var app1 = builder1.Build();
 
-            await app1.StartAsync();
+            await app1.StartAsync(TestContext.Current.CancellationToken);
 
             await app1.ResourceNotifications.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
@@ -184,14 +184,14 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 hb1.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default),
+                    [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken),
                 });
 
                 hb1.AddSqlServerClient(db1.Resource.Name);
 
                 using var host1 = hb1.Build();
 
-                await host1.StartAsync();
+                await host1.StartAsync(TestContext.Current.CancellationToken);
 
                 await pipeline.ExecuteAsync(async token =>
                 {
@@ -216,7 +216,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                     Assert.True(results.HasRows);
                 }, cts.Token);
 
-                await app1.StopAsync();
+                await app1.StopAsync(TestContext.Current.CancellationToken);
 
                 await pipeline.ExecuteAsync(async token =>
                 {
@@ -239,7 +239,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             finally
             {
                 // Stops the container, or the Volume/mount would still be in use
-                await app1.StopAsync();
+                await app1.StopAsync(TestContext.Current.CancellationToken);
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
@@ -259,7 +259,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app2 = builder2.Build())
             {
-                await app2.StartAsync();
+                await app2.StartAsync(TestContext.Current.CancellationToken);
 
                 await app2.ResourceNotifications.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
@@ -269,14 +269,14 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb2.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default),
+                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken),
                     });
 
                     hb2.AddSqlServerClient(db2.Resource.Name);
 
                     using (var host2 = hb2.Build())
                     {
-                        await host2.StartAsync();
+                        await host2.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -303,7 +303,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app2.StopAsync();
+                    await app2.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -365,13 +365,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddSqlServerClient(newDb.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(newDb.Resource.Name, cts.Token);
 
@@ -418,7 +418,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddSqlServerClient(newDb.Resource.Name);
 
@@ -490,13 +490,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 var hb = Host.CreateApplicationBuilder();
 
-                hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+                hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                 hb.AddSqlServerClient(newDb.Resource.Name);
 
                 using var host = hb.Build();
 
-                await host.StartAsync();
+                await host.StartAsync(TestContext.Current.CancellationToken);
 
                 await app.ResourceNotifications.WaitForResourceHealthyAsync(sqlserver.Resource.Name, cts.Token);
 
@@ -550,13 +550,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         foreach (var db in dbs)
         {
-            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
             hb.AddKeyedSqlServerClient(db.Resource.Name);
         }
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         foreach (var db in dbs)
         {

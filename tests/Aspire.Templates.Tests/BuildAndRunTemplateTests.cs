@@ -34,8 +34,8 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         string id = GetNewProjectId(prefix: $"aspire_{config}");
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
+        await project.BuildAsync(extraBuildArgs: [$"-c {config}"], TestContext.Current.CancellationToken);
+        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], token: TestContext.Current.CancellationToken);
 
         if (PlaywrightProvider.HasPlaywrightSupport)
         {
@@ -55,9 +55,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
         CreateCPMFile(project, version);
 
-        await project.BuildAsync();
-        await project.StartAppHostAsync();
-        await project.StopAppHostAsync();
+        await project.BuildAsync(token: TestContext.Current.CancellationToken);
+        await project.StartAppHostAsync(token: TestContext.Current.CancellationToken);
+        await project.StopAppHostAsync(TestContext.Current.CancellationToken);
 
         static string ExtractAndRemoveVersionFromPackageReference(AspireProject project)
         {
@@ -124,7 +124,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
             buildEnvironment: testSpecificBuildEnvironment,
             extraArgs: "--no-https");
 
-        await project.BuildAsync();
+        await project.BuildAsync(token: TestContext.Current.CancellationToken);
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: testSpecificBuildEnvironment, label: "first-run")
                                     .WithWorkingDirectory(project.AppHostProjectDirectory);
 
@@ -134,7 +134,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
         // Run with the environment variable set
         testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
-        await project.StartAppHostAsync();
+        await project.StartAppHostAsync(token: TestContext.Current.CancellationToken);
 
         if (PlaywrightProvider.HasPlaywrightSupport)
         {
@@ -154,7 +154,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
         ModifyProjectFile(project, version);
 
-        await project.BuildAsync(workingDirectory: project.RootDir);
+        await project.BuildAsync(workingDirectory: project.RootDir, token: TestContext.Current.CancellationToken);
 
         static void ModifyProjectFile(AspireProject project, string version)
         {

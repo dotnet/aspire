@@ -30,8 +30,8 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     public async Task CanGetConnectionStringFromAddConnectionString()
     {
         // Get a connection string from a resource
-        var connectionString = await _app.GetConnectionStringAsync("cs");
-        var connectionString2 = await _app.GetConnectionStringAsync("cs2");
+        var connectionString = await _app.GetConnectionStringAsync("cs", TestContext.Current.CancellationToken);
+        var connectionString2 = await _app.GetConnectionStringAsync("cs2", TestContext.Current.CancellationToken);
         Assert.Equal("testconnection", connectionString);
         Assert.Equal("Value=this is a value", connectionString2);
     }
@@ -49,11 +49,11 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     public async Task HttpClientGetTest()
     {
         // Wait for the application to be ready
-        await _app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
+        await _app.WaitForTextAsync("Application started.", "mywebapp1", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
 
-        var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast", TestContext.Current.CancellationToken);
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
@@ -76,11 +76,11 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.Equal("https", profileName);
 
         // Wait for resource to start.
-        await _app.ResourceNotifications.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
+        await _app.ResourceNotifications.WaitForResourceAsync("mywebapp1", cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");
-        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast", TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
     }

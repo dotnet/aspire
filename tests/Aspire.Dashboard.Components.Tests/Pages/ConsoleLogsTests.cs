@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
+using TestContext = Xunit.TestContext;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
@@ -91,7 +92,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         logger.LogInformation("Waiting for finish message.");
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)]);
 
-        var subscribedResourceName1 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        var subscribedResourceName1 = await subscribedResourceNamesChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal("test-resource", subscribedResourceName1);
 
         navigationManager.LocationChanged += (sender, e) =>
@@ -117,11 +118,11 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource2);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
-        var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal("test-resource2", subscribedResourceName2);
 
         subscribedResourceNamesChannel.Writer.Complete();
-        Assert.False(await subscribedResourceNamesChannel.Reader.WaitToReadAsync().DefaultTimeout());
+        Assert.False(await subscribedResourceNamesChannel.Reader.WaitToReadAsync(TestContext.Current.CancellationToken).DefaultTimeout());
     }
 
     [Fact]

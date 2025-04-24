@@ -37,7 +37,7 @@ public class AspireRabbitMQLoggingTests
         await using var rabbitMqContainer = new RabbitMqBuilder()
             .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
             .Build();
-        await rabbitMqContainer.StartAsync();
+        await rabbitMqContainer.StartAsync(TestContext.Current.CancellationToken);
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -62,10 +62,10 @@ public class AspireRabbitMQLoggingTests
         using var host = builder.Build();
         using var connection = host.Services.GetRequiredService<IConnection>();
 
-        await rabbitMqContainer.StopAsync();
+        await rabbitMqContainer.StopAsync(TestContext.Current.CancellationToken);
         await rabbitMqContainer.DisposeAsync();
 
-        await tsc.Task.WaitAsync(TimeSpan.FromMinutes(1));
+        await tsc.Task.WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         var logs = logger.Logs.ToArray();
         Assert.True(logs.Length >= 2, "Should be at least 2 logs written.");

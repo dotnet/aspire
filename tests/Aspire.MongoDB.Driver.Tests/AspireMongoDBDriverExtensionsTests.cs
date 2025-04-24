@@ -131,7 +131,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = "MongoDB.Driver";
 
@@ -175,7 +175,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = $"MongoDB.Driver_{key}";
 

@@ -217,7 +217,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredKeyedService<IChatClient>("openai_chatclient") :
             host.Services.GetRequiredService<IChatClient>();
 
-        var completion = await client.GetResponseAsync("Whatever");
+        var completion = await client.GetResponseAsync("Whatever", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Hello from middleware", completion.Text);
     }
 
@@ -251,7 +251,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
         var loggerFactory = (TestLoggerFactory)host.Services.GetRequiredService<ILoggerFactory>();
 
-        var completion = await client.GetResponseAsync("Whatever");
+        var completion = await client.GetResponseAsync("Whatever", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Hello from middleware", completion.Text);
 
         const string category = "Microsoft.Extensions.AI.OpenTelemetryChatClient";

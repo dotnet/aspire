@@ -37,9 +37,9 @@ public class AppHostTests
         var resourceEndpoints = testEndpoints.ResourceEndpoints!;
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostType, _testOutput);
         var projects = appHost.Resources.OfType<ProjectResource>();
-        await using var app = await appHost.BuildAsync();
+        await using var app = await appHost.BuildAsync(TestContext.Current.CancellationToken);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         if (testEndpoints.WaitForTexts != null)
         {
@@ -47,7 +47,7 @@ public class AppHostTests
             var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName)).ToArray();
             try
             {
-                await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+                await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5), TestContext.Current.CancellationToken);
             }
             catch (TimeoutException te)
             {
@@ -67,7 +67,7 @@ public class AppHostTests
         {
             var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-            await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(5));
+            await app.WaitForResources( cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(5), TestContext.Current.CancellationToken);
 
             if (testEndpoints.WaitForResources?.Count > 0)
             {
@@ -76,7 +76,7 @@ public class AppHostTests
                 foreach (var (ResourceName, TargetState) in testEndpoints.WaitForResources)
                 {
                     _testOutput.WriteLine($"Waiting for resource '{ResourceName}' to reach state '{TargetState}' in app '{appHost.AppHostAssembly}'");
-                    await app.WaitForResource(ResourceName, TargetState).WaitAsync(TimeSpan.FromMinutes(5));
+                    await app.WaitForResource(ResourceName, TargetState, TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromMinutes(5), TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -99,7 +99,7 @@ public class AppHostTests
                 _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{appHost.AppHostAssembly}'");
                 try
                 {
-                    response = await client.GetAsync(path);
+                    response = await client.GetAsync(path, TestContext.Current.CancellationToken);
                 }
                 catch (TimeoutRejectedException tre)
                 {
@@ -111,7 +111,7 @@ public class AppHostTests
         }
 
         app.EnsureNoErrorsLogged();
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     public static HttpClient CreateHttpClientWithResilience(DistributedApplication app, string resource)

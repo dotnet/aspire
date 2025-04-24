@@ -32,7 +32,7 @@ public partial class AppHostTemplateTests : TemplateTestsBase
         File.WriteAllText(projectPath, newContents);
 
         // Ensure project builds successfully
-        await project.BuildAsync(workingDirectory: project.RootDir);
+        await project.BuildAsync(workingDirectory: project.RootDir, token: TestContext.Current.CancellationToken);
     }
 
     [GeneratedRegex(@"(PackageReference\s.*""Aspire\.Hosting\.AppHost.*Version=)""[^""]+""")]

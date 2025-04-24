@@ -31,7 +31,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
+        await project.BuildAsync(extraBuildArgs: [$"-c {config}"], token: TestContext.Current.CancellationToken);
         if (PlaywrightProvider.HasPlaywrightSupport && RequiresSSLCertificateAttribute.IsSupported)
         {
             await using (var context = await CreateNewBrowserContextAsync())

@@ -41,7 +41,7 @@ public class CombinationsAnalyzerTests
                 CompilerError(diagnostic.Id).WithLocation(8, 5).WithMessage(message2)
             ]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -74,6 +74,6 @@ public class CombinationsAnalyzerTests
                 CompilerError(diagnostic.Id).WithLocation(6, 21).WithMessage(message2)
             ]);
 
-        await test.RunAsync();
+        await test.RunAsync(TestContext.Current.CancellationToken);
     }
 }

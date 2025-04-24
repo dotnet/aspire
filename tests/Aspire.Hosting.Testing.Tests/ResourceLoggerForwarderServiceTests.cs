@@ -18,7 +18,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
     [Fact]
     public async Task BackgroundServiceIsRegisteredInServiceProvider()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<TestingAppHost1_AppHost>();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<TestingAppHost1_AppHost>(TestContext.Current.CancellationToken);
         Assert.Contains(appHost.Services, sd =>
             sd.ServiceType == typeof(IHostedService)
             && sd.ImplementationType == typeof(ResourceLoggerForwarderService)
@@ -67,7 +67,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
                     subscribedTcs.TrySetResult();
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         var expectedLogCountTcs = new TaskCompletionSource();
         var expectedLogCount = 6;
@@ -88,7 +88,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         await resourceNotificationService.PublishUpdateAsync(myresource, snapshot => snapshot with { State = "Running" });
 
         // Wait for the log stream to begin
-        await subscribedTcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        await subscribedTcs.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
 
         // Log messages to the resource
         fakeLoggerProvider.Collector.Clear();
@@ -102,7 +102,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         resourceLogger.LogCritical("Test critical message");
 
         // Wait for the 6 log messages or timeout
-        await expectedLogCountTcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        await expectedLogCountTcs.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
 
         // Complete the resource log stream and wait for it to end
         resourceLoggerService.Complete(myresource);

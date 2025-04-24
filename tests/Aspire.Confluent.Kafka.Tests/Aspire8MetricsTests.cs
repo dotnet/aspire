@@ -38,7 +38,7 @@ public class Aspire8MetricsTests
         }
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var metricsChannel = host.Services.GetRequiredService(ReflectionHelpers.MetricsChannelType.Value);
         var writer = GetMetricsChannelWriter(metricsChannel)!;
@@ -61,14 +61,14 @@ public class Aspire8MetricsTests
         }
 
         await Task.WhenAll(
-            collectorNetworkTx.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkTransmitted.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkRx.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkReceived.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageTx.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageTransmitted.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageRx.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageReceived.WaitForMeasurementsAsync(statistics.Count)
+            collectorNetworkTx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkTransmitted.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkRx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkReceived.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageTx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageTransmitted.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageRx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageReceived.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken)
         );
 
         collectorConsumerQueueMessageCount.RecordObservableInstruments();
@@ -153,7 +153,7 @@ public class Aspire8MetricsTests
         }
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var metricsChannel = host.Services.GetRequiredService(ReflectionHelpers.MetricsChannelType.Value);
         var writer = GetMetricsChannelWriter(metricsChannel)!;
@@ -176,14 +176,14 @@ public class Aspire8MetricsTests
         }
 
         await Task.WhenAll(
-            collectorNetworkTx.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkTransmitted.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkRx.WaitForMeasurementsAsync(statistics.Count),
-            collectorNetworkReceived.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageTx.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageTransmitted.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageRx.WaitForMeasurementsAsync(statistics.Count),
-            collectorMessageReceived.WaitForMeasurementsAsync(statistics.Count)
+            collectorNetworkTx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkTransmitted.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkRx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorNetworkReceived.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageTx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageTransmitted.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageRx.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken),
+            collectorMessageReceived.WaitForMeasurementsAsync(statistics.Count, TestContext.Current.CancellationToken)
         );
 
         collectorConsumerQueueMessageCount.RecordObservableInstruments();

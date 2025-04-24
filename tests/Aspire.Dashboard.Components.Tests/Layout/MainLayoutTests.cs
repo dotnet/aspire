@@ -16,7 +16,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components.Components.Tooltip;
 using Xunit;
-
+using TestContext = Xunit.TestContext;
+        
 namespace Aspire.Dashboard.Components.Tests.Layout;
 
 [UseCulture("en-US")]
@@ -72,13 +73,13 @@ public partial class MainLayoutTests : DashboardTestContext
         });
 
         // Assert
-        await messageShownTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await messageShownTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         Assert.NotNull(message);
 
         message.Close();
 
-        Assert.True(await dismissedSettingSetTcs.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.True(await dismissedSettingSetTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -116,8 +117,8 @@ public partial class MainLayoutTests : DashboardTestContext
         });
 
         // Assert
-        var timeoutTask = Task.Delay(100);
-        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5));
+        var timeoutTask = Task.Delay(100, TestContext.Current.CancellationToken);
+        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // It's hard to test something not happening.
         // In this case of checking for a message, apply a small display and then double check that no message was displayed.

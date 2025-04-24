@@ -214,7 +214,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        var vector = await generator.GenerateEmbeddingVectorAsync("Hello", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1.23f, vector.ToArray().Single());
     }
 

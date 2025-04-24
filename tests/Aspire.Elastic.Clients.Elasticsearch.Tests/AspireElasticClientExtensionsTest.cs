@@ -57,7 +57,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = useKeyed ? $"Elastic.Clients.Elasticsearch_{key}" : "Elastic.Clients.Elasticsearch";
 

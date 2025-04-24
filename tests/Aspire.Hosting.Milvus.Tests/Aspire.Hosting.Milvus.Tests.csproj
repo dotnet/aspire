@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
+    <NoWarn>$(NoWarn);CS8002;xUnit1051</NoWarn> <!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>

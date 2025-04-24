@@ -169,7 +169,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = useKeyed ? $"NATS_{key}" : "NATS";
 

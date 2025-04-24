@@ -124,7 +124,7 @@ public class PassThroughServiceEndpointResolverTests
             .BuildServiceProvider();
 
         var resolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var result = await resolver.GetEndpointsAsync("catalog", default);
+        var result = await resolver.GetEndpointsAsync("catalog", TestContext.Current.CancellationToken);
         Assert.Equal(new DnsEndPoint("catalog", 0), result.Endpoints[0].EndPoint);
     }
 }

@@ -134,7 +134,7 @@ public class AspireMilvusExtensionTests : IClassFixture<MilvusContainerFixture>
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = useKeyed ? $"Milvus_{DefaultKeyName}" : "Milvus";
 

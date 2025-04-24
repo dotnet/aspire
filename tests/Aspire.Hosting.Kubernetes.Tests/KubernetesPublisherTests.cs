@@ -71,7 +71,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 
             var app = builder.Build();
 
-            await ExecuteBeforeStartHooksAsync(app, default);
+            await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
             var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -90,7 +90,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         // Assert
         var file = Path.Combine(fixture.TempDirectoryInstance.Path, expectedFile);
         Assert.True(File.Exists(file), $"File not found: {file}");
-        var outputContent = await File.ReadAllTextAsync(file);
+        var outputContent = await File.ReadAllTextAsync(file, TestContext.Current.CancellationToken);
         Assert.Equal(s_expectedFilesCache[expectedFile], outputContent, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
     }
 
@@ -119,7 +119,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
 
         var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -135,7 +135,7 @@ public class KubernetesPublisherTests(KubernetesPublisherFixture fixture)
         var deploymentPath = Path.Combine(tempDir.Path, "templates/service/deployment.yaml");
         Assert.True(File.Exists(deploymentPath));
 
-        var content = await File.ReadAllTextAsync(deploymentPath);
+        var content = await File.ReadAllTextAsync(deploymentPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             """

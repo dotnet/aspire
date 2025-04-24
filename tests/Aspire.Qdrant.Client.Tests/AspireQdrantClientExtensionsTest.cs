@@ -48,7 +48,7 @@ public class AspireQdrantClientExtensionsTest : IClassFixture<QdrantContainerFix
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         var healthCheckName = useKeyed ? $"Qdrant.Client_{key}" : "Qdrant.Client";
 
