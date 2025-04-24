@@ -112,4 +112,19 @@ internal class InteractionService : IInteractionService
         }
         _ansiConsole.WriteLine();
     }
+
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
+    {
+        foreach (var (stream, line) in lines)
+        {
+            if (stream == "stdout")
+            {
+                _ansiConsole.MarkupLineInterpolated($"{line}");
+            }
+            else
+            {
+                _ansiConsole.MarkupLineInterpolated($"[red]{line}[/]");
+            }
+        }
+    }
 }

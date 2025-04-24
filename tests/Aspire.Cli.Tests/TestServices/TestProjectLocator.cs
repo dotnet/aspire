@@ -7,13 +7,13 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestProjectLocator : IProjectLocator
 {
-    public Func<FileInfo?, FileInfo?>? UseOrFindAppHostProjectFileCallback { get; set; }
+    public Func<FileInfo?, CancellationToken, Task<FileInfo?>>? UseOrFindAppHostProjectFileAsyncCallback { get; set; }
 
-    public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+    public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
     {
-        if (UseOrFindAppHostProjectFileCallback != null)
+        if (UseOrFindAppHostProjectFileAsyncCallback != null)
         {
-            return UseOrFindAppHostProjectFileCallback(projectFile);
+            return await UseOrFindAppHostProjectFileAsyncCallback(projectFile, cancellationToken);
         }
 
         // Fallback behavior if not overridden.

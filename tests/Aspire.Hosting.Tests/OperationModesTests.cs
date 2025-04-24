@@ -72,7 +72,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8223", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8223")]
     public async Task VerifyExplicitRunModeWithPublisherInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will enter

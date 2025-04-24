@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Aspire.Hosting.Docker.Resources.ComposeNodes;
 
 namespace Aspire.Hosting.Docker.Tests;
 
@@ -37,7 +38,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                     .WithArgs("-c", "hello $MSG")
                     .WithEnvironment("MSG", "world");
 
-        var migration = builder.AddContainer("something", "dummy/migration:latest");
+        var migration = builder.AddContainer("something", "dummy/migration:latest")
+                         .WithContainerName("cn");
 
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
                          .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -98,6 +100,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   - "aspire"
               something:
                 image: "dummy/migration:latest"
+                container_name: "cn"
                 networks:
                   - "aspire"
               myapp:
@@ -283,7 +286,14 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var options = new OptionsMonitor(new DockerComposePublisherOptions { OutputPath = tempDir.Path });
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+               .WithProperties(e => e.DefaultNetworkName = "default-network")
+               .ConfigureComposeFile(file =>
+               {
+                   file.AddNetwork(new Network { Name = "custom-network", Driver = "host" });
+
+                   file.Name = "my application";
+               });
 
         // Add a container to the application
         var container = builder.AddContainer("service", "nginx")
@@ -327,6 +337,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(
             """
+            name: "my application"
             services:
               service:
                 image: "nginx:latest"
@@ -334,14 +345,16 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                   ORIGINAL_ENV: "value"
                   CUSTOM_ENV: "custom-value"
                 networks:
-                  - "aspire"
-                    - "custom-network"
+                  - "default-network"
+                  - "custom-network"
                 restart: "always"
                 labels:
                   custom-label: "test-value"
             networks:
-              aspire:
+              default-network:
                 driver: "bridge"
+              custom-network:
+                driver: "host"
 
             """,
             content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);

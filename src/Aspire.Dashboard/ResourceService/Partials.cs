@@ -18,7 +18,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    public ResourceViewModel ToViewModel(IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -31,7 +31,7 @@ partial class Resource
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),
-                Properties = CreatePropertyViewModels(Properties, timeProvider, knownPropertyLookup, logger),
+                Properties = CreatePropertyViewModels(Properties, knownPropertyLookup, logger),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
@@ -149,7 +149,7 @@ partial class Resource
         }
     }
 
-    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         var builder = ImmutableDictionary.CreateBuilder<string, ResourcePropertyViewModel>(StringComparers.ResourcePropertyName);
 
@@ -161,8 +161,7 @@ partial class Resource
                 value: ValidateNotNull(property.Value),
                 isValueSensitive: property.IsSensitive,
                 knownProperty: knownProperty,
-                priority: priority,
-                timeProvider: timeProvider);
+                priority: priority);
 
             if (builder.ContainsKey(propertyViewModel.Name))
             {

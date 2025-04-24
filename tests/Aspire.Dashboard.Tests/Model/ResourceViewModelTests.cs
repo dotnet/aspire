@@ -14,7 +14,6 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class ResourceViewModelTests
 {
     private static readonly DateTime s_dateTime = new(2000, 12, 30, 23, 59, 59, DateTimeKind.Utc);
-    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
 
     [Theory]
     [InlineData(KnownResourceState.Starting, null, null)]
@@ -48,7 +47,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(), NullLogger.Instance);
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
 
         // Assert
         Assert.Collection(vm.Environment,
@@ -76,7 +75,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(), NullLogger.Instance);
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
 
         // Assert
         Assert.Collection(vm.Properties,
@@ -100,7 +99,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(), NullLogger.Instance));
+        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance));
 
         // Assert
         Assert.Equal(@"Error converting resource ""TestName-abc"" to ResourceViewModel.", ex.Message);
@@ -123,10 +122,10 @@ public sealed class ResourceViewModelTests
             }
         };
 
-        var kp = new KnownProperty("foo", "bar");
+        var kp = new KnownProperty("foo", loc => "bar");
 
         // Act
-        var viewModel = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(123, kp), NullLogger.Instance);
+        var viewModel = resource.ToViewModel(new MockKnownPropertyLookup(123, kp), NullLogger.Instance);
 
         // Assert
         Assert.Collection(

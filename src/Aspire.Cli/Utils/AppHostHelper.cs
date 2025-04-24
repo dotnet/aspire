@@ -53,16 +53,21 @@ internal static class AppHostHelper
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
             ":microscope: Checking project type...",
-            () => runner.GetAppHostInformationAsync(projectFile, cancellationToken)
-        );
+            () => runner.GetAppHostInformationAsync(
+                projectFile,
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken));
 
         return appHostInformationResult;
     }
     
-    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
             ":hammer_and_wrench:  Building app host...",
-            () => runner.BuildAsync(projectFile, cancellationToken));
+            () => runner.BuildAsync(
+                projectFile,
+                options,
+                cancellationToken));
     }
 }

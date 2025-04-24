@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
@@ -39,7 +40,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     [Fact]
@@ -71,12 +72,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run --project /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
@@ -106,17 +108,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         }
     }
 
-    private sealed class NoProjectFileProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    private sealed class NoProjectFileProjectLocator : IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
     }
 
-    private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
     {
-        public FileInfo? UseOrFindAppHostProjectFile(FileInfo? projectFile)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
@@ -139,16 +141,16 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             var runner = new TestDotNetCliRunner();
 
             // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (ct) => 0;
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
 
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatable app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Make a backchannel and return it, but don't return from the run call until the backchannel 
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();

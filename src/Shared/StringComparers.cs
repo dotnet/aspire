@@ -28,6 +28,8 @@ internal static class StringComparers
     public static StringComparer HealthReportPropertyValue => StringComparer.Ordinal;
     public static StringComparer ConsoleLogContent => StringComparer.Ordinal;
     public static StringComparer CultureName => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer CommandName => StringComparer.Ordinal;
+
 }
 
 internal static class StringComparisons
@@ -53,4 +55,5 @@ internal static class StringComparisons
     public static StringComparison HealthReportPropertyValue => StringComparison.Ordinal;
     public static StringComparison ConsoleLogContent => StringComparison.Ordinal;
     public static StringComparison CultureName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison CommandName => StringComparison.Ordinal;
 }

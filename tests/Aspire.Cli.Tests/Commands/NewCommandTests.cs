@@ -40,7 +40,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {
@@ -68,6 +68,144 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandOrdersTemplatePackageVersionsCorrectly()
+    {
+        IEnumerable<NuGetPackage>? promptedPackages = null;
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter =  new TestNewCommandPrompter(interactionService);
+
+                prompter.PromptForTemplatesVersionCallback = (packages) =>
+                {
+                    promptedPackages = packages;
+                    return promptedPackages.First();
+                };
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package92 = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "othernuget",
+                        Version = "9.2.0"
+                    };
+
+                    var package93 = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.3.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package92, package93 }
+                        );
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(promptedPackages);
+        Assert.Collection(
+            promptedPackages,
+            package => Assert.Equal("9.3.0", package.Version),
+            package => Assert.Equal("9.2.0", package.Version)
+        );
+    }
+
+    [Fact]
+    public async Task NewCommandOrdersTemplatePackageVersionsCorrectlyWithPrerelease()
+    {
+        IEnumerable<NuGetPackage>? promptedPackages = null;
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter =  new TestNewCommandPrompter(interactionService);
+
+                prompter.PromptForTemplatesVersionCallback = (packages) =>
+                {
+                    promptedPackages = packages;
+                    return promptedPackages.First();
+                };
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package92 = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "othernuget",
+                        Version = "9.2.0"
+                    };
+
+                    var package94 = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "internalfeed",
+                        Version = "9.4.0-preview.1234"
+                    };
+
+                    var package93 = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.3.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package92, package94, package93 }
+                        );
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(promptedPackages);
+        Assert.Collection(
+            promptedPackages,
+            package => Assert.Equal("9.4.0-preview.1234", package.Version),
+            package => Assert.Equal("9.3.0", package.Version),
+            package => Assert.Equal("9.2.0", package.Version)
+        );
+    }
+
+    [Fact]
     public async Task NewCommandDoesNotPromptForProjectNameIfSpecifiedOnCommandLine()
     {
         var promptedForName = false;
@@ -92,7 +230,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {
@@ -145,7 +283,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {
@@ -198,7 +336,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {
@@ -251,7 +389,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {

@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
+public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string LogLevelColumn = nameof(LogLevelColumn);
@@ -85,6 +86,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required PauseManager PauseManager { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -142,7 +146,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -200,7 +204,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -209,7 +213,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             return;
         }
+
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()
@@ -406,6 +412,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
+        TelemetryContext.Dispose();
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -480,5 +487,19 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedApplication, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.ToString() ?? string.Empty)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsFilterCount, new AspireTelemetryProperty(ViewModel.Filters.Count.ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsTraceId, new AspireTelemetryProperty(TraceId ?? string.Empty)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSpanId, new AspireTelemetryProperty(SpanId ?? string.Empty))
+        ]);
     }
 }

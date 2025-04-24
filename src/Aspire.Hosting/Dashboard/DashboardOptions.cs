@@ -16,6 +16,7 @@ internal class DashboardOptions
     public string? OtlpHttpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
+    public bool? TelemetryOptOut { get; set; }
 }
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
@@ -31,6 +32,10 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
+
+        options.TelemetryOptOut = bool.TryParse(configuration["ASPIRE_DASHBOARD_TELEMETRY_OPTOUT"], out var telemetryOptOut)
+            ? !telemetryOptOut
+            : null;
     }
 }
 

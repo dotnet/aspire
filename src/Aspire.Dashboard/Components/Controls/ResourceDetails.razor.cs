@@ -3,7 +3,9 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +14,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class ResourceDetails
+public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -29,13 +31,20 @@ public partial class ResourceDetails
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
-    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
+    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(_displayedResourcePropertyViewModels).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private readonly List<DisplayedResourcePropertyViewModel> _displayedResourcePropertyViewModels = new();
     private readonly HashSet<string> _unmaskedItemNames = new();
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
@@ -71,7 +80,7 @@ public partial class ResourceDetails
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+    internal IQueryable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
             .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -108,6 +117,8 @@ public partial class ResourceDetails
             }
 
             _resource = Resource;
+            _displayedResourcePropertyViewModels.Clear();
+            _displayedResourcePropertyViewModels.AddRange(_resource.Properties.Select(p => new DisplayedResourcePropertyViewModel(p.Value, Loc, TimeProvider)));
 
             // Collapse details sections when they have no data.
             _isUrlsExpanded = GetUrls().Count > 0;
@@ -129,6 +140,8 @@ public partial class ResourceDetails
                 }
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -147,6 +160,7 @@ public partial class ResourceDetails
     protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()
@@ -216,13 +230,13 @@ public partial class ResourceDetails
         return ResourceUrlHelpers.GetUrls(Resource, includeInternalUrls: true, includeNonEndpointUrls: true);
     }
 
-    private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)
+    private IEnumerable<DisplayedResourcePropertyViewModel> GetResourceProperties(bool ordered)
     {
-        var vms = Resource.Properties.Values
+        var vms = _displayedResourcePropertyViewModels
             .Where(vm => vm.Value is { HasNullValue: false } and not { KindCase: Value.KindOneofCase.ListValue, ListValue.Values.Count: 0 });
 
         return ordered
-            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.Name)
+            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.DisplayName)
             : vms;
     }
 
@@ -266,6 +280,21 @@ public partial class ResourceDetails
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
         return Task.CompletedTask;
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new("ResourceDetails");
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(Resource.ResourceType))
+        ]);
+    }
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
     }
 }
 
