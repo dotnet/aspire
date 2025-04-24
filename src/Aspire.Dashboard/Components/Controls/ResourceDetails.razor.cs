@@ -185,7 +185,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 {
                     Resource = match,
                     ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
-                    Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
+                    Types = resourceRelationships.Select(r => r.Type).Distinct().OrderBy(r => r).ToList()
                 });
             }
         }
@@ -216,7 +216,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                     {
                         Resource = otherResource,
                         ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
-                        Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
+                        Types = resourceRelationships.Select(r => r.Type).Distinct().OrderBy(r => r).ToList()
                     });
                 }
             }

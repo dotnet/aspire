@@ -13,12 +13,11 @@ namespace Aspire.Dashboard.Model.ResourceGraph;
 
 public static class ResourceGraphMapper
 {
-
     public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc)
     {
         var resolvedNames = new List<string>();
 
-        foreach (var resourceRelationships in r.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
+        foreach (var resourceRelationships in r.Relationships.Where(relationship => relationship.ResourceName != r.DisplayName).GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
             var matches = resourcesByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
