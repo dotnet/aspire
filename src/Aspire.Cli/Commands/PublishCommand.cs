@@ -125,6 +125,7 @@ internal sealed class PublishCommand : BaseCommand
                         ["--operation", "inspect"],
                         null,
                         backchannelCompletionSource,
+                        new DotNetCliRunnerInvocationOptions(),
                         cancellationToken).ConfigureAwait(false);
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
@@ -187,6 +188,7 @@ internal sealed class PublishCommand : BaseCommand
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         backchannelCompletionSource,
+                        new DotNetCliRunnerInvocationOptions(),
                         cancellationToken);
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);

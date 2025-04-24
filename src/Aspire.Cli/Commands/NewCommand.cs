@@ -142,7 +142,7 @@ internal sealed class NewCommand : BaseCommand
 
         var templateInstallResult = await _interactionService.ShowStatusAsync(
             ":ice:  Getting latest templates...",
-            () => _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, cancellationToken));
+            () => _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, new DotNetCliRunnerInvocationOptions(), cancellationToken));
 
         if (templateInstallResult.ExitCode != 0)
         {
@@ -158,6 +158,7 @@ internal sealed class NewCommand : BaseCommand
                         template.TemplateName,
                         name,
                         outputPath,
+                        new DotNetCliRunnerInvocationOptions(),
                         cancellationToken));
 
         if (newProjectExitCode != 0)

@@ -120,6 +120,7 @@ internal sealed class RunCommand : BaseCommand
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
+                new DotNetCliRunnerInvocationOptions(),
                 cancellationToken);
 
             if (useRichConsole)

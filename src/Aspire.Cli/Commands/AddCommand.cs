@@ -126,8 +126,8 @@ internal sealed class AddCommand : BaseCommand
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
                         selectedNuGetPackage.Package.Version,
-                        cancellationToken
-                        );
+                        new DotNetCliRunnerInvocationOptions(),
+                        cancellationToken);
 
                     return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
                 }

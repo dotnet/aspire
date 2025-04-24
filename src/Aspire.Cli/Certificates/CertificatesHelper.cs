@@ -21,14 +21,17 @@ internal sealed class CertificateService(IInteractionService interactionService)
 
         var checkExitCode = await interactionService.ShowStatusAsync(
             ":locked_with_key: Checking certificates...",
-            () => runner.CheckHttpCertificateAsync(cancellationToken));
+            () => runner.CheckHttpCertificateAsync(
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken));
 
         if (checkExitCode != 0)
         {
             var trustExitCode = await interactionService.ShowStatusAsync(
                 ":locked_with_key: Trusting certificates...",
-                () => runner.TrustHttpCertificateAsync(cancellationToken)
-            );
+                () => runner.TrustHttpCertificateAsync(
+                    new DotNetCliRunnerInvocationOptions(),
+                    cancellationToken));
 
             if (trustExitCode != 0)
             {
