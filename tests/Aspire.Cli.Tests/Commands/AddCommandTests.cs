@@ -41,7 +41,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var dockerPackage = new NuGetPackage()
                     {
@@ -70,7 +70,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -114,7 +114,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var redis92Package = new NuGetPackage()
                     {
@@ -136,7 +136,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -185,7 +185,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var redis92Package = new NuGetPackage()
                     {
@@ -214,7 +214,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -264,7 +264,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var dockerPackage = new NuGetPackage()
                     {
@@ -293,7 +293,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -345,7 +345,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var dockerPackage = new NuGetPackage()
                     {
@@ -374,7 +374,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -422,7 +422,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
                     var dockerPackage = new NuGetPackage()
                     {
@@ -451,7 +451,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
                 {
                     addedPackageName = packageName;
                     addedPackageVersion = packageVersion;

@@ -17,4 +17,5 @@ internal interface IInteractionService
     void DisplayMessage(string emoji, string message);
     void DisplaySuccess(string message);
     void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls);
+    void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
 }
