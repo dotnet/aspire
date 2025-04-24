@@ -51,6 +51,8 @@ public static class AspireAppConfigurationExtensions
 
         if (!settings.DisableTracing)
         {
+            // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
+            // Will be supported in the next 8.2.0 release
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder =>
                     traceBuilder.AddSource(["Microsoft.Extensions.Configuration.AzureAppConfiguration"]));
