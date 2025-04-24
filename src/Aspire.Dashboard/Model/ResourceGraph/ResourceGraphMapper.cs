@@ -17,7 +17,10 @@ public static class ResourceGraphMapper
     {
         var resolvedNames = new List<string>();
 
-        foreach (var resourceRelationships in r.Relationships.Where(relationship => relationship.ResourceName != r.DisplayName).GroupBy(r => r.ResourceName, StringComparers.ResourceName))
+        // Remove relationships back to the current resource. The graph doesn't display self referential relationships.
+        var filteredRelationships = r.Relationships.Where(relationship => relationship.ResourceName != r.DisplayName);
+
+        foreach (var resourceRelationships in filteredRelationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
             var matches = resourcesByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
