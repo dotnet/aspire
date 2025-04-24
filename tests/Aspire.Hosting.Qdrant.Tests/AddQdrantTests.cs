@@ -158,7 +158,7 @@ public class AddQdrantTests
 
         var connectionStringResource = qdrant.Resource as IResourceWithConnectionString;
 
-        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal($"Endpoint=http://localhost:6334;Key=pass", connectionString);
     }
 

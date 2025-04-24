@@ -39,20 +39,20 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceHealthyAsync(elasticsearch.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddElasticsearchClient(elasticsearch.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         await pipeline.ExecuteAsync(
             async token =>
@@ -112,13 +112,13 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(
                             async token =>
@@ -127,7 +127,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 await CreateTestData(elasticsearchClient, testOutputHelper, token);
                             }, cts.Token);
 
-                        await app.StopAsync();
+                        await app.StopAsync(TestContext.Current.CancellationToken);
 
                         // Wait for the container to be stopped and to release the volume files before continuing
                         await pipeline.ExecuteAsync(
@@ -142,7 +142,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -161,7 +161,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
                 await app.ResourceNotifications.WaitForResourceHealthyAsync(elasticsearch2.Resource.Name, cts.Token);
 
@@ -169,13 +169,13 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
                         await pipeline.ExecuteAsync(
                             async token =>
                             {
@@ -188,7 +188,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 Assert.Equal(s_person.Id, getResponse.Source?.Id);
                             }, cts.Token);
 
-                        await app.StopAsync();
+                        await app.StopAsync(TestContext.Current.CancellationToken);
 
                         // Wait for the container to be stopped and to release the volume files before continuing
                         await pipeline.ExecuteAsync(
@@ -203,7 +203,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -265,7 +265,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     private static async Task CreateTestData(ElasticsearchClient elasticsearchClient, ITestOutputHelper testOutputHelper, CancellationToken cancellationToken)

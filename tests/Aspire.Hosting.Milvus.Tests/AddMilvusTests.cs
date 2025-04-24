@@ -85,7 +85,7 @@ public class AddMilvusTests
 
         var connectionStringResource = milvus.Resource as IResourceWithConnectionString;
 
-        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal($"Endpoint=http://localhost:19530;Key=root:pass", connectionString);
     }
 

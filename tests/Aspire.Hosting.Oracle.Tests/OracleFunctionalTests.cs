@@ -380,6 +380,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 }

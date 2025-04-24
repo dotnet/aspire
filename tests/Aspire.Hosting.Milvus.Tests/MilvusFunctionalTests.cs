@@ -26,24 +26,24 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus.Resource.Name);
+        await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus.Resource.Name, TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddMilvusClient(db.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var milvusClient = host.Services.GetRequiredService<MilvusClient>();
 
-        await milvusClient.CreateDatabaseAsync("db1");
-        await CreateTestDataAsync(milvusClient, default);
+        await milvusClient.CreateDatabaseAsync("db1", TestContext.Current.CancellationToken);
+        await CreateTestDataAsync(milvusClient, TestContext.Current.CancellationToken);
     }
 
     private static async Task CreateTestDataAsync(MilvusClient milvusClient, CancellationToken token)
@@ -100,33 +100,33 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus1.Resource.Name);
+                await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus1.Resource.Name, TestContext.Current.CancellationToken);
 
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddMilvusClient(db1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var milvusClient = host.Services.GetRequiredService<MilvusClient>();
 
-                        await milvusClient.CreateDatabaseAsync(dbname);
+                        await milvusClient.CreateDatabaseAsync(dbname, TestContext.Current.CancellationToken);
 
-                        await CreateTestDataAsync(milvusClient, default);
+                        await CreateTestDataAsync(milvusClient, TestContext.Current.CancellationToken);
                     }
                 }
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -147,25 +147,25 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus2.Resource.Name);
+                await app.WaitForTextAsync("Milvus Proxy successfully initialized and ready to serve", milvus2.Resource.Name, TestContext.Current.CancellationToken);
 
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddMilvusClient(db2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var milvusClient = host.Services.GetRequiredService<MilvusClient>();
 
-                        var collections = await milvusClient.ListCollectionsAsync();
+                        var collections = await milvusClient.ListCollectionsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
                         Assert.Single(collections, c => c.Name == CollectionName);
                     }
@@ -173,7 +173,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
 
             }

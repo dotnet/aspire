@@ -208,7 +208,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }

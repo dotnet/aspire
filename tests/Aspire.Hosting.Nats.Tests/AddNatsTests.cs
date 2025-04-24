@@ -76,7 +76,7 @@ public class AddNatsTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>()) as IResourceWithConnectionString;
-        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("nats://usr:password@localhost:4222", connectionString);
         Assert.Equal("nats://{user.value}:{pass.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);

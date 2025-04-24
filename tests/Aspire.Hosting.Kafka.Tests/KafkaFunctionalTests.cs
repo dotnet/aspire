@@ -37,21 +37,21 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var pendingStart = app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await pendingStart;
 
-        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync(TestContext.Current.CancellationToken).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -66,11 +66,11 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddKafkaProducer<string, string>("kafka");
         hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
@@ -81,7 +81,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var topic = "test-topic";
 
@@ -157,20 +157,20 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForHealthyAsync(kafka1);
+                await app.WaitForHealthyAsync(kafka1, TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddKafkaProducer<string, string>("kafka");
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var pipeline = new ResiliencePipelineBuilder()
                             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<ProduceException<string, string>>() })
@@ -188,9 +188,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                     //kafka shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
                 }
             }
@@ -209,14 +209,14 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
-                await app.WaitForHealthyAsync(kafka1);
+                await app.StartAsync(TestContext.Current.CancellationToken);
+                await app.WaitForHealthyAsync(kafka1, TestContext.Current.CancellationToken);
 
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
                     {
@@ -226,7 +226,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var pipeline = new ResiliencePipelineBuilder()
                             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<ConsumeException>() })
@@ -248,7 +248,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }

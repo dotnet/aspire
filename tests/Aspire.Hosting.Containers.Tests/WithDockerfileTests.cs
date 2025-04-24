@@ -34,16 +34,16 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                .WithBuildSecret("ENV_SECRET", parameter);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var envSecretMessage = await client.GetStringAsync("/ENV_SECRET.txt");
+        var envSecretMessage = await client.GetStringAsync("/ENV_SECRET.txt", TestContext.Current.CancellationToken);
         Assert.Equal("open sesame from env", envSecretMessage);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -65,12 +65,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         // Wait for the resource to come online.
         await WaitForResourceAsync(app, "testcontainer", "Running");
         using var client = app.CreateHttpClient("testcontainer", "http");
-        var message = await client.GetStringAsync("/aspire.html");
+        var message = await client.GetStringAsync("/aspire.html", TestContext.Current.CancellationToken);
 
         // By the time we can make a request to the service the logs
         // should be streamed back to the app host.
@@ -80,7 +80,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         // Just looking for a common message in Docker build output.
         Assert.Contains(logs, log => log.Message.Contains("load build definition from Dockerfile"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -176,24 +176,24 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                .WithDockerfile(tempContextPath, tempDockerfilePath);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringAsync("/aspire.html");
+        var message = await client.GetStringAsync("/aspire.html", TestContext.Current.CancellationToken);
 
         Assert.Equal($"{DefaultMessage}\n", message);
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+        var containers = await kubernetes.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken);
 
         var container = Assert.Single(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
         Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -209,23 +209,23 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                .WithHttpEndpoint(targetPort: 80);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
-        var message = await client.GetStringAsync("/aspire.html");
+        var message = await client.GetStringAsync("/aspire.html", TestContext.Current.CancellationToken);
 
         Assert.Equal($"{DefaultMessage}\n", message);
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+        var containers = await kubernetes.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken);
 
         var container = Assert.Single<Container>(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
         Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -436,18 +436,18 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                .WithBuildArg("boolParamFalse", false);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringAsync("/aspire.html");
+        var message = await client.GetStringAsync("/aspire.html", TestContext.Current.CancellationToken);
 
         Assert.Equal($"hello\n", message);
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+        var containers = await kubernetes.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken);
 
         var container = Assert.Single<Container>(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
@@ -482,7 +482,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
             }
             );
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -506,18 +506,18 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                .WithBuildArg("boolParamFalse", false);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringAsync("/aspire.html");
+        var message = await client.GetStringAsync("/aspire.html", TestContext.Current.CancellationToken);
 
         Assert.Equal($"hello\n", message);
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+        var containers = await kubernetes.ListAsync<Container>(cancellationToken: TestContext.Current.CancellationToken);
 
         var container = Assert.Single<Container>(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
@@ -552,7 +552,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
             }
             );
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]

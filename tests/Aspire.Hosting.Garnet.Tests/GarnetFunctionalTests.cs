@@ -50,7 +50,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -68,17 +68,17 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{garnet.Resource.Name}"] = await garnet.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{garnet.Resource.Name}"] = await garnet.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddRedisClient(garnet.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -146,18 +146,18 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{garnet1.Resource.Name}"] = $"{await garnet1.Resource.ConnectionStringExpression.GetValueAsync(default)}";
+                    hb.Configuration[$"ConnectionStrings:{garnet1.Resource.Name}"] = $"{await garnet1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)}";
 
                     hb.AddRedisClient("garnet");
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -179,7 +179,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -197,18 +197,18 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{garnet2.Resource.Name}"] = $"{await garnet2.Resource.ConnectionStringExpression.GetValueAsync(default)}";
+                    hb.Configuration[$"ConnectionStrings:{garnet2.Resource.Name}"] = $"{await garnet2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)}";
 
                     hb.AddRedisClient("garnet");
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -219,13 +219,13 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                             var value = await db.StringGetAsync("key");
 
                             Assert.Equal("value", value);
-                        });
+                        }, TestContext.Current.CancellationToken);
                     }
                 }
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }

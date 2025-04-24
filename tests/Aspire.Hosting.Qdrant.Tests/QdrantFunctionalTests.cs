@@ -36,20 +36,20 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{qdrant.Resource.Name}"] = await qdrant.Resource.ConnectionStringExpression.GetValueAsync(default)
+            [$"ConnectionStrings:{qdrant.Resource.Name}"] = await qdrant.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
         });
 
         hb.AddQdrantClient(qdrant.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -120,21 +120,21 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{qdrant1.Resource.Name}"] = await qdrant1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                        [$"ConnectionStrings:{qdrant1.Resource.Name}"] = await qdrant1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                     });
 
                     hb.AddQdrantClient(qdrant1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -147,7 +147,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -165,21 +165,21 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{qdrant2.Resource.Name}"] = await qdrant2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                        [$"ConnectionStrings:{qdrant2.Resource.Name}"] = await qdrant2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                     });
 
                     hb.AddQdrantClient(qdrant2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -194,7 +194,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -234,8 +234,8 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
-        await app.StartAsync();
+        var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+        await app.StartAsync(TestContext.Current.CancellationToken);
         await tcs.Task;
 
         var urls = qdrant.Resource.Annotations.OfType<ResourceUrlAnnotation>();
@@ -243,7 +243,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Single(urls, u => u.Endpoint?.EndpointName == "http" && u.DisplayText == "Qdrant (HTTP)");
         Assert.Single(urls, u => u.DisplayText == "Qdrant Dashboard" && u.Url.EndsWith("/dashboard"));
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -281,6 +281,6 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 }

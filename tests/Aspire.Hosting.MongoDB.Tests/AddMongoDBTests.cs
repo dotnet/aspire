@@ -86,9 +86,9 @@ public class AddMongoDBTests
         var serverResource = dbResource.Parent as IResourceWithConnectionString;
         var connectionStringResource = dbResource as IResourceWithConnectionString;
         Assert.NotNull(connectionStringResource);
-        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
         
-        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", await serverResource.GetConnectionStringAsync());
+        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", await serverResource.GetConnectionStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin&authMechanism=SCRAM-SHA-256", serverResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionString);
         Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionStringResource.ConnectionStringExpression.ValueExpression);

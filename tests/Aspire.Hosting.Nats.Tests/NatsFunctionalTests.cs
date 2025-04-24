@@ -31,13 +31,13 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name, TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddNatsClient("nats", configureOptions: opts =>
         {
@@ -49,12 +49,12 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var jetStream = host.Services.GetRequiredService<INatsJSContext>();
 
-        await CreateTestData(jetStream, default);
-        await ConsumeTestData(jetStream, default);
+        await CreateTestData(jetStream, TestContext.Current.CancellationToken);
+        await ConsumeTestData(jetStream, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -76,13 +76,13 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name, TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
         hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = connectionString;
 
         hb.AddNatsClient("nats", configureOptions: opts =>
@@ -93,7 +93,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var natsConnection = host.Services.GetRequiredService<INatsConnection>();
         await natsConnection.ConnectAsync();
@@ -118,13 +118,13 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
-        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name, TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
         var modifiedConnectionString = user is null
             ? connectionString!.Replace(new Uri(connectionString).UserInfo, null)
             : connectionString!.Replace("user", user).Replace("password", password);
@@ -139,7 +139,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var natsConnection = host.Services.GetRequiredService<INatsConnection>();
 
@@ -180,14 +180,14 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Listening for client connections", nats1.Resource.Name);
+                await app.WaitForTextAsync("Listening for client connections", nats1.Resource.Name, TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddNatsClient("nats", configureOptions: opts =>
                     {
@@ -199,17 +199,17 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-                        await CreateTestData(jetStream, default);
-                        await ConsumeTestData(jetStream, default);
+                        await CreateTestData(jetStream, TestContext.Current.CancellationToken);
+                        await ConsumeTestData(jetStream, TestContext.Current.CancellationToken);
                     }
                 }
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -228,14 +228,14 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
 
-                await app.WaitForTextAsync("Listening for client connections", nats2.Resource.Name);
+                await app.WaitForTextAsync("Listening for client connections", nats2.Resource.Name, TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
                     hb.AddNatsClient("nats", configureOptions: opts =>
                     {
                         var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
@@ -246,16 +246,16 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-                        await ConsumeTestData(jetStream, default);
+                        await ConsumeTestData(jetStream, TestContext.Current.CancellationToken);
                     }
                 }
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -352,6 +352,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 }

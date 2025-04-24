@@ -695,13 +695,13 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         foreach (var db in dbs)
         {
-            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
             hb.AddKeyedNpgsqlDataSource(db.Resource.Name);
         }
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         foreach (var db in dbs)
         {

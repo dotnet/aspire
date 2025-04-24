@@ -61,7 +61,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -79,17 +79,17 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         var db = mongodb.AddDatabase("testdb");
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
         hb.AddMongoDBClient(db.Resource.Name);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -140,18 +140,18 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddMongoDBClient(db1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -163,7 +163,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
 
@@ -180,24 +180,24 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 //mongodb shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                await Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
                 mongodb2.WithDataBindMount(bindMountPath!);
             }
 
             using (var app = builder2.Build())
             {
-                await app.StartAsync();
+                await app.StartAsync(TestContext.Current.CancellationToken);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
                     hb.AddMongoDBClient(db2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
-                        await host.StartAsync();
+                        await host.StartAsync(TestContext.Current.CancellationToken);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -219,7 +219,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app.StopAsync(TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -283,7 +283,8 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                         name: 'Schindler\'s List'
                     }
                 ]);
-            """);
+            """,
+            TestContext.Current.CancellationToken);
 
             if (!OperatingSystem.IsWindows())
             {
@@ -298,17 +299,17 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             var db = mongodb.AddDatabase(dbName);
             using var app = builder.Build();
 
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             var hb = Host.CreateApplicationBuilder();
 
-            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
 
             hb.AddMongoDBClient(db.Resource.Name);
 
             using var host = hb.Build();
 
-            await host.StartAsync();
+            await host.StartAsync(TestContext.Current.CancellationToken);
 
             var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
 

@@ -63,7 +63,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var publisher = new DockerComposePublisher("test",
             options,
@@ -73,7 +73,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             );
 
         // Act
-        await publisher.PublishAsync(model, default);
+        await publisher.PublishAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
@@ -81,8 +81,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(composePath));
         Assert.True(File.Exists(envPath));
 
-        var content = await File.ReadAllTextAsync(composePath);
-        var envContent = await File.ReadAllTextAsync(envPath);
+        var content = await File.ReadAllTextAsync(composePath, TestContext.Current.CancellationToken);
+        var envContent = await File.ReadAllTextAsync(envPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             """
@@ -173,7 +173,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var publisher = new DockerComposePublisher("test",
             options,
@@ -184,7 +184,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => publisher.PublishAsync(model, default)
+            () => publisher.PublishAsync(model, TestContext.Current.CancellationToken)
         );
 
         Assert.Contains("No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling AddDockerComposeEnvironment.", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -206,12 +206,12 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
 
-        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.RunAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
 
-        var content = await File.ReadAllTextAsync(composePath);
+        var content = await File.ReadAllTextAsync(composePath, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             """
@@ -317,7 +317,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var publisher = new DockerComposePublisher("test",
             options,
@@ -327,13 +327,13 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         );
 
         // Act
-        await publisher.PublishAsync(model, default);
+        await publisher.PublishAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
 
-        var content = await File.ReadAllTextAsync(composePath);
+        var content = await File.ReadAllTextAsync(composePath, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             """

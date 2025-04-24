@@ -121,7 +121,7 @@ public class AddMySqlTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
@@ -141,10 +141,10 @@ public class AddMySqlTests
 
         var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         var mySqlConnectionStringResource = (IResourceWithConnectionString)mySqlResource;
-        var mySqlConnectionString = await mySqlConnectionStringResource.GetConnectionStringAsync();
+        var mySqlConnectionString = await mySqlConnectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
         var mySqlDatabaseConnectionStringResource = (IResourceWithConnectionString)mySqlDatabaseResource;
-        var dbConnectionString = await mySqlDatabaseConnectionStringResource.GetConnectionStringAsync();
+        var dbConnectionString = await mySqlDatabaseConnectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
         Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression.ValueExpression);
@@ -239,7 +239,7 @@ public class AddMySqlTests
         // Add fake allocated endpoints.
         mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()), TestContext.Current.CancellationToken);
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
 
@@ -271,7 +271,7 @@ public class AddMySqlTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()), TestContext.Current.CancellationToken);
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();

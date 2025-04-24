@@ -88,7 +88,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
         });
 
         hb.AddMySqlDataSource(db.Resource.Name);
@@ -162,7 +162,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                        [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                     });
 
                     hb.AddMySqlDataSource(db1.Resource.Name);
