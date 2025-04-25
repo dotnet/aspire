@@ -17,8 +17,6 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> builder, string? name = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> WithRealmImport(this ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> builder, string import, bool isReadOnly) { throw null; }
-
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> WithRealmImport(this ApplicationModel.IResourceBuilder<ApplicationModel.KeycloakResource> builder, string import) { throw null; }
     }
 }
 
