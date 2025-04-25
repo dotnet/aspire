@@ -20,7 +20,8 @@ public static class ModelTestHelpers
         string? stateStyle = null,
         HealthStatus? reportHealthStatus = null,
         bool createNullHealthReport = false,
-        ImmutableArray<CommandViewModel>? commands = null)
+        ImmutableArray<CommandViewModel>? commands = null,
+        ImmutableArray<RelationshipViewModel>? relationships = null)
     {
         return new ResourceViewModel
         {
@@ -40,7 +41,7 @@ public static class ModelTestHelpers
             StateStyle = stateStyle,
             HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
             Commands = commands ?? [],
-            Relationships = [],
+            Relationships = relationships ?? [],
         };
     }
 }

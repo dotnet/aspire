@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -32,6 +33,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
 
     protected override void OnInitialized()
     {

@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
+public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -84,6 +85,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required PauseManager PauseManager { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -144,7 +148,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -166,12 +170,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
-    }
-
-    private void DimensionManager_OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
-    {
-        throw new NotImplementedException();
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -183,6 +182,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()
@@ -381,5 +381,15 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         public string? SelectedApplication { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
+        ]);
     }
 }

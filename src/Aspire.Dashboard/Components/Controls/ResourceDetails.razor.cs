@@ -3,7 +3,9 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +14,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class ResourceDetails
+public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -28,6 +30,9 @@ public partial class ResourceDetails
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -55,12 +60,12 @@ public partial class ResourceDetails
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredRelationships =>
         GetRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredBackRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredBackRelationships =>
         GetBackRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -135,6 +140,8 @@ public partial class ResourceDetails
                 }
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -153,16 +160,17 @@ public partial class ResourceDetails
     protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetRelationships()
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         foreach (var resourceRelationships in Resource.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
@@ -173,26 +181,21 @@ public partial class ResourceDetails
 
             foreach (var match in matches)
             {
-                items.Add(new()
-                {
-                    Resource = match,
-                    ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
-                    Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
-                });
+                items.Add(ResourceDetailRelationshipViewModel.Create(match, ResourceViewModel.GetResourceName(match, ResourceByName), resourceRelationships));
             }
         }
 
         return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetBackRelationships()
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetBackRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
@@ -204,12 +207,7 @@ public partial class ResourceDetails
             {
                 if (string.Equals(resourceRelationships.Key, Resource.DisplayName, StringComparisons.ResourceName))
                 {
-                    items.Add(new()
-                    {
-                        Resource = otherResource,
-                        ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
-                        Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
-                    });
+                    items.Add(ResourceDetailRelationshipViewModel.Create(otherResource, ResourceViewModel.GetResourceName(otherResource, ResourceByName), resourceRelationships));
                 }
             }
         }
@@ -268,22 +266,24 @@ public partial class ResourceDetails
         }
     }
 
-    public Task OnViewRelationshipAsync(ResourceDetailRelationship relationship)
+    public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
         return Task.CompletedTask;
     }
-}
 
-public sealed class ResourceDetailRelationship
-{
-    public required ResourceViewModel Resource { get; init; }
-    public required string ResourceName { get; init; }
-    public required List<string> Types { get; set; }
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new("ResourceDetails");
 
-    public bool MatchesFilter(string filter)
+    public void UpdateTelemetryProperties()
     {
-        return Resource.DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            Types.Any(t => t.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(Resource.ResourceType))
+        ]);
+    }
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
     }
 }
