@@ -11,7 +11,7 @@
 
 .NET Aspire helps with:
 
-[Orchestration](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#orchestration): .NET Aspire provides features for running and connecting multi-project applications and their dependencies.
+[Dev-time orchestration](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview#dev-time-orchestration): .NET Aspire provides features for running and connecting multi-project applications and their dependencies.
 
 [Integrations](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#net-aspire-integrations): .NET Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
 
@@ -25,13 +25,13 @@ The .NET Aspire application host, dashboard, service discovery infrastructure, a
 
 ## Using latest daily builds
 
-Follow instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md) to get started using .NET Aspire with the latest daily build.
+Follow instructions in [using-latest-daily.md](repo-docs/using-latest-daily.md) to get started using .NET Aspire with the latest daily build.
 
 ## How can I contribute?
 
 We welcome contributions! Many people all over the world have helped make .NET better.
 
-Follow instructions in [docs/contributing.md](docs/contributing.md) for working in the code in the repository.
+Follow instructions in [contributing.md](repo-docs/contributing.md) for working in the code in the repository.
 
 ## Reporting security issues and security bugs
 
