@@ -400,9 +400,12 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
-        var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/Eventhubs_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = eventHubsEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal(/*json*/"""
         {
@@ -429,7 +432,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             }
           }
         }
-        """, configJsonContent);
+        """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -458,19 +461,12 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
-        var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
-
-        if (!OperatingSystem.IsWindows())
-        {
-            // Ensure the configuration file has correct attributes
-            var fileInfo = new FileInfo(volumeAnnotation.Source!);
-
-            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-
-            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
-        }
+        Assert.Equal("/Eventhubs_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = eventHubsEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal(/*json*/"""
         {
@@ -494,7 +490,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
           },
           "Custom": 42
         }
-        """, configJsonContent);
+        """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -539,13 +535,13 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
-        var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
-
-        Assert.Equal("/Eventhubs_Emulator/ConfigFiles/Config.json", volumeAnnotation.Target);
-
-        Assert.Equal(source, configJsonContent);
+        Assert.Equal("/Eventhubs_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = eventHubsEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
+        Assert.Equal(configJsonPath, configFile.SourcePath);
 
         await app.StopAsync();
 
