@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -14,7 +13,7 @@ public class MSBuildTests
     /// Tests that when an AppHost has a ProjectReference to a library project, a warning is emitted.
     /// </summary>
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8467")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8467")]
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
