@@ -26,6 +26,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source, bool isReadOnly = true) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithPgAdmin<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PgAdminContainerResource>>? configureContainer = null, string? containerName = null)
             where T : ApplicationModel.PostgresServerResource { throw null; }
 

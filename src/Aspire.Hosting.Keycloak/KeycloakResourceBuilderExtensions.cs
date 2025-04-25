@@ -143,7 +143,32 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// The realm import files are mounted at /opt/keycloak/data/import in the container.
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
+    /// <example>
+    /// Import the realms from a directory
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak")
+    ///                       .WithRealmImport("../realms");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Obsolete("Use WithRealmImport without isReadOnly instead.")]
+    public static IResourceBuilder<KeycloakResource> WithRealmImport(
+        this IResourceBuilder<KeycloakResource> builder,
+        string import,
+        bool isReadOnly)
+    {
+        return builder.WithRealmImport(import);
+    }
+
+    /// <summary>
+    /// Adds a realm import to a Keycloak container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
     /// <example>
     /// Import the realms from a directory
     /// <code lang="csharp">
@@ -154,8 +179,7 @@ public static class KeycloakResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string import,
-        bool isReadOnly = false)
+        string import)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(import);

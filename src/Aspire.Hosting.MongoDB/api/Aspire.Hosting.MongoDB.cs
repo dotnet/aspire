@@ -24,6 +24,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MongoDBServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.MongoDBServerResource> builder, string source, bool isReadOnly = true) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.MongoDBServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.MongoDBServerResource> builder, string source) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithMongoExpress<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<MongoDB.MongoExpressContainerResource>>? configureContainer = null, string? containerName = null)
             where T : ApplicationModel.MongoDBServerResource { throw null; }
     }

@@ -147,11 +147,8 @@ public class KeycloakPublicApiTests
         Assert.Throws<InvalidOperationException>(action);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task WithRealmImportDirectoryAddsContainerFilesAnnotation(bool? isReadOnly)
+    [Fact]
+    public async Task WithRealmImportDirectoryAddsContainerFilesAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -161,14 +158,7 @@ public class KeycloakPublicApiTests
         var resourceName = "keycloak";
         var keycloak = builder.AddKeycloak(resourceName);
 
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithRealmImport(tempDirectory, isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithRealmImport(tempDirectory);
-        }
+        keycloak.WithRealmImport(tempDirectory);
 
         using var app = builder.Build();
         var keycloakResource = builder.Resources.Single(r => r.Name.Equals(resourceName, StringComparison.Ordinal));
@@ -183,11 +173,8 @@ public class KeycloakPublicApiTests
         Assert.Empty(importDirectory.Entries);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task WithRealmImportFileAddsContainerFilesAnnotation(bool? isReadOnly)
+    [Fact]
+    public async Task WithRealmImportFileAddsContainerFilesAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -201,14 +188,7 @@ public class KeycloakPublicApiTests
         var resourceName = "keycloak";
         var keycloak = builder.AddKeycloak(resourceName);
 
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithRealmImport(filePath, isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithRealmImport(filePath);
-        }
+        keycloak.WithRealmImport(filePath);
 
         using var app = builder.Build();
         var keycloakResource = builder.Resources.Single(r => r.Name.Equals(resourceName, StringComparison.Ordinal));

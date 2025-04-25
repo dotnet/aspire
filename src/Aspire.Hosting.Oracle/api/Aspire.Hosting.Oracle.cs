@@ -21,6 +21,8 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> WithDbSetupBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> builder, string source) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> builder, string source) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.OracleDatabaseServerResource> builder, string source) { throw null; }
     }
 }
 

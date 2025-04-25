@@ -19,6 +19,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> WithConfigurationBindMount(this ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> builder, string configurationFilePath) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> WithConfigurationFile(this ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> builder, string configurationFilePath) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Milvus.MilvusServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
