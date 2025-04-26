@@ -4,10 +4,12 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
+using Azure.Data.Tables;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -133,6 +135,39 @@ public static class AzureStorageExtensions
             }
 
             blobServiceClient = CreateBlobServiceClient(connectionString);
+        });
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        {
+            if (builder.Resource.BlobStorageResources.Any())
+            {
+                var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+                var blobServiceClient = new BlobServiceClient(connectionString);
+                foreach (var blobStorageResource in builder.Resource.BlobStorageResources)
+                {
+                    await blobServiceClient!.CreateBlobContainerAsync(blobStorageResource.Name, cancellationToken: ct).ConfigureAwait(false);
+                }
+
+            }
+            if (builder.Resource.QueueStorageResource.Any())
+            {
+                var connectionString = await builder.Resource.GetQueueConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+                var queueServiceClient = new QueueServiceClient(connectionString);
+
+                foreach (var queueStorageResource in builder.Resource.QueueStorageResource)
+                {
+                    await queueServiceClient.CreateQueueAsync(queueStorageResource.Name, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
+            if (builder.Resource.TableStorageResource.Any())
+            {
+                var connectionString = await builder.Resource.GetTableConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+                var tableServiceClient = new TableServiceClient(connectionString);
+                foreach (var tableStorageResource in builder.Resource.TableStorageResource)
+                {
+                    await tableServiceClient.CreateTableAsync(tableStorageResource.Name, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
@@ -280,7 +315,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new AzureBlobStorageResource(name, builder.Resource);
+        var resource = builder.Resource.AddBlobStorage(name);
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -295,7 +330,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new AzureTableStorageResource(name, builder.Resource);
+        var resource = builder.Resource.AddTableStorage(name);
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -310,7 +345,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new AzureQueueStorageResource(name, builder.Resource);
+        var resource = builder.Resource.AddQueueStorage(name);
         return builder.ApplicationBuilder.AddResource(resource);
     }
 

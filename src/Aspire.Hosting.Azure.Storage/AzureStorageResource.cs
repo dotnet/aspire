@@ -98,4 +98,39 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         infra.Add(account);
         return account;
     }
+
+    private readonly List<AzureTableStorageResource> _azureTableStorageResources = [];
+
+    /// <inheritdoc/>
+    internal AzureTableStorageResource AddTableStorage(string name)
+    {
+        var resource = new AzureTableStorageResource(name, this);
+        _azureTableStorageResources.Add(resource);
+        return resource;
+    }
+
+    internal IReadOnlyList<AzureTableStorageResource> TableStorageResource => _azureTableStorageResources;
+
+    private readonly List<AzureBlobStorageResource> _azureBlobStorageResources = [];
+
+    internal AzureBlobStorageResource AddBlobStorage(string name)
+    {
+        var resource = new AzureBlobStorageResource(name, this);
+        _azureBlobStorageResources.Add(resource);
+        return resource;
+    }
+
+    internal IReadOnlyList<AzureBlobStorageResource> BlobStorageResources => _azureBlobStorageResources;
+
+    private readonly List<AzureQueueStorageResource> _azureQueueStorageResources = [];
+
+    /// <inheritdoc/>
+    internal AzureQueueStorageResource AddQueueStorage(string name)
+    {
+        var resource = new AzureQueueStorageResource(name, this);
+        _azureQueueStorageResources.Add(resource);
+        return resource;
+    }
+
+    internal IReadOnlyList<AzureQueueStorageResource> QueueStorageResource => _azureQueueStorageResources;
 }
