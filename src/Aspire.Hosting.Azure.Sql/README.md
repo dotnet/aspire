@@ -62,7 +62,7 @@ Read more about the free offer here: [Deploy Azure SQL Database for free](https:
 
 The free offer is configured so that when the maximum usage limit is reached, the database is stopped to avoid incurring in unexpected costs.
 
-If you want don't want to use the free offer and instead deploy the database with the service level of your choice, specify the SKU name when adding the database resource:
+If you don't want to use the free offer and instead deploy the database with the service level of your choice, specify the SKU name when adding the database resource:
 
 ```csharp
 var sql = builder.AddAzureSqlServer("sql")
