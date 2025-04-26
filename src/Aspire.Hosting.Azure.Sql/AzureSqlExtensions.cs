@@ -132,7 +132,7 @@ public static class AzureSqlExtensions
     /// Configures the Azure SQL Database to be deployed with the specified SKU
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
-    /// <param name="skuName">SKU of the database. If not provided, this defaults to the free database tier.</param>
+    /// <param name="skuName">SKU of the database.
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSqlDatabaseResource> WithSku(this IResourceBuilder<AzureSqlDatabaseResource> builder, string skuName)
     {
