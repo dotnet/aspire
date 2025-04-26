@@ -269,7 +269,12 @@ public static class AzureContainerAppExtensions
                 laWorkspace.Name = BicepFunction.Interpolate($"law-{resourceToken}");
                 containerAppEnvironment.Name = BicepFunction.Interpolate($"cae-{resourceToken}");
 
-                storageVolume?.Name = BicepFunction.Interpolate($"vol{resourceToken}");
+#pragma warning disable IDE0031 // Use null propagation (IDE0031)
+                if (storageVolume is not null)
+#pragma warning restore IDE0031
+                {
+                    storageVolume.Name = BicepFunction.Interpolate($"vol{resourceToken}");
+                }
             }
 
             infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_NAME", typeof(string))
