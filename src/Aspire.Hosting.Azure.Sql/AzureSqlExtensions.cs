@@ -249,7 +249,7 @@ public static class AzureSqlExtensions
                 Name = databaseName,
             };
 
-            if (string.Equals(database.Value.SkuName, AzureSqlDatabaseResource.FREE_SKU_NAME, StringComparison.InvariantCultureIgnoreCase))
+            if (string.Equals(database.Value.SkuName, AzureSqlDatabaseResource.FREE_SKU_NAME, StringComparison.OrdinalIgnoreCase))
             {
                 sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
                 sqlDatabase.UseFreeLimit = true;
