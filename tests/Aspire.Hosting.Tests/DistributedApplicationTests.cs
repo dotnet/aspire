@@ -952,6 +952,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [RequiresSSLCertificate]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
@@ -1016,6 +1017,7 @@ public class DistributedApplicationTests
             }
             catch (Exception ex) when (ex is not EqualException)
             {
+                _testOutputHelper.WriteLine($"Exception {ex} while trying to get https url");
                 await Task.Delay(100, token);
             }
         }
