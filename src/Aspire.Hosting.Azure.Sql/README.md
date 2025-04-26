@@ -58,7 +58,7 @@ builder.AddSqlServerClient("sqldata");
 
 Unless otherwise specified, the Azure SQL DB created will be a 2vCores General Purpose Serverless database (GP_S_Gen5_2) with the free offer enabled.
 
-Read more about the free offer here: [Deploy Azure SQL Database for free](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer?view=azuresql)
+Read more about the free offer here: [Deploy Azure SQL Database for free](https://learn.microsoft.com/azure/azure-sql/database/free-offer?view=azuresql)
 
 The free offer is configured so that when the maximum usage limit is reached, the database is stopped to avoid incurring in unexpected costs.
 
