@@ -96,7 +96,7 @@
           "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.2"
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
