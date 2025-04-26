@@ -343,6 +343,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -978,6 +979,9 @@ public class DistributedApplicationTests
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
+
+        // Wait for servicea to be ready
+        await app.WaitForTextAsync("Content root path:", resourceName: testProgram.ServiceABuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         var urls = string.Empty;
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");

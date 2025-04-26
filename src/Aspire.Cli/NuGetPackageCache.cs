@@ -48,6 +48,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
                 SearchPageSize,
                 skip,
                 source,
+                new DotNetCliRunnerInvocationOptions(),
                 cancellationToken
                 );
 

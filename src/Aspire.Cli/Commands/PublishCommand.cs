@@ -67,6 +67,8 @@ internal sealed class PublishCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var outputCollector = new OutputCollector();
+
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
 
         try
@@ -98,10 +100,17 @@ internal sealed class PublishCommand : BaseCommand
                 return ExitCodeConstants.AppHostIncompatible;
             }
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
+            var buildOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = outputCollector.AppendOutput,
+                StandardErrorCallback = outputCollector.AppendError,
+            };
+
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
             if (buildExitCode != 0)
             {
+                _interactionService.DisplayLines(outputCollector.GetLines());
                 _interactionService.DisplayError("The project could not be built. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -117,6 +126,12 @@ internal sealed class PublishCommand : BaseCommand
                         $"{nameof(ExecuteAsync)}-Action-GetPublishers",
                         ActivityKind.Client);
 
+                    var getPublishersRunOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = outputCollector.AppendOutput,
+                        StandardErrorCallback = outputCollector.AppendError,
+                    };
+
                     var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
                     var pendingInspectRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
@@ -125,6 +140,7 @@ internal sealed class PublishCommand : BaseCommand
                         ["--operation", "inspect"],
                         null,
                         backchannelCompletionSource,
+                        getPublishersRunOptions,
                         cancellationToken).ConfigureAwait(false);
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
@@ -139,6 +155,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (publishersResult.ExitCode != 0)
             {
+                _interactionService.DisplayLines(outputCollector.GetLines());
                 _interactionService.DisplayError($"The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -180,6 +197,12 @@ internal sealed class PublishCommand : BaseCommand
                     launchingAppHostTask.IsIndeterminate();
                     launchingAppHostTask.StartTask();
 
+                    var publishRunOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = outputCollector.AppendOutput,
+                        StandardErrorCallback = outputCollector.AppendError,
+                    };
+
                     var pendingRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
@@ -187,6 +210,7 @@ internal sealed class PublishCommand : BaseCommand
                         ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         backchannelCompletionSource,
+                        publishRunOptions,
                         cancellationToken);
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
@@ -262,6 +286,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (exitCode != 0)
             {
+                _interactionService.DisplayLines(outputCollector.GetLines());
                 _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -292,6 +317,11 @@ internal sealed class PublishCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (Exception ex)
+        {
+            _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }
 }

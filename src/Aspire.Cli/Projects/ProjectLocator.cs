@@ -29,7 +29,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         foreach (var projectFile in projectFiles)
         {
             logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-            var information = await runner.GetAppHostInformationAsync(projectFile, cancellationToken);
+            var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), cancellationToken);
 
             if (information.ExitCode == 0 && information.IsAspireHost)
             {
