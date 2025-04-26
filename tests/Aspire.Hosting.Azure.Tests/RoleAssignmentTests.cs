@@ -479,7 +479,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-roles-{azureResourceName}");
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == $"api-roles-{azureResourceName}");
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 
