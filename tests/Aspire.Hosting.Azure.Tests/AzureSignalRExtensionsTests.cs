@@ -70,7 +70,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"signalr-roles"));
+        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "signalr-roles");
         var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -159,7 +159,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"signalr-roles"));
+        var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "signalr-roles");
         var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

@@ -29,7 +29,7 @@ public class AddElasticsearchTests
         var endpoints = containerResource.Annotations.OfType<EndpointAnnotation>();
         Assert.Equal(2, endpoints.Count());
 
-        var primaryEndpoint = Assert.Single(endpoints, e => e.Name == "http");
+        var primaryEndpoint = Assert.Single(endpoints, e => e.Name is "http");
         Assert.Equal(9200, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("http", primaryEndpoint.Name);
@@ -38,7 +38,7 @@ public class AddElasticsearchTests
         Assert.Equal("http", primaryEndpoint.Transport);
         Assert.Equal("http", primaryEndpoint.UriScheme);
 
-        var internalEndpoint = Assert.Single(endpoints, e => e.Name == "internal");
+        var internalEndpoint = Assert.Single(endpoints, e => e.Name is "internal");
         Assert.Equal(9300, internalEndpoint.TargetPort);
         Assert.False(internalEndpoint.IsExternal);
         Assert.Equal("internal", internalEndpoint.Name);
@@ -90,7 +90,7 @@ public class AddElasticsearchTests
         var endpoints = containerResource.Annotations.OfType<EndpointAnnotation>();
         Assert.Equal(2, endpoints.Count());
 
-        var primaryEndpoint = Assert.Single(endpoints, e => e.Name == "http");
+        var primaryEndpoint = Assert.Single(endpoints, e => e.Name is "http");
         Assert.Equal(9200, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("http", primaryEndpoint.Name);
@@ -99,7 +99,7 @@ public class AddElasticsearchTests
         Assert.Equal("http", primaryEndpoint.Transport);
         Assert.Equal("http", primaryEndpoint.UriScheme);
 
-        var internalEndpoint = Assert.Single(endpoints, e => e.Name == "internal");
+        var internalEndpoint = Assert.Single(endpoints, e => e.Name is "internal");
         Assert.Equal(9300, internalEndpoint.TargetPort);
         Assert.False(internalEndpoint.IsExternal);
         Assert.Equal("internal", internalEndpoint.Name);

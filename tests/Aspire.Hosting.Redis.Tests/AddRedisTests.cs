@@ -17,7 +17,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("redis");
-        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "redis_check");
+        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key is "redis_check");
     }
 
     [Fact]

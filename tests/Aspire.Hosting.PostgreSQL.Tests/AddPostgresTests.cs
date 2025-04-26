@@ -19,7 +19,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddPostgres("postgres");
-        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "postgres_check");
+        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key is "postgres_check");
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        Assert.Single(builder.Resources.Where(r => r.Name.EndsWith("-pgadmin")));
+        Assert.Single(builder.Resources, r => r.Name.EndsWith("-pgadmin"));
     }
 
     [Fact]

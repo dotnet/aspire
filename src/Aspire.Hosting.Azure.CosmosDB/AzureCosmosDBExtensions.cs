@@ -309,10 +309,7 @@ public static class AzureCosmosExtensions
             .WithUrls(context =>
             {
                 var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
-                if (url is not null)
-                {
-                    url.DisplayText = KnownUrls.DataExplorer.DisplayText;
-                }
+                url?.DisplayText = KnownUrls.DataExplorer.DisplayText;
             });
     }
 

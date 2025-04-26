@@ -530,9 +530,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel is LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName is "Grpc" && r.LogLevel is LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName is "Microsoft.Hosting.Lifetime" && r.LogLevel is LogLevel.Trace);
     }
 
     [Theory]
@@ -571,9 +571,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel is LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName is "Grpc" && r.LogLevel is LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName is "Microsoft.Hosting.Lifetime" && r.LogLevel is LogLevel.Trace);
         }
         finally
         {

@@ -269,10 +269,7 @@ public static class AzureContainerAppExtensions
                 laWorkspace.Name = BicepFunction.Interpolate($"law-{resourceToken}");
                 containerAppEnvironment.Name = BicepFunction.Interpolate($"cae-{resourceToken}");
 
-                if (storageVolume is not null)
-                {
-                    storageVolume.Name = BicepFunction.Interpolate($"vol{resourceToken}");
-                }
+                storageVolume?.Name = BicepFunction.Interpolate($"vol{resourceToken}");
             }
 
             infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_NAME", typeof(string))

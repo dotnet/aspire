@@ -838,7 +838,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var appConfigRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"appConfig-roles"));
+        var appConfigRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "appConfig-roles");
         var appConfigRolesManifest = await GetManifestWithBicep(appConfigRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -1885,7 +1885,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"sb-roles"));
+        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "sb-roles");
         var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -1969,7 +1969,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"wps1-roles"));
+        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "wps1-roles");
         var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2419,7 +2419,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
 
-        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "storage-roles");
         var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2713,7 +2713,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"search-roles"));
+        var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "search-roles");
         var searchRolesManifest = await GetManifestWithBicep(searchRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2905,7 +2905,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"openai-roles"));
+        var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "openai-roles");
         var openaiRolesManifest = await GetManifestWithBicep(openaiRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

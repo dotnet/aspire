@@ -28,7 +28,7 @@ public class AddKafkaTests
         var endpoints = containerResource.Annotations.OfType<EndpointAnnotation>();
         Assert.Equal(2, endpoints.Count());
 
-        var primaryEndpoint = Assert.Single(endpoints, e => e.Name == "tcp");
+        var primaryEndpoint = Assert.Single(endpoints, e => e.Name is "tcp");
         Assert.Equal(9092, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("tcp", primaryEndpoint.Name);
@@ -37,7 +37,7 @@ public class AddKafkaTests
         Assert.Equal("tcp", primaryEndpoint.Transport);
         Assert.Equal("tcp", primaryEndpoint.UriScheme);
 
-        var internalEndpoint = Assert.Single(endpoints, e => e.Name == "internal");
+        var internalEndpoint = Assert.Single(endpoints, e => e.Name is "internal");
         Assert.Equal(9093, internalEndpoint.TargetPort);
         Assert.False(internalEndpoint.IsExternal);
         Assert.Equal("internal", internalEndpoint.Name);
