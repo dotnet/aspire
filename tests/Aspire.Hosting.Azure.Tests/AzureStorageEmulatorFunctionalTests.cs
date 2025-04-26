@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Azure.Storage.Queues;
+using Azure.Data.Tables;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -88,5 +90,68 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
         Assert.Equal("testValue", downloadResult.Content.ToString());
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureStorageEmulatorWithBlobsCreated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        storage.AddBlobs("Blob");
+        using var app = builder.Build();
+        await app.StartAsync();
+        var hb = Host.CreateApplicationBuilder();
+        hb.AddAzureBlobClient("BlobConnection");
+        using var host = hb.Build();
+        await host.StartAsync();
+        var blobServiceClient = host.Services.GetService<BlobServiceClient>();
+        Assert.NotNull(blobServiceClient);
+        var blobs = blobServiceClient.GetBlobContainers().ToList();
+        var blob = Assert.Single(blobs);
+        Assert.Equal("Blob", blob.Name);
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureStorageEmulatorWithQueuesCreated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        storage.AddQueues("Queue");
+        using var app = builder.Build();
+        await app.StartAsync();
+        var hb = Host.CreateApplicationBuilder();
+        hb.AddAzureQueueClient("QueueConnection");
+        using var host = hb.Build();
+        await host.StartAsync();
+        var queueServiceClient = host.Services.GetService<QueueServiceClient>();
+        Assert.NotNull(queueServiceClient);
+        var queues = queueServiceClient.GetQueues().ToList();
+        var queue = Assert.Single(queues);
+        Assert.Equal("Queue", queue.Name);
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureStorageEmulatorWithTableCreated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        storage.AddTables("Table");
+        using var app = builder.Build();
+        await app.StartAsync();
+        var hb = Host.CreateApplicationBuilder();
+        hb.AddAzureTableClient("TableConnection");
+        using var host = hb.Build();
+        await host.StartAsync();
+        var tableServiceClient = host.Services.GetService<TableServiceClient>();
+        Assert.NotNull(tableServiceClient);
+        var tables = tableServiceClient.Query().ToList();
+        var table = Assert.Single(tables);
+        Assert.Equal("Table", table.Name);
+        await app.StopAsync();
     }
 }
