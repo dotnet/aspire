@@ -317,13 +317,11 @@ public abstract class ConformanceTests<TService, TOptions>
         // DisableRetries so the test doesn't take so long retrying when the server isn't available.
         using IHost host = CreateHostWithComponent(configureComponent: DisableRetries, key: key);
 
-        HealthCheckService healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
+        var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-#pragma warning disable xUnit1030 // Do not call ConfigureAwait(false) in test method
-        HealthReport healthReport = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
-#pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
+        HealthReport healthReport = await healthCheckService.CheckHealthAsync();
 
-        HealthStatus expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+        var expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
 
         Assert.Equal(expected, healthReport.Status);
         Assert.NotEmpty(healthReport.Entries);
