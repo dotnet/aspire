@@ -329,7 +329,7 @@ public class AddParameterTests
         var key = appBuilder.AddParameter("key", "secretKey", secret: true);
 
         // Get the service provider.
-        appBuilder.AddConnectionString("mycs", ReferenceExpression.Create($"Endpoint={endpoint};Key={key}"));
+        appBuilder.AddConnectionString("mycs", ReferenceExpression.Interpolate($"Endpoint={endpoint};Key={key}"));
 
         using var app = appBuilder.Build();
 

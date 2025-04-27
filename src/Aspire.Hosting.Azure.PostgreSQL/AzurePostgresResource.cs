@@ -25,7 +25,7 @@ public class AzurePostgresResource(PostgresServerResource innerResource, Action<
     /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create(ConnectionString);
 
     /// <inheritdoc/>
     public override string Name => _innerResource.Name;

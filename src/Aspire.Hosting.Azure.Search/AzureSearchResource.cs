@@ -29,7 +29,7 @@ public class AzureSearchResource(string name, Action<AzureResourceInfrastructure
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create(ConnectionString);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

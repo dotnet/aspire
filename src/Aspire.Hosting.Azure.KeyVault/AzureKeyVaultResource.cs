@@ -29,7 +29,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUri}");
+        ReferenceExpression.Create(VaultUri);
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 

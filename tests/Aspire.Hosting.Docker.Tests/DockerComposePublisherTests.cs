@@ -30,7 +30,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
         var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
-        var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+        var cs = builder.AddConnectionString("cs", ReferenceExpression.Interpolate($"Url={param0}, Secret={param1}"));
 
         // Add a container to the application
         var redis = builder.AddContainer("cache", "redis")

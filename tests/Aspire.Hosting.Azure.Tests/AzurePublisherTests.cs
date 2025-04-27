@@ -36,7 +36,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         var storageSku = builder.AddParameter("storageSku", "Standard_LRS", publishValueAsDefault: true);
         var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
-        var skuDescriptionExpr = ReferenceExpression.Create($"{description} {storageSku}");
+        var skuDescriptionExpr = ReferenceExpression.Interpolate($"{description} {storageSku}");
 
         var kvName = builder.AddParameter("kvName");
         var kvRg = builder.AddParameter("kvRg", "rg-shared");

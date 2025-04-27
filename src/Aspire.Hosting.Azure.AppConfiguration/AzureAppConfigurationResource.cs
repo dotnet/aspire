@@ -27,7 +27,7 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Endpoint}");
+       ReferenceExpression.Create(Endpoint);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

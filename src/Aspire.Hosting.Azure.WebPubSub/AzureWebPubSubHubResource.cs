@@ -38,7 +38,7 @@ public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpu
     /// <summary>
     /// Gets the connection string template for the manifest for Azure Web PubSub.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Endpoint={Parent.Endpoint};Hub={HubName}");
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Interpolate($"Endpoint={Parent.Endpoint};Hub={HubName}");
 
     internal List<(ReferenceExpression url, string userEvents, string[]? systemEvents, UpstreamAuthSettings? auth)> EventHandlers { get; } = new();
 }

@@ -33,7 +33,7 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
                 ["Database"] = DatabaseName
             };
 
-            return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
+            return ReferenceExpression.Interpolate($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
 

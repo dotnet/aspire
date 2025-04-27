@@ -45,7 +45,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
-            ReferenceExpression.Create($"{UserNameParameter}") :
+            ReferenceExpression.Create(UserNameParameter) :
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>

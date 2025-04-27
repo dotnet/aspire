@@ -278,7 +278,7 @@ public class WithReferenceTests
         var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
         var key = builder.AddParameter("key", "secretKey", secret: true);
 
-        var cs = ReferenceExpression.Create($"Endpoint={endpoint};Key={key}");
+        var cs = ReferenceExpression.Interpolate($"Endpoint={endpoint};Key={key}");
 
         // Get the service provider.
         var resource = builder.AddConnectionString("cs", cs);
@@ -399,7 +399,7 @@ public class WithReferenceTests
         public string? ConnectionString { get; set; }
 
         public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{ConnectionString}");
+            ReferenceExpression.Create(ConnectionString);
     }
 
     private sealed class ProjectA : IProjectMetadata

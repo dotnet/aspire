@@ -10,6 +10,6 @@ internal static class AzureCosmosDBEmulatorConnectionString
 {
     public static ReferenceExpression Create(EndpointReference endpoint, bool isPreviewEmulator) =>
         isPreviewEmulator
-            ? ReferenceExpression.Create($"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint={endpoint.Property(EndpointProperty.Url)}")
-            : ReferenceExpression.Create($"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)};DisableServerCertificateValidation=True;");
+            ? ReferenceExpression.Interpolate($"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint={endpoint.Property(EndpointProperty.Url)}")
+            : ReferenceExpression.Interpolate($"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)};DisableServerCertificateValidation=True;");
 }

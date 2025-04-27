@@ -60,7 +60,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             }
 
             return result ??
-                ReferenceExpression.Create($"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
+                ReferenceExpression.Interpolate($"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
         }
     }
 

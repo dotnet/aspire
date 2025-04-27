@@ -27,7 +27,7 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the connection string template for the manifest for Azure Web PubSub.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Endpoint}");
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create(Endpoint);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

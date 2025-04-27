@@ -17,7 +17,7 @@ public class ReferenceExpressionTests
     [InlineData("{{x}}", "Hello {{{{x}}}}", "Hello {{x}}")]
     public void TestReferenceExpressionCreateInputStringTreatedAsLiteral(string input, string expectedFormat, string expectedExpression)
     {
-        var refExpression = ReferenceExpression.Create($"Hello {input}");
+        var refExpression = ReferenceExpression.Interpolate($"Hello {input}");
         Assert.Equal(expectedFormat, refExpression.Format);
 
         // Generally, the input string should end up unchanged in the expression, since it's a literal
@@ -35,7 +35,7 @@ public class ReferenceExpressionTests
     [InlineData("{myVar1}", "{myVar1}")]
     public void ReferenceExpressionHandlesValueWithNonParameterBrackets(string input, string expected)
     {
-        var expr = ReferenceExpression.Create($"{input}").ValueExpression;
+        var expr = ReferenceExpression.Create(input).ValueExpression;
         Assert.Equal(expected, expr);
     }
 
@@ -66,7 +66,7 @@ public class ReferenceExpressionTests
     public void ReferenceExpressionHandlesValueWithoutBrackets()
     {
         var s = "Test";
-        var expr = ReferenceExpression.Create($"{s}").ValueExpression;
+        var expr = ReferenceExpression.Create(s).ValueExpression;
         Assert.Equal("Test", expr);
     }
 }

@@ -37,7 +37,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"user id=system;password={PasswordParameter};data source={PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);

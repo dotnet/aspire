@@ -22,5 +22,5 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     /// Gets the connection string expression for the Seq server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+        ReferenceExpression.Create(PrimaryEndpoint.Property(EndpointProperty.Url));
 }

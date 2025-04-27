@@ -39,8 +39,8 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
-            ReferenceExpression.Create($"{UserNameParameter}") :
-            ReferenceExpression.Create($"{DefaultUserName}");
+            ReferenceExpression.Create(UserNameParameter) :
+            ReferenceExpression.Create(DefaultUserName);
 
     /// <summary>
     /// Gets the parameter that contains the RabbitMQ server password.
@@ -51,6 +51,6 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// Gets the connection string expression for the RabbitMQ server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"amqp://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 }

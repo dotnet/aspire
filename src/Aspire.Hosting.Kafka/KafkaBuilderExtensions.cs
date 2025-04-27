@@ -139,8 +139,8 @@ public static class KafkaBuilderExtensions
             var bootstrapServers = context.ExecutionContext.IsRunMode
                 // In run mode, Kafka UI assumes Kafka is being accessed over a default Aspire container network and hardcodes the host as the Kafka resource name
                 // This will need to be refactored once updated service discovery APIs are available
-                ? ReferenceExpression.Create($"{endpoint.Resource.Name}:{endpoint.Property(EndpointProperty.TargetPort)}")
-                : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.HostAndPort)}");
+                ? ReferenceExpression.Interpolate($"{endpoint.Resource.Name}:{endpoint.Property(EndpointProperty.TargetPort)}")
+                : ReferenceExpression.Create(endpoint.Property(EndpointProperty.HostAndPort));
 
             context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
             context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS", bootstrapServers);
@@ -217,8 +217,8 @@ public static class KafkaBuilderExtensions
         var advertisedListeners = context.ExecutionContext.IsRunMode
             // In run mode, PLAINTEXT_INTERNAL assumes kafka is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
-            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{resource.Name}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
-            : ReferenceExpression.Create($"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.HostAndPort)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.HostAndPort)}");
+            ? ReferenceExpression.Interpolate($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{resource.Name}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
+            : ReferenceExpression.Interpolate($"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.HostAndPort)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;
     }

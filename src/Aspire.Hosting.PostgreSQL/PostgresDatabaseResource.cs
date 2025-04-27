@@ -33,7 +33,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
                 ["Database"] = DatabaseName
             };
 
-            return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
+            return ReferenceExpression.Interpolate($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
     /// <summary>

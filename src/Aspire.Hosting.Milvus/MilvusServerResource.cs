@@ -39,7 +39,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     /// Gets the connection string expression for the Milvus gRPC endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create(
+       ReferenceExpression.Interpolate(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key=root:{ApiKeyParameter}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

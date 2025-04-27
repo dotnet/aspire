@@ -30,10 +30,10 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create(ConnectionString);
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        ReferenceExpression.Create($"{ConnectionString};Deployment={deploymentName}");
+        ReferenceExpression.Interpolate($"{ConnectionString};Deployment={deploymentName}");
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.

@@ -23,7 +23,7 @@ public class AzureApplicationInsightsResource(string name, Action<AzureResourceI
     /// Gets the connection string template for the manifest for the Azure Application Insights resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create(ConnectionString);
 
     // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";

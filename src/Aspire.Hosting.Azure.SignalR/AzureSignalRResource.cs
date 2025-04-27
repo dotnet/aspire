@@ -34,8 +34,8 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;")
-        : ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
+        ? ReferenceExpression.Interpolate($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;")
+        : ReferenceExpression.Interpolate($"Endpoint=https://{HostName};AuthType=azure");
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

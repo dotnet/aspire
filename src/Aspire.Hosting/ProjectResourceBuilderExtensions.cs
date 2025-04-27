@@ -839,7 +839,7 @@ public static class ProjectResourceBuilderExtensions
                     var host = builder.ApplicationBuilder.ExecutionContext.IsRunMode &&
                         builder.Resource.KestrelEndpointAnnotationHosts.TryGetValue(e.EndpointAnnotation, out var kestrelHost) ? kestrelHost : "*";
 
-                    var url = ReferenceExpression.Create($"{e.EndpointAnnotation.UriScheme}://{host}:{e.Property(EndpointProperty.TargetPort)}");
+                    var url = ReferenceExpression.Interpolate($"{e.EndpointAnnotation.UriScheme}://{host}:{e.Property(EndpointProperty.TargetPort)}");
 
                     // We use special config system environment variables to perform the override.
                     context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url;

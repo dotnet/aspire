@@ -35,5 +35,5 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     /// Gets the connection string expression for the Kafka broker.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+       ReferenceExpression.Create(PrimaryEndpoint.Property(EndpointProperty.HostAndPort));
 }

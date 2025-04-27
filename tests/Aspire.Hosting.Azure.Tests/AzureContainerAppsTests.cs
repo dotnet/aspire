@@ -1735,8 +1735,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 // Any value that resolves to the secret output can be a direct keyvault reference.
                 // This includes nested expressions.
                 var connectionString = db.GetSecretOutput("connectionString");
-                var secret0 = ReferenceExpression.Create($"{connectionString}");
-                var secret1 = ReferenceExpression.Create($"{secret0}");
+                var secret0 = ReferenceExpression.Create(connectionString);
+                var secret1 = ReferenceExpression.Create(secret0);
 
                 context.EnvironmentVariables["connectionString"] = connectionString;
                 context.EnvironmentVariables["secret0"] = secret0;
@@ -1744,7 +1744,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
                 var connectionString1 = db.GetSecretOutput("connectionString1");
                 // Complex expressions that contain a secret output
-                var complex = ReferenceExpression.Create($"a/{connectionString}/{secret0}/{connectionString1}");
+                var complex = ReferenceExpression.Interpolate($"a/{connectionString}/{secret0}/{connectionString1}");
                 context.EnvironmentVariables["complex"] = complex;
             });
 

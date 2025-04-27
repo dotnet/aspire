@@ -38,8 +38,8 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
-            ReferenceExpression.Create($"{UserNameParameter}") :
-            ReferenceExpression.Create($"{DefaultUserName}");
+            ReferenceExpression.Create(UserNameParameter) :
+            ReferenceExpression.Create(DefaultUserName);
 
     /// <summary>
     /// Gets or sets the parameter that contains the PostgreSQL server password.
@@ -47,7 +47,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     public ParameterResource PasswordParameter { get; set; }
 
     private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username={UserNameReference};Password={PasswordParameter}");
 
     /// <summary>

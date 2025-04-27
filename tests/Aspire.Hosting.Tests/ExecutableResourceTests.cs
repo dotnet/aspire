@@ -104,6 +104,6 @@ public class ExecutableResourceTests
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{connectionString}");
+            ReferenceExpression.Create(connectionString);
     }
 }

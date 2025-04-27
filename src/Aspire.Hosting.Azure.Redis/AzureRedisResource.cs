@@ -25,7 +25,7 @@ public class AzureRedisResource(RedisResource innerResource, Action<AzureResourc
     /// Gets the connection string template for the manifest for the Azure Redis resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create(ConnectionString);
 
     /// <inheritdoc/>
     public override string Name => _innerResource.Name;

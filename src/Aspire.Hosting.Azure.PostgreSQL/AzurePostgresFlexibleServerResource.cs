@@ -69,8 +69,8 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
             (UsePasswordAuthentication ?
-                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-                ReferenceExpression.Create($"{ConnectionStringOutput}"));
+                ReferenceExpression.Create(ConnectionStringSecretOutput) :
+                ReferenceExpression.Create(ConnectionStringOutput));
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -99,10 +99,10 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         // Note that the bicep template puts each database's connection string in a KeyVault secret.
         if (InnerResource is null && ConnectionStringSecretOutput is not null)
         {
-            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecret(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
+            return ReferenceExpression.Interpolate($"{ConnectionStringSecretOutput.Resource.GetSecret(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
         }
 
-        return ReferenceExpression.Create($"{this};Database={databaseName}");
+        return ReferenceExpression.Interpolate($"{this};Database={databaseName}");
     }
 
     internal static string GetDatabaseKeyVaultSecretName(string databaseResourceName) => $"connectionstrings--{databaseResourceName}";

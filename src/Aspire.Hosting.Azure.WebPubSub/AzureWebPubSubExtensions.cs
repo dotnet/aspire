@@ -188,7 +188,7 @@ public static class AzureWebPubSubExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(userEventPattern);
 
-        var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
+        var urlExpression = ReferenceExpression.Interpolate(urlTemplateExpression);
 
         return AddEventHandler(builder, urlExpression, userEventPattern, systemEvents, authSettings);
     }

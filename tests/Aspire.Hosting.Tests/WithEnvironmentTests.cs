@@ -84,7 +84,7 @@ public class WithEnvironmentTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var childExpression = ReferenceExpression.Create($"value");
-        var parameterExpression = ReferenceExpression.Create($"{childExpression}");
+        var parameterExpression = ReferenceExpression.Create(childExpression);
 
         var project = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("myName", parameterExpression);
@@ -357,7 +357,7 @@ public class WithEnvironmentTests
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{connectionString}");
+            ReferenceExpression.Create(connectionString);
     }
 
     private sealed class ProjectA : IProjectMetadata

@@ -46,6 +46,6 @@ public class ElasticsearchResource(string name, ParameterResource password) : Co
     /// Gets the connection string expression for the Elasticsearch
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"http://{UserName}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+        ReferenceExpression.Interpolate($"http://{UserName}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 }
 

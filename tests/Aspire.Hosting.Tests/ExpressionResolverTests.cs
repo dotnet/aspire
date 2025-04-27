@@ -197,7 +197,7 @@ sealed class MyContainerResource : ContainerResource, IResourceWithConnectionStr
     public EndpointReference PrimaryEndpoint { get; }
 
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+       ReferenceExpression.Create(PrimaryEndpoint.Property(EndpointProperty.Url));
 }
 
 sealed class TestValueProviderResource(string name) : Resource(name), IValueProvider
@@ -220,16 +220,16 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
 
         Expressions = new()
         {
-            { "TwoFullEndpoints", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://{Endpoint2.Property(EndpointProperty.Host)}:{Endpoint2.Property(EndpointProperty.Port)}/;") },
-            { "Url", ReferenceExpression.Create($"Url={Endpoint1.Property(EndpointProperty.Url)};") },
-            { "Url2", ReferenceExpression.Create($"Url={Endpoint1};") },
-            { "OnlyHost", ReferenceExpression.Create($"Host={Endpoint1.Property(EndpointProperty.Host)};") },
-            { "OnlyPort", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
-            { "HostAndPort", ReferenceExpression.Create($"HostPort={Endpoint1.Property(EndpointProperty.HostAndPort)}") },
-            { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
-            { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") },
-            { "Empty", ReferenceExpression.Create($"") },
-            { "String", ReferenceExpression.Create($"String") },
+            { "TwoFullEndpoints", ReferenceExpression.Interpolate($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://{Endpoint2.Property(EndpointProperty.Host)}:{Endpoint2.Property(EndpointProperty.Port)}/;") },
+            { "Url", ReferenceExpression.Interpolate($"Url={Endpoint1.Property(EndpointProperty.Url)};") },
+            { "Url2", ReferenceExpression.Interpolate($"Url={Endpoint1};") },
+            { "OnlyHost", ReferenceExpression.Interpolate($"Host={Endpoint1.Property(EndpointProperty.Host)};") },
+            { "OnlyPort", ReferenceExpression.Interpolate($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
+            { "HostAndPort", ReferenceExpression.Interpolate($"HostPort={Endpoint1.Property(EndpointProperty.HostAndPort)}") },
+            { "PortBeforeHost", ReferenceExpression.Interpolate($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
+            { "FullAndPartial", ReferenceExpression.Interpolate($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") },
+            { "Empty", ReferenceExpression.Create("") },
+            { "String", ReferenceExpression.Create("String") },
             { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], []) },
             { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], []) }
         };

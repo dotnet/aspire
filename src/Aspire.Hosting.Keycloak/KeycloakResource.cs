@@ -22,8 +22,8 @@ public sealed class KeycloakResource(string name, ParameterResource? admin, Para
 
     internal ReferenceExpression AdminReference =>
         AdminUserNameParameter is not null ?
-            ReferenceExpression.Create($"{AdminUserNameParameter}") :
-            ReferenceExpression.Create($"{DefaultAdmin}");
+            ReferenceExpression.Create(AdminUserNameParameter) :
+            ReferenceExpression.Create(DefaultAdmin);
 
     /// <summary>
     /// Gets the parameter that contains the Keycloak admin password.

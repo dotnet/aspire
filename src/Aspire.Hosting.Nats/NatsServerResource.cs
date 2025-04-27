@@ -39,8 +39,8 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
-            ReferenceExpression.Create($"{UserNameParameter}") :
-            ReferenceExpression.Create($"{DefaultUserName}");
+            ReferenceExpression.Create(UserNameParameter) :
+            ReferenceExpression.Create(DefaultUserName);
 
     /// <summary>
     /// Gets or sets the password for the NATS server.

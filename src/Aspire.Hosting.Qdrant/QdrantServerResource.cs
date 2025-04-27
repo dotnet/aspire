@@ -44,13 +44,13 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// Gets the connection string expression for the Qdrant gRPC endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create(
+       ReferenceExpression.Interpolate(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant HTTP endpoint.
     /// </summary>
     public ReferenceExpression HttpConnectionStringExpression =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"Endpoint={HttpEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 }

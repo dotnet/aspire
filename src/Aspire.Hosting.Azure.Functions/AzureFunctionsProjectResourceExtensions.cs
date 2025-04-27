@@ -100,7 +100,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     var endpoint = resource.GetEndpoint("http");
-                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Interpolate($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
                 }
 
                 // Set the storage connection string.

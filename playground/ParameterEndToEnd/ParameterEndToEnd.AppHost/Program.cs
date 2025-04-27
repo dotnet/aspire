@@ -21,7 +21,7 @@ var db = builder.AddSqlServer("sql")
 
 var insertionrows = builder.AddParameter("insertionrows");
 
-var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"sql={db};rows={insertionrows}"));
+var cs = builder.AddConnectionString("cs", ReferenceExpression.Interpolate($"sql={db};rows={insertionrows}"));
 
 builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

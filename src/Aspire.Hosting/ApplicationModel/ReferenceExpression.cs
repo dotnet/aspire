@@ -86,6 +86,37 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     }
 
     /// <summary>
+    /// Creates a new instance of <see cref="ReferenceExpression"/> with the specified format and value providers.
+    /// </summary>
+    /// <param name="handler">The handler that contains the format and value providers.</param>
+    /// <returns>A new instance of <see cref="ReferenceExpression"/> with the specified format and value providers.</returns>
+    public static ReferenceExpression Interpolate(in ExpressionInterpolatedStringHandler handler)
+    {
+        return handler.GetExpression();
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ReferenceExpression"/> for a single value.
+    /// </summary>
+    /// <typeparam name="T">The type of the value.</typeparam>
+    /// <param name="value">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+    /// <returns></returns>
+    public static ReferenceExpression Create<T>(T value) where T : IValueProvider, IManifestExpressionProvider
+    {
+        return new("{0}", [value], [value.ValueExpression]);
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ReferenceExpression"/> for a string.
+    /// </summary>
+    /// <param name="value">The string value.</param>
+    /// <returns></returns>
+    public static ReferenceExpression Create(string? value)
+    {
+        return new(value?.Replace("{", "{{").Replace("}", "}}") ?? string.Empty, [], []);
+    }
+
+    /// <summary>
     /// Represents a handler for interpolated strings that contain expressions. Those expressions will either be literal strings or
     /// instances of types that implement both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
     /// </summary>

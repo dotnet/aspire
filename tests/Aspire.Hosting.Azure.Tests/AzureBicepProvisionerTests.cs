@@ -55,7 +55,7 @@ public class AzureBicepProvisionerTests
                .WithParameter("conn", connectionStringResource)
                .WithParameter("jsonObj", new JsonObject { ["key"] = "value" })
                .WithParameter("param", param)
-               .WithParameter("expr", ReferenceExpression.Create($"{param.Resource}/1"))
+               .WithParameter("expr", ReferenceExpression.Interpolate($"{param.Resource}/1"))
                .WithParameter("endpoint", container.GetEndpoint("http"));
 
         var parameters = new JsonObject();
@@ -298,6 +298,6 @@ public class AzureBicepProvisionerTests
         IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
-           ReferenceExpression.Create($"{connectionString}");
+           ReferenceExpression.Create(connectionString);
     }
 }

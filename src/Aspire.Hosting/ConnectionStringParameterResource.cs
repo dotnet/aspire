@@ -21,5 +21,5 @@ internal sealed class ConnectionStringParameterResource : ParameterResource, IRe
     public string? ConnectionStringEnvironmentVariable => _environmentVariableName;
 
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{this}");
+        ReferenceExpression.Create(this);
 }

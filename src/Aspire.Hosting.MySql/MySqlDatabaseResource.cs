@@ -24,7 +24,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// Gets the connection string expression for the MySQL database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+       ReferenceExpression.Interpolate($"{Parent};Database={DatabaseName}");
 
     /// <summary>
     /// Gets the database name.

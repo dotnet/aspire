@@ -55,15 +55,15 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
 
     internal ReferenceExpression GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tableEndpoint: EmulatorTableEndpoint)
-        : ReferenceExpression.Create($"{TableEndpoint}");
+        : ReferenceExpression.Create(TableEndpoint);
 
     internal ReferenceExpression GetQueueConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(queueEndpoint: EmulatorQueueEndpoint)
-        : ReferenceExpression.Create($"{QueueEndpoint}");
+        : ReferenceExpression.Create(QueueEndpoint);
 
     internal ReferenceExpression GetBlobConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint)
-        : ReferenceExpression.Create($"{BlobEndpoint}");
+        : ReferenceExpression.Create(BlobEndpoint);
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {

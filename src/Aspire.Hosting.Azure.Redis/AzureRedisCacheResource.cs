@@ -55,8 +55,8 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
             (UseAccessKeyAuthentication ?
-                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-                ReferenceExpression.Create($"{ConnectionStringOutput}"));
+                ReferenceExpression.Create(ConnectionStringSecretOutput) :
+                ReferenceExpression.Create(ConnectionStringOutput));
 
     internal void SetInnerResource(RedisResource innerResource)
     {

@@ -34,7 +34,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     public ParameterResource PasswordParameter { get; private set; }
 
     private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordParameter};TrustServerCertificate=true");
 
     /// <summary>

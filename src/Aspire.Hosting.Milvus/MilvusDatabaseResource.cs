@@ -24,7 +24,7 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     /// Gets the connection string expression for the Milvus database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+       ReferenceExpression.Interpolate($"{Parent};Database={DatabaseName}");
 
     /// <summary>
     /// Gets the database name.

@@ -81,11 +81,11 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
 
     // Implement IAzureContainerRegistry interface
-    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
+    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create(ContainerRegistryName);
 
-    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create(ContainerRegistryUrl);
 
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create(ContainerRegistryManagedIdentityId);
 
     IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
     {

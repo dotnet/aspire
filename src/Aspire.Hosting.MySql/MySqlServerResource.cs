@@ -37,7 +37,7 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// Gets the connection string expression for the MySQL server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
+        ReferenceExpression.Interpolate(
             $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordParameter}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

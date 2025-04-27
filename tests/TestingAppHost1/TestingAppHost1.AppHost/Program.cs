@@ -11,7 +11,7 @@ builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
 
-builder.AddConnectionString("cs2", ReferenceExpression.Create($"Value={builder.AddParameter("p", "this is a value")}"));
+builder.AddConnectionString("cs2", ReferenceExpression.Interpolate($"Value={builder.AddParameter("p", "this is a value")}"));
 
 if (args.Contains("--add-redis"))
 {
