@@ -344,7 +344,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
 
-        Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync(TestContext.Current.CancellationToken));
         var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);

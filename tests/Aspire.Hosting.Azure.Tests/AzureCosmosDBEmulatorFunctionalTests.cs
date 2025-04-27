@@ -57,7 +57,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
@@ -94,13 +94,13 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
         hb.AddAzureCosmosClient(db.Resource.Name);
         hb.AddCosmosDbContext<EFCoreCosmosDbContext>(db.Resource.Name, databaseName);
 
         using var host = hb.Build();
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         // This needs to be outside the pipeline because when the CosmosClient is disposed,
         // there is an exception in the pipeline
@@ -179,14 +179,14 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{cosmos1.Resource.Name}"] = await cosmos1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    [$"ConnectionStrings:{cosmos1.Resource.Name}"] = await cosmos1.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                 });
 
                 hb.AddAzureCosmosClient(cosmos1.Resource.Name);
 
                 using (var host = hb.Build())
                 {
-                    await host.StartAsync();
+                    await host.StartAsync(TestContext.Current.CancellationToken);
 
                     // This needs to be outside the pipeline because when the CosmosClient is disposed,
                     // there is an exception in the pipeline
@@ -204,7 +204,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             finally
             {
                 // Stops the container, or the Volume/mount would still be in use
-                await app.StopAsync();
+                await app.StopAsync(TestContext.Current.CancellationToken);
             }
         }
 
@@ -227,14 +227,14 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{cosmos2.Resource.Name}"] = await cosmos2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    [$"ConnectionStrings:{cosmos2.Resource.Name}"] = await cosmos2.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken)
                 });
 
                 hb.AddAzureCosmosClient(cosmos2.Resource.Name);
 
                 using (var host = hb.Build())
                 {
-                    await host.StartAsync();
+                    await host.StartAsync(TestContext.Current.CancellationToken);
 
                     // This needs to be outside the pipeline because when the CosmosClient is disposed,
                     // there is an exception in the pipeline
@@ -258,7 +258,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             finally
             {
                 // Stops the container, or the Volume/mount would still be in use
-                await app.StopAsync();
+                await app.StopAsync(TestContext.Current.CancellationToken);
             }
         }
 
@@ -291,7 +291,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await rns.WaitForResourceHealthyAsync(cosmos.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration[$"ConnectionStrings:{cosmos.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{cosmos.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(TestContext.Current.CancellationToken);
         hb.AddAzureCosmosClient(cosmos.Resource.Name);
 
         using var host = hb.Build();

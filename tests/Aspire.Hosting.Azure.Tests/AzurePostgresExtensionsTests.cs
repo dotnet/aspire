@@ -35,7 +35,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
 

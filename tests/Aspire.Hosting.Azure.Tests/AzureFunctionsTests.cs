@@ -144,7 +144,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
             .WithHostStorage(storage);
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert that the default storage resource is not present
         var model = host.Services.GetRequiredService<DistributedApplicationModel>();
@@ -153,7 +153,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
         var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
         Assert.Equal("my-own-storage", storageResource.Name);
 
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -165,14 +165,14 @@ public class AzureFunctionsTests(ITestOutputHelper output)
         builder.AddAzureFunctionsProject<TestProject>("funcapp2");
 
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert that the default storage resource is not present
         var model = host.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Single(model.Resources.OfType<AzureStorageResource>(),
             r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
 
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
         // Verify ASPNETCORE_URLS is set correctly with the target port
         var aspNetCoreUrls = context.EnvironmentVariables["ASPNETCORE_URLS"];
         Assert.NotNull(aspNetCoreUrls);
-        var aspNetCoreUrlsValue = await ((ReferenceExpression)aspNetCoreUrls).GetValueAsync(default);
+        var aspNetCoreUrlsValue = await ((ReferenceExpression)aspNetCoreUrls).GetValueAsync(TestContext.Current.CancellationToken);
         Assert.Contains("8080", aspNetCoreUrlsValue);
     }
 
@@ -268,7 +268,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var storage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcstorage634f8"));
 
@@ -298,7 +298,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles-funcstorage634f8"));
 
@@ -390,7 +390,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles-my-own-storage"));
 
@@ -473,7 +473,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles-my-own-storage"));
 
@@ -538,7 +538,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp-roles-my-own-storage"));
         var projRolesStorage2 = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"funcapp2-roles-funcstorage634f8"));

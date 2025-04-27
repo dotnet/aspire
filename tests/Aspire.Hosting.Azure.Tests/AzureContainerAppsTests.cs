@@ -34,7 +34,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -115,7 +115,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -213,7 +213,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -352,7 +352,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -460,7 +460,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -572,7 +572,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var container = Assert.Single(model.GetContainerResources());
@@ -662,7 +662,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var container = Assert.Single(model.GetContainerResources());
@@ -772,7 +772,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1110,7 +1110,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1188,7 +1188,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("Multiple container app environments are not supported.", ex.Message);
     }
@@ -1209,7 +1209,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1292,7 +1292,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1395,7 +1395,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1503,7 +1503,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1611,7 +1611,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1750,7 +1750,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -1948,7 +1948,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.", ex.Message);
     }
@@ -1965,7 +1965,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -2040,7 +2040,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -2123,7 +2123,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -2213,7 +2213,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -2298,7 +2298,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var project = Assert.Single(model.GetProjectResources());
 
@@ -2437,7 +2437,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var project = Assert.Single(model.GetProjectResources());
         var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
@@ -2641,7 +2641,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var project = Assert.Single(model.GetProjectResources());
         var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
@@ -2854,7 +2854,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var project = Assert.Single(model.GetProjectResources());
         var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-identity"));
@@ -3062,7 +3062,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("The endpoint(s) 'foo' specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.", ex.Message);
     }
@@ -3083,7 +3083,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("Multiple external endpoints are not supported", ex.Message);
     }
@@ -3102,7 +3102,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("External non-HTTP(s) endpoints are not supported", ex.Message);
     }
@@ -3122,7 +3122,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal("HTTP(s) and TCP endpoints cannot be mixed", ex.Message);
     }
@@ -3141,7 +3141,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal($"The endpoint 'http' is an http endpoint and must use port 80", ex.Message);
     }
@@ -3160,7 +3160,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken));
 
         Assert.Equal($"The endpoint 'https' is an https endpoint and must use port 443", ex.Message);
     }
@@ -3174,7 +3174,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -3200,7 +3200,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -3246,7 +3246,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -3590,7 +3590,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var (manifest, bicep) = await GetManifestWithBicep(sql.Resource);
 

@@ -79,7 +79,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         if (useContext)
         {
@@ -89,7 +89,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 provisionerOptions.Value,
                 NullLogger<AzurePublishingContext>.Instance);
 
-            await context.WriteModelAsync(model, default);
+            await context.WriteModelAsync(model, TestContext.Current.CancellationToken);
         }
         else
         {
@@ -99,7 +99,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 provisionerOptions,
                 NullLogger<AzurePublisher>.Instance);
 
-            await publisher.PublishAsync(model, default);
+            await publisher.PublishAsync(model, TestContext.Current.CancellationToken);
         }
 
         Assert.True(File.Exists(Path.Combine(tempDir.Path, "main.bicep")));

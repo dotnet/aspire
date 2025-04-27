@@ -34,7 +34,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         }
         else
         {
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
             // no exception is thrown in Run mode
         }
     }
@@ -60,7 +60,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         Assert.True(storage.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultAssignments));
 
@@ -150,7 +150,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         if (operation == DistributedApplicationOperation.Run)
         {
@@ -240,7 +240,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
             });
 
         using var app = builder.Build();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         Assert.True(storage.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultAssignments));
 

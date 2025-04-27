@@ -36,7 +36,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         }
 
         using var app = builder.Build();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource, skipPreparer: true);
 

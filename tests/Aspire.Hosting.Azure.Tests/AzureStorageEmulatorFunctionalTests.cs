@@ -60,7 +60,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -71,22 +71,22 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         var storage = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs("BlobConnection");
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:BlobConnection"] = await storage.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureBlobClient("BlobConnection");
 
         using var host = hb.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var serviceClient = host.Services.GetRequiredService<BlobServiceClient>();
-        var blobContainer = (await serviceClient.CreateBlobContainerAsync("container")).Value;
+        var blobContainer = (await serviceClient.CreateBlobContainerAsync("container", cancellationToken: TestContext.Current.CancellationToken)).Value;
         var blobClient = blobContainer.GetBlobClient("testKey");
 
-        await blobClient.UploadAsync(BinaryData.FromString("testValue"));
+        await blobClient.UploadAsync(BinaryData.FromString("testValue"), TestContext.Current.CancellationToken);
 
-        var downloadResult = (await blobClient.DownloadContentAsync()).Value;
+        var downloadResult = (await blobClient.DownloadContentAsync(TestContext.Current.CancellationToken)).Value;
         Assert.Equal("testValue", downloadResult.Content.ToString());
     }
 }

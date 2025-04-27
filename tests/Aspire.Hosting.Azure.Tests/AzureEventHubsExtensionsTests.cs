@@ -55,7 +55,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -72,7 +72,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var eventHub = eventHubns.AddHub(resourceName, hubName);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
@@ -92,16 +92,16 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         }
 
         using var host = hb.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var producerClient = host.Services.GetRequiredService<EventHubProducerClient>();
         var consumerClient = host.Services.GetRequiredService<EventHubConsumerClient>();
 
         // If no exception is thrown when awaited, the Event Hubs service has acknowledged
         // receipt and assumed responsibility for delivery of the set of events to its partition.
-        await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))]);
+        await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))], TestContext.Current.CancellationToken);
 
-        await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
+        await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }, TestContext.Current.CancellationToken))
         {
             Assert.Equal("hello worlds", Encoding.UTF8.GetString(partitionEvent.Data.EventBody.ToArray()));
             break;
@@ -124,7 +124,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var eventHub = eventHubns.AddHub(resourceName, hubName);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
@@ -144,10 +144,10 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         }
 
         using var host = hb.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
+        var healthCheckReport = await healthCheckService.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, healthCheckReport.Status);
     }
@@ -397,7 +397,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .AddConsumerGroup("cg1");
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
         var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -431,7 +431,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         }
         """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -455,7 +455,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         eventHubs.AddHub("hub1");
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
         var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -496,7 +496,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         }
         """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
         var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -547,7 +547,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal(source, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         try
         {

@@ -38,9 +38,9 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
                 .AddDatabase("evadexdb");
 
             using var app = builder.Build();
-            await app.StartAsync();
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
-            var actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sb.module.bicep"));
+            var actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sb.module.bicep"), TestContext.Current.CancellationToken);
 
             var expectedBicep = """
                 @description('The location for the resource(s) to be deployed.')
@@ -69,7 +69,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
             output.WriteLine(actualBicep);
             Assert.Equal(expectedBicep, actualBicep);
 
-            actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sql-server.module.bicep"));
+            actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sql-server.module.bicep"), TestContext.Current.CancellationToken);
 
             expectedBicep = """
                 @description('The location for the resource(s) to be deployed.')
@@ -121,7 +121,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
             output.WriteLine(actualBicep);
             Assert.Equal(expectedBicep, actualBicep);
 
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         try

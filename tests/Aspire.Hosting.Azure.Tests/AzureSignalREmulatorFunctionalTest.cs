@@ -33,7 +33,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
         var postfix = ";AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
         Assert.Equal("Endpoint={signalr.bindings.emulator.url}" + postfix, connectionStringExpr.ValueExpression);
         Assert.Equal("Endpoint=http://localhost:10001" + postfix, connectionString);
-        Assert.Equal(connectionString, await ((IResourceWithConnectionString)signalR.Resource).GetConnectionStringAsync());
+        Assert.Equal(connectionString, await ((IResourceWithConnectionString)signalR.Resource).GetConnectionStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
             .RunAsEmulator();
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -124,6 +124,6 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
             Assert.Equal(sentMessage, await messageTcs.Task);
         }, cts.Token);
         
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 }

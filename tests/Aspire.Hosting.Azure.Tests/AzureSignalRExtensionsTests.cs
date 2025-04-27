@@ -20,7 +20,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var manifest = await GetManifestWithBicep(signalr.Resource, skipPreparer: true);
 
@@ -109,7 +109,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         var manifest = await GetManifestWithBicep(signalr.Resource, skipPreparer: true);
 

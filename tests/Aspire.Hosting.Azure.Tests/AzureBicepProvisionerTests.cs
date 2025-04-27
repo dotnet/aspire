@@ -23,7 +23,7 @@ public class AzureBicepProvisionerTests
                .WithParameter("name", "david");
 
         var parameters = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(parameters);
         Assert.Equal("david", parameters["name"]?["value"]?.ToString());
@@ -59,7 +59,7 @@ public class AzureBicepProvisionerTests
                .WithParameter("endpoint", container.GetEndpoint("http"));
 
         var parameters = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(8, parameters.Count);
         Assert.Equal("john", parameters["name"]?["value"]?.ToString());
@@ -110,11 +110,11 @@ public class AzureBicepProvisionerTests
                        .WithParameter("jsonObj", new JsonObject { ["key"] = "value" });
 
         var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
         var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
 
         var parameters1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource, cancellationToken: TestContext.Current.CancellationToken);
         var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, null);
 
         Assert.Equal(checkSum0, checkSum1);
@@ -167,11 +167,11 @@ public class AzureBicepProvisionerTests
                        .WithParameter("jsonObj", new JsonObject { ["key"] = "value" });
 
         var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
         var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
 
         var parameters1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource, cancellationToken: TestContext.Current.CancellationToken);
         var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, null);
 
         Assert.NotEqual(checkSum0, checkSum1);
@@ -195,14 +195,14 @@ public class AzureBicepProvisionerTests
                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalType, "type");
 
         var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
         var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
 
         // Save the old version of this resource's parameters to config
         var config = new ConfigurationManager();
         config["Parameters"] = parameters0.ToJsonString();
 
-        var checkSum1 = await BicepProvisioner.GetCurrentChecksumAsync(bicep1.Resource, config);
+        var checkSum1 = await BicepProvisioner.GetCurrentChecksumAsync(bicep1.Resource, config, TestContext.Current.CancellationToken);
 
         Assert.Equal(checkSum0, checkSum1);
     }
@@ -222,14 +222,14 @@ public class AzureBicepProvisionerTests
 
         var parameters0 = new JsonObject();
         var scope0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
+        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource, TestContext.Current.CancellationToken);
         var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, scope0);
 
         var parameters1 = new JsonObject();
         var scope1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource, cancellationToken: TestContext.Current.CancellationToken);
+        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource, TestContext.Current.CancellationToken);
         var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, scope1);
 
         Assert.NotEqual(checkSum0, checkSum1);
@@ -250,14 +250,14 @@ public class AzureBicepProvisionerTests
 
         var parameters0 = new JsonObject();
         var scope0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource, cancellationToken: TestContext.Current.CancellationToken);
+        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource, TestContext.Current.CancellationToken);
         var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, scope0);
 
         var parameters1 = new JsonObject();
         var scope1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource);
+        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource, cancellationToken: TestContext.Current.CancellationToken);
+        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource, TestContext.Current.CancellationToken);
         var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, scope1);
 
         Assert.Equal(checkSum0, checkSum1);

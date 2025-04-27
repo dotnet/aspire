@@ -186,7 +186,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
@@ -205,14 +205,14 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureServiceBusClient("servicebusns");
 
         using var host = hb.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
@@ -441,7 +441,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -529,7 +529,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         }
         """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -547,7 +547,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -578,7 +578,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
             """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -600,7 +600,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             );
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -625,7 +625,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
             """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -682,7 +682,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
             """, configJsonContent);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -819,7 +819,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var queueResource = serviceBus.AddServiceBusQueue("queue123", queueName);
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
@@ -829,7 +829,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.ResourceNotifications.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
 
         using var host = hb.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 

@@ -24,7 +24,7 @@ public class ContainerRegistryTests
         _ = builder.AddAzureContainerAppEnvironment("env");
 
         using var app = builder.Build();
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         // Assert
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -54,7 +54,7 @@ public class ContainerRegistryTests
         using var app = builder.Build();
 
         // Act
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         // Assert
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -92,13 +92,13 @@ public class ContainerRegistryTests
         using var app = builder.Build();
 
         // Act
-        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, TestContext.Current.CancellationToken);
 
         // Get our publisher and manually invoke it
         var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("test-publisher") as ContainerRegistryValidatingPublisher;
         Assert.NotNull(publisher);
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await publisher.PublishAsync(model, default);
+        await publisher.PublishAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(publisher.EnvironmentRegistryFound);
