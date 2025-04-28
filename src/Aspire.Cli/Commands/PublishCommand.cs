@@ -296,6 +296,16 @@ internal sealed class PublishCommand : BaseCommand
                 return ExitCodeConstants.Success;
             }
         }
+        catch (OperationCanceledException)
+        {
+            _interactionService.DisplayError("The operation was canceled.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file is not an Aspire app host project.")
+        {
+            _interactionService.DisplayError("The specified project file is not an Aspire app host project.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
         {
             _interactionService.DisplayError("The --project option specified a project that does not exist.");
