@@ -107,7 +107,7 @@ public sealed class SpanWaterfallViewModel
 
     private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
 
-    public sealed record TraceDetailState(List<string> CollapsedSpanIds);
+    public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds);
 
     public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
     {
@@ -146,7 +146,7 @@ public sealed class SpanWaterfallViewModel
             // A span may indicate a call to another service but the service isn't instrumented.
             var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span) : null;
+            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
             var viewModel = new SpanWaterfallViewModel
             {
@@ -173,12 +173,22 @@ public sealed class SpanWaterfallViewModel
         }
     }
 
-    private static string? ResolveUninstrumentedPeerName(OtlpSpan span)
+    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
         if (span.UninstrumentedPeer?.ApplicationName is { } peerName)
         {
             // If the span has a peer name, use it.
             return peerName;
+        }
+
+        // Attempt to resolve uninstrumented peer to a friendly name from the span.
+        // This should only match non-resource returning resolves such as Browser Link.
+        foreach (var resolver in outgoingPeerResolvers)
+        {
+            if (resolver.TryResolvePeer(span.Attributes, out var name, out _))
+            {
+                return name;
+            }
         }
 
         // Fallback to the peer address.

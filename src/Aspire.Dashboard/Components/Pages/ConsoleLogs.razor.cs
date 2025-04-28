@@ -738,7 +738,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
         ]);
     }

@@ -30,13 +30,13 @@ public partial class ResourceActions : ComponentBase
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Parameter]
-    public required Func<CommandViewModel, Task> CommandSelected { get; set; }
+    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
 
     [Parameter]
     public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
 
     [Parameter]
-    public required Func<string?, Task> OnViewDetails { get; set; }
+    public required EventCallback<string?> OnViewDetails { get; set; }
 
     [Parameter]
     public required ResourceViewModel Resource { get; set; }
@@ -70,8 +70,8 @@ public partial class ResourceActions : ComponentBase
             GetResourceName,
             ControlLoc,
             Loc,
-            OnViewDetails,
-            CommandSelected,
+            OnViewDetails.InvokeAsync,
+            CommandSelected.InvokeAsync,
             IsCommandExecuting,
             showConsoleLogsItem: true,
             showUrls: false);
