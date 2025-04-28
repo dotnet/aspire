@@ -22,6 +22,10 @@ public class OtlpApplication
     public string ApplicationName { get; }
     public string InstanceId { get; }
     public OtlpContext Context { get; }
+    // This flag indicates whether the app was created for an uninstrumented peer.
+    // It's used to hide the app on pages that don't use uninstrumented peers.
+    // Traces uses uninstrumented peers, structured logs and metrics don't.
+    public bool UninstrumentedPeer { get; private set; }
 
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
@@ -30,10 +34,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    public OtlpApplication(string name, string instanceId, OtlpContext context)
+    public OtlpApplication(string name, string instanceId, bool uninstrumentedPeer, OtlpContext context)
     {
         ApplicationName = name;
         InstanceId = instanceId;
+        UninstrumentedPeer = uninstrumentedPeer;
         Context = context;
     }
 
@@ -292,6 +297,16 @@ public class OtlpApplication
         }
 
         return _applicationViews.GetOrAdd(view.Properties, view);
+    }
+
+    internal void SetUninstrumentedPeer(bool uninstrumentedPeer)
+    {
+        // An app could initially be created for an uninstrumented peer and then telemetry is received from it.
+        // This method "upgrades" the resource to not be for an uninstrumented peer when appropriate.
+        if (UninstrumentedPeer && !uninstrumentedPeer)
+        {
+            UninstrumentedPeer = uninstrumentedPeer;
+        }
     }
 
     /// <summary>

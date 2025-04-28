@@ -21,7 +21,11 @@
 
 <body>
     <Routes />
+    @*#if (Framework == 'net8.0')
     <script src="_framework/blazor.web.js"></script>
+    ##else
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    ##endif*@
 </body>
 
 </html>

@@ -104,4 +104,10 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
         service.InfoAsync(source.Token).Wait();
     }
+
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5367")]
+    public override Task HealthCheckReportsExpectedStatus(string? key)
+    {
+        return base.HealthCheckReportsExpectedStatus(key);
+    }
 }

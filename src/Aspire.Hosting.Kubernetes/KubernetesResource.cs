@@ -5,35 +5,105 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Kubernetes;
 
-internal sealed class KubernetesResourceContext(
-    IResource resource,
-    KubernetesPublishingContext kubernetesPublishingContext,
-    KubernetesPublisherOptions publisherOptions)
+/// <summary>
+/// Represents a compute resource for Kubernetes.
+/// </summary>
+public class KubernetesResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
 {
+    /// <inheritdoc/>
+    public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
+
     internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
-    public readonly Dictionary<string, EndpointMapping> EndpointMappings = [];
-    public readonly Dictionary<string, HelmExpressionWithValue> EnvironmentVariables = [];
-    public readonly Dictionary<string, HelmExpressionWithValue> Secrets = [];
-    public readonly Dictionary<string, HelmExpressionWithValue> Parameters = [];
-    public Dictionary<string, string> Labels = [];
-    public List<BaseKubernetesResource> TemplatedResources { get; } = [];
+    internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
+    internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
+    internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
+    internal Dictionary<string, HelmExpressionWithValue> Parameters { get; } = [];
+    internal Dictionary<string, string> Labels { get; private set; } = [];
     internal List<string> Commands { get; } = [];
     internal List<VolumeMountV1> Volumes { get; } = [];
-    internal IResource Resource => resource;
-    internal ILogger Logger => kubernetesPublishingContext.Logger;
-    internal KubernetesPublisherOptions PublisherOptions => publisherOptions;
+    internal List<PersistentVolume> PersistentVolumes { get; } = [];
+    internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
 
-    public void BuildKubernetesResources()
+    /// <summary>
+    /// Gets or sets the Kubernetes <see cref="Deployment"/> associated with this resource.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
+    /// </remarks>
+    public Deployment? Deployment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes <see cref="StatefulSet"/> associated with this resource.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
+    /// </remarks>
+    public StatefulSet? StatefulSet { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes ConfigMap associated with this resource.
+    /// </summary>
+    public ConfigMap? ConfigMap { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes Secret associated with this resource.
+    /// </summary>
+    public Secret? Secret { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Kubernetes Service associated with this resource.
+    /// </summary>
+    public Service? Service { get; set; }
+
+    /// <summary>
+    /// Gets the resource that is the target of this Kubernetes service.
+    /// </summary>
+    internal IResource TargetResource => resource;
+
+    internal IEnumerable<BaseKubernetesResource> GetTemplatedResources()
+    {
+        if (Deployment is not null)
+        {
+            yield return Deployment;
+        }
+        if (StatefulSet is not null)
+        {
+            yield return StatefulSet;
+        }
+        if (ConfigMap is not null)
+        {
+            yield return ConfigMap;
+        }
+        if (Secret is not null)
+        {
+            yield return Secret;
+        }
+        if (Service is not null)
+        {
+            yield return Service;
+        }
+
+        foreach (var volume in PersistentVolumes)
+        {
+            yield return volume;
+        }
+
+        foreach (var volumeClaim in PersistentVolumeClaims)
+        {
+            yield return volumeClaim;
+        }
+    }
+
+    private void BuildKubernetesResources()
     {
         SetLabels();
         CreateApplication();
-        AddIfExists(resource.ToConfigMap(this));
-        AddIfExists(resource.ToSecret(this));
-        AddIfExists(resource.ToService(this));
+        ConfigMap = resource.ToConfigMap(this);
+        Secret = resource.ToSecret(this);
+        Service = resource.ToService(this);
     }
 
     private void SetLabels()
@@ -49,28 +119,21 @@ internal sealed class KubernetesResourceContext(
     {
         if (resource is IResourceWithConnectionString)
         {
-            var statefulSet = resource.ToStatefulSet(this);
-            TemplatedResources.Add(statefulSet);
+            StatefulSet = resource.ToStatefulSet(this);
             return;
         }
 
-        var deployment = resource.ToDeployment(this);
-        TemplatedResources.Add(deployment);
+        Deployment = resource.ToDeployment(this);
     }
 
-    private void AddIfExists(BaseKubernetesResource? instance)
-    {
-        if (instance is not null)
-        {
-            TemplatedResources.Add(instance);
-        }
-    }
-
-    internal bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
+    internal string GetContainerImageName(IResource resourceInstance)
     {
         if (!resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) && resourceInstance is not ProjectResource)
         {
-            return resourceInstance.TryGetContainerImageName(out containerImageName);
+            if (resourceInstance.TryGetContainerImageName(out var containerImageName))
+            {
+                return containerImageName;
+            }
         }
 
         var imageEnvName = $"{resourceInstance.Name.ToManifestFriendlyResourceName()}_image";
@@ -78,18 +141,18 @@ internal sealed class KubernetesResourceContext(
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
         Parameters[imageEnvName] = new(expression, value);
-        containerImageName = expression;
-        return false;
-
+        return expression;
     }
 
-    public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    internal async Task ProcessResourceAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         ProcessEndpoints();
         ProcessVolumes();
 
-        await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
-        await ProcessArgumentsAsync(cancellationToken).ConfigureAwait(false);
+        await ProcessEnvironmentAsync(context, executionContext, cancellationToken).ConfigureAwait(false);
+        await ProcessArgumentsAsync(context, executionContext, cancellationToken).ConfigureAwait(false);
+
+        BuildKubernetesResources();
     }
 
     private void ProcessEndpoints()
@@ -158,7 +221,7 @@ internal sealed class KubernetesResourceContext(
         }
     }
 
-    private async Task ProcessArgumentsAsync(CancellationToken cancellationToken)
+    private async Task ProcessArgumentsAsync(KubernetesEnvironmentContext environmentContext, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
@@ -171,7 +234,7 @@ internal sealed class KubernetesResourceContext(
 
             foreach (var arg in context.Args)
             {
-                var value = await ProcessValueAsync(arg).ConfigureAwait(false);
+                var value = await this.ProcessValueAsync(environmentContext, executionContext, arg).ConfigureAwait(false);
 
                 if (value is not string str)
                 {
@@ -183,7 +246,7 @@ internal sealed class KubernetesResourceContext(
         }
     }
 
-    private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private async Task ProcessEnvironmentAsync(KubernetesEnvironmentContext environmentContext, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
         {
@@ -197,7 +260,7 @@ internal sealed class KubernetesResourceContext(
             foreach (var environmentVariable in context.EnvironmentVariables)
             {
                 var key = environmentVariable.Key.ToManifestFriendlyResourceName();
-                var value = await ProcessValueAsync(environmentVariable.Value).ConfigureAwait(false);
+                var value = await this.ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
 
                 switch (value)
                 {
@@ -245,137 +308,6 @@ internal sealed class KubernetesResourceContext(
     {
         var configExpression = key.ToHelmConfigExpression(resourceName);
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
-    }
-
-    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
-    {
-        var (scheme, host, port, _, _) = mapping;
-
-        return property switch
-        {
-            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{port}"),
-            EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port,
-            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => port,
-            EndpointProperty.Scheme => scheme,
-            _ => throw new NotSupportedException(),
-        };
-
-        string GetHostValue(string? prefix = null, string? suffix = null)
-        {
-            return $"{prefix}{host}{suffix}";
-        }
-    }
-
-    private async Task<object> ProcessValueAsync(object value)
-    {
-        while (true)
-        {
-            if (value is string s)
-            {
-                return s;
-            }
-
-            if (value is EndpointReference ep)
-            {
-                var context = ep.Resource == resource
-                    ? this
-                    : await kubernetesPublishingContext.ProcessResourceAsync(ep.Resource)
-                        .ConfigureAwait(false);
-
-                var mapping = context.EndpointMappings[ep.EndpointName];
-
-                var url = GetEndpointValue(mapping, EndpointProperty.Url);
-
-                return url;
-            }
-
-            if (value is ParameterResource param)
-            {
-                return AllocateParameter(param);
-            }
-
-            if (value is ConnectionStringReference cs)
-            {
-                value = cs.Resource.ConnectionStringExpression;
-                continue;
-            }
-
-            if (value is IResourceWithConnectionString csrs)
-            {
-                value = csrs.ConnectionStringExpression;
-                continue;
-            }
-
-            if (value is EndpointReferenceExpression epExpr)
-            {
-                var context = epExpr.Endpoint.Resource == resource
-                    ? this
-                    : await kubernetesPublishingContext.ProcessResourceAsync(epExpr.Endpoint.Resource).ConfigureAwait(false);
-
-                var mapping = context.EndpointMappings[epExpr.Endpoint.EndpointName];
-
-                var val = GetEndpointValue(mapping, epExpr.Property);
-
-                return val;
-            }
-
-            if (value is ReferenceExpression expr)
-            {
-                if (expr is {Format: "{0}", ValueProviders.Count: 1})
-                {
-                    return (await ProcessValueAsync(expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
-                }
-
-                var args = new object[expr.ValueProviders.Count];
-                var index = 0;
-
-                foreach (var vp in expr.ValueProviders)
-                {
-                    var val = await ProcessValueAsync(vp).ConfigureAwait(false);
-                    args[index++] = val ?? throw new InvalidOperationException("Value is null");
-                }
-
-                return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
-            }
-
-            // If we don't know how to process the value, we just return it as an external reference
-            if (value is IManifestExpressionProvider r)
-            {
-                kubernetesPublishingContext.Logger.NotSupportedResourceWarning(nameof(value), r.GetType().Name);
-
-                return ResolveUnknownValue(r);
-            }
-
-            throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
-        }
-    }
-
-    private HelmExpressionWithValue AllocateParameter(ParameterResource parameter)
-    {
-        var formattedName = parameter.Name.ToManifestFriendlyResourceName();
-
-        var expression = parameter.Secret ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-        return new(expression, value);
-    }
-
-    private HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter)
-    {
-        var formattedName = parameter.ValueExpression.Replace("{", "")
-            .Replace("}", "")
-            .Replace(".", "_")
-            .ToManifestFriendlyResourceName();
-
-        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        return new(helmExpression, parameter.ValueExpression);
     }
 
     internal class HelmExpressionWithValue(string helmExpression, string? value)

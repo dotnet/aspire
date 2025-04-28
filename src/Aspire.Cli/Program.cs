@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Microsoft.Extensions.Configuration;
 
 #if DEBUG
 using OpenTelemetry;
@@ -28,9 +29,45 @@ public class Program
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
+    /// <summary>
+    /// This method walks up the directory tree looking for the .aspire/settings.json files
+    /// and then adds them to the host as a configuration source. This means that the settings
+    /// architecture for the CLI will just be standard .NET configuraiton.
+    /// </summary>
+    private static void SetupAppHostOptions(HostApplicationBuilder builder)
+    {
+        var settingsFiles = new List<FileInfo>();
+        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+        while (true)
+        {
+            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+
+            if (File.Exists(settingsFilePath))
+            {
+                var settingsFile = new FileInfo(settingsFilePath);
+                settingsFiles.Add(settingsFile);
+            }
+
+            if (currentDirectory.Parent is null)
+            {
+                break;
+            }
+
+            currentDirectory = currentDirectory.Parent;
+        }
+
+        settingsFiles.Reverse();
+        foreach (var settingsFile in settingsFiles)
+        {
+            builder.Configuration.AddJsonFile(settingsFile.FullName);
+        }
+    }
+
     private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
+        SetupAppHostOptions(builder);
 
         builder.Logging.ClearProviders();
 
@@ -114,7 +151,8 @@ public class Program
     private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        return new ProjectLocator(logger, Directory.GetCurrentDirectory());
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
     }
 
     public static async Task<int> Main(string[] args)

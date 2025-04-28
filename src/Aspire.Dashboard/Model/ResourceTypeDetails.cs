@@ -27,6 +27,10 @@ public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
         {
             throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
         }
+        if (InstanceId != null)
+        {
+            return ApplicationKey.Create(InstanceId);
+        }
 
         return new ApplicationKey(ReplicaSetName, InstanceId);
     }

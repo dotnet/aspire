@@ -14,16 +14,39 @@ public static class ApplicationsSelectHelpers
             return fallback;
         }
 
-        var matches = applications.Where(e => SupportType(e.Id?.Type, canSelectGrouping) && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
-        if (matches.Count == 1)
+        var allowedMatches = applications.Where(e => SupportType(e.Id?.Type, canSelectGrouping)).ToList();
+
+        // First attempt an exact match on the instance id.
+        var instanceIdMatches = allowedMatches.Where(e => string.Equals(name, e.Id?.InstanceId, StringComparisons.ResourceName)).ToList();
+        if (instanceIdMatches.Count == 1)
         {
-            return matches[0];
+            return instanceIdMatches[0];
         }
-        else if (matches.Count == 0)
+        else if (instanceIdMatches.Count == 0)
         {
-            return fallback;
+            // Fallback to matching on app name. This is commonly used when there is only one instance of the app.
+            var replicaSetMatches = allowedMatches.Where(e => e.Id?.Type != OtlpApplicationType.Instance && string.Equals(name, e.Id?.ReplicaSetName, StringComparisons.ResourceName)).ToList();
+
+            if (replicaSetMatches.Count == 1)
+            {
+                return replicaSetMatches[0];
+            }
+            else if (replicaSetMatches.Count == 0)
+            {
+                // No matches found so return the passed in fallback.
+                return fallback;
+            }
+            else
+            {
+                return MultipleMatches(allowedMatches, logger, name, replicaSetMatches);
+            }
         }
         else
+        {
+            return MultipleMatches(allowedMatches, logger, name, instanceIdMatches);
+        }
+
+        static SelectViewModel<ResourceTypeDetails> MultipleMatches(ICollection<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string name, List<SelectViewModel<ResourceTypeDetails>> matches)
         {
             // There are multiple matches. Log as much information as possible about applications.
             logger.LogWarning(
@@ -54,7 +77,7 @@ public static class ApplicationsSelectHelpers
                 var app = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId, applicationName),
+                    Id = ResourceTypeDetails.CreateSingleton($"{applicationName}-{app.InstanceId}", applicationName),
                     Name = applicationName
                 });
 
@@ -72,7 +95,7 @@ public static class ApplicationsSelectHelpers
             selectViewModels.AddRange(replicas.Select(replica =>
                 new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
+                    Id = ResourceTypeDetails.CreateReplicaInstance($"{applicationName}-{replica.InstanceId}", applicationName),
                     Name = OtlpApplication.GetResourceName(replica, applications)
                 }));
         }
