@@ -197,7 +197,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(_collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
     }
 
