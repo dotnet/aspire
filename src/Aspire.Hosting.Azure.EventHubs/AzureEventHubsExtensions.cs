@@ -230,7 +230,7 @@ public static class AzureEventHubsExtensions
                 Image = EventHubsEmulatorContainerImageTags.Image,
                 Tag = EventHubsEmulatorContainerImageTags.Tag
             })
-            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly); ;
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
