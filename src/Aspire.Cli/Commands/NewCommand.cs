@@ -78,7 +78,8 @@ internal sealed class NewCommand : BaseCommand
             ("aspire-xunit", "Aspire Test Project (xUnit)", "./")
             ];
 
-        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
+        if (parseResult.GetValue<string?>("template") is { } templateName &&
+            validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { TemplateName: not null } template)
         {
             return template;
         }
