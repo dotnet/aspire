@@ -259,6 +259,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(bindMountPath);
 
         try
         {

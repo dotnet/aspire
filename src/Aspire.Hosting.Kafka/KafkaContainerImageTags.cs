@@ -17,7 +17,7 @@ internal static class KafkaContainerImageTags
     /// <remarks>kafbat/kafka-ui</remarks>
     public const string KafkaUiImage = "kafbat/kafka-ui";
 
-    /// <remarks>v1.1.0</remarks>
-    public const string KafkaUiTag = "v1.1.0";
+    /// <remarks>v1.2.0</remarks>
+    public const string KafkaUiTag = "v1.2.0";
 }
 

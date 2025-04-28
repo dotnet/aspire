@@ -171,7 +171,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+            _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)

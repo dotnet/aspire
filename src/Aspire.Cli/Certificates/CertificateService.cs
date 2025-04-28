@@ -51,8 +51,13 @@ internal sealed class CertificateService(IInteractionService interactionService)
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                throw new InvalidOperationException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+                throw new CertificateServiceException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
             }
         }
     }
+}
+
+public sealed class CertificateServiceException(string message) : Exception(message)
+{
+
 }
