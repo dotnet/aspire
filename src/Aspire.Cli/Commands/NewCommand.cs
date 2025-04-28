@@ -68,23 +68,23 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        (string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates = [
-            ("aspire-starter", "Aspire Starter App", "./src") ,
-            ("aspire", "Aspire Empty App", "./src"),
-            ("aspire-apphost", "Aspire App Host", "./"),
-            ("aspire-servicedefaults", "Aspire Service Defaults", "./"),
-            ("aspire-mstest", "Aspire Test Project (MSTest)", "./"),
-            ("aspire-nunit", "Aspire Test Project (NUnit)", "./"),
-            ("aspire-xunit", "Aspire Test Project (xUnit)", "./")
-            ];
+        Dictionary<string, (string TemplateName, string TemplateDescription, string? PathAppendage)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
+            { "aspire-starter", ("aspire-starter", "Aspire Starter App", "./src")},
+            { "aspire", ("aspire", "Aspire Empty App", "./src") },
+            { "aspire-apphost", ("aspire-apphost", "Aspire App Host", "./") },
+            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", "./") },
+            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", "./") },
+            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", "./") },
+            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", "./")}
+        };
 
-        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
+        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
         {
             return template;
         }
         else
         {
-            return await _prompter.PromptForTemplateAsync(validTemplates, cancellationToken);
+            return await _prompter.PromptForTemplateAsync(validTemplates.Values.ToArray(), cancellationToken);
         }
     }
 
