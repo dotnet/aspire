@@ -34,6 +34,10 @@
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
     <WorkloadsPackageSource>$(ArtifactsShippingPackagesDir)</WorkloadsPackageSource>
 
+    <!-- Issue: https://github.com/dotnet/aspire/issues/8488 -->
+    <!-- xUnit2031: Do not use Where clause with Assert.Single -->
+    <!-- TODO: Re-enable and remove this. -->
+    <NoWarn>$(NoWarn);xUnit2031;</NoWarn>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->

@@ -33,11 +33,7 @@
       CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
       CS1712: Type parameter 'type_parameter' has no matching typeparam tag in the XML comment on 'type_or_member' (but other type parameters do)
     -->
-    <!-- Issue: https://github.com/dotnet/aspire/issues/8488 -->
-    <!-- xUnit2031: Do not use Where clause with Assert.Single -->
-    <!-- xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken to allow test cancellation to be more responsive. -->
-    <!-- TODO: Re-enable and remove this. -->
-    <NoWarn>$(NoWarn);1573;1591;1712;xUnit2031</NoWarn>
+    <NoWarn>$(NoWarn);1573;1591;1712;</NoWarn>
   </PropertyGroup>
 
 </Project>
