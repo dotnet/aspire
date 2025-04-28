@@ -240,10 +240,15 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             builder.WithHostPort(port);
         });
 
-        Assert.Collection(
-            eventHubs.Resource.Annotations.OfType<EndpointAnnotation>(),
-            e => Assert.Equal(port, e.Port)
-            );
+        var endpoints = eventHubs.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
+
+        Assert.Equal(2, endpoints.Count);
+
+        Assert.Equal("emulator", endpoints[0].Name);
+        Assert.Equal(port, endpoints[0].Port);
+
+        Assert.Equal("emulatorhealth", endpoints[1].Name);
+        Assert.Null(endpoints[1].Port);
     }
 
     [Theory]
@@ -586,9 +591,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     public void RunAsEmulator_CalledTwice_Throws()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator();
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator();
 
-        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
+        Assert.Throws<InvalidOperationException>(() => eventHubs.RunAsEmulator());
     }
 
     [Fact]
