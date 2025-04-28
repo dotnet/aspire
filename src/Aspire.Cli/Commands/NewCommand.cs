@@ -68,7 +68,7 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        Dictionary<string, (string TemplateName, string TemplateDescription, string? PathAppendage)> validTemplates = new() {
+        Dictionary<string, (string TemplateName, string TemplateDescription, string? PathAppendage)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
             { "aspire-starter", ("aspire-starter", "Aspire Starter App", "./src")},
             { "aspire", ("aspire", "Aspire Empty App", "./src") },
             { "aspire-apphost", ("aspire-apphost", "Aspire App Host", "./") },
@@ -78,7 +78,7 @@ internal sealed class NewCommand : BaseCommand
             { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", "./")}
         };
 
-        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName.ToLowerInvariant(), out var template))
+        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
         {
             return template;
         }
