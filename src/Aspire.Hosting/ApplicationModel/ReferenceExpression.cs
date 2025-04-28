@@ -104,7 +104,8 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <param name="value">The literal string value to be appended to the interpolated string.</param>
         public readonly void AppendLiteral(string value)
         {
-            _builder.Append(value);
+            // Only escape single braces, leave already escaped braces untouched
+            _builder.Append(EscapeUnescapedBraces(value));
         }
 
         /// <summary>
@@ -115,7 +116,10 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         {
             // The value that comes in is a literal string that is not meant to be interpreted.
             // But the _builder later gets treated as a format string, so we just need to escape the braces.
-            _builder.Append(value?.Replace("{", "{{").Replace("}", "}}"));
+            if (value is not null)
+            {
+                _builder.Append(EscapeUnescapedBraces(value));
+            }
         }
 
         /// <summary>
@@ -149,6 +153,41 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
 
         internal readonly ReferenceExpression GetExpression() =>
             new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+
+        private static string EscapeUnescapedBraces(string input)
+        {
+            // Fast path: nothing to escape
+            if (input.IndexOfAny(['{', '}']) == -1)
+            {
+                return input;
+            }
+
+            var span = input.AsSpan();
+            var sb = new StringBuilder(input.Length + 4); // +4 for rare cases
+
+            for (var i = 0; i < span.Length; i++)
+            {
+                var c = span[i];
+                if (c == '{' || c == '}')
+                {
+                    // Check for already escaped braces
+                    if (i + 1 < span.Length && span[i + 1] == c)
+                    {
+                        sb.Append(c).Append(c);
+                        i++; // skip next
+                    }
+                    else
+                    {
+                        sb.Append(c).Append(c);
+                    }
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
     }
 }
 
