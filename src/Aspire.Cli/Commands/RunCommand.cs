@@ -83,15 +83,7 @@ internal sealed class RunCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            try
-            {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
-                return ExitCodeConstants.FailedToTrustCertificates;
-            }
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             var watch = parseResult.GetValue<bool>("--watch");
 
@@ -242,7 +234,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayMessage("stop_sign", "The run command was cancelled by user.");
+            _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
@@ -266,6 +258,11 @@ internal sealed class RunCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (CertificateServiceException ex)
+        {
+            _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (Exception ex)
         {

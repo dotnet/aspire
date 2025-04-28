@@ -127,4 +127,11 @@ internal class InteractionService : IInteractionService
             }
         }
     }
+
+    public void DisplayCancellationMessage()
+    {
+        _ansiConsole.WriteLine();
+        _ansiConsole.WriteLine();
+        DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+    }
 }
