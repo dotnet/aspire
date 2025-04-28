@@ -87,24 +87,38 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake apphost information to return a compatable app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
             options.CertificateServiceFactory = _ => new ThrowingCertificateService();
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.ProjectLocatorFactory = projectLocatorFactory;
         });
+
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
     }
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
         public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
     }
 
