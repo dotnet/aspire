@@ -12,7 +12,7 @@
         {
             var highlightedCommand = _highlightedCommands[i];
 
-            <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, highlightedCommand))">
+            <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, highlightedCommand))">
                 @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && IconResolver.ResolveIconName(highlightedCommand.IconName, IconSize.Size16, highlightedCommand.IconVariant) is { } icon)
                 {
                     <FluentIcon Value="@icon" Width="16px" />

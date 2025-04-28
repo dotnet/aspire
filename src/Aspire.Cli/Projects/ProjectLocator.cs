@@ -137,9 +137,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 settingsFile.Directory.Create();
             }
 
+            // Get the relative path and normalize it to use '/' as the separator
+            var relativePath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+
             var settings = new CliSettings
             {
-                AppHostPath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName)
+                AppHostPath = relativePath
             };
 
             using var stream = settingsFile.OpenWrite();

@@ -310,7 +310,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [Theory]
     [InlineData(null)]
     [InlineData("key")]
-    public async Task HealthCheckReportsExpectedStatus(string? key)
+    public virtual async Task HealthCheckReportsExpectedStatus(string? key)
     {
         SkipIfHealthChecksAreNotSupported();
 
