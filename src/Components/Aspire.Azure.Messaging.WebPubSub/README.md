@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.Messaging.WebPubSub
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureWebPubSubHub` extension method to register a `WebPubSubServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureWebPubSubHub` extension method to register a `WebPubSubServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureWebPubSubServiceClient("wps1");

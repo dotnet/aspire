@@ -40,7 +40,7 @@ dotnet add package Microsoft.Extensions.ServiceDiscovery
 
 ### Usage example
 
-In the _Program.cs_ file of your project, call the `AddServiceDiscovery` extension method to add service discovery to the host, configuring default service endpoint providers.
+In the _AppHost.cs_ file of your project, call the `AddServiceDiscovery` extension method to add service discovery to the host, configuring default service endpoint providers.
 
 ```csharp
 builder.Services.AddServiceDiscovery();
