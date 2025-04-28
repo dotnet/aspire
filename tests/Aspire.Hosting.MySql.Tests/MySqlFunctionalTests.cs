@@ -522,9 +522,11 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     [RequiresDocker]
-    public async Task AddDatabaseCreatesNewDatabaseWithCustomScript()
+    public async Task AddDatabaseCreatesNewDatabaseWithCustomScript(bool addEnvVar)
     {
         var mySqlDbName = "my-test-db";
 
@@ -535,7 +537,12 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
-        var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+        var mysql = builder.AddMySql("mysql");
+
+        if (addEnvVar)
+        {
+            mysql = mysql.WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+        }
 
         // Create a database with Accent Insensitive collation
         var newDb = mysql.AddDatabase(mySqlDbName)
