@@ -94,6 +94,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     [InterpolatedStringHandler]
     public ref struct ExpressionInterpolatedStringHandler(int literalLength, int formattedCount)
     {
+        private static readonly char[] s_braces = ['{', '}'];
         private readonly StringBuilder _builder = new(literalLength * 2);
         private readonly List<IValueProvider> _valueProviders = new(formattedCount);
         private readonly List<string> _manifestExpressions = new(formattedCount);
@@ -157,27 +158,28 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         private static string EscapeUnescapedBraces(string input)
         {
             // Fast path: nothing to escape
-            if (input.IndexOfAny(['{', '}']) == -1)
+            if (input.IndexOfAny(s_braces) == -1)
             {
                 return input;
             }
 
-            var span = input.AsSpan();
-            var sb = new StringBuilder(input.Length + 4); // +4 for rare cases
+            // Allocate a bit of extra space in case we need to escape a few braces.
+            var sb = new StringBuilder(input.Length + 4);
 
-            for (var i = 0; i < span.Length; i++)
+            for (var i = 0; i < input.Length; i++)
             {
-                var c = span[i];
-                if (c == '{' || c == '}')
+                var c = input[i];
+                if (IsBrace(c))
                 {
-                    // Check for already escaped braces
-                    if (i + 1 < span.Length && span[i + 1] == c)
+                    if (IsNextCharSame(input, i))
                     {
+                        // Already escaped, copy both and skip next
                         sb.Append(c).Append(c);
-                        i++; // skip next
+                        i++;
                     }
                     else
                     {
+                        // Escape single brace
                         sb.Append(c).Append(c);
                     }
                 }
@@ -187,6 +189,10 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
                 }
             }
             return sb.ToString();
+
+            static bool IsBrace(char ch) => ch == '{' || ch == '}';
+            static bool IsNextCharSame(string s, int idx) =>
+                idx + 1 < s.Length && s[idx + 1] == s[idx];
         }
     }
 }
