@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.TestServices;
@@ -415,6 +416,66 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
         Assert.False(promptedForTemplateVersion);
+    }
+
+    [Fact]
+    public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) => {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+                return prompter;
+            };
+            options.CertificateServiceFactory = _ => new ThrowingCertificateService();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, options, cancellationToken) =>
+                {
+                    return (0, version); // Success, return the template version
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                {
+                    return 0; // Success
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
+    }
+
+    private sealed class ThrowingCertificateService : ICertificateService
+    {
+        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        {
+            throw new CertificateServiceException("Failed to trust certificates");
+        }
     }
 }
 
