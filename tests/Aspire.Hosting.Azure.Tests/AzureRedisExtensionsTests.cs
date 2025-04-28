@@ -70,7 +70,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "redis-cache-roles");
+        var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "redis-cache-roles");
         var redisRolesManifest = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

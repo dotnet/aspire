@@ -53,7 +53,7 @@ public class AddRabbitMQTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
         Assert.Equal("rabbit", containerResource.Name);
 
-        var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name is "tcp");
+        var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "tcp");
         Assert.Equal(5672, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("tcp", primaryEndpoint.Name);
@@ -64,7 +64,7 @@ public class AddRabbitMQTests
 
         if (withManagementPlugin)
         {
-            var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name is "management");
+            var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "management");
             Assert.Equal(15672, mangementEndpoint.TargetPort);
             Assert.False(primaryEndpoint.IsExternal);
             Assert.Equal("management", mangementEndpoint.Name);

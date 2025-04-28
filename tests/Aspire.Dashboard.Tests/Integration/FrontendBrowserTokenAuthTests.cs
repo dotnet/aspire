@@ -258,7 +258,7 @@ public class FrontendBrowserTokenAuthTests
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
 
         // Testing via the log template is kind of hacky. If this becomes a problem then consider adding proper log definitions and match via ID.
-        Assert.Single(l, w => (string?)GetValue(w.State, "{OriginalFormat}") is "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured.");
+        Assert.Single(l, w => (string?)GetValue(w.State, "{OriginalFormat}") == "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured.");
     }
 
     private static object? GetValue(object? values, string key)

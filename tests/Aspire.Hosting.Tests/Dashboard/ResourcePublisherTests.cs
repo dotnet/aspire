@@ -30,8 +30,8 @@ public class ResourcePublisherTests
         Assert.Equal(1, publisher.OutgoingSubscriberCount);
 
         Assert.Equal(2, snapshot.Length);
-        Assert.Single(snapshot, s => s.Name is "A");
-        Assert.Single(snapshot, s => s.Name is "B");
+        Assert.Single(snapshot, s => s.Name == "A");
+        Assert.Single(snapshot, s => s.Name == "B");
 
         var tcs = new TaskCompletionSource<IReadOnlyList<ResourceSnapshotChange>>(TaskCreationOptions.RunContinuationsAsynchronously);
 

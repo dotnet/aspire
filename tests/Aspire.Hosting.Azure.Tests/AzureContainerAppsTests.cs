@@ -2440,8 +2440,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var project = Assert.Single(model.GetProjectResources());
-        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-identity");
-        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-roles-storage");
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-identity");
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-storage");
 
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
@@ -2644,8 +2644,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var project = Assert.Single(model.GetProjectResources());
-        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-identity");
-        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-roles-cosmos");
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-identity");
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-cosmos");
 
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
@@ -2857,8 +2857,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var project = Assert.Single(model.GetProjectResources());
-        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-identity");
-        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "api-roles-redis");
+        var projIdentity = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-identity");
+        var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-redis");
 
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 

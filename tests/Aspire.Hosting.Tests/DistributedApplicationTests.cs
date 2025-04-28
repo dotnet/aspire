@@ -1058,14 +1058,14 @@ public class DistributedApplicationTests
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
-        var env = Assert.Single(service.Spec.Env!, e => e.Name is $"ConnectionStrings__{testName}-redis");
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name is $"ConnectionStrings__{testName}-redisNoPort");
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
@@ -1112,14 +1112,14 @@ public class DistributedApplicationTests
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
-        var env = Assert.Single(service.Spec.Env!, e => e.Name is $"ConnectionStrings__{testName}-redis");
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name is $"ConnectionStrings__{testName}-redisNoPort");
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));

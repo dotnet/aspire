@@ -96,7 +96,7 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Make sure the code value is used, ignoring any config value
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name is "pass");
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should not include anything about the default value
@@ -146,7 +146,7 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Make sure the code value is used, ignoring any config value
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name is "pass");
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should include the default value, since we passed publishValueAsDefault: true
@@ -203,7 +203,7 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Make sure the the generated default value is only used when there isn't a config value
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name is "pass");
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         if (hasConfig)
         {
             Assert.Equal("ValueFromConfiguration", parameterResource.Value);
@@ -216,7 +216,7 @@ public class AddParameterTests
         }
 
         // The manifest should always include the fields for the generated default value
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name is "pass")).DefaultTimeout();
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -267,11 +267,11 @@ public class AddParameterTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name is "val");
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val");
         Assert.Equal($"MyAccessToken", parameterResource.Value);
 
         // The manifest is not affected by the custom configuration key
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name is "val")).DefaultTimeout();
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val")).DefaultTimeout();
         var expectedManifest = $$"""
                 {
                   "type": "parameter.v0",

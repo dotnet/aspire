@@ -19,7 +19,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddPostgres("postgres");
-        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key is "postgres_check");
+        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "postgres_check");
     }
 
     [Fact]

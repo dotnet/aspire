@@ -122,7 +122,7 @@ public class WithUrlsTests
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Url is "https://example.com" && u.DisplayText is "Example");
+        Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
         await app.StopAsync();
     }
@@ -147,7 +147,7 @@ public class WithUrlsTests
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Url is "https://example.com" && u.DisplayText is "Example");
+        Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
         await app.StopAsync();
     }
@@ -202,7 +202,7 @@ public class WithUrlsTests
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName is "test");
+        Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "test");
 
         await app.StopAsync();
     }
@@ -226,7 +226,7 @@ public class WithUrlsTests
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Url.EndsWith("/sub-path") && u.Endpoint?.EndpointName is "http");
+        Assert.Single(urls, u => u.Url.EndsWith("/sub-path") && u.Endpoint?.EndpointName == "http");
 
         await app.StopAsync();
     }
@@ -250,7 +250,7 @@ public class WithUrlsTests
         await tcs.Task;
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Single(urls, u => u.Url == "http://custom.localhost:23456/home" && u.Endpoint?.EndpointName is "http");
+        Assert.Single(urls, u => u.Url == "http://custom.localhost:23456/home" && u.Endpoint?.EndpointName == "http");
 
         await app.StopAsync();
     }
@@ -323,7 +323,7 @@ public class WithUrlsTests
 
         await app.StopAsync();
 
-        Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url is "https://example.com");
+        Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
     }
 
     [Fact]
@@ -410,7 +410,7 @@ public class WithUrlsTests
         await app.StopAsync();
 
         Assert.All(initialUrlSnapshot, s => Assert.True(s.IsInactive));
-        Assert.Single(urlSnapshotAfterRunning, s => !s.IsInactive && s.Url is "https://example.com");
+        Assert.Single(urlSnapshotAfterRunning, s => !s.IsInactive && s.Url == "https://example.com");
     }
 
     [Fact]

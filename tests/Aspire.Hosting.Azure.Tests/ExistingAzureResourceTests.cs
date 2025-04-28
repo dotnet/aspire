@@ -216,7 +216,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         // ensure the role assignments resource has the correct manifest and bicep, specifically the correct scope property
 
-        var messagingRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "messaging-roles");
+        var messagingRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "messaging-roles");
         (ManifestNode, BicepText) = await GetManifestWithBicep(messagingRoles, skipPreparer: true);
 
         expectedManifest = """
