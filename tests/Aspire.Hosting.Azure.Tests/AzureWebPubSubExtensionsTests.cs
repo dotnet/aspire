@@ -6,8 +6,6 @@ using Aspire.Hosting.Utils;
 
 using Azure.Provisioning.WebPubSub;
 
-using Xunit;
-
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
