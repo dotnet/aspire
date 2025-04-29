@@ -42,7 +42,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured).DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -58,7 +58,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!").DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
