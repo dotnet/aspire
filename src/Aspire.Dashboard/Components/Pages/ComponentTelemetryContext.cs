@@ -69,6 +69,11 @@ public sealed class ComponentTelemetryContext : IDisposable
 
         foreach (var (name, value) in modifiedProperties)
         {
+            if (value.Value is string s && string.IsNullOrEmpty(s))
+            {
+                continue;
+            }
+
             if (!Properties.TryGetValue(name, out var existingValue) || !existingValue.Value.Equals(value.Value))
             {
                 Properties[name] = value;
