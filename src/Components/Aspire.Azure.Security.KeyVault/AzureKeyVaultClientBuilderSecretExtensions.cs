@@ -72,7 +72,7 @@ public static class AzureKeyVaultClientBuilderSecretExtensions
     private sealed class KeyVaultSecretsComponent : AbstractKeyVaultComponent<SecretClient, SecretClientOptions>
     {
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
-            => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+            => clientBuilder.ConfigureOptions(configuration.Bind);
 
         protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
             => configuration.Bind(settings);
