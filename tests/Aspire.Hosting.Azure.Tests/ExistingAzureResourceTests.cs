@@ -34,7 +34,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -58,7 +59,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -85,7 +87,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -118,7 +121,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         // ensure the role assignments resource has the correct manifest and bicep, specifically the correct scope property
 
@@ -192,7 +196,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -222,7 +227,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -247,7 +253,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -278,7 +285,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -309,7 +317,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -340,7 +349,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -370,7 +380,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -401,7 +412,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -441,7 +453,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -472,7 +485,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -503,7 +517,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -534,7 +549,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -565,7 +581,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -592,7 +609,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -623,7 +641,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -654,7 +673,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -684,7 +704,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -720,7 +741,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -753,7 +775,8 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]

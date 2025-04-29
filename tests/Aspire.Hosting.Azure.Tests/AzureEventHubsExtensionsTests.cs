@@ -289,7 +289,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep");
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"eh-roles"));
         var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);

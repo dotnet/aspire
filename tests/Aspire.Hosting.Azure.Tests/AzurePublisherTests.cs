@@ -105,7 +105,8 @@ public class AzurePublisherTests
 
         var content = File.ReadAllText(Path.Combine(tempDir.Path, "main.bicep"));
 
-        await Verifier.Verify(content, extension: "bicep");
+        await Verifier.Verify(content, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     private sealed class OptionsMonitor(AzurePublisherOptions options) : IOptionsMonitor<AzurePublisherOptions>

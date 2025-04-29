@@ -36,7 +36,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep");
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Theory]
@@ -60,7 +61,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep");
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]

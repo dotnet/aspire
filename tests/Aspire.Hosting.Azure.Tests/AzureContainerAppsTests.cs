@@ -63,7 +63,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -115,7 +116,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -165,7 +167,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -225,7 +228,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -274,7 +278,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -333,7 +338,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -362,7 +368,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -474,7 +481,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedIdentityManifest, identityManifest.ToString());
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var expectedIdentityBicep =
         """
@@ -682,7 +690,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -735,7 +744,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -791,7 +801,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -850,7 +861,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -900,7 +912,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -973,7 +986,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1044,7 +1058,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var (_, bicep) = await GetManifestWithBicep(resource);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     private sealed class MyResourceNamePropertyResolver : DynamicResourceNamePropertyResolver
@@ -1103,7 +1118,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1149,7 +1165,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1196,7 +1213,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1246,7 +1264,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1331,7 +1350,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedRolesStorageManifest, rolesStorageManifest.ToString());
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var expectedIdentityBicep =
             """
@@ -1463,7 +1483,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedRolesCosmosManifest, rolesCosmosManifest.ToString());
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var expectedIdentityBicep =
             """
@@ -1598,7 +1619,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedRolesRedisManifest, rolesRedisManifest.ToString());
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var expectedIdentityBicep =
             """
@@ -2212,7 +2234,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """;
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(bicep, extension: "bicep");
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
