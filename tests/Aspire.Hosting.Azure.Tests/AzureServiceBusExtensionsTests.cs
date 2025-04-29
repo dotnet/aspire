@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -36,61 +36,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
-
-            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queueName'
-              properties: {
-                defaultMessageTimeToLive: 'PT1S'
-              }
-              parent: sb
-            }
-
-            resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 'topicName'
-              properties: {
-                defaultMessageTimeToLive: 'PT1S'
-              }
-              parent: sb
-            }
-
-            resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
-              name: 'subscriptionName'
-              parent: topic1
-            }
-
-            resource rule1 'Microsoft.ServiceBus/namespaces/topics/subscriptions/rules@2024-01-01' = {
-              name: 'rule1'
-              properties: {
-                filterType: 'CorrelationFilter'
-              }
-              parent: subscription1
-            }
-
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-
-            output name string = sb.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
     }
 
     [Theory]
@@ -114,37 +60,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
-
-            resource device_connection_state_events1234567890_even_longer 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 'device-connection-state-events1234567890-even-longer'
-              parent: sb
-            }
-
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-
-            output name string = sb.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]

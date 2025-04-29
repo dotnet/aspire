@@ -34,28 +34,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: existingResourceName
-            }
-
-            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue'
-              parent: messaging
-            }
-
-            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -79,38 +58,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('messaging-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'messaging'
-              }
-            }
-
-            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue'
-              parent: messaging
-            }
-
-            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-
-            output name string = messaging.name
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -137,28 +85,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: existingResourceName
-            }
-
-            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue'
-              parent: messaging
-            }
-
-            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -191,27 +118,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: existingResourceName
-            }
-
-            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue'
-              parent: messaging
-            }
-
-            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-
-            output name string = existingResourceName
-            """;
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
 
         // ensure the role assignments resource has the correct manifest and bicep, specifically the correct scope property
 
@@ -234,7 +141,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -285,26 +192,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: 'existingResourceName'
-            }
-
-            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue'
-              parent: messaging
-            }
-
-            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
-
-            output name string = messaging.name
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -334,32 +222,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: existingResourceName
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -384,30 +247,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: 'existingResourcename'
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = storage.name
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -438,23 +278,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
-              name: existingResourceName
-            }
-
-            output appConfigEndpoint string = appConfig.properties.endpoint
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -485,23 +309,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource eventHubs 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
-              name: existingResourceName
-            }
-
-            output eventHubsEndpoint string = eventHubs.properties.serviceBusEndpoint
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -532,23 +340,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: existingResourceName
-            }
-
-            output vaultUri string = keyVault.properties.vaultUri
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -578,21 +370,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
-              name: existingResourceName
-            }
-
-            output logAnalyticsWorkspaceId string = logAnalytics.id
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -623,32 +401,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
-              name: existingResourceName
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgresSql
-            }
-
-            output connectionString string = 'Host=${postgresSql.properties.fullyQualifiedDomainName}'
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -688,49 +441,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            param administratorLogin string
-
-            @secure()
-            param administratorLoginPassword string
-
-            param keyVaultName string
-
-            resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
-              name: existingResourceName
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgresSql
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--postgresSql'
-              properties: {
-                value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-              }
-              parent: keyVault
-            }
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -761,23 +472,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource search 'Microsoft.Search/searchServices@2023-11-01' existing = {
-              name: existingResourceName
-            }
-
-            output connectionString string = 'Endpoint=https://${existingResourceName}.search.windows.net'
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -808,23 +503,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource signalR 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
-              name: existingResourceName
-            }
-
-            output hostName string = signalR.properties.hostName
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -855,23 +534,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource webPubSub 'Microsoft.SignalRService/webPubSub@2024-03-01' existing = {
-              name: existingResourceName
-            }
-
-            output endpoint string = 'https://${webPubSub.properties.hostName}'
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -902,32 +565,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
-              name: existingResourceName
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sqlServer
-            }
-
-            output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -954,41 +592,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
-              name: existingResourceName
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sqlServer
-            }
-
-            resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllIps'
-              properties: {
-                endIpAddress: '255.255.255.255'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sqlServer
-            }
-
-            output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1019,23 +623,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
-              name: existingResourceName
-            }
-
-            output connectionString string = '${redis.properties.hostName},ssl=true'
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1066,33 +654,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
-              name: 'existingResourceName'
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--redis'
-              properties: {
-                value: '${redis.properties.hostName},ssl=true,password=${redis.listKeys().primaryKey}'
-              }
-              parent: keyVault
-            }
-
-            output name string = redis.name
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1122,21 +684,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
-              name: existingResourceName
-            }
-
-            output appInsightsConnectionString string = appInsights.properties.ConnectionString
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1172,39 +720,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource openAI 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
-              name: existingResourceName
-            }
-
-            resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-              name: 'mymodel'
-              properties: {
-                model: {
-                  format: 'OpenAI'
-                  name: 'gpt-35-turbo'
-                  version: '0613'
-                }
-              }
-              sku: {
-                name: 'Basic'
-                capacity: 4
-              }
-              parent: openAI
-            }
-
-            output connectionString string = 'Endpoint=${openAI.properties.endpoint}'
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1237,50 +753,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
-              name: existingResourceName
-            }
-
-            resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydb'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydb'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'container'
-              location: location
-              properties: {
-                resource: {
-                  id: 'container'
-                  partitionKey: {
-                    paths: [
-                      '/id'
-                    ]
-                  }
-                }
-              }
-              parent: mydb
-            }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 
     [Fact]
@@ -1317,77 +790,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param existingResourceName string
-
-            param keyVaultName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
-              name: existingResourceName
-            }
-
-            resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydb'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydb'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'container'
-              location: location
-              properties: {
-                resource: {
-                  id: 'container'
-                  partitionKey: {
-                    paths: [
-                      '/id'
-                    ]
-                  }
-                }
-              }
-              parent: mydb
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--cosmos'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-              }
-              parent: keyVault
-            }
-
-            resource mydb_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--mydb'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydb'
-              }
-              parent: keyVault
-            }
-
-            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--container'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydb;Container=container'
-              }
-              parent: keyVault
-            }
-
-            output name string = existingResourceName
-            """;
-
-        output.WriteLine(BicepText);
-        Assert.Equal(expectedBicep, BicepText);
+        await Verifier.Verify(BicepText, extension: "bicep");
     }
 }

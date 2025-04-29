@@ -200,42 +200,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: true
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
 
         var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"cosmos-roles"));
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -285,92 +254,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var manifest = await GetManifestWithBicep(cosmos.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: false
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource db1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'db1'
-              location: location
-              properties: {
-                resource: {
-                  id: 'db1'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource container1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'container1'
-              location: location
-              properties: {
-                resource: {
-                  id: 'container1'
-                  partitionKey: {
-                    paths: [
-                      'id'
-                    ]
-                  }
-                }
-              }
-              parent: db1
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--cosmos'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-              }
-              parent: keyVault
-            }
-
-            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--db1'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1'
-              }
-              parent: keyVault
-            }
-
-            resource container1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--container1'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1;Container=container1'
-              }
-              parent: keyVault
-            }
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
     }
 }
