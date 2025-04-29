@@ -10,17 +10,21 @@ namespace Aspire.Hosting.Tests;
 public class DistributedApplicationRunnerTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public void EnsureFailingPublishResultsInNonZeroExitCode()
+    public void EnsureFailingPublishResultsInRunMethodThrowing()
     {
         var args = new[] { "--publisher", "explodingpublisher" };
         using var builder = TestDistributedApplicationBuilder.Create(outputHelper, args);
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.AddPublisher<ExplodingPublisher, ExplodingPublisherOptions>("explodingpublisher");
+#pragma warning restore ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         using var app = builder.Build();
 
-        Assert.Equal(0, Environment.ExitCode);
+        var ex = Assert.Throws<AggregateException>(app.Run);
 
-        app.Run();
-
-        Assert.Equal(AppHostExitCodes.PublishFailure, Environment.ExitCode);
+        Assert.Collection(
+            ex.InnerExceptions,
+            e => Assert.Equal("Publishing failed exception message: Boom!", e.Message)
+        );
     }
 }
 
@@ -30,4 +34,8 @@ internal sealed class ExplodingPublisher : IDistributedApplicationPublisher
     {
         throw new NotImplementedException("Boom!");
     }
+}
+
+internal sealed class ExplodingPublisherOptions
+{
 }

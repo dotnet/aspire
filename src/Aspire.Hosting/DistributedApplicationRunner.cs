@@ -72,11 +72,9 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                     (status) => status with { IsError = true },
                     stoppingToken).ConfigureAwait(false);
 
-                Environment.ExitCode = AppHostExitCodes.PublishFailure;
-
                 if (!backchannelService.IsBackchannelExpected)
                 {
-                     lifetime.StopApplication();
+                     throw new DistributedApplicationException($"Publishing failed exception message: {ex.Message}", ex);
                 }
             }
         }
