@@ -3,7 +3,6 @@
 
 using Aspire.Azure.Common;
 using Aspire.Azure.Security.KeyVault;
-using Aspire.Azure.Security.KeyVault.HealthChecks;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Security.KeyVault.Certificates;
@@ -85,10 +84,12 @@ public static class AzureKeyVaultClientBuilderCertificateExtensions
             => new(vaultUri, cred, options);
 
         protected override IHealthCheck CreateHealthCheck(CertificateClient client, AzureSecurityKeyVaultSettings settings)
-            => new AzureKeyVaultCertificatesHealthCheck(client, new AzureKeyVaultCertificatesHealthCheckOptions());
+            => null!;
 
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<CertificateClient, CertificateClientOptions> clientBuilder, IConfiguration configuration)
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression
             => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200 // Remove unnecessary lambda expression
 
         protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
             => configuration.Bind(settings);
