@@ -59,8 +59,7 @@ public class AzureProvisioningResourceExtensionsTests
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+        await Verifier.Verify(manifest.BicepText, extension: "bicep");
     }
 
     private sealed class Project : IProjectMetadata
