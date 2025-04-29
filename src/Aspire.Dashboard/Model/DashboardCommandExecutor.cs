@@ -41,8 +41,8 @@ public sealed class DashboardCommandExecutor(
         var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
             new Dictionary<string, AspireTelemetryProperty>
             {
-                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(resource.ResourceType) },
-                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(command.Name) },
+                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(resource.ResourceType, AspireTelemetryPropertyType.Pii) },
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(command.Name, AspireTelemetryPropertyType.Pii) },
             });
 
         var operationId = startEvent.Properties.FirstOrDefault();
