@@ -601,7 +601,7 @@ public class LogTests
                         }
                     }
                 });
-            });
+            }, TestContext.Current.CancellationToken);
         }
 
         await task.DefaultTimeout();
@@ -745,7 +745,7 @@ public class LogTests
         });
 
         // Assert
-        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
+        var read1 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(1, read1);
         logger.LogInformation("Received log 1 callback");
 
@@ -766,7 +766,7 @@ public class LogTests
             }
         });
 
-        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
+        var read2 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(2, read2);
         logger.LogInformation("Received log 2 callback");
 

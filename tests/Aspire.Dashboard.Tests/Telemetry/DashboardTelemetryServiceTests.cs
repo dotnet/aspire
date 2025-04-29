@@ -65,7 +65,7 @@ public class DashboardTelemetryServiceTests(ITestOutputHelper output)
         await sender.DisposeAsync();
 
         var count = 0;
-        await foreach (var item in sender.ContextChannel.Reader.ReadAllAsync())
+        await foreach (var item in sender.ContextChannel.Reader.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             count++;
         }
