@@ -481,7 +481,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type is LogEntryType.Pause);
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);

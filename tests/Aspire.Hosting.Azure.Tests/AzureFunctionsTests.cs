@@ -541,7 +541,7 @@ public class AzureFunctionsTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "funcapp-roles-my-own-storage");
-        var projRolesStorage2 = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name is "funcapp2-roles-funcstorage634f8");
+        var projRolesStorage2 = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "funcapp2-roles-funcstorage634f8");
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
         var (rolesManifest2, rolesBicep2) = await GetManifestWithBicep(projRolesStorage2);
