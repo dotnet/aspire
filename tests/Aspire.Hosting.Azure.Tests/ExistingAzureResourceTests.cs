@@ -813,6 +813,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(BicepText, extension: "bicep");
+        await Verifier.Verify(BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 }
