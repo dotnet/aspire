@@ -6,7 +6,6 @@
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
