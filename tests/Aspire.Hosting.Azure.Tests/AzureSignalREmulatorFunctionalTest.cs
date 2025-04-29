@@ -122,7 +122,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
             // Verify that received message is the same as sent message
             Assert.Equal(sentMessage, await messageTcs.Task);
         }, cts.Token);
-        
+
         await app.StopAsync();
     }
 }

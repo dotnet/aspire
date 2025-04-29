@@ -292,7 +292,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
             .UseDirectory("Snapshots");
 
-        var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"eh-roles"));
+        var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "eh-roles");
         var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

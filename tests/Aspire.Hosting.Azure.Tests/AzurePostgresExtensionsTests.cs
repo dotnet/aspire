@@ -50,7 +50,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
             .UseDirectory("Snapshots");
 
-        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"postgres-data-roles"));
+        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
         var postgresRolesManifest = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

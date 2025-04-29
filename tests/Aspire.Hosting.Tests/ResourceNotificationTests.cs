@@ -322,7 +322,7 @@ public class ResourceNotificationTests
         var logs = logger.Collector.GetSnapshot();
 
         // Initial state text, log just the new state
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
 
         logger.Collector.Clear();
@@ -342,7 +342,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState -> NewState"));
 
         logger.Collector.Clear();
@@ -392,7 +392,7 @@ public class ResourceNotificationTests
 
         var logs = logger.Collector.GetSnapshot();
 
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Equal(3, logs.Where(l => l.Level == LogLevel.Trace).Count());
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains($"CreationTimeStamp = {createdDate:s}"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("State = { Text = SomeState"));

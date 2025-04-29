@@ -199,10 +199,10 @@ public class DcpExecutorTests
         var callCount1 = exe1.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("1", callCount1.Value);
 
-        Assert.Single(exe1.Spec.Args!.Where(a => a == "--no-build"));
-        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
+        Assert.Single(exe1.Spec.Args!, a => a == "--no-build");
+        Assert.Single(exe1.Spec.Args!, a => a == "--test");
         Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
-        Assert.Single(argAnnotations1.Where(a => a.Argument == "--test"));
+        Assert.Single(argAnnotations1, a => a.Argument == "--test");
 
         var reference = appExecutor.GetResource(exe1.Metadata.Name);
 
@@ -217,10 +217,10 @@ public class DcpExecutorTests
         var callCount2 = exe2.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("2", callCount2.Value);
 
-        Assert.Single(exe2.Spec.Args!.Where(a => a == "--no-build"));
-        Assert.Single(exe2.Spec.Args!.Where(a => a == "--test"));
+        Assert.Single(exe2.Spec.Args!, a => a == "--no-build");
+        Assert.Single(exe2.Spec.Args!, a => a == "--test");
         Assert.True(exe2.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
-        Assert.Single(argAnnotations2.Where(a => a.Argument == "--test"));
+        Assert.Single(argAnnotations2, a => a.Argument == "--test");
     }
 
     [Fact]
@@ -1187,16 +1187,16 @@ public class DcpExecutorTests
 
         // Assert
         Assert.Equal(4, kubernetesService.CreatedResources.OfType<Container>().Count());
-        var implicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ImplicitDefault"));
+        var implicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ImplicitDefault");
         Assert.Null(implicitDefaultContainer.Spec.PullPolicy);
 
-        var explicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitDefault"));
+        var explicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ExplicitDefault");
         Assert.Null(explicitDefaultContainer.Spec.PullPolicy);
 
-        var explicitAlwaysContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitAlways"));
+        var explicitAlwaysContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ExplicitAlways");
         Assert.Equal(ContainerPullPolicy.Always, explicitAlwaysContainer.Spec.PullPolicy);
 
-        var explicitMissingContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>().Where(c => c.AppModelResourceName == "ExplicitMissing"));
+        var explicitMissingContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ExplicitMissing");
         Assert.Equal(ContainerPullPolicy.Missing, explicitMissingContainer.Spec.PullPolicy);
     }
 
