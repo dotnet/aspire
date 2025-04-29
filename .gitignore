@@ -148,6 +148,3 @@ node_modules/
 
 # Publisher Outputs
 playground/**/publish/
-
-# Verify
-*.received.*
