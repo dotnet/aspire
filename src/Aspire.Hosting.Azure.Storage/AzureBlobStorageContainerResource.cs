@@ -17,8 +17,7 @@ namespace Aspire.Hosting;
 /// <param name="parent">The <see cref="AzureBlobStorageResource"/> that the resource is stored in.</param>
 public class AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : Resource(name),
     IResourceWithConnectionString,
-    IResourceWithParent<AzureBlobStorageResource>,
-    IResourceWithAzureFunctionsConfig
+    IResourceWithParent<AzureBlobStorageResource>
 {
 
     /// <summary>
@@ -35,9 +34,6 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
     /// Gets the parent <see cref="AzureBlobStorageResource"/> of this <see cref="AzureBlobStorageContainerResource"/>.
     /// </summary>
     public AzureBlobStorageResource Parent => parent ?? throw new ArgumentNullException(nameof(parent));
-
-    internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => Parent.ApplyAzureFunctionsConfiguration(target, connectionName, Name);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -58,7 +54,4 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
-
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ApplyAzureFunctionsConfiguration(target, connectionName);
 }

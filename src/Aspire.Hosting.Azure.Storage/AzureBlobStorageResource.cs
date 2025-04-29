@@ -47,7 +47,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         return builder.Build();
     }
 
-    internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName, string? blobContainerName = null)
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (Parent.IsEmulator)
         {
@@ -68,11 +68,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             // We don't inject the queue resource here since we on;y want it to
             // be accessible by the Functions host.
             target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.BlobEndpoint;
-
-            if (blobContainerName is not null)
-            {
-                target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__BlobContainerName"] = blobContainerName;
-            }
         }
     }
 
@@ -85,7 +80,4 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         global::Azure.Provisioning.Storage.BlobService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
         return service;
     }
-
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
-        => ApplyAzureFunctionsConfiguration(target, connectionName);
 }
