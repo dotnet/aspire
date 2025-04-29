@@ -78,6 +78,14 @@
       <_ResultsFileToDisplay Condition="!Exists('$(_ResultsFileToDisplay)')">%(TestToRun.ResultsStdOutPath)</_ResultsFileToDisplay>
     </PropertyGroup>
 
+    <!-- Generate a test report -->
+    <Exec Command="pwsh -command &quot;$(RepoRoot)eng/scripts/gha-testreport.ps1 -TestResultsFolder '$(_TestResultDirectory)' -TestSummaryOutputFolder '$(TestResultsLogDir)'&quot;"
+          Condition=" '$(IsGitHubActionsRunner)' == 'true' "
+          WorkingDirectory="$(RepoRoot)"
+          IgnoreExitCode="true"
+          ContinueOnError="WarnAndContinue"
+          />
+
     <!--
       Ideally we would set ContinueOnError="ErrorAndContinue" so that when a test fails in multi-targeted test project
       we'll still run tests for all target frameworks. ErrorAndContinue doesn't work well on Linux though: https://github.com/Microsoft/msbuild/issues/3961.

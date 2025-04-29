@@ -38,7 +38,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         Assert.Collection(app.FrontendEndPointsAccessor,
@@ -70,7 +70,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert,
         Assert.Collection(app.FrontendEndPointsAccessor,
@@ -208,7 +208,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var initialBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
 
             // update the browser token's config file and get the new value
-            await File.WriteAllTextAsync(browserTokenConfigFile, changedFrontendBrowserToken).DefaultTimeout();
+            await File.WriteAllTextAsync(browserTokenConfigFile, changedFrontendBrowserToken, TestContext.Current.CancellationToken).DefaultTimeout();
 
             // Assert
             Assert.Equal(initialFrontendBrowserToken, initialBrowserTokenProvidedByConfiguration);
@@ -257,7 +257,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
@@ -280,7 +280,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
@@ -330,13 +330,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
-            var response = await httpClient.SendAsync(request).DefaultTimeout();
+            var response = await httpClient.SendAsync(request, TestContext.Current.CancellationToken).DefaultTimeout();
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
             using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendSingleEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
-            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync.DefaultTimeout();
+            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest(), cancellationToken: TestContext.Current.CancellationToken).ResponseAsync.DefaultTimeout();
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
         }
         finally
@@ -431,17 +431,17 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
-            var responseMessage = await httpClient.SendAsync(request).DefaultTimeout();
+            var responseMessage = await httpClient.SendAsync(request, TestContext.Current.CancellationToken).DefaultTimeout();
             responseMessage.EnsureSuccessStatusCode();
 
             // Check OTLP service
             using var content = new ByteArrayContent(new ExportLogsServiceRequest().ToByteArray());
             content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
-            responseMessage = await httpClient.PostAsync("/v1/logs", content);
+            responseMessage = await httpClient.PostAsync("/v1/logs", content, TestContext.Current.CancellationToken);
             responseMessage.EnsureSuccessStatusCode();
 
-            var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken).DefaultTimeout());
 
             Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
             Assert.False(responseMessage.Headers.Contains("content-security-policy"));
@@ -485,7 +485,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         Assert.Equal(FrontendAuthMode.Unsecured, app.DashboardOptionsMonitor.CurrentValue.Frontend.AuthMode);
@@ -526,7 +526,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             clearLogFilterRules: false);
 
         // Assert
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
@@ -554,7 +554,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 }
             }
         };
-        await File.WriteAllTextAsync(configFilePath, configJson.ToString()).DefaultTimeout();
+        await File.WriteAllTextAsync(configFilePath, configJson.ToString(), TestContext.Current.CancellationToken).DefaultTimeout();
 
         try
         {
@@ -567,7 +567,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 clearLogFilterRules: false);
 
             // Assert
-            await app.StartAsync().DefaultTimeout();
+            await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
             var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
@@ -589,7 +589,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper, testSink: testSink);
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
@@ -721,12 +721,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
 
         // Act
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync(TestContext.Current.CancellationToken).DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync("/").DefaultTimeout();
+        var response = await client.GetAsync("/", TestContext.Current.CancellationToken).DefaultTimeout();
 
         // Assert
         response.EnsureSuccessStatusCode();
