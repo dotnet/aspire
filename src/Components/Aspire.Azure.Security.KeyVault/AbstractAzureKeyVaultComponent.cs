@@ -17,7 +17,7 @@ namespace Aspire.Azure.Security.KeyVault;
 /// </summary>
 /// <typeparam name="TClient">The KeyVaultClient type for this component.</typeparam>
 /// <typeparam name="TOptions">The associated configuration for the <typeparamref name="TClient"/></typeparam>
-internal abstract class AbstractKeyVaultComponent<TClient, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TOptions>
+internal abstract class AbstractAzureKeyVaultComponent<TClient, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TOptions>
     : AzureComponent<AzureSecurityKeyVaultSettings, TClient, TOptions>
     where TClient : class
     where TOptions : class
