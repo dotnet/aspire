@@ -205,7 +205,7 @@ public class AspireKeyVaultExtensionsTests
     }
 
     [Fact]
-    public void CanUseBuilderToAddMultipleClients()
+    public void CanAddMultipleClientTypes()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
@@ -215,10 +215,9 @@ public class AspireKeyVaultExtensionsTests
             new KeyValuePair<string, string?>($"ConnectionStrings:{connectionName}", ConformanceConstants.VaultUri)
         ]);
 
-        builder
-            .AddExtendedAzureKeyVaultClient(connectionName)
-            .AddKeyClient()
-            .AddCertificateClient();
+        builder.AddAzureKeyVaultClient(connectionName);
+        builder.AddAzureKeyVaultKeyClient(connectionName);
+        builder.AddAzureKeyVaultCertificateClient(connectionName);
 
         using var host = builder.Build();
 
@@ -234,7 +233,7 @@ public class AspireKeyVaultExtensionsTests
     }
 
     [Fact]
-    public void CanUseBuilderToAddMultipleKeyedClients()
+    public void CanAddMultipleKeyedClients()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
@@ -253,10 +252,9 @@ public class AspireKeyVaultExtensionsTests
             new KeyValuePair<string, string?>($"ConnectionStrings:{certClientName}", certClientUri)
         ]);
 
-        builder
-            .AddExtendedKeyedAzureKeyVaultClient(secretClientName)
-            .AddKeyedKeyClient(keyClientName)
-            .AddKeyedCertificateClient(certClientName);
+        builder.AddKeyedAzureKeyVaultClient(secretClientName);
+        builder.AddKeyedAzureKeyVaultKeyClient(keyClientName);
+        builder.AddKeyedAzureKeyVaultCertificateClient(certClientName);
 
         using var host = builder.Build();
 
@@ -299,8 +297,7 @@ public class AspireKeyVaultExtensionsTests
 
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddExtendedKeyedAzureKeyVaultClient("secrets")
-                                   .AddKeyedCertificateClient(name);
+        var action = () => builder.AddKeyedAzureKeyVaultKeyClient(name);
 
         var exception = isNull
                     ? Assert.Throws<ArgumentNullException>(action)
@@ -318,8 +315,7 @@ public class AspireKeyVaultExtensionsTests
 
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddExtendedKeyedAzureKeyVaultClient("secrets")
-                                   .AddKeyedCertificateClient(name);
+        var action = () => builder.AddKeyedAzureKeyVaultCertificateClient(name);
 
         var exception = isNull
                     ? Assert.Throws<ArgumentNullException>(action)

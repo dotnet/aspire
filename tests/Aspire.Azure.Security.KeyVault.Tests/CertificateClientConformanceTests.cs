@@ -70,13 +70,11 @@ public class CertificateClientConformanceTests : ConformanceTests<CertificateCli
     {
         if (key is null)
         {
-            builder.AddExtendedAzureKeyVaultClient("secrets", ConfigureCredentials)
-                   .AddCertificateClient();
+            builder.AddAzureKeyVaultCertificateClient("certificates", ConfigureCredentials);
         }
         else
         {
-            builder.AddExtendedKeyedAzureKeyVaultClient(key, ConfigureCredentials)
-                   .AddKeyedCertificateClient(key);
+            builder.AddKeyedAzureKeyVaultCertificateClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureSecurityKeyVaultSettings settings)
