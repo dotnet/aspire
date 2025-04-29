@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -11,12 +13,19 @@ namespace Aspire.Hosting;
 /// A resource that represents an Azure Blob Storage container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="blobStorage">The <see cref="AzureBlobStorageResource"/> that the resource is stored in.</param>
-public class AzureBlobStorageContainerResource(string name, AzureBlobStorageResource blobStorage) : Resource(name),
+/// <param name="blobContainerName">The name of the blob container.</param>
+/// <param name="parent">The <see cref="AzureBlobStorageResource"/> that the resource is stored in.</param>
+public class AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureBlobStorageResource>,
     IResourceWithAzureFunctionsConfig
 {
+
+    /// <summary>
+    /// Gets the blob container name.
+    /// </summary>
+    public string BlobContainerName { get; } = ThrowIfNullOrEmpty(blobContainerName);
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage container resource.
     /// </summary>
@@ -25,7 +34,7 @@ public class AzureBlobStorageContainerResource(string name, AzureBlobStorageReso
     /// <summary>
     /// Gets the parent <see cref="AzureBlobStorageResource"/> of this <see cref="AzureBlobStorageContainerResource"/>.
     /// </summary>
-    public AzureBlobStorageResource Parent => blobStorage ?? throw new ArgumentNullException(nameof(blobStorage));
+    public AzureBlobStorageResource Parent => parent ?? throw new ArgumentNullException(nameof(parent));
 
     internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
         => Parent.ApplyAzureFunctionsConfiguration(target, connectionName, Name);
@@ -36,14 +45,18 @@ public class AzureBlobStorageContainerResource(string name, AzureBlobStorageReso
     /// <returns>A <see cref="global::Azure.Provisioning.Storage.BlobContainer"/> instance.</returns>
     internal global::Azure.Provisioning.Storage.BlobContainer ToProvisioningEntity()
     {
-        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(Name));
-
-        if (Name is not null)
+        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(Name))
         {
-            blobContainer.Name = Name;
-        }
+            Name = BlobContainerName
+        };
 
         return blobContainer;
+    }
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
