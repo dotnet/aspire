@@ -89,7 +89,7 @@ jobs:
           path: ${{ github.workspace }}/artifacts/all-logs
 
       - name: Process logs and post results
-        if: ${{ github.repository_owner == 'dotnet' }}
+        if: ${{ always() && github.repository_owner == 'dotnet' }}
         shell: pwsh
         run: |
           $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
