@@ -319,7 +319,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-        HealthReport healthReport = await healthCheckService.CheckHealthAsync();
+        var healthReport = await healthCheckService.CheckHealthAsync();
 
         var expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
 

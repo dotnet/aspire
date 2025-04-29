@@ -54,7 +54,7 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
             .UseDirectory("Snapshots");
 
-        var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"mykv-roles"));
+        var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
         var kvRolesManifest = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
