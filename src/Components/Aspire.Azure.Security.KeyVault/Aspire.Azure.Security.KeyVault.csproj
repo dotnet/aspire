@@ -6,7 +6,7 @@
     <PackageTags>$(ComponentAzurePackageTags) keyvault secrets</PackageTags>
     <Description>A client for Azure Key Vault that integrates with Aspire, including health checks, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureKeyVault_256x.png</PackageIconFullPath>
-    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101;</NoWarn>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
