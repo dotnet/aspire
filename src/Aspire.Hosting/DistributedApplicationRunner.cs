@@ -74,7 +74,7 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
 
                 if (!backchannelService.IsBackchannelExpected)
                 {
-                     lifetime.StopApplication();
+                     throw new DistributedApplicationException($"Publishing failed exception message: {ex.Message}", ex);
                 }
             }
         }
