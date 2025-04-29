@@ -16,13 +16,15 @@ public sealed class GeneratedColor
 
 public class ColorGenerator
 {
+    // Colors obtained from accent colors @ https://developer.microsoft.com/en-us/fluentui#/styles/web/colors
     private static readonly string[] s_colorsHex =
     [
-        "#17B8BE", "#F8DCA1", "#B7885E", "#FFCB99", "#F89570",
-        "#829AE3", "#E79FD5", "#1E96BE", "#89DAC1", "#B3AD9E",
-        "#12939A", "#DDB27C", "#88572C", "#FF9833", "#EF5D28",
-        "#162A65", "#DA70BF", "#125C77", "#4DC19C", "#776E57"
+        "#00bcf2", "#fff100", "#d29200", "#ffb900", "#ea4300",
+        "#5c2d91", "#e3008c", "#0078d4", "#00B294", "#b4a0ff",
+        "#00bcf2", "#d29200", "#a4262c", "#ff8c00", "#d83b01",
+        "#002050", "#b4009e", "#004b50", "#00B294", "#5c005c"
     ];
+
     public static readonly ColorGenerator Instance = new ColorGenerator();
 
     private readonly List<GeneratedColor> _colors;
