@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-
 using Azure.Provisioning.WebPubSub;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -60,36 +59,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'abc'
-              parent: wps1
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -133,39 +104,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'abc'
-              properties: {
-                anonymousConnectPolicy: 'allow'
-              }
-              parent: wps1
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -194,46 +134,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            param abc_url_0 string
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'abc'
-              properties: {
-                eventHandlers: [
-                  {
-                    urlTemplate: abc_url_0
-                    userEventPattern: '*'
-                  }
-                ]
-              }
-              parent: wps1
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -258,47 +160,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            resource ABC 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'ABC'
-              properties: {
-                eventHandlers: [
-                  {
-                    urlTemplate: 'http://fake1.com'
-                    userEventPattern: '*'
-                  }
-                  {
-                    urlTemplate: 'http://fake.com'
-                  }
-                ]
-              }
-              parent: wps1
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -351,92 +214,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            param hub2_url_0 string
-
-            param hub2_url_1 string
-
-            param hub2_url_2 string
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            resource hub1 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'hub1'
-              properties: {
-                eventHandlers: [
-                  {
-                    urlTemplate: 'http://fake2.com'
-                    userEventPattern: 'event1'
-                  }
-                  {
-                    urlTemplate: 'http://fake3.com'
-                    userEventPattern: '*'
-                    systemEvents: [
-                      'connect'
-                    ]
-                    auth: {
-                      type: 'ManagedIdentity'
-                      managedIdentity: {
-                        resource: 'abc'
-                      }
-                    }
-                  }
-                  {
-                    urlTemplate: 'http://fake1.com'
-                  }
-                ]
-                anonymousConnectPolicy: 'allow'
-              }
-              parent: wps1
-            }
-
-            resource hub2 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
-              name: 'hub2'
-              properties: {
-                eventHandlers: [
-                  {
-                    urlTemplate: hub2_url_0
-                    userEventPattern: '*'
-                  }
-                  {
-                    urlTemplate: hub2_url_1
-                    userEventPattern: '*'
-                  }
-                  {
-                    urlTemplate: hub2_url_2
-                    userEventPattern: 'event1'
-                    systemEvents: [
-                      'connect'
-                      'connected'
-                    ]
-                  }
-                ]
-              }
-              parent: wps1
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
