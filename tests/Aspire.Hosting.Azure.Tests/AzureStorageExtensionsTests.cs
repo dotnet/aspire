@@ -171,7 +171,7 @@ public class AzureStorageExtensionsTests
         var storage = builder.AddAzureStorage("storage");
 
         var blobs = storage.AddBlobs("myblobs");
-        var blob = blobs.AddBlobContainer("my-blob-container");
+        var blob = blobs.AddBlobContainer("myContainer", "my-blob-container");
         var queues = storage.AddQueues("myqueues");
         var tables = storage.AddTables("mytables");
 
