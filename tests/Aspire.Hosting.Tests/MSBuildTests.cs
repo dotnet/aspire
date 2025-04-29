@@ -71,7 +71,7 @@ public class Class1
 
 </Project>
 """);
-            File.WriteAllText(Path.Combine(appHostDirectory, "Program.cs"), """
+            File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"), """
 var builder = DistributedApplication.CreateBuilder();
 builder.Build().Run();
 """);

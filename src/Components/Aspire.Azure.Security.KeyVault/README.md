@@ -21,7 +21,7 @@ dotnet add package Aspire.Azure.Security.KeyVault
 
 ### Add secrets to configuration
 
-In the _Program.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
 
 ```csharp
 builder.Configuration.AddAzureKeyVaultSecrets("secrets");
@@ -38,7 +38,7 @@ public ProductsController(IConfiguration configuration)
 
 ### Use SecretClient
 
-Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
+Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _AppHost.cs_ file of your project, call the `AddAzureKeyVaultClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureKeyVaultClient("secrets");
@@ -125,7 +125,7 @@ In your AppHost project, install the Aspire Azure KeyVault Hosting library with 
 dotnet add package Aspire.Hosting.Azure.KeyVault
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
 
 ```csharp
 // Service registration
