@@ -57,7 +57,7 @@ public sealed class DashboardClientTests
             await foreach (var item in subscription.WithCancellation(cts.Token))
             {
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         cts.Cancel();
 
@@ -85,7 +85,7 @@ public sealed class DashboardClientTests
             await foreach (var item in subscription)
             {
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         await instance.DisposeAsync().DefaultTimeout();
 

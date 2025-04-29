@@ -17,7 +17,6 @@ using Azure.Provisioning.Roles;
 using Azure.Provisioning.Search;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -325,93 +324,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: false
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydatabase'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydatabase'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'mycontainer'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mycontainer'
-                  partitionKey: {
-                    paths: [
-                      'mypartitionkeypath'
-                    ]
-                  }
-                }
-              }
-              parent: db
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--cosmos'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-              }
-              parent: keyVault
-            }
-
-            resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--db'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
-              }
-              parent: keyVault
-            }
-
-            resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--container'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
-              }
-              parent: keyVault
-            }
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -454,65 +368,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.ManifestNode.ToString());
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: true
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydatabase'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydatabase'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'mycontainer'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mycontainer'
-                  partitionKey: {
-                    paths: [
-                      'mypartitionkeypath'
-                    ]
-                  }
-                }
-              }
-              parent: mydatabase
-            }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -588,93 +445,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: false
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydatabase'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydatabase'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'mycontainer'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mycontainer'
-                  partitionKey: {
-                    paths: [
-                      'mypartitionkeypath'
-                    ]
-                  }
-                }
-              }
-              parent: mydatabase
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--cosmos'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-              }
-              parent: keyVault
-            }
-
-            resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--mydatabase'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
-              }
-              parent: keyVault
-            }
-
-            resource mycontainer_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--mycontainer'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'
-              }
-              parent: keyVault
-            }
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -715,65 +487,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                                """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: true
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'mydatabase'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mydatabase'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'mycontainer'
-              location: location
-              properties: {
-                resource: {
-                  id: 'mycontainer'
-                  partitionKey: {
-                    paths: [
-                      'mypartitionkeypath'
-                    ]
-                  }
-                }
-              }
-              parent: mydatabase
-            }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -896,33 +611,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param applicationType string = 'web'
-
-            param kind string = 'web'
-
-            param logAnalyticsWorkspaceId string
-
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
-              kind: kind
-              location: location
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: logAnalyticsWorkspaceId
-              }
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-            }
-
-            output appInsightsConnectionString string = appInsights.properties.ConnectionString
-            """;
-        output.WriteLine(appInsightsManifest.BicepText);
-        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+        await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -950,44 +640,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param applicationType string = 'web'
-
-            param kind string = 'web'
-
-            resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-              name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                sku: {
-                  name: 'PerGB2018'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'law_appInsights'
-              }
-            }
-
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
-              kind: kind
-              location: location
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: law_appInsights.id
-              }
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-            }
-
-            output appInsightsConnectionString string = appInsights.properties.ConnectionString
-            """;
-        output.WriteLine(appInsightsManifest.BicepText);
-        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+        await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1019,33 +673,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param applicationType string = 'web'
-
-            param kind string = 'web'
-
-            param logAnalyticsWorkspaceId string
-
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
-              kind: kind
-              location: location
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: logAnalyticsWorkspaceId
-              }
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-            }
-
-            output appInsightsConnectionString string = appInsights.properties.ConnectionString
-            """;
-        output.WriteLine(appInsightsManifest.BicepText);
-        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+        await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1067,27 +696,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-              name: take('logAnalyticsWorkspace-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                sku: {
-                  name: 'PerGB2018'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'logAnalyticsWorkspace'
-              }
-            }
-
-            output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
-            """;
-        output.WriteLine(appInsightsManifest.BicepText);
-        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+        await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1236,43 +846,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource cache 'Microsoft.Cache/redis@2024-03-01' = {
-              name: take('cache-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                sku: {
-                  name: 'Basic'
-                  family: 'C'
-                  capacity: 1
-                }
-                enableNonSslPort: false
-                minimumTlsVersion: '1.2'
-              }
-              tags: {
-                'aspire-resource-name': 'cache'
-              }
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
-              properties: {
-                value: '${cache.properties.hostName},ssl=true,password=${cache.listKeys().primaryKey}'
-              }
-              parent: keyVault
-            }
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1308,67 +883,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalName string
-
-            param principalType string
-
-            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  principalType: principalType
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-                minimalTlsVersion: '1.2'
-                publicNetworkAccess: 'Enabled'
-                version: '12.0'
-              }
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sql
-            }
-
-            resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllIps'
-              properties: {
-                endIpAddress: '255.255.255.255'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sql
-            }
-
-            resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'dbName'
-              location: location
-              parent: sql
-            }
-
-            output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
-
-            output name string = sql.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1403,55 +919,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalName string
-
-            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-                minimalTlsVersion: '1.2'
-                publicNetworkAccess: 'Enabled'
-                version: '12.0'
-              }
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sql
-            }
-
-            resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'dbName'
-              location: location
-              parent: sql
-            }
-
-            output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
-
-            output name string = sql.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1494,82 +963,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param administratorLogin string
-
-            @secure()
-            param administratorLoginPassword string
-
-            param keyVaultName string
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administratorLogin: administratorLogin
-                administratorLoginPassword: administratorLoginPassword
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres'
-              }
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres
-            }
-
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllIps'
-              properties: {
-                endIpAddress: '255.255.255.255'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres
-            }
-
-            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-              name: 'dbName'
-              parent: postgres
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
-              properties: {
-                value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-              }
-              parent: keyVault
-            }
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1612,73 +1007,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param administratorLogin string
-
-            @secure()
-            param administratorLoginPassword string
-
-            param keyVaultName string
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administratorLogin: administratorLogin
-                administratorLoginPassword: administratorLoginPassword
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres'
-              }
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres
-            }
-
-            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-              name: 'dbName'
-              parent: postgres
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
-              properties: {
-                value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-              }
-              parent: keyVault
-            }
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -1833,61 +1163,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expected, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
-
-            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue1'
-              parent: sb
-            }
-
-            resource queue2 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queue2'
-              parent: sb
-            }
-
-            resource t1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 't1'
-              parent: sb
-            }
-
-            resource s3 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
-              name: 's3'
-              parent: t1
-            }
-
-            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 't2'
-              parent: sb
-            }
-
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-
-            output name string = sb.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"sb-roles"));
         var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -1943,35 +1224,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.Equal("wps1", wps.Resource.Name);
         output.WriteLine(manifest.BicepText);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"wps1-roles"));
         var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -2024,32 +1282,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         Assert.Equal("wps1", wps.Resource.Name);
-        output.WriteLine(manifest.BicepText);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
 
-            param sku string = 'Free_F1'
-
-            param capacity int = 1
-
-            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
-              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              sku: {
-                name: sku
-                capacity: capacity
-              }
-              tags: {
-                'aspire-resource-name': 'wps1'
-              }
-            }
-
-            output endpoint string = 'https://${wps1.properties.hostName}'
-
-            output name string = wps1.name
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [Fact]
@@ -2126,47 +1361,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param storagesku string
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-              name: take('storage${uniqueString(resourceGroup().id)}', 24)
-              kind: 'StorageV2'
-              location: location
-              sku: {
-                name: storagesku
-              }
-              properties: {
-                accessTier: 'Hot'
-                allowSharedKeyAccess: false
-                minimumTlsVersion: 'TLS1_2'
-                networkAcls: {
-                  defaultAction: 'Allow'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'storage'
-              }
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = storage.name
-            """;
-        output.WriteLine(storageManifest.BicepText);
-        Assert.Equal(expectedBicep, storageManifest.BicepText);
+        await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -2251,47 +1447,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param storagesku string
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-              name: take('storage${uniqueString(resourceGroup().id)}', 24)
-              kind: 'StorageV2'
-              location: location
-              sku: {
-                name: storagesku
-              }
-              properties: {
-                accessTier: 'Hot'
-                allowSharedKeyAccess: true
-                minimumTlsVersion: 'TLS1_2'
-                networkAcls: {
-                  defaultAction: 'Allow'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'storage'
-              }
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = storage.name
-            """;
-        output.WriteLine(storageManifest.BicepText);
-        Assert.Equal(expectedBicep, storageManifest.BicepText);
+        await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -2377,51 +1534,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param storagesku string
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-              name: take('storage${uniqueString(resourceGroup().id)}', 24)
-              kind: 'StorageV2'
-              location: location
-              sku: {
-                name: storagesku
-              }
-              properties: {
-                accessTier: 'Hot'
-                allowSharedKeyAccess: false
-                minimumTlsVersion: 'TLS1_2'
-                networkAcls: {
-                  defaultAction: 'Allow'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'storage'
-              }
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = storage.name
-            """;
-        output.WriteLine(storageManifest.BicepText);
-        Assert.Equal(expectedBicep, storageManifest.BicepText);
+        await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
         var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -2552,47 +1670,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param storagesku string
-
-            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-              name: take('storage${uniqueString(resourceGroup().id)}', 24)
-              kind: 'StorageV2'
-              location: location
-              sku: {
-                name: storagesku
-              }
-              properties: {
-                accessTier: 'Hot'
-                allowSharedKeyAccess: true
-                minimumTlsVersion: 'TLS1_2'
-                networkAcls: {
-                  defaultAction: 'Allow'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'storage'
-              }
-            }
-
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-              name: 'default'
-              parent: storage
-            }
-
-            output blobEndpoint string = storage.properties.primaryEndpoints.blob
-
-            output queueEndpoint string = storage.properties.primaryEndpoints.queue
-
-            output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-            output name string = storage.name
-            """;
-        output.WriteLine(storageManifest.BicepText);
-        Assert.Equal(expectedBicep, storageManifest.BicepText);
+        await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -2683,39 +1762,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param searchSku string
-
-            resource search 'Microsoft.Search/searchServices@2023-11-01' = {
-              name: take('search-${uniqueString(resourceGroup().id)}', 60)
-              location: location
-              properties: {
-                hostingMode: 'default'
-                disableLocalAuth: true
-                partitionCount: 1
-                replicaCount: 1
-              }
-              sku: {
-                name: searchSku
-              }
-              tags: {
-                'aspire-resource-name': 'search'
-              }
-            }
-
-            output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
-
-            output name string = search.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"search-roles"));
         var searchRolesManifest = await GetManifestWithBicep(searchRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -2842,72 +1894,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-              name: take('openai-${uniqueString(resourceGroup().id)}', 64)
-              location: location
-              kind: 'OpenAI'
-              properties: {
-                customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
-                publicNetworkAccess: 'Enabled'
-                disableLocalAuth: {{(overrideLocalAuthDefault ? "false" : "true")}}
-              }
-              sku: {
-                name: 'S0'
-              }
-              tags: {
-                'aspire-resource-name': 'openai'
-              }
-            }
-
-            resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-              name: 'mymodel'
-              properties: {
-                model: {
-                  format: 'OpenAI'
-                  name: 'gpt-35-turbo'
-                  version: '0613'
-                }
-              }
-              sku: {
-                name: 'Basic'
-                capacity: 4
-              }
-              parent: openai
-            }
-
-            resource embedding_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-              name: 'embedding-model'
-              properties: {
-                model: {
-                  format: 'OpenAI'
-                  name: 'text-embedding-ada-002'
-                  version: '2'
-                }
-              }
-              sku: {
-                name: 'Basic'
-                capacity: 4
-              }
-              parent: openai
-              dependsOn: [
-                mymodel
-              ]
-            }
-
-            output connectionString string = 'Endpoint=${openai.properties.endpoint}'
-
-            output name string = openai.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"openai-roles"));
         var openaiRolesManifest = await GetManifestWithBicep(openaiRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -3001,37 +1993,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "path": "infrastructure.module.bicep"
             }
             """;
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('kv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-            }
-
-            resource secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'kvs'
-              properties: {
-                value: '00000000-0000-0000-0000-000000000000'
-              }
-              parent: kv
-            }
-
-            output vaultUri string = kv.properties.vaultUri
-            """;
-
         Assert.Equal(expectedManifest, manifest.ToString());
-        Assert.Equal(expectedBicep, bicep);
+
+        await Verifier.Verify(bicep, extension: "bicep")
+            .UseDirectory("Snapshots");
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

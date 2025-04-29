@@ -3,17 +3,16 @@
 
 using System.Text;
 using System.Text.Json.Nodes;
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -290,46 +289,12 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource eh 'Microsoft.EventHub/namespaces@2024-01-01' = {
-              name: take('eh-${uniqueString(resourceGroup().id)}', 256)
-              location: location
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'eh'
-              }
-            }
-
-            resource hub_resource 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
-              name: 'hub-name'
-              properties: {
-                partitionCount: 3
-              }
-              parent: eh
-            }
-
-            resource cg1 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = {
-              name: 'group-name'
-              parent: hub_resource
-            }
-
-            output eventHubsEndpoint string = eh.properties.serviceBusEndpoint
-
-            output name string = eh.name
-            """;
-        testOutputHelper.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseDirectory("Snapshots");
 
         var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"eh-roles"));
         var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 

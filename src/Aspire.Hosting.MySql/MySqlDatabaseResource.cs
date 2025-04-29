@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using static Aspire.ArgumentExceptionExtensions;
+using MySqlConnector;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -22,9 +23,18 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// <summary>
     /// Gets the connection string expression for the MySQL database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            var connectionStringBuilder = new MySqlConnectionStringBuilder
+            {
+                ["Database"] = DatabaseName
+            };
 
+            return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
+        }
+    }
     /// <summary>
     /// Gets the database name.
     /// </summary>
