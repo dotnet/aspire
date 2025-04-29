@@ -6,7 +6,6 @@ using Aspire.Azure.Common;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Microsoft.Extensions.Azure;
-//using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Azure.Security.KeyVault;
 
