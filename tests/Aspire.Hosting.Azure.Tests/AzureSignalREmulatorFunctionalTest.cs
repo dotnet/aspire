@@ -11,6 +11,7 @@ using Microsoft.Azure.SignalR.Management;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly;
+using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelper)
