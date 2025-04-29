@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.Search.Documents
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureSearchClient` extension method to register an `SearchIndexClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureSearchClient` extension method to register an `SearchIndexClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureSearchClient("searchConnectionName");
@@ -134,7 +134,7 @@ In your AppHost project, install the Aspire Azure AI Search Hosting library with
 dotnet add package Aspire.Hosting.Azure.Search
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure AI Search service and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Azure AI Search service and consume the connection using the following methods:
 
 ```csharp
 var search = builder.ExecutionContext.IsPublishMode

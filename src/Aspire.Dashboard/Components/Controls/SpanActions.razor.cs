@@ -19,10 +19,10 @@ public partial class SpanActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
+    public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }

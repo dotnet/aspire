@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -136,7 +137,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(webProject.FullName, "Not a real web project.");
 
         var runner = new TestDotNetCliRunner();
-        runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) => {
+        runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) => {
             if (projectFile.FullName == appHostProject.FullName)
             {
                 return (0, true, VersionHelper.GetDefaultTemplateVersion());
@@ -197,5 +198,43 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
+    }
+
+        [Fact]
+    public async Task CreateSettingsFileIfNotExistsAsync_UsesForwardSlashPathSeparator()
+    {
+        // Arrange
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var srcDirectory = workspace.CreateDirectory("src");
+        var appHostDirectory = srcDirectory.CreateSubdirectory("AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostDirectory.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(appHostProjectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (_, _, _) =>
+        {
+            return (0, true, VersionHelper.GetDefaultTemplateVersion());
+        };
+
+        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
+
+        var settingsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json"));
+        Assert.True(settingsFile.Exists, "Settings file should exist.");
+
+        var settingsJson = await File.ReadAllTextAsync(settingsFile.FullName);
+        var settings = JsonSerializer.Deserialize<CliSettings>(settingsJson);
+
+        Assert.NotNull(settings);
+        Assert.NotNull(settings!.AppHostPath);
+        Assert.DoesNotContain('\\', settings.AppHostPath); // Ensure no backslashes
+        Assert.Contains('/', settings.AppHostPath); // Ensure forward slashes
+    }
+
+    private sealed class CliSettings
+    {
+        [JsonPropertyName("appHostPath")]
+        public string? AppHostPath { get; set; }
     }
 }

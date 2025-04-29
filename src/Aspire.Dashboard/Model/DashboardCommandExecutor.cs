@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -15,7 +16,8 @@ public sealed class DashboardCommandExecutor(
     IDialogService dialogService,
     IToastService toastService,
     IStringLocalizer<Dashboard.Resources.Resources> loc,
-    NavigationManager navigationManager)
+    NavigationManager navigationManager,
+    DashboardTelemetryService telemetryService)
 {
     private readonly HashSet<(string ResourceName, string CommandName)> _executingCommands = [];
     private readonly object _lock = new object();
@@ -36,9 +38,23 @@ public sealed class DashboardCommandExecutor(
             _executingCommands.Add(executingCommandKey);
         }
 
+        var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
+            new Dictionary<string, AspireTelemetryProperty>
+            {
+                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(resource.ResourceType) },
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(command.Name) },
+            });
+
+        var operationId = startEvent.Properties.FirstOrDefault();
+
         try
         {
             await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+            telemetryService.EndOperation(operationId, TelemetryResult.Success);
+        }
+        catch (Exception ex)
+        {
+            telemetryService.EndUserTask(operationId, TelemetryResult.Failure, ex.Message);
         }
         finally
         {

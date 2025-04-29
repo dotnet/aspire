@@ -29,7 +29,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         foreach (var projectFile in projectFiles)
         {
             logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-            var information = await runner.GetAppHostInformationAsync(projectFile, cancellationToken);
+            var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), cancellationToken);
 
             if (information.ExitCode == 0 && information.IsAspireHost)
             {
@@ -137,9 +137,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 settingsFile.Directory.Create();
             }
 
+            // Get the relative path and normalize it to use '/' as the separator
+            var relativePath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+
             var settings = new CliSettings
             {
-                AppHostPath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName)
+                AppHostPath = relativePath
             };
 
             using var stream = settingsFile.OpenWrite();

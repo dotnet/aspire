@@ -19,7 +19,7 @@ dotnet add package Aspire.Elastic.Clients.Elasticsearch
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddElasticsearchClient` extension method to register a `ElasticsearchClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddElasticsearchClient` extension method to register a `ElasticsearchClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddElasticsearchClient("elasticsearch");
@@ -81,7 +81,7 @@ In your AppHost project, install the `Aspire.Hosting.Elasticsearch` library with
 dotnet add package Aspire.Hosting.Elasticsearch
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Elasticsearch cluster and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Elasticsearch cluster and consume the connection using the following methods:
 
 ```csharp
 var elasticsearch = builder.AddElasticsearch("elasticsearch");

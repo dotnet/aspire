@@ -50,6 +50,8 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var outputCollector = new OutputCollector();
+
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
         {
@@ -81,24 +83,23 @@ internal sealed class RunCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            try
-            {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
-                return ExitCodeConstants.FailedToTrustCertificates;
-            }
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             var watch = parseResult.GetValue<bool>("--watch");
 
             if (!watch)
             {
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
+                var buildOptions = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = outputCollector.AppendOutput,
+                    StandardErrorCallback = outputCollector.AppendError,
+                };
+
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
+                    _interactionService.DisplayLines(outputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
@@ -111,6 +112,12 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
+            var runOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = outputCollector.AppendOutput,
+                StandardErrorCallback = outputCollector.AppendError,
+            };
+
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var pendingRun = _runner.RunAsync(
@@ -120,6 +127,7 @@ internal sealed class RunCommand : BaseCommand
                 Array.Empty<string>(),
                 env,
                 backchannelCompletitionSource,
+                runOptions,
                 cancellationToken);
 
             if (useRichConsole)
@@ -207,7 +215,17 @@ internal sealed class RunCommand : BaseCommand
                     }
                 });
 
-                return await pendingRun;
+                var result =  await pendingRun;
+                if (result != 0)
+                {
+                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayError($"The project could not be run. For more information run with --debug switch.");
+                    return result;
+                }
+                else
+                {
+                    return ExitCodeConstants.Success;
+                }
             }
             else
             {
@@ -216,7 +234,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayMessage("stop_sign", "The run command was cancelled by user.");
+            _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
@@ -240,6 +258,17 @@ internal sealed class RunCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (CertificateServiceException ex)
+        {
+            _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            return ExitCodeConstants.FailedToTrustCertificates;
+        }
+        catch (Exception ex)
+        {
+            _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
+            _interactionService.DisplayLines(outputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
 }

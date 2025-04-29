@@ -72,6 +72,7 @@ public partial class MetricsTests : DashboardTestContext
                 }
             }
         };
+
         MetricsSetupHelpers.SetupMetricsPage(this, sessionStorage: testSessionStorage);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
@@ -165,8 +166,8 @@ public partial class MetricsTests : DashboardTestContext
 
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
-                Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-                Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+                Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
+                Assert.Single(items1, i => i.Instance.Data as OtlpMeter == instrument.Parent);
             }
         });
 
@@ -210,8 +211,8 @@ public partial class MetricsTests : DashboardTestContext
 
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
-                Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-                Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+                Assert.Single(items2, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
+                Assert.Single(items2, i => i.Instance.Data as OtlpMeter == instrument.Parent);
             }
         });
     }

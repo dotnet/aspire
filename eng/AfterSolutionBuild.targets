@@ -50,7 +50,7 @@
       ```
 
     -->
-  <Target Name="_GenerateTestMatrix" BeforeTargets="Test" Condition=" '$(TestRunnerName)' == 'QuarantinedTestRunsheetBuilder' ">
+  <Target Name="_GenerateTestMatrix" BeforeTargets="Test" Condition=" '$(TestRunnerName)' == 'TestRunsheetBuilder' or  '$(TestRunnerName)' == 'QuarantinedTestRunsheetBuilder' ">
     <PropertyGroup>
       <_CombinedRunsheetFile>$(ArtifactsTmpDir)/combined_runsheet.json</_CombinedRunsheetFile>
       <_Command>
@@ -65,7 +65,9 @@
                     $combined += @($content)
                 }
             }
-        $jsonString = ($combined | ConvertTo-Json -Depth 10 -Compress)
+
+        # See https://collectingwisdom.com/powershell-convertto-json-single-item-array/
+        $jsonString = (ConvertTo-Json $combined -Depth 10 -Compress)
         $jsonString | Set-Content '$(_CombinedRunsheetFile)';
 
         # determine if the script is running in a GitHub Actions environment

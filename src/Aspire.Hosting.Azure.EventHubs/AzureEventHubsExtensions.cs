@@ -7,7 +7,6 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
-using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +20,8 @@ namespace Aspire.Hosting;
 public static class AzureEventHubsExtensions
 {
     private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
 
     /// <summary>
     /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create Event Hub resources.
@@ -221,12 +222,15 @@ public static class AzureEventHubsExtensions
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
+            .WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 5300)
+            .WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/health")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = EventHubsEmulatorContainerImageTags.Registry,
                 Image = EventHubsEmulatorContainerImageTags.Image,
                 Tag = EventHubsEmulatorContainerImageTags.Tag
-            });
+            })
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
@@ -262,35 +266,6 @@ public static class AzureEventHubsExtensions
             context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}");
             context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}");
         }));
-
-        EventHubProducerClient? client = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
-        {
-            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
-                        ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-
-            // For the purposes of the health check we only need to know a hub name. If we don't have a hub
-            // name we can't configure a valid producer client connection so we should throw. What good is
-            // an event hub namespace without an event hub? :)
-            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
-            {
-                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.HubName};";
-                client = new EventHubProducerClient(healthCheckConnectionString);
-            }
-            else
-            {
-                throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource does not have any Event Hubs.");
-            }
-        });
-
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureEventHub(
-            sp => client ?? throw new DistributedApplicationException("EventHubProducerClient is not initialized"),
-            healthCheckKey
-            );
-
-        builder.WithHealthCheck(healthCheckKey);
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.

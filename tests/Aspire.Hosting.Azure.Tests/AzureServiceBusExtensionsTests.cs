@@ -244,7 +244,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         Assert.Collection(
             serviceBus.Resource.Annotations.OfType<EndpointAnnotation>(),
-            e => Assert.Equal(port, e.Port)
+            e => Assert.Equal(port, e.Port),
+            e => Assert.Equal(5300, e.TargetPort)
             );
     }
 

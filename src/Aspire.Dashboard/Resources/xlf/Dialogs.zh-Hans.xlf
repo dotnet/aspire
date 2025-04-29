@@ -208,8 +208,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">仪表板日志和遥测</target>
+        <source>Resource logs and telemetry</source>
+        <target state="translated">资源日志和遥测</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogEnableTelemetry">
+        <source>Enable dashboard telemetry</source>
+        <target state="translated">启用仪表板遥测</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -230,6 +235,16 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">系统</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">已启用仪表板遥测。Aspire 将收集使用情况数据并将其发送到 Microsoft。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">为什么?</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

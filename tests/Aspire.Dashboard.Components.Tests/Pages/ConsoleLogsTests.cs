@@ -3,15 +3,19 @@
 
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
+using Aspire.TestUtilities;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -409,6 +413,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8931")]
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
@@ -476,7 +481,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries().Where(e => e.Type is LogEntryType.Pause));
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);
@@ -496,7 +501,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
             {
                 _testOutputHelper.WriteLine(logEntry.RawContent ?? "no content");
             }
-            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries().Where(e => e.RawContent == resumeContent));
+            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries(), e => e.RawContent == resumeContent);
             // We discarded one log while paused, so the new log should be line 3, skipping one
             Assert.Equal(4, newLog.LineNumber);
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
@@ -549,6 +554,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
+        Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.AddSingleton<PauseManager>();
     }
 

@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-In the _Program.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
+In the _AppHost.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
 
 ```csharp
 var sql = builder.AddAzureSqlServer("sql")

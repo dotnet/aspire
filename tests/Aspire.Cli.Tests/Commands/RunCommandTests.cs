@@ -87,24 +87,38 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake apphost information to return a compatable app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
             options.CertificateServiceFactory = _ => new ThrowingCertificateService();
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.ProjectLocatorFactory = projectLocatorFactory;
         });
+
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
     }
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
         public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
     }
 
@@ -141,16 +155,16 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             var runner = new TestDotNetCliRunner();
 
             // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (ct) => 0;
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
 
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatable app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Make a backchannel and return it, but don't return from the run call until the backchannel 
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
