@@ -481,7 +481,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries().Where(e => e.Type is LogEntryType.Pause));
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);
@@ -501,7 +501,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
             {
                 _testOutputHelper.WriteLine(logEntry.RawContent ?? "no content");
             }
-            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries().Where(e => e.RawContent == resumeContent));
+            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries(), e => e.RawContent == resumeContent);
             // We discarded one log while paused, so the new log should be line 3, skipping one
             Assert.Equal(4, newLog.LineNumber);
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));

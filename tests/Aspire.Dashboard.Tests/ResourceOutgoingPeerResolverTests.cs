@@ -138,38 +138,38 @@ public class ResourceOutgoingPeerResolverTests
         // Initial resource causes change.
         tcs.SetResult(new ResourceViewModelSubscription(
             [CreateResource("test", serviceAddress: "localhost", servicePort: 8080)],
-            GetChanges()));
+            GetChanges(TestContext.Current.CancellationToken)));
 
         // Assert 1
-        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
+        readValue = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(1, readValue);
 
         // Act 2
         // New resource causes change.
-        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8080, state: KnownResourceState.Starting)));
+        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8080, state: KnownResourceState.Starting)), TestContext.Current.CancellationToken);
 
         // Assert 2
-        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
+        readValue = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(2, readValue);
 
         // Act 3
         // URL change causes change.
-        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8081, state: KnownResourceState.Starting)));
+        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8081, state: KnownResourceState.Starting)), TestContext.Current.CancellationToken);
 
         // Assert 3
-        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
+        readValue = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.Equal(3, readValue);
 
         // Act 4
         // Resource update doesn't cause change.
-        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8081, state: KnownResourceState.Running)));
+        await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2", serviceAddress: "localhost", servicePort: 8081, state: KnownResourceState.Running)), TestContext.Current.CancellationToken);
 
         // Dispose so that we know that all changes are processed.
         await resolver.DisposeAsync().DefaultTimeout();
         resultChannel.Writer.Complete();
 
         // Assert 4
-        Assert.False(await resultChannel.Reader.WaitToReadAsync().DefaultTimeout());
+        Assert.False(await resultChannel.Reader.WaitToReadAsync(TestContext.Current.CancellationToken).DefaultTimeout());
         Assert.Equal(3, changeCount);
 
         async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> GetChanges([EnumeratorCancellation] CancellationToken cancellationToken = default)

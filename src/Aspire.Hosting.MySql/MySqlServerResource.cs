@@ -10,6 +10,9 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
 {
     internal static string PrimaryEndpointName => "tcp";
 
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
+    private readonly List<MySqlDatabaseResource> _databaseResources = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MySqlServerResource"/> class.
     /// </summary>
@@ -40,15 +43,16 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
         ReferenceExpression.Create(
             $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordParameter}");
 
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
-
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
     /// </summary>
     public IReadOnlyDictionary<string, string> Databases => _databases;
 
-    internal void AddDatabase(string name, string databaseName)
+    internal IReadOnlyList<MySqlDatabaseResource> DatabaseResources => _databaseResources;
+
+    internal void AddDatabase(MySqlDatabaseResource database)
     {
-        _databases.TryAdd(name, databaseName);
+        _databases.TryAdd(database.Name, database.DatabaseName);
+        _databaseResources.Add(database);
     }
 }

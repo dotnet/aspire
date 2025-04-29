@@ -309,7 +309,9 @@ public static class AzureCosmosExtensions
             .WithUrls(context =>
             {
                 var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
+#pragma warning disable IDE0031 // Use null propagation (IDE0031)
                 if (url is not null)
+#pragma warning restore IDE0031
                 {
                     url.DisplayText = KnownUrls.DataExplorer.DisplayText;
                 }

@@ -57,6 +57,10 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Trust HTTPS development certificate (Linux)
+        if: matrix.tests.os == 'ubuntu-latest'
+        run: ./dotnet.sh dev-certs https --trust
+
       - name: Test ${{ matrix.tests.project }}
         run: |
           ${{ matrix.tests.command }}
@@ -85,7 +89,7 @@ jobs:
           path: ${{ github.workspace }}/artifacts/all-logs
 
       - name: Process logs and post results
-        if: always()
+        if: ${{ always() && github.repository_owner == 'dotnet' }}
         shell: pwsh
         run: |
           $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
