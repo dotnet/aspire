@@ -8,6 +8,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
