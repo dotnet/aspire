@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.Storage.Blobs
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureBlobClient` extension method to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureBlobClient` extension method to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureBlobClient("blobs");
@@ -122,7 +122,7 @@ In your AppHost project, install the Aspire Azure Storage Hosting library with [
 dotnet add package Aspire.Hosting.Azure.Storage
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Blob Storage connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Blob Storage connection and consume the connection using the following methods:
 
 ```csharp
 var blobs = builder.ExecutionContext.IsPublishMode

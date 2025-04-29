@@ -18,16 +18,16 @@ public partial class ResourceActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.Resources> Loc { get; set; }
+    public required IStringLocalizer<Resources.Resources> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; set; }
+    public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Parameter]
     public required EventCallback<CommandViewModel> CommandSelected { get; set; }
