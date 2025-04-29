@@ -24,7 +24,7 @@ internal sealed class AzureKeyVaultCertificatesComponent : AbstractAzureKeyVault
         => throw new NotImplementedException();
 
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<CertificateClient, CertificateClientOptions> clientBuilder, IConfiguration configuration)
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
         => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200 // Remove unnecessary lambda expression
 

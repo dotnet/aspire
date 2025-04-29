@@ -20,7 +20,7 @@ internal sealed class AzureKeyVaultKeysComponent : AbstractAzureKeyVaultComponen
         => new(vaultUri, cred, options);
 
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<KeyClient, KeyClientOptions> clientBuilder, IConfiguration configuration)
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
         => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200 // Remove unnecessary lambda expression
 

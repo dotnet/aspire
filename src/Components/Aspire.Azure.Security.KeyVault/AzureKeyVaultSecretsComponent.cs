@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Hosting;
 internal sealed class AzureKeyVaultSecretsComponent : AbstractAzureKeyVaultComponent<SecretClient, SecretClientOptions>
 {
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
         => clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200 // Remove unnecessary lambda expression
 
