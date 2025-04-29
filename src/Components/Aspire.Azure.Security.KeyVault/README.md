@@ -59,12 +59,11 @@ See the [Azure.Security.KeyVault.Secrets documentation](https://github.com/Azure
 
 ### Optionally include KeyClient and CertificateClient
 
-You can also optionally dependency inject a `KeyClient` and/or `CertificateClient` too:
+You can also dependency inject a `KeyClient` and/or `CertificateClient` too:
 
 ```csharp
-builder.AddAzureKeyVaultClient("secrets")
-       .AddKeyClient()
-       .AddCertificateClient();
+builder.AddAzureKeyVaultKeyClient("keys");
+builder.AddAzureKeyVaultCertificateClient("certificates");
 ```
 
 Which can then be retrieved in the same way the `SecretClient` is. For example , to retrieve a `KeyClient` from a Web API controller:
@@ -78,7 +77,7 @@ public ProductsController(KeyClient client)
 }
 ```
 
-Alternatively to retrieve a `CertificateClient` from a Web API controller:
+Or to retrieve a `CertificateClient` from a Web API controller:
 
 ```csharp
 private readonly CertificateClient _client;
