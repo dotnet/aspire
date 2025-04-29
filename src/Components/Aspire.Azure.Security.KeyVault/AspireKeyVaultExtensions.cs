@@ -28,10 +28,10 @@ public static class AspireKeyVaultExtensions
     /// <remarks>Reads the configuration from "Aspire:Azure:Security:KeyVault" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
     public static void AddAzureKeyVaultClient(
-    this IHostApplicationBuilder builder,
-    string connectionName,
-    Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
-    Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
