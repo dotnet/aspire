@@ -24,3 +24,6 @@ DELETE {{HostAddress}}/catalog/4
 Accept: application/json
 
 ###
+
+GET {{HostAddress}}/myTestDb2/
+Accept: application/json
