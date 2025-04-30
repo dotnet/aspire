@@ -179,7 +179,10 @@ internal sealed class ApplicationOrchestrator
         // Run the URL callbacks
         if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
         {
-            var urlsCallbackContext = new ResourceUrlsCallbackContext(new(DistributedApplicationOperation.Run), resource, urls, cancellationToken)
+            var executionContext = new DistributedApplicationExecutionContext(
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = _serviceProvider });
+
+            var urlsCallbackContext = new ResourceUrlsCallbackContext(executionContext, resource, urls, cancellationToken)
             {
                 Logger = _loggerService.GetLogger(resource.Name)
             };
