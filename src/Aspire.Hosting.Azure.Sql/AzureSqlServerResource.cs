@@ -119,10 +119,9 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         var principalName = roleAssignmentContext.PrincipalName;
         var principalId = roleAssignmentContext.PrincipalId;
 
-        // Get a reference to the user assigned identity that is used for the deployment
-        // c.f. AzureContainerAppExtensions.AddAzureContainerAppEnvironment()
-        var userManagedIdentity = UserAssignedIdentity.FromExisting("mi");
-        infra.Add(userManagedIdentity);
+        var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
+        sqlServerAdmin.Name = sqlserver.Administrators.Login;
+        infra.Add(sqlServerAdmin);
 
         foreach (var database in Databases.Keys)
         {
@@ -138,7 +137,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
             // Run the script as the administrator
             scriptResource.Identity.IdentityType = ArmDeploymentScriptManagedIdentityType.UserAssigned;
-            scriptResource.Identity.UserAssignedIdentities["${mi.id}"] = new UserAssignedIdentityDetails();
+            scriptResource.Identity.UserAssignedIdentities["${sqlServerAdmin.id}"] = new UserAssignedIdentityDetails();
 
             // Script don't support Bicep expression, they need to be passed as ENVs
             scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBNAME", Value = database });
@@ -157,22 +156,22 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 Import-Module SqlServer
 
                 $sqlCmd = @"
-                    DECLARE @principal_name SYSNAME = '$username';
-                    DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
-
-                    -- Convert the guid to the right type
-                    DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
-
-                    -- Construct command: CREATE USER [@principal_name] WITH SID = @castClientId, TYPE = E;
-                    DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
-                    EXEC (@cmd);
-
-                    -- Assign roles to the new user
-                    DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_datareader ADD MEMBER [' + @principal_name + ']';
-                    EXEC (@role1);
-
-                    DECLARE @role2 NVARCHAR(MAX) = N'ALTER ROLE db_datawriter ADD MEMBER [' + @principal_name + ']';
-                    EXEC (@role2);
+                DECLARE @principal_name SYSNAME = '$username';
+                DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
+                
+                -- Convert the guid to the right type
+                DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
+                
+                -- Construct command: CREATE USER [@principal_name] WITH SID = @castClientId, TYPE = E;
+                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
+                EXEC (@cmd);
+                
+                -- Assign roles to the new user
+                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_datareader ADD MEMBER [' + @principal_name + ']';
+                EXEC (@role1);
+                
+                DECLARE @role2 NVARCHAR(MAX) = N'ALTER ROLE db_datawriter ADD MEMBER [' + @principal_name + ']';
+                EXEC (@role2);
                 "@
                 # Note: the string terminator must not have whitespace before it, therefore it is not indented.
 
@@ -183,7 +182,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
                 """;
 
-            infra.Add(scriptResource);
+            // infra.Add(scriptResource);
         }
     }
 }

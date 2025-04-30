@@ -6,7 +6,9 @@ using Aspire.Hosting.Azure;
 //using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
+using static Azure.Provisioning.Expressions.BicepFunction;
 //using static Aspire.Hosting.Azure.SqlServerScriptProvisioningResource;
 
 namespace Aspire.Hosting;
@@ -203,6 +205,7 @@ public static class AzureSqlExtensions
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+
         (identifier, name) =>
         {
             var resource = SqlServer.FromExisting(identifier);
@@ -211,12 +214,13 @@ public static class AzureSqlExtensions
         },
         (infrastructure) =>
         {
-            // Creating a new SqlServer instance requires an administrator,
-            // so we need to create one here using the empty PrincipalId/PrincipalName
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalNameParameter);
+            // Creating a new SqlServer instance requires an administrator. We create a dedicated user assigned managed identity.
+            var adminManagedIdentity = new UserAssignedIdentity("sqlServerAdminManagedIdentity")
+            {
+                Name = Take(Interpolate($"{azureResource.GetBicepIdentifier()}-admin-{GetUniqueString(GetResourceGroup().Id)}"), 63)
+            };
+
+            infrastructure.Add(adminManagedIdentity);
 
             return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
@@ -224,8 +228,8 @@ public static class AzureSqlExtensions
                 {
                     AdministratorType = SqlAdministratorType.ActiveDirectory,
                     IsAzureADOnlyAuthenticationEnabled = true,
-                    Sid = principalIdParameter,
-                    Login = principalNameParameter,
+                    Sid = adminManagedIdentity.PrincipalId,
+                    Login = adminManagedIdentity.Name,
                     TenantId = BicepFunction.GetSubscription().TenantId
                 },
                 Version = "12.0",
