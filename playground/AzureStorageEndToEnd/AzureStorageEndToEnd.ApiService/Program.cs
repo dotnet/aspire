@@ -9,14 +9,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobContainerClient("foocontainer");
+
 builder.AddAzureQueueClient("queues");
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc) =>
+app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, BlobContainerClient bcc) =>
 {
-    var container = bsc.GetBlobContainerClient("mycontainer");
+    var container = bsc.GetBlobContainerClient(blobContainerName: "test-container-1");
 
     var blobNameAndContent = Guid.NewGuid().ToString();
     await container.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));

@@ -41,7 +41,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
 
         if (!string.IsNullOrEmpty(blobContainerName))
         {
-            builder.Append($"/{blobContainerName}");
+            builder.Append($"ContainerName={blobContainerName};");
         }
 
         return builder.Build();

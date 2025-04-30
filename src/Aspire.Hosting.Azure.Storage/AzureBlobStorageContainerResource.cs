@@ -28,7 +28,7 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage container resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(Name);
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(BlobContainerName);
 
     /// <summary>
     /// Gets the parent <see cref="AzureBlobStorageResource"/> of this <see cref="AzureBlobStorageContainerResource"/>.
@@ -41,7 +41,7 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
     /// <returns>A <see cref="global::Azure.Provisioning.Storage.BlobContainer"/> instance.</returns>
     internal global::Azure.Provisioning.Storage.BlobContainer ToProvisioningEntity()
     {
-        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(Name))
+        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(BlobContainerName))
         {
             Name = BlobContainerName
         };

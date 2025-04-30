@@ -148,22 +148,22 @@ public static class AzureStorageExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
         {
+            if (blobServiceClient is null)
+            {
+                throw new DistributedApplicationException($"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
+            }
+
             var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
             if (connectionString is null)
             {
                 throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
-            if (blobServiceClient is null)
-            {
-                throw new DistributedApplicationException($"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
-            }
-
             foreach (var blobStorageResources in builder.Resource.Blobs)
             {
                 foreach (var blobContainer in blobStorageResources.BlobContainers)
                 {
-                    await blobServiceClient.GetBlobContainerClient(blobContainer.Name).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+                    await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
                 }
             }
         });
@@ -368,22 +368,6 @@ public static class AzureStorageExtensions
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
-    }
-
-    /// <summary>
-    /// Allows setting the properties of an Azure Blob Storage container resource.
-    /// </summary>
-    /// <param name="builder">The Azure Blob Storage container resource builder.</param>
-    /// <param name="configure">A method that can be used for customizing the <see cref="AzureBlobStorageContainerResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBlobStorageContainerResource> WithProperties(this IResourceBuilder<AzureBlobStorageContainerResource> builder, Action<AzureBlobStorageContainerResource> configure)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configure);
-
-        configure(builder.Resource);
-
-        return builder;
     }
 
     /// <summary>

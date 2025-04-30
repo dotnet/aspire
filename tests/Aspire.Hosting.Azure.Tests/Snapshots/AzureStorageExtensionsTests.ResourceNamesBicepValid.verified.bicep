@@ -26,7 +26,7 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   parent: storage
 }
 
-resource myContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+resource my_blob_container 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'my-blob-container'
   parent: blobs
 }
