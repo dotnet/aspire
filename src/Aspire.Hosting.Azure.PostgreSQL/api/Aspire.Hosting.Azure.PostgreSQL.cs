@@ -23,6 +23,8 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource>>? configureContainer = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> WithPasswordAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> WithPasswordAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
     }
 }
 
@@ -53,6 +55,10 @@ namespace Aspire.Hosting.Azure
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzurePostgresFlexibleServer instead to add an Azure Postgres Flexible Server resource.")]

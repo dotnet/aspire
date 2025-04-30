@@ -12,6 +12,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
 builder.AddMySqlDataSource("Catalog");
+builder.AddKeyedMySqlDataSource("myTestDb2");
 
 var app = builder.Build();
 
@@ -63,6 +64,17 @@ app.MapDelete("/catalog/{id}", async (int id, MySqlConnection db) =>
     return rows > 0 ? Results.NoContent() : Results.NotFound();
 });
 
+app.MapGet("/myTestDb2", async ([FromKeyedServices("myTestDb2")] MySqlConnection db) =>
+{
+    const string sql = """
+                SELECT id, name
+                FROM example_table
+                """;
+
+    return await db.QueryAsync<ExampleTableItem>(sql);
+});
+
 app.Run();
 
 public record CatalogItem(int Id, string Name, string Description, decimal Price);
+public record ExampleTableItem(int Id, string Name);

@@ -11,7 +11,8 @@ using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.TestUtilities;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
@@ -30,6 +31,13 @@ namespace Aspire.Dashboard.Components.Tests.Pages;
 public partial class TraceDetailsTests : DashboardTestContext
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public TraceDetailsTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public void Render_HasTrace_SubscriptionRemovedOnDispose()
@@ -83,11 +91,13 @@ public partial class TraceDetailsTests : DashboardTestContext
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8546")]
     public async Task Render_ChangeTrace_RowsRendered()
     {
         // Arrange
-        SetupTraceDetailsServices();
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var logger = loggerFactory.CreateLogger(nameof(Render_ChangeTrace_RowsRendered));
+
+        SetupTraceDetailsServices(loggerFactory: loggerFactory);
 
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
@@ -125,10 +135,13 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         // Assert
-        var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
-        var rows = grid.FindAll(".fluent-data-grid-row", enableAutoRefresh: true);
-
-        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => rows.Count == 3, "Expected rows to be rendered.");
+        logger.LogInformation($"Assert row count for '{traceId}'");
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
+            var rows = grid.FindAll(".fluent-data-grid-row");
+            return rows.Count == 3;
+        }, "Expected rows to be rendered.", logger);
 
         traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("2"));
         cut.SetParametersAndRender(builder =>
@@ -136,10 +149,168 @@ public partial class TraceDetailsTests : DashboardTestContext
             builder.Add(p => p.TraceId, traceId);
         });
 
-        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => rows.Count == 2, "Expected rows to be rendered.");
+        logger.LogInformation($"Assert row count for '{traceId}'");
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
+            var rows = grid.FindAll(".fluent-data-grid-row");
+            return rows.Count == 2;
+        }, "Expected rows to be rendered.", logger);
     }
 
-    private void SetupTraceDetailsServices()
+    [Fact]
+    public async Task Render_SpansOrderedByStartTime_RowsRenderedInCorrectOrder()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10),
+                                    parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10),
+                                    parentSpanId: "2-1"),
+                                CreateSpan(traceId: "1", spanId: "3-3",
+                                    startTime: s_testTime.AddMinutes(3),
+                                    endTime: s_testTime.AddMinutes(5),
+                                    parentSpanId: "2-1"),
+                                CreateSpan(traceId: "1", spanId: "3-2",
+                                    startTime: s_testTime.AddMinutes(2),
+                                    endTime: s_testTime.AddMinutes(6),
+                                    parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        // Act
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        var data = await cut.Instance.GetData(new GridItemsProviderRequest<SpanWaterfallViewModel>());
+
+        // Assert
+        Assert.Collection(data.Items,
+            item => Assert.Equal("Test span. Id: 1-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 2-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-1", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-2", item.Span.Name),
+            item => Assert.Equal("Test span. Id: 3-3", item.Span.Name));
+    }
+
+    [Fact]
+    public void ToggleCollapse_SpanStateChanges()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(5),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(6),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
+        // Act and assert
+
+        // Collapse the middle span
+        cut.FindAll(".main-grid-expand-button")[1].Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be two containers since the 3rd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-expanded")),
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+
+        // Collapse the parent span
+        cut.FindAll(".main-grid-expand-button")[0].Click();
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be one container since the 2nd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+
+        // Expand the parent span, we should now see the same two containers as before
+        cut.FindAll(".main-grid-expand-button")[0].Click();
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // There should now be two containers since the 3rd level element should now be filtered out
+            Assert.Collection(expandContainers,
+                container => Assert.True(container.ClassList.Contains("main-grid-expanded")),
+                container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
+        });
+    }
+
+    private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -170,6 +341,8 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
+        loggerFactory ??= NullLoggerFactory.Instance;
+
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         Services.AddSingleton<PauseManager>();
@@ -177,13 +350,16 @@ public partial class TraceDetailsTests : DashboardTestContext
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
-        Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
+        Services.AddSingleton<ILoggerFactory>(loggerFactory);
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

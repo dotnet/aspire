@@ -49,8 +49,10 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                     new AfterPublishEvent(serviceProvider, model), stoppingToken
                     ).ConfigureAwait(false);
 
-                publishingActivity.IsComplete = true;
-                await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
+                await activityReporter.UpdateActivityStatusAsync(
+                    publishingActivity,
+                    (status) => status with { IsComplete = true },
+                    stoppingToken).ConfigureAwait(false);
 
                 // If we are running in publish mode and a backchannel is being
                 // used then we don't want to stop the app host. Instead the
@@ -65,12 +67,14 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to publish the distributed application.");
-                publishingActivity.IsError = true;
-                await activityReporter.UpdateActivityAsync(publishingActivity, stoppingToken).ConfigureAwait(false);
+                await activityReporter.UpdateActivityStatusAsync(
+                    publishingActivity,
+                    (status) => status with { IsError = true },
+                    stoppingToken).ConfigureAwait(false);
 
                 if (!backchannelService.IsBackchannelExpected)
                 {
-                     lifetime.StopApplication();
+                     throw new DistributedApplicationException($"Publishing failed exception message: {ex.Message}", ex);
                 }
             }
         }

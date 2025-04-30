@@ -8,16 +8,27 @@ namespace Aspire.Cli;
 
 internal interface INuGetPackageCache
 {
-    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNetCliRunner cliRunner) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner) : INuGetPackageCache
 {
     private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 
-    private const int SearchPageSize = 100;
+    private const int SearchPageSize = 1000;
 
-    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    {
+        return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
+    }
+
+    public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    {
+        return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", prerelease, source, cancellationToken);
+    }
+
+    internal async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -32,11 +43,12 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
             // This search should pick up Aspire.Hosting.* and CommunityToolkit.Aspire.Hosting.*
             var result = await cliRunner.SearchPackagesAsync(
                 workingDirectory,
-                "Aspire.Hosting",
+                query,
                 prerelease,
                 SearchPageSize,
                 skip,
                 source,
+                new DotNetCliRunnerInvocationOptions(),
                 cancellationToken
                 );
 
@@ -69,8 +81,9 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, DotNe
 
         static bool IsOfficialOrCommunityToolkitPackage(string packageName)
         {
-            var isHostingOrCommunityToolkitNamespaced = packageName.StartsWith("Aspire.Hosting.", StringComparison.OrdinalIgnoreCase) ||
-                   packageName.StartsWith("CommunityToolkit.Aspire.Hosting.", StringComparison.OrdinalIgnoreCase);
+            var isHostingOrCommunityToolkitNamespaced = packageName.StartsWith("Aspire.Hosting.", StringComparison.Ordinal) ||
+                   packageName.StartsWith("CommunityToolkit.Aspire.Hosting.", StringComparison.Ordinal) ||
+                   packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal);
             
             var isExcluded = packageName.StartsWith("Aspire.Hosting.AppHost") ||
                              packageName.StartsWith("Aspire.Hosting.Sdk") ||

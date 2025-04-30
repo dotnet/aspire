@@ -447,7 +447,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        Assert.Single(builder.Resources.Where(r => r.Name.EndsWith("-pgadmin")));
+        Assert.Single(builder.Resources, r => r.Name.EndsWith("-pgadmin"));
     }
 
     [Fact]
@@ -476,8 +476,8 @@ public class AddPostgresTests
 
         Assert.Equal("/pgadmin4", createServers.DestinationPath);
         Assert.Null(createServers.Umask);
-        Assert.Equal(0, createServers.DefaultOwner);
-        Assert.Equal(0, createServers.DefaultGroup);
+        Assert.Null(createServers.DefaultOwner);
+        Assert.Null(createServers.DefaultGroup);
 
         var entries = await createServers.Callback(new() { Model = pgadmin, ServiceProvider = app.Services }, CancellationToken.None);
 
@@ -547,8 +547,8 @@ public class AddPostgresTests
 
         Assert.Equal("/", createBookmarks.DestinationPath);
         Assert.Null(createBookmarks.Umask);
-        Assert.Equal(0, createBookmarks.DefaultOwner);
-        Assert.Equal(0, createBookmarks.DefaultGroup);
+        Assert.Null(createBookmarks.DefaultOwner);
+        Assert.Null(createBookmarks.DefaultGroup);
 
         var entries = await createBookmarks.Callback(new() { Model = pgweb, ServiceProvider = app.Services }, CancellationToken.None);
 
@@ -659,5 +659,45 @@ public class AddPostgresTests
                 """;
 
         return fileContent;
+    }
+
+    [Fact]
+    public void VerifyPostgresServerResourceWithHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("postgres")
+            .WithHostPort(1000);
+
+        var resource = Assert.Single(builder.Resources.OfType<PostgresServerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Fact]
+    public async Task VerifyPostgresServerResourceWithPassword()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var postgres = builder.AddPostgres("postgres")
+                                 .WithPassword(pass)
+                                 .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        var connectionString = await postgres.Resource.GetConnectionStringAsync();
+        Assert.Equal("Host=localhost;Port=2000;Username=postgres;Password=p@ssw0rd1", connectionString);
+    }
+
+    [Fact]
+    public async Task VerifyPostgresServerResourceWithUserName()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var user = "user1";
+        var pass = builder.AddParameter("user", user);
+        var postgres = builder.AddPostgres("postgres")
+                                 .WithUserName(pass)
+                                 .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        var connectionString = await postgres.Resource.GetConnectionStringAsync();
+        Assert.Equal($"Host=localhost;Port=2000;Username=user1;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
     }
 }

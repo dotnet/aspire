@@ -17,8 +17,10 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzurePublisherTests(ITestOutputHelper output)
 {
-    [Fact]
-    public async Task PublishAsync_GeneratesMainBicep()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PublishAsync_GeneratesMainBicep(bool useContext)
     {
         using var tempDirectory = new TempDirectory();
         using var tempDir = new TempDirectory();
@@ -28,13 +30,20 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        // The azure publisher is not tied to azure container apps but this is 
+        // The azure publisher is not tied to azure container apps but this is
         // a good way to test the end to end scenario
         builder.AddAzureContainerAppEnvironment("acaEnv");
 
         var storageSku = builder.AddParameter("storageSku", "Standard_LRS", publishValueAsDefault: true);
         var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
         var skuDescriptionExpr = ReferenceExpression.Create($"{description} {storageSku}");
+
+        var kvName = builder.AddParameter("kvName");
+        var kvRg = builder.AddParameter("kvRg", "rg-shared");
+
+        builder.AddAzureKeyVault("kv").AsExisting(kvName, kvRg);
+
+        builder.AddAzureStorage("existing-storage").PublishAsExisting("images", "rg-shared");
 
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("pgdb");
         var cosmos = builder.AddAzureCosmosDB("account").AddCosmosDatabase("db");
@@ -72,12 +81,26 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var publisher = new AzurePublisher("azure",
-            options,
-            provisionerOptions,
-            NullLogger<AzurePublisher>.Instance);
+        if (useContext)
+        {
+            // tests the public AzurePublishingContext API
+            var context = new AzurePublishingContext(
+                options.CurrentValue,
+                provisionerOptions.Value,
+                NullLogger<AzurePublishingContext>.Instance);
 
-        await publisher.PublishAsync(model, default);
+            await context.WriteModelAsync(model, default);
+        }
+        else
+        {
+            // tests via the internal Publisher object
+            var publisher = new AzurePublisher("azure",
+                options,
+                provisionerOptions,
+                NullLogger<AzurePublisher>.Instance);
+
+            await publisher.PublishAsync(model, default);
+        }
 
         Assert.True(File.Exists(Path.Combine(tempDir.Path, "main.bicep")));
 
@@ -87,25 +110,29 @@ public class AzurePublisherTests(ITestOutputHelper output)
             targetScope = 'subscription'
 
             param environmentName string
-            
+
             param location string
-            
+
             param principalId string
-            
+
+            param kvRg string
+
+            param kvName string
+
             param storageSku string = 'Standard_LRS'
-            
+
             param skuDescription string = 'The sku is '
-            
+
             var tags = {
               'aspire-env-name': environmentName
             }
-            
+
             resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
               name: 'rg-${environmentName}'
               location: location
               tags: tags
             }
-            
+
             module acaEnv 'acaEnv/acaEnv.bicep' = {
               name: 'acaEnv'
               scope: rg
@@ -114,7 +141,24 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 userPrincipalId: principalId
               }
             }
-            
+
+            module kv 'kv/kv.bicep' = {
+              name: 'kv'
+              scope: resourceGroup(kvRg)
+              params: {
+                location: location
+                kvName: kvName
+              }
+            }
+
+            module existing_storage 'existing-storage/existing-storage.bicep' = {
+              name: 'existing-storage'
+              scope: resourceGroup('rg-shared')
+              params: {
+                location: location
+              }
+            }
+
             module pg 'pg/pg.bicep' = {
               name: 'pg'
               scope: rg
@@ -122,7 +166,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 location: location
               }
             }
-            
+
             module account 'account/account.bicep' = {
               name: 'account'
               scope: rg
@@ -130,7 +174,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 location: location
               }
             }
-            
+
             module storage 'storage/storage.bicep' = {
               name: 'storage'
               scope: rg
@@ -140,7 +184,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 sku_description: '${skuDescription} ${storageSku}'
               }
             }
-            
+
             module mod 'mod/mod.bicep' = {
               name: 'mod'
               scope: rg
@@ -149,7 +193,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 pgdb: '${pg.outputs.connectionString};Database=pgdb'
               }
             }
-            
+
             module myapp_identity 'myapp-identity/myapp-identity.bicep' = {
               name: 'myapp-identity'
               scope: rg
@@ -157,7 +201,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 location: location
               }
             }
-            
+
             module myapp_roles_account 'myapp-roles-account/myapp-roles-account.bicep' = {
               name: 'myapp-roles-account'
               scope: rg
@@ -167,7 +211,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 principalId: myapp_identity.outputs.principalId
               }
             }
-            
+
             module fe_identity 'fe-identity/fe-identity.bicep' = {
               name: 'fe-identity'
               scope: rg
@@ -175,7 +219,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 location: location
               }
             }
-            
+
             module fe_roles_storage 'fe-roles-storage/fe-roles-storage.bicep' = {
               name: 'fe-roles-storage'
               scope: rg
@@ -185,26 +229,28 @@ public class AzurePublisherTests(ITestOutputHelper output)
                 principalId: fe_identity.outputs.principalId
               }
             }
-            
+
+            output acaEnv_AZURE_CONTAINER_REGISTRY_NAME string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_NAME
+
+            output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+
+            output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+
             output myapp_identity_id string = myapp_identity.outputs.id
-            
+
             output myapp_identity_clientId string = myapp_identity.outputs.clientId
-            
+
             output account_connectionString string = account.outputs.connectionString
-            
+
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
-            
+
             output fe_identity_id string = fe_identity.outputs.id
-            
+
             output fe_identity_clientId string = fe_identity.outputs.clientId
-            
+
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
-            
-            output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-            
-            output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
             """;
         output.WriteLine(content);
         Assert.Equal(expectedBicep, content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);

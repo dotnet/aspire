@@ -130,15 +130,17 @@ internal sealed class ResourceContainerImageBuilder(
                 stdout,
                 stderr);
 
-            publishingActivity.IsError = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsError = true },
+                cancellationToken).ConfigureAwait(false);
 
             throw new DistributedApplicationException($"Failed to build container image, stdout: {stdout}, stderr: {stderr}");
         }
         else
         {
-            publishingActivity.IsComplete = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsComplete = true },
+                cancellationToken).ConfigureAwait(false);
 
             logger.LogDebug(
                 ".NET CLI completed with exit code: {ExitCode}",
@@ -171,8 +173,9 @@ internal sealed class ResourceContainerImageBuilder(
                 imageName,
                 cancellationToken).ConfigureAwait(false);
 
-            publishingActivity.IsComplete = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsComplete = true },
+                cancellationToken).ConfigureAwait(false);
 
             return image;
         }
@@ -180,8 +183,9 @@ internal sealed class ResourceContainerImageBuilder(
         {
             logger.LogError(ex, "Failed to build container image from Dockerfile.");
 
-            publishingActivity.IsError = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsError = true },
+                cancellationToken).ConfigureAwait(false);
 
             throw;
         }

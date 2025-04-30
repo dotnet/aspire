@@ -258,6 +258,8 @@ public class ApplicationOrchestratorTests
         DistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+
         return new ApplicationOrchestrator(
             distributedAppModel,
             new TestDcpExecutor(),
@@ -266,21 +268,10 @@ public class ApplicationOrchestratorTests
             notificationService,
             resourceLoggerService ?? new ResourceLoggerService(),
             applicationEventing ?? new DistributedApplicationEventing(),
-            new ServiceCollection().BuildServiceProvider()
+            serviceProvider,
+            new DistributedApplicationExecutionContext(
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
             );
-    }
-
-    private sealed class TestDcpExecutor : IDcpExecutor
-    {
-        public IResourceReference GetResource(string resourceName) => throw new NotImplementedException();
-
-        public Task RunApplicationAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent

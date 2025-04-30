@@ -469,7 +469,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
         bool includePrincipalName = false)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         configureBuilder(builder);
 
@@ -479,7 +479,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"api-roles-{azureResourceName}"));
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == $"api-roles-{azureResourceName}");
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 

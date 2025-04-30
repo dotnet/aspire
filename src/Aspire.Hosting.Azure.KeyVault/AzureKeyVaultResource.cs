@@ -48,7 +48,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <param name="secretName"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public IAzureKeyVaultSecretReference GetSecretReference(string secretName)
+    public IAzureKeyVaultSecretReference GetSecret(string secretName)
     {
         ArgumentException.ThrowIfNullOrEmpty(secretName, nameof(secretName));
 

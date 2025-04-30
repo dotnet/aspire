@@ -103,7 +103,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7293")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -260,6 +259,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(bindMountPath);
 
         try
         {

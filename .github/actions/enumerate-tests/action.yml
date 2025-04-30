@@ -49,7 +49,7 @@ runs:
           "/t:Build;ExtractTestClassNames"
           /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
           -p:ExtractTestClassNamesForHelix=true
-          -p:ArchiveTests=true
+          -p:PrepareForHelix=true
           -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
           -p:InstallBrowsersForPlaywright=false
 

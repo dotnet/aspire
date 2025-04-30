@@ -52,9 +52,9 @@
         <target state="translated">&lt;Captura de log em pausa entre {0} e {1}, {2} logs filtrados&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Comandos de recursos</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Ações do recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

@@ -8,9 +8,18 @@ namespace Aspire.Dashboard.Model;
 /// <summary>
 /// Provides data about active resources to external components, such as the dashboard.
 /// </summary>
-public interface IDashboardClient : IDashboardClientStatus, IAsyncDisposable
+public interface IDashboardClient : IAsyncDisposable
 {
     Task WhenConnected { get; }
+
+    /// <summary>
+    /// Gets whether the client object is enabled for use.
+    /// </summary>
+    /// <remarks>
+    /// Users of <see cref="IDashboardClient"/> client should check <see cref="IsEnabled"/> before calling
+    /// any other members of this interface, to avoid exceptions.
+    /// </remarks>
+    bool IsEnabled { get; }
 
     /// <summary>
     /// Gets the application name advertised by the server.
@@ -41,6 +50,8 @@ public interface IDashboardClient : IDashboardClientStatus, IAsyncDisposable
     /// <para>It is important that callers trigger <paramref name="cancellationToken"/>
     /// so that resources owned by the sequence and its consumers can be freed.</para>
     IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken);
+
+    IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken);
 
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
 }

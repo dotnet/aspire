@@ -149,7 +149,7 @@ public partial class AspireProject : IAsyncDisposable
         if (addEndpointsHook)
         {
             File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
-            string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
+            string programCsPath = Path.Combine(project.AppHostProjectDirectory, "AppHost.cs");
             string programCs = File.ReadAllText(programCsPath);
             programCs = "using Aspire.Hosting.Lifecycle; " + programCs;
             programCs = programCs.Replace("builder.Build().Run();", EndpointWritersCodeSnippet);

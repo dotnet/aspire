@@ -155,7 +155,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var relativePathToProjectFile = GetManifestRelativePath(metadata.ProjectPath);
 
-        if (project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+        var deploymentTarget = project.GetDeploymentTargetAnnotation();
+        if (deploymentTarget is not null)
         {
             Writer.WriteString("type", "project.v1");
         }
@@ -250,7 +251,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
-        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget);
+        var deploymentTarget = container.GetDeploymentTargetAnnotation();
 
         if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {

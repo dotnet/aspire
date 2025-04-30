@@ -13,10 +13,10 @@ on:
         # relative the repo root
         required: false
         type: string
-      testSessionTimeoutMs:
+      testSessionTimeout:
         required: false
         type: string
-        default: "600000"
+        default: "15m"
       testHangTimeout:
         required: false
         type: string
@@ -160,8 +160,8 @@ jobs:
           CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
-          /p:ArchiveTests=true
-          /bl:${{ github.workspace }}/artifacts/log/Debug/ArchiveTests.binlog
+          /p:PrepareForHelix=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
@@ -220,18 +220,14 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         run: >
-          dotnet test -s .runsettings -v:n ${{ env.TEST_ASSEMBLY_NAME }}.dll
-          -l "console;verbosity=normal"
-          -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
-          -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
-          --blame
-          --blame-hang-timeout ${{ inputs.testHangTimeout }}
-          --blame-crash
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
           --results-directory ${{ github.workspace }}/testresults
+          --filter-not-trait "category=failing"
+          --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
-          --
-          RunConfiguration.CollectSourceInformation=true
-          RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
 
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
@@ -240,24 +236,24 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
+          # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
+          # So, we manually set NUGET_PACKAGES
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
-          -s eng/testing/.runsettings
-          -l "console;verbosity=normal"
-          -l "trx;LogFilePrefix=${{ inputs.testShortName }}"
-          -l "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
-          "--blame"
-          --blame-hang-timeout ${{ inputs.testHangTimeout }}
-          --blame-crash
-          --results-directory testresults
+          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
+          -bl:${{ github.workspace }}/testresults/test.binlog
           --no-restore
           --no-build
-          -bl:${{ github.workspace }}/testresults/test.binlog
-          ${{ inputs.extraTestArgs }}
           --
-          RunConfiguration.CollectSourceInformation=true
-          RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs }}
+          --report-trx
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
+          --results-directory ${{ github.workspace }}/testresults
+          --timeout ${{ inputs.testSessionTimeout }}
+          ${{ inputs.extraTestArgs }}
 
       # Save the result of the previous steps - success or failure
       # in the form of a file result-success/result-failure -{name}.rst

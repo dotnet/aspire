@@ -31,11 +31,12 @@ jobs:
         run: dotnet tool install --global dotnet-outdated-tool
 
       - name: Update packages
-        run: dotnet outdated --no-restore -u ./Aspire.sln
+        continue-on-error: true
+        run: dotnet outdated --no-restore -u ./Aspire.sln || echo "Some dependencies could not be updated, but continuing workflow."
 
-      - name: Revert all changes except Directory.Packages.props
+      - name: Revert all changes except Directory.Packages.props files
         run: |
-          git add Directory.Packages.props
+          git add **Directory.Packages.props
           rm nuget.config
           git checkout -- .
 

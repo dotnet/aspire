@@ -52,9 +52,9 @@
         <target state="translated">&lt;ログ キャプチャが {0} と {1} の間で一時停止されました。{2} 件のログがフィルターで除外されました&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">リソース コマンド</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">リソース アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

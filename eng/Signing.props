@@ -26,6 +26,12 @@
     <FileSignInfo Include="MessagePack.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="MessagePack.Annotations.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Spectre.Console.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Api.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Api.ProviderBuilderExtensions.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Exporter.OpenTelemetryProtocol.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
   </ItemGroup>
 
   <ItemGroup>

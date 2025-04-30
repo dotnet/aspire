@@ -59,8 +59,8 @@
 
           To fix that, append '.' to the name so only the test class with exactly that name is run.
         -->
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter quarantined^^!=true^&amp;category^^!=failing^&amp;FullyQualifiedName~%(Identity).&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter quarantined!=true&amp;category!=failing&amp;FullyQualifiedName~%(Identity).&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter-not-trait quarantined=true --filter-not-trait category=failing --filter-class %(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter-not-trait quarantined=true --filter-not-trait category=failing --filter-class %(Identity)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>

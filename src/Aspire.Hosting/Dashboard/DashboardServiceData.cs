@@ -27,7 +27,6 @@ internal sealed class DashboardServiceData : IDisposable
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _commandExecutor = commandExecutor;
-
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -136,6 +135,23 @@ internal sealed class DashboardServiceData : IDisposable
     internal IAsyncEnumerable<IReadOnlyList<LogLine>>? SubscribeConsoleLogs(string resourceName)
     {
         var sequence = _resourceLoggerService.WatchAsync(resourceName);
+
+        return sequence is null ? null : Enumerate();
+
+        async IAsyncEnumerable<IReadOnlyList<LogLine>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+
+            await foreach (var item in sequence.WithCancellation(linked.Token).ConfigureAwait(false))
+            {
+                yield return item;
+            }
+        }
+    }
+
+    internal IAsyncEnumerable<IReadOnlyList<LogLine>>? GetConsoleLogs(string resourceName)
+    {
+        var sequence = _resourceLoggerService.GetAllAsync(resourceName);
 
         return sequence is null ? null : Enumerate();
 

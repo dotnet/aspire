@@ -37,13 +37,17 @@ function getFluentMenuItemForTarget(element) {
     return null;
 }
 
-// Register a global click event listener to handle copy button clicks.
+// Register a global click event listener to handle copy/open button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
     // The copy 'button' could either be a button or a menu item.
-    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
-    if (targetElement && targetElement.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(targetElement);
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target);
+    if (targetElement) {
+        if (targetElement.getAttribute("data-copybutton")) {
+            buttonCopyTextToClipboard(targetElement);
+        } else if (targetElement.getAttribute("data-openbutton")) {
+            buttonOpenLink(targetElement);
+        }
         e.stopPropagation();
     }
 });
@@ -112,6 +116,13 @@ function isScrolledToBottom(container) {
     const difference = containerScrollBottom - container.scrollTop;
 
     return difference < marginOfError;
+}
+
+window.buttonOpenLink = function (element) {
+    const url = element.getAttribute("data-url");
+    const target = element.getAttribute("data-target");
+
+    window.open(url, target, "noopener,noreferrer");
 }
 
 window.buttonCopyTextToClipboard = function(element) {
@@ -278,10 +289,13 @@ window.unregisterGlobalKeydownListener = function (obj) {
     window.document.removeEventListener('keydown', obj.keydownListener);
 };
 
-window.getBrowserTimeZone = function () {
+window.getBrowserInfo = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
-    return options.timeZone;
+    return {
+        timeZone: options.timeZone,
+        userAgent: navigator.userAgent
+    };
 };
 
 window.focusElement = function (selector) {

@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
@@ -27,7 +28,7 @@ using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
+internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     internal const string DefaultAspireNetworkName = "default-aspire-network";
@@ -129,6 +130,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // This is here so hosting does not throw an exception when CTRL+C during startup.
+            _logger.LogDebug("Cancellation received during application startup.");
+        }
         catch
         {
             _shutdownCancellation.Cancel();
@@ -221,6 +227,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     Task.Run(() => WatchKubernetesResourceAsync<Endpoint>(ProcessEndpointChange))).ConfigureAwait(false);
             }
         });
+
+        _loggerService.SetConsoleLogsService(this);
 
         var watchSubscribersTask = Task.Run(async () =>
         {
@@ -423,12 +431,56 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         return new(null, null, null);
     }
 
+    public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
+        if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
+        {
+            enumerable = new ResourceLogSource<Container>(_logger, _kubernetesService, container, follow: false);
+        }
+        else if (_resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable))
+        {
+            enumerable = new ResourceLogSource<Executable>(_logger, _kubernetesService, executable, follow: false);
+        }
+
+        if (enumerable != null)
+        {
+            await foreach (var batch in enumerable.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                var logs = new List<LogEntry>();
+                foreach (var logEntry in CreateLogEntries(batch))
+                {
+                    logs.Add(logEntry);
+                }
+
+                yield return logs;
+            }
+        }
+    }
+
+    private static IEnumerable<LogEntry> CreateLogEntries(IReadOnlyList<(string, bool)> batch)
+    {
+        foreach (var (content, isError) in batch)
+        {
+            DateTime? timestamp = null;
+            var resolvedContent = content;
+
+            if (TimestampParser.TryParseConsoleTimestamp(resolvedContent, out var result))
+            {
+                resolvedContent = result.Value.ModifiedText;
+                timestamp = result.Value.Timestamp.UtcDateTime;
+            }
+
+            yield return LogEntry.Create(timestamp, resolvedContent, content, isError);
+        }
+    }
+
     private void StartLogStream<T>(T resource) where T : CustomResource
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
             _ => null
         };
 
@@ -458,18 +510,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
-                        foreach (var (content, isError) in batch)
+                        foreach (var logEntry in CreateLogEntries(batch))
                         {
-                            DateTime? timestamp = null;
-                            var resolvedContent = content;
-
-                            if (TimestampParser.TryParseConsoleTimestamp(resolvedContent, out var result))
-                            {
-                                resolvedContent = result.Value.ModifiedText;
-                                timestamp = result.Value.Timestamp.UtcDateTime;
-                            }
-
-                            logger(LogEntry.Create(timestamp, resolvedContent, content, isError));
+                            logger(logEntry);
                         }
                     }
                 }

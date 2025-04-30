@@ -160,8 +160,8 @@
   <data name="ConsoleLogsSettings" xml:space="preserve">
     <value>Console logs settings</value>
   </data>
-  <data name="ConsoleLogsResourceCommands" xml:space="preserve">
-    <value>Resource commands</value>
+  <data name="ConsoleLogsResourceActions" xml:space="preserve">
+    <value>Resource actions</value>
   </data>
   <data name="ConsoleLogsTimestampShow" xml:space="preserve">
     <value>Show timestamps</value>

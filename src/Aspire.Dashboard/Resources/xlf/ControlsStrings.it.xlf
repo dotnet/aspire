@@ -252,9 +252,14 @@
         <target state="translated">(Annulla)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Collega</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Indirizzo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Testo</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -540,6 +545,11 @@
       <trans-unit id="TimestampColumnHeader">
         <source>Timestamp</source>
         <target state="translated">Timestamp</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="new">Toggle nesting</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterCapturePaused">

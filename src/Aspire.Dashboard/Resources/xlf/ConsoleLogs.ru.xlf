@@ -52,9 +52,9 @@
         <target state="translated">&lt;Запись журнала приостановлена между {0} и {1}, отфильтровано журналов: {2}&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Команды ресурсов</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Действия с ресурсами</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

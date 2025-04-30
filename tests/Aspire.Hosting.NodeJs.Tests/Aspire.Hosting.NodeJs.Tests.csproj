@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
+
     <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.NodeJs\Aspire.Hosting.NodeJs.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />

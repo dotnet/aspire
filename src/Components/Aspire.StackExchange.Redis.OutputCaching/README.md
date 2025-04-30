@@ -18,7 +18,7 @@ dotnet add package Aspire.StackExchange.Redis.OutputCaching
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddRedisOutputCache` extension method to register the Redis output cache provider in the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddRedisOutputCache` extension method to register the Redis output cache provider in the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddRedisOutputCache("cache");
@@ -107,7 +107,7 @@ In your AppHost project, install the `Aspire.Hosting.Redis` library with [NuGet]
 dotnet add package Aspire.Hosting.Redis
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Redis server and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Redis server and consume the connection using the following methods:
 
 ```csharp
 var redis = builder.AddRedis("cache");

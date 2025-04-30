@@ -838,7 +838,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var appConfigRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"appConfig-roles"));
+        var appConfigRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "appConfig-roles");
         var appConfigRolesManifest = await GetManifestWithBicep(appConfigRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -1273,129 +1273,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultViaRunMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var mykv = builder.AddAzureKeyVault("mykv");
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultViaPublishMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var mykv = builder.AddAzureKeyVault("mykv");
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await GetManifestWithBicep(model, mykv.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-
-        var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"mykv-roles"));
-        var kvRolesManifest = await GetManifestWithBicep(kvRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param mykv_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: mykv_outputs_name
-            }
-
-            resource mykv_KeyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-                principalType: principalType
-              }
-              scope: mykv
-            }
-            """;
-        output.WriteLine(kvRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, kvRolesManifest.BicepText);
     }
 
     [Fact]
@@ -2008,7 +1885,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"sb-roles"));
+        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "sb-roles");
         var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2092,7 +1969,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"wps1-roles"));
+        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "wps1-roles");
         var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2542,7 +2419,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
 
-        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
         var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -2836,7 +2713,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"search-roles"));
+        var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "search-roles");
         var searchRolesManifest = await GetManifestWithBicep(searchRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -3028,7 +2905,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"openai-roles"));
+        var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "openai-roles");
         var openaiRolesManifest = await GetManifestWithBicep(openaiRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')

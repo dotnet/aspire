@@ -40,7 +40,7 @@ public partial class MobileNavMenu : ComponentBase
                 Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
                 () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
                 DesktopNavMenu.ResourcesIcon(),
-                LinkMatchRegex: new Regex($"^{DashboardUrls.ResourcesUrl()}$")
+                LinkMatchRegex: new Regex($"^{DashboardUrls.ResourcesUrl()}(\\?.*)?$")
             );
 
             yield return new MobileNavMenuEntry(

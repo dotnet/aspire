@@ -17,8 +17,8 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
-        var app2 = new OtlpApplication("app2", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
+        var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
 
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
@@ -42,6 +42,36 @@ public sealed class SpanWaterfallViewModelTests
             });
     }
 
+    [Fact]
+    public void Create_OutgoingPeers_BrowserLink()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
+        var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
+
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc), kind: OtlpSpanKind.Client, attributes: [KeyValuePair.Create("http.url", "http://localhost:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag"), KeyValuePair.Create("server.address", "localhost")]));
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "2", parentSpanId: null, startDate: new DateTime(2001, 2, 1, 1, 1, 2, DateTimeKind.Utc), kind: OtlpSpanKind.Client));
+
+        // Act
+        var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([new BrowserLinkOutgoingPeerResolver()], []));
+
+        // Assert
+        Assert.Collection(vm,
+            e =>
+            {
+                Assert.Equal("1", e.Span.SpanId);
+                Assert.Equal("Browser Link", e.UninstrumentedPeer);
+            },
+            e =>
+            {
+                Assert.Equal("2", e.Span.SpanId);
+                Assert.Null(e.UninstrumentedPeer);
+            });
+    }
+
     [Theory]
     [InlineData("1234", true)]  // Matches span ID
     [InlineData("app1", true)]  // Matches application name
@@ -52,7 +82,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app = new OtlpApplication("app1", "instance", context);
+        var app = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
 
@@ -78,10 +108,7 @@ public sealed class SpanWaterfallViewModelTests
 
         var vm = SpanWaterfallViewModel.Create(
             trace,
-            new SpanWaterfallViewModel.TraceDetailState(
-                [new TestPeerResolver()],
-                []
-            )).First();
+            new SpanWaterfallViewModel.TraceDetailState([], [])).First();
 
         // Act
         var result = vm.MatchesFilter(filter, a => a.Application.ApplicationName, out _);
@@ -95,7 +122,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
         var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
@@ -117,7 +144,7 @@ public sealed class SpanWaterfallViewModelTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", context);
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
         var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "parent", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc));
@@ -133,27 +160,6 @@ public sealed class SpanWaterfallViewModelTests
         Assert.True(parent.MatchesFilter("parent", a => a.Application.ApplicationName, out var descendents));
         Assert.Equal("child", Assert.Single(descendents).Span.SpanId);
         Assert.False(child.MatchesFilter("parent", a => a.Application.ApplicationName, out _));
-    }
-
-    private sealed class TestPeerResolver : IOutgoingPeerResolver
-    {
-        public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name)
-        {
-            var peerService = attributes.FirstOrDefault(a => a.Key == "peer.service");
-            if (!string.IsNullOrEmpty(peerService.Value))
-            {
-                name = peerService.Value;
-                return true;
-            }
-
-            name = null;
-            return false;
-        }
-
-        public IDisposable OnPeerChanges(Func<Task> callback)
-        {
-            return EmptyDisposable.Instance;
-        }
     }
 
     private sealed class EmptyDisposable : IDisposable

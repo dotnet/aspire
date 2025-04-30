@@ -12,120 +12,139 @@ concurrency:
 
 jobs:
 
-  test:
-    name: ${{ matrix.os.title }}
-    runs-on: ${{ matrix.os.name }}
+  generate_tests_matrix:
+    name: Generate test runsheet
+    runs-on: windows-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    outputs:
+      runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # We need to build the whole solution, so that we can interrogate each test project
+      # and find out whether it contains any quarantined tests.
+      - name: Build the solution
+        run: |
+          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
+
+      - name: Generate test runsheet
+        id: generate_tests_matrix
+        run: |
+          ./build.cmd -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true -c Release -ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
+
+      - name: Upload logs, and test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: logs-runsheet
+          path: |
+            ${{ github.workspace }}/artifacts/log/*/runsheet.binlog
+            ${{ github.workspace }}/artifacts/log/*/TestLogs/**
+            ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
+          retention-days: 5
+
+  run_tests:
+    name: Test
+    needs: generate_tests_matrix
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - name: ubuntu-latest
-            title: Linux
-          - name: windows-latest
-            title: Windows
+        tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
+
+    runs-on: ${{ matrix.tests.os }} # Use the OS from the matrix
+    if: ${{ github.repository_owner == 'dotnet' }}
+
     steps:
-      - name: Setup vars (Linux)
-        if: ${{ matrix.os.name == 'ubuntu-latest' }}
-        run: |
-          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
-          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
-
-      - name: Setup vars (Windows)
-        if: ${{ matrix.os.name == 'windows-latest' }}
-        run: |
-          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
-          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
-
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Trust HTTPS development certificate (Linux)
-        if: matrix.os.name == 'ubuntu-latest'
-        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+        if: matrix.tests.os == 'ubuntu-latest'
+        run: ./dotnet.sh dev-certs https --trust
 
-      - name: Run quarantined tests
-        env:
-          CI: false
+      - name: Test ${{ matrix.tests.project }}
         run: |
-          ${{ env.BUILD_SCRIPT }} -projects ${{ github.workspace }}/tests/Shared/SolutionTests.proj -ci -restore -build -test -c Release /p:RunQuarantinedTests=true /bl:${{ github.workspace }}/artifacts/log/Release/test-quarantined.binlog
+          ${{ matrix.tests.command }}
 
-      - name: Keep only relevant test logs
+      - name: Upload logs, and test results
         if: always()
-        shell: pwsh
-        run: |
-          # Define the directory to search for log files
-          $logDirectory = "${{ github.workspace }}/artifacts/log/**/TestLogs"
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: ${{ matrix.tests.project }}-${{ matrix.tests.os }}-logs
+          path: |
+            ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
+            ${{ github.workspace }}/artifacts/TestResults/*/*.trx
+          # Longer retention time to allow scanning runs for quarantined test results
+          retention-days: 30
 
-          # Define the text to search for in the log files
-          $searchText = "No test matches the given testcase filter"
-          $resultsFilePattern = "Results File: (.+)"
-
-          # Get all .log files in the specified directory and its subdirectories
-          $logFiles = Get-ChildItem -Path $logDirectory -Filter *.log -Recurse
-
-          foreach ($logFile in $logFiles) {
-              # Read the content of the log file
-              $content = Get-Content -Path $logFile.FullName
-
-              # Check if the content contains the specified text
-              if ($content -match $searchText) {
-                  # Remove the log file if it contains the specified text
-                  Remove-Item -Path $logFile.FullName -Force
-                  Write-Host "Removed file: $($logFile.FullName)"
-              }
-              else {
-                  # Extract paths from lines containing "Results File: <path>"
-                  foreach ($line in $content) {
-                      if ($line -match $resultsFilePattern) {
-                          $resultsFilePath = $matches[1]
-                          Write-Host "Found results file: $resultsFilePath"
-
-                          # Copy the results file to the TestLogs folder
-                          $destinationPath = (Split-Path -Path $logFile.FullName -Parent)
-                          Copy-Item -Path $resultsFilePath -Destination $destinationPath -Force
-                          Write-Host "Copied $resultsFilePath to $destinationPath"
-                      }
-                  }
-              }
-          }
+  results:
+    if: always()
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: run_tests
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: '*-logs'
+          path: ${{ github.workspace }}/artifacts/all-logs
 
       - name: Process logs and post results
-        if: always()
+        if: ${{ always() && github.repository_owner == 'dotnet' }}
         shell: pwsh
         run: |
-          $logDirectory = "${{ github.workspace }}/artifacts/log/**/TestLogs"
+          $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
           $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
 
           $testResults = @() # Initialize an array to store test results
 
           foreach ($trxFile in $trxFiles) {
-              # Load the .trx file as XML
-              $xmlContent = [xml](Get-Content -Path $trxFile.FullName)
+            # Determine the OS based on the file path
+            if ($trxFile.FullName -match "ubuntu") {
+                $OS = "ubuntu"
+            } elseif ($trxFile.FullName -match "windows") {
+                $OS = "windows"
+            } else {
+                $OS = "unknown"
+            }
 
-              # Extract test results from the XML
-              foreach ($testResult in $xmlContent.TestRun.Results.UnitTestResult) {
-                  $testName = $testResult.testName
-                  $outcome = $testResult.outcome
-                  $duration = $testResult.duration
+            # Load the .trx file as XML
+            try {
+                # Attempt to load the .trx file as XML
+                $xmlContent = [xml](Get-Content -Path $trxFile.FullName)
 
-                  # Map outcome to emoji
-                  switch ($outcome) {
-                      "Passed" { $emoji = "✔️" }
-                      "Failed" { $emoji = "❌" }
-                      default { $emoji = "❔" }
-                  }
+                # Extract test results from the XML
+                foreach ($testResult in $xmlContent.TestRun.Results.UnitTestResult) {
+                    $testName = $testResult.testName
+                    $outcome = $testResult.outcome
+                    $duration = $testResult.duration
 
-                  # Normalize the duration to a consistent format (hh:mm:ss.fff)
-                  $normalizedDuration = [TimeSpan]::Parse($duration).ToString("mm\:ss\.fff")
+                    # Map outcome to emoji
+                    switch ($outcome) {
+                        "Passed" { $emoji = "✅" }
+                        "Failed" { $emoji = "❌" }
+                        default { $emoji = "❔" }
+                    }
 
-                  # Add the test result to the array
-                  $testResults += [PSCustomObject]@{
-                      TestName    = $testName
-                      Outcome     = $outcome
-                      OutcomeIcon = $emoji
-                      Duration    = $normalizedDuration
-                  }
-              }
+                    # Normalize the duration to a consistent format (hh:mm:ss.fff)
+                    $normalizedDuration = [TimeSpan]::Parse($duration).ToString("mm\:ss\.fff")
+
+                    # Add the test result to the array
+                    $testResults += [PSCustomObject]@{
+                        TestName    = $testName
+                        Outcome     = $outcome
+                        OutcomeIcon = $emoji
+                        Duration    = $normalizedDuration
+                        OS          = $OS
+                    }
+                }
+            } catch {
+                Write-Host "::error::Failed to process $($trxFile.FullName): $($_.Exception.Message)"
+            }
+          }
+
+          if ($testResults.Length -lt 1) {
+              Write-Host "::notice::Tests Summary: no quaratined tests found"
+              return;
           }
 
           # Sort the test results by test name
@@ -146,30 +165,13 @@ jobs:
           }
 
           # Format the test results as a console-friendly table
-          $tableHeader = "{0,-16} {1,-150} {2,-20}" -f "Duration", "Test Name", "Result"
-          $tableSeparator = "-" * 185
-          $tableRows = $testResults | ForEach-Object { "{0,-16} {1,-150} {2,-20}" -f $_.Duration, $_.TestName, "$($_.OutcomeIcon) $($_.Outcome)" }
+          $tableHeader = "{0,-12} {1,-10} {2,-140} {3,-16}" -f "Result", "OS", "Test Name", "Duration"
+          $tableSeparator = "-" * 190
+          $tableRows = $testResults | ForEach-Object { "{0,-12} {1,-10} {2,-140} {3,-16}" -f "$($_.OutcomeIcon) $($_.Outcome)", $_.OS, $_.TestName, $_.Duration }
           $table = "$tableHeader`n$tableSeparator`n" + ($tableRows -join "`n") + "`n$tableSeparator`n"
           Write-Host "`nTest Results:`n`n$table"
 
           # Optionally, save the results to a file for further processing
-          $outputPath = "${{ github.workspace }}/artifacts/log/Release/TestLogs/summary.log"
+          $outputPath = "${{ github.workspace }}/artifacts/summary.log"
           $table | Out-File -FilePath $outputPath -Encoding utf8
           Write-Host "Test results saved to $outputPath"
-
-          # Windows-specific: Check for failed tests and set the exit code accordingly
-          # This is a workaround for the issue with the `exit` command in PowerShell
-          if ($failedTests -gt 0) {
-              Write-Host "::error::Build failed. Check errors above."
-              exit 1
-          }
-
-      - name: Upload logs, and test results
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: logs-${{ matrix.os.name }}
-          path: |
-            ${{ github.workspace }}/artifacts/log/*/*.binlog
-            ${{ github.workspace }}/artifacts/log/*/TestLogs/**
-          retention-days: 5

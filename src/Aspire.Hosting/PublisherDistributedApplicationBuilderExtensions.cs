@@ -21,7 +21,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
     [Experimental("ASPIREPUBLISHERS001")]
-    public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
+    public static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
         where TPublisher : class, IDistributedApplicationPublisher
         where TPublisherOptions : class
     {
@@ -43,5 +43,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
         {
             configureOptions?.Invoke(options);
         });
+
+        return builder;
     }
 }

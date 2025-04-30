@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +25,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
 
             // on ACA infrastructure, if there are no references to the postgres resource,
             // then there won't be any roles created. So add a reference here.
@@ -114,7 +115,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
-        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"postgres-data-roles"));
+        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
         var postgresRolesManifest = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
         expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
@@ -339,6 +340,62 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Host=localhost;Port=12455;Username=postgres;Password=", db2ConnectionString);
         Assert.EndsWith("Database=db2Name", db2ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzurePostgresFlexibleServerRunAsContainerProducesCorrectUserNameAndPasswordAndHost(bool addDbBeforeRunAsContainer)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+        var user = builder.AddParameter("user", "user1");
+
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db1 = null!;
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db2 = null!;
+        if (addDbBeforeRunAsContainer)
+        {
+            db1 = postgres.AddDatabase("db1");
+            db2 = postgres.AddDatabase("db2", "db2Name");
+        }
+
+        IResourceBuilder<PostgresServerResource>? innerPostgres = null;
+        postgres.RunAsContainer(configureContainer: c =>
+        {
+            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                .WithHostPort(12455)
+                .WithPassword(pass)
+                .WithUserName(user);
+            innerPostgres = c;
+        });
+
+        if (!addDbBeforeRunAsContainer)
+        {
+            db1 = postgres.AddDatabase("db1");
+            db2 = postgres.AddDatabase("db2", "db2Name");
+        }
+
+        Assert.NotNull(innerPostgres);
+
+        var endpoint = Assert.Single(innerPostgres.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(5432, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+
+        var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db1", db1ConnectionString);
+
+        var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db2Name", db2ConnectionString);
     }
 
     [Theory]

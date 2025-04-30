@@ -13,10 +13,12 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureResourcePreparerTests(ITestOutputHelper output)
 {
-    [Fact]
-    public void ThrowsExceptionsIfRoleAssignmentUnsupported()
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    [InlineData(DistributedApplicationOperation.Run)]
+    public async Task ThrowsExceptionsIfRoleAssignmentUnsupported(DistributedApplicationOperation operation)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
 
         var storage = builder.AddAzureStorage("storage");
 
@@ -25,8 +27,16 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
 
         var app = builder.Build();
 
-        var ex = Assert.Throws<InvalidOperationException>(app.Start);
-        Assert.Contains("role assignments", ex.Message);
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(app.Start);
+            Assert.Contains("role assignments", ex.Message);
+        }
+        else
+        {
+            await app.StartAsync();
+            // no exception is thrown in Run mode
+        }
     }
 
     [Theory]
@@ -39,7 +49,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(operation);
         if (addContainerAppsInfra)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var storage = builder.AddAzureStorage("storage");
@@ -58,7 +68,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         {
             // when AzureContainerAppsInfrastructure is not added, we always apply the default role assignments to a new 'storage-roles' resource.
             // The same applies when in RunMode and we are provisioning Azure resources for F5 local development.
-            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             var expectedBicep = """
@@ -125,7 +135,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task AppliesRoleAssignmentsInRunMode(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
@@ -146,7 +156,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         {
             // in RunMode, we apply the role assignments to a new 'storage-roles' resource, so the provisioned resource
             // adds these role assignments for F5 local development.
-            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             var expectedBicep = """
@@ -216,7 +226,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
     public async Task FindsAzureReferencesFromArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");

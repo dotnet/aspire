@@ -7,11 +7,9 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Azure.Provisioning.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -22,6 +20,8 @@ namespace Aspire.Hosting;
 public static class AzureServiceBusExtensions
 {
     private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
 
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
@@ -356,12 +356,14 @@ public static class AzureServiceBusExtensions
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
+            .WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 5300)
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = ServiceBusEmulatorContainerImageTags.Registry,
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
-            });
+            })
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         var sqlEdgeResource = builder.ApplicationBuilder
                 .AddContainer($"{builder.Resource.Name}-sqledge",
@@ -475,45 +477,7 @@ public static class AzureServiceBusExtensions
             return Task.CompletedTask;
         });
 
-        ServiceBusClient? serviceBusClient = null;
-        string? queueOrTopicName = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
-        {
-            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
-
-            // Retrieve a queue/topic name to configure the health check
-
-            var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
-            serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
-
-            queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
-        });
-
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
-        // If no queues or no topics are defined then the health check will be successful.
-
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-          .Add(new HealthCheckRegistration(
-              healthCheckKey,
-              sp => new ServiceBusHealthCheck(
-                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
-                  () => queueOrTopicName),
-              failureStatus: default,
-              tags: default,
-              timeout: default));
-
-        builder.WithHealthCheck(healthCheckKey);
+        builder.WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/health");
 
         return builder;
     }

@@ -12,7 +12,7 @@ dotnet add package Aspire.Hosting.Valkey
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, register a Valkey server and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Valkey server and consume the connection using the following methods:
 
 ```csharp
 var valkey = builder.AddValkey("cache")

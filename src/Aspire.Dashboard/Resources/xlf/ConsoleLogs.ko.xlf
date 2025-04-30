@@ -52,9 +52,9 @@
         <target state="translated">&lt;로그 캡처가 {0} 및 {1}간에 일시 중지되었습니다. {2} 로그가 필터링되었습니다&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">리소스 명령</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">리소스 작업</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

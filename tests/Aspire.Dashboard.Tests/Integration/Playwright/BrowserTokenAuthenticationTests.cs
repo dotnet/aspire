@@ -3,6 +3,7 @@
 
 using Aspire.TestUtilities;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
@@ -29,7 +30,6 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange
@@ -55,7 +55,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
         });
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/7522")]
+    [Fact]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
@@ -77,7 +77,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             const int pageVisibleTimeout = 10000;
 
             await Assertions
-                .Expect(page.GetByText("Invalid token"))
+                .Expect(page.GetByText(Login.InvalidTokenErrorMessage))
                 .ToBeVisibleAsync()
                 .DefaultTimeout(pageVisibleTimeout);
         });
