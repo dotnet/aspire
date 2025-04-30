@@ -41,6 +41,9 @@ internal sealed class AzurePublisher(
         var principalId = new ProvisioningParameter("principalId", typeof(string));
         infra.Add(principalId);
 
+        var principalName = new ProvisioningParameter("principalName", typeof(string));
+        infra.Add(principalName);
+
         var tags = new ProvisioningVariable("tags", typeof(object))
         {
             Value = new BicepDictionary<string>
@@ -177,6 +180,12 @@ internal sealed class AzurePublisher(
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
+
+                if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalName && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalName);
                     continue;
                 }
 

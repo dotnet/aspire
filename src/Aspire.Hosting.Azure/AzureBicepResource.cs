@@ -222,6 +222,7 @@ public class AzureBicepResource : Resource, IAzureResource
     public static class KnownParameters
     {
         private const string UserPrincipalIdConst = "userPrincipalId";
+        private const string UserPrincipalNameConst = "userPrincipalName";
         private const string PrincipalIdConst = "principalId";
         private const string PrincipalNameConst = "principalName";
         private const string PrincipalTypeConst = "principalType";
@@ -247,7 +248,14 @@ public class AzureBicepResource : Resource, IAzureResource
         /// <summary>
         /// The principal id of the user doing the deployment.
         /// </summary>
+        /// <remarks>Referred as Deployment principal in ARM documentation.</remarks>
         public static readonly string UserPrincipalId = UserPrincipalIdConst;
+
+        /// <summary>
+        /// The principal name of the user doing the deployment.
+        /// </summary>
+        /// <remarks>Referred as Deployment principal in ARM documentation.</remarks>
+        public static readonly string UserPrincipalName = UserPrincipalNameConst;
 
         /// <summary>
         /// The name of the key vault resource used to store secret outputs.
@@ -265,7 +273,7 @@ public class AzureBicepResource : Resource, IAzureResource
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>
-            name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+            name is PrincipalIdConst or UserPrincipalIdConst or UserPrincipalNameConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
 
     }
 }
