@@ -19,7 +19,6 @@ using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -332,20 +331,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
-
-                // Dashboard health check.
-                _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
-
-                    var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
-                    if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
-                    {
-                        return firstDashboardUrl;
-                    }
-                    else
-                    {
-                        throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
-                    }
-                }, KnownHealthCheckNames.DasboardHealthCheck);
             }
 
             if (options.EnableResourceLogging)
