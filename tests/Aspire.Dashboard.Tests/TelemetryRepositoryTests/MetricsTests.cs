@@ -1192,6 +1192,55 @@ public class MetricsTests
         Assert.False(instrument2.HasOverflow);
     }
 
+    [Fact]
+    public void AddMetrics_NoScope()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = null,
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var instruments = repository.GetInstrumentsSummaries(applications[0].ApplicationKey);
+        Assert.Collection(instruments,
+            instrument =>
+            {
+                Assert.Equal("test", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Same(OtlpScope.Empty, instrument.Parent);
+            });
+    }
+
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
     {
         var scope = dimensions[key];
