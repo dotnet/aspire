@@ -334,8 +334,8 @@ public class TraceTests
                 Assert.Equal(2, trace.Spans.Count);
 
                 Assert.Collection(trace.Spans,
-                    span => Assert.Equal("scope1", span.Scope.ScopeName),
-                    span => Assert.Equal("scope2", span.Scope.ScopeName));
+                    span => Assert.Equal("scope1", span.Scope.Name),
+                    span => Assert.Equal("scope2", span.Scope.Name));
             });
     }
 
@@ -449,14 +449,14 @@ public class TraceTests
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("1-1", trace.RootSpan!.SpanId);
             },
             trace =>
             {
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("2-1", trace.RootSpan!.SpanId);
             });
     }

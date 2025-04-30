@@ -194,7 +194,7 @@ public class OtlpSpan
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
             KnownTraceFields.StatusField => span.Status.ToString(),
-            KnownSourceFields.NameField => span.Scope.ScopeName,
+            KnownSourceFields.NameField => span.Scope.Name,
             KnownTraceFields.NameField => span.Name,
             _ => span.Attributes.GetValue(field)
         };

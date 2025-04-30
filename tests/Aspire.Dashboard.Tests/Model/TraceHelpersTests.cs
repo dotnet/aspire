@@ -18,7 +18,7 @@ public sealed class TraceHelpersTests
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
         var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
-        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 1, DateTimeKind.Utc)));
 
         // Act
@@ -40,7 +40,7 @@ public sealed class TraceHelpersTests
         var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
-        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-2", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 1, DateTimeKind.Utc)));
 
@@ -67,7 +67,7 @@ public sealed class TraceHelpersTests
         var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
         var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
-        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 1, DateTimeKind.Utc)));
 
@@ -95,7 +95,7 @@ public sealed class TraceHelpersTests
         var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
         var app3 = new OtlpApplication("app3", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
-        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app3, trace, scope, spanId: "1-1-1", parentSpanId: "1-1", startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
@@ -129,7 +129,7 @@ public sealed class TraceHelpersTests
         var app2 = new OtlpApplication("app2", "instance", uninstrumentedPeer: false, context);
         var app3 = new OtlpApplication("app3", "instance", uninstrumentedPeer: true, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
-        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc), uninstrumentedPeer: app3));
 

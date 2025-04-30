@@ -15,7 +15,6 @@ using Aspire.Dashboard.Utils;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
-using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
@@ -325,28 +324,6 @@ public sealed class TelemetryRepository : IDisposable
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
-    private bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, [NotNullWhen(true)] out OtlpScope? s)
-    {
-        try
-        {
-            // The instrumentation scope information for the spans in this message.
-            // Semantically when InstrumentationScope isn't set, it is equivalent with
-            // an empty instrumentation scope name (unknown).
-            var name = scope?.Name ?? string.Empty;
-            ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
-            // Adds to dictionary if not present.
-            scopeRef ??= (scope != null) ? new OtlpScope(scope, _otlpContext) : OtlpScope.Empty;
-            s = scopeRef;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
-            s = null;
-            return false;
-        }
-    }
-
     public void AddLogsCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeLogs> scopeLogs)
     {
         _logsLock.EnterWriteLock();
@@ -355,7 +332,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var sl in scopeLogs)
             {
-                if (!TryAddScope(_logScopes, sl.Scope, out var scope))
+                if (!OtlpHelpers.TryAddScope(_logScopes, sl.Scope, _otlpContext, out var scope))
                 {
                     context.FailureCount += sl.LogRecords.Count;
                     continue;
@@ -937,7 +914,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                if (!TryAddScope(_traceScopes, scopeSpan.Scope, out var scope))
+                if (!OtlpHelpers.TryAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, out var scope))
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
                     continue;
