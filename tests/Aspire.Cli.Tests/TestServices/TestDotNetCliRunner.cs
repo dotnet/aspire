@@ -50,11 +50,25 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : Task.FromResult<(int, bool, string?)>((0, true, informationalVersion));
     }
 
+    private static JsonDocument GetProjectItemsAndPropertiesJsonDocument()
+    {
+        var json = $$"""
+        {
+            "CacheBuster": "{{Guid.NewGuid().ToString()}}",
+            "ProjectReference": [],
+            "PackageReference": [],
+            "Compile": []
+        }
+        """;
+
+        return JsonDocument.Parse(json);
+    }
+
     public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return GetProjectItemsAndPropertiesAsyncCallback != null
             ? Task.FromResult(GetProjectItemsAndPropertiesAsyncCallback(projectFile, items, properties, options, cancellationToken))
-            : throw new NotImplementedException();
+            : Task.FromResult<(int, JsonDocument?)>((0, GetProjectItemsAndPropertiesJsonDocument()));
     }
 
     public Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
