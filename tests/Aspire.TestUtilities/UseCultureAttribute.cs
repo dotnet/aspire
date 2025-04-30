@@ -64,8 +64,8 @@ public class UseCultureAttribute(string culture, string uiCulture) : BeforeAfter
         _originalCulture = Thread.CurrentThread.CurrentCulture;
         _originalUICulture = Thread.CurrentThread.CurrentUICulture;
 
-        //CultureInfo.DefaultThreadCurrentCulture = Culture;
-        //CultureInfo.DefaultThreadCurrentUICulture = UICulture;
+        CultureInfo.DefaultThreadCurrentCulture = Culture;
+        CultureInfo.DefaultThreadCurrentUICulture = UICulture;
 
         Thread.CurrentThread.CurrentCulture = Culture;
         Thread.CurrentThread.CurrentUICulture = UICulture;
