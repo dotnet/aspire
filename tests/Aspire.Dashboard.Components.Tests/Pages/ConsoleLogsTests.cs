@@ -514,7 +514,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         void PrintCurrentLogEntries(LogEntries logEntries)
         {
-            logger.LogInformation($"Log entries count: : {logEntries.EntriesCount}");
+            logger.LogInformation($"Log entries count: {logEntries.EntriesCount}");
 
             foreach (var logEntry in logEntries.GetEntries())
             {
