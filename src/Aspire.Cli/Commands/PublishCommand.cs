@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Builds;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
@@ -37,19 +38,22 @@ internal sealed class PublishCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IPublishCommandPrompter _prompter;
+    private readonly IAppHostBuilder _appHostBuilder;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, IAppHostBuilder appHostBuilder)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
+        ArgumentNullException.ThrowIfNull(appHostBuilder);
 
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;
+        _appHostBuilder = appHostBuilder;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -63,6 +67,10 @@ internal sealed class PublishCommand : BaseCommand
         outputPath.Description = "The output path for the generated artifacts.";
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
+        
+        var noCacheOption = new Option<bool>("--no-cache", "-nc");
+        noCacheOption.Description = "Do not use cached build of the app host.";
+        Options.Add(noCacheOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -106,7 +114,9 @@ internal sealed class PublishCommand : BaseCommand
                 StandardErrorCallback = outputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+            var useCache = !parseResult.GetValue<bool>("--no-cache");
+
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_appHostBuilder, useCache, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
             if (buildExitCode != 0)
             {

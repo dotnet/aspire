@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Builds;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -23,8 +24,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
+    private readonly IAppHostBuilder _appHostBuilder;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, IAppHostBuilder appHostBuilder)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -32,12 +34,14 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(appHostBuilder);
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
+        _appHostBuilder = appHostBuilder;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -46,6 +50,10 @@ internal sealed class RunCommand : BaseCommand
         var watchOption = new Option<bool>("--watch", "-w");
         watchOption.Description = "Start project resources in watch mode.";
         Options.Add(watchOption);
+
+        var noCacheOption = new Option<bool>("--no-cache", "-nc");
+        noCacheOption.Description = "Do not use cached build of the app host.";
+        Options.Add(noCacheOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -89,13 +97,15 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
+                var useCache = !parseResult.GetValue<bool>("--no-cache");
+
                 var buildOptions = new DotNetCliRunnerInvocationOptions
                 {
                     StandardOutputCallback = outputCollector.AppendOutput,
                     StandardErrorCallback = outputCollector.AppendError,
                 };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_appHostBuilder, useCache, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
