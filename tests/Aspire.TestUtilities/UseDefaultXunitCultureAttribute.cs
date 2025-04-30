@@ -9,7 +9,7 @@ namespace Aspire.TestUtilities;
 ///  Apply this attribute to your test method to replace the <see cref="Thread.CurrentThread" />
 ///  <see cref="CultureInfo.CurrentCulture" /> with another culture.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+[AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
 public sealed class UseDefaultXunitCultureAttribute : UseCultureAttribute
 {
     public const string DefaultXunitCultureAttribute = "en-US";
