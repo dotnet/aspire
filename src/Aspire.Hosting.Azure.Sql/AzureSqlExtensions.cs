@@ -3,13 +3,11 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-//using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
 using static Azure.Provisioning.Expressions.BicepFunction;
-//using static Aspire.Hosting.Azure.SqlServerScriptProvisioningResource;
 
 namespace Aspire.Hosting;
 
