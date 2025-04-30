@@ -266,7 +266,7 @@ jobs:
 
       # Upload that result file to artifact named test-job-result-{name}
       - name: Upload test result
-        if: always()
+        if: ${{ !success() }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}-${{ env.GITHUB_JOB }}
@@ -281,7 +281,7 @@ jobs:
           docker network ls
 
       - name: Upload logs, and test results
-        if: always()
+        if: ${{ !success() }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: logs-${{ inputs.testShortName }}-${{ inputs.os }}-${{ env.GITHUB_JOB }}
