@@ -258,6 +258,8 @@ public class ApplicationOrchestratorTests
         DistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+
         return new ApplicationOrchestrator(
             distributedAppModel,
             new TestDcpExecutor(),
@@ -266,7 +268,9 @@ public class ApplicationOrchestratorTests
             notificationService,
             resourceLoggerService ?? new ResourceLoggerService(),
             applicationEventing ?? new DistributedApplicationEventing(),
-            new ServiceCollection().BuildServiceProvider()
+            serviceProvider,
+            new DistributedApplicationExecutionContext(
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
             );
     }
 
