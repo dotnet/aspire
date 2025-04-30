@@ -23,6 +23,7 @@ internal sealed class ApplicationOrchestrator
     private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
+    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly CancellationTokenSource _shutdownCancellation = new();
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
@@ -32,7 +33,8 @@ internal sealed class ApplicationOrchestrator
                                    ResourceNotificationService notificationService,
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
-                                   IServiceProvider serviceProvider)
+                                   IServiceProvider serviceProvider,
+                                   DistributedApplicationExecutionContext executionContext)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -42,6 +44,7 @@ internal sealed class ApplicationOrchestrator
         _loggerService = loggerService;
         _eventing = eventing;
         _serviceProvider = serviceProvider;
+        _executionContext = executionContext;
 
         dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
@@ -52,6 +55,7 @@ internal sealed class ApplicationOrchestrator
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
         _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
+        _executionContext = executionContext;
     }
 
     private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
@@ -179,10 +183,7 @@ internal sealed class ApplicationOrchestrator
         // Run the URL callbacks
         if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
         {
-            var executionContext = new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = _serviceProvider });
-
-            var urlsCallbackContext = new ResourceUrlsCallbackContext(executionContext, resource, urls, cancellationToken)
+            var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
             {
                 Logger = _loggerService.GetLogger(resource.Name)
             };
