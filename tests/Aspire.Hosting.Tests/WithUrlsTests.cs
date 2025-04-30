@@ -107,15 +107,14 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var exceptionTcs = new TaskCompletionSource<Exception?>();
+        var tcs = new TaskCompletionSource();
 
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrls(c =>
             {
                 try
                 {
-                    var sp = c.ExecutionContext.ServiceProvider;
-                    exceptionTcs.TrySetResult(null);
+                    tcs.TrySetResult(c.ExecutionContext.ServiceProvider);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -127,7 +126,7 @@ public class WithUrlsTests
 
         await app.StartAsync();
 
-        await exceptionTcs.Task;
+        Assert.NotNull(await tcs.Task);
 
         await app.StopAsync();
     }
