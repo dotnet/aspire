@@ -15,7 +15,6 @@ using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
-using Aspire.TestUtilities;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -432,6 +431,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
         var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var browserTimeProvider = Services.GetRequiredService<BrowserTimeProvider>();
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
@@ -485,7 +485,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         logger.LogInformation("Assert that pause log has expected content.");
         cut.WaitForAssertion(() =>
         {
-            PrintCurrentLogEntries(logger, cut.Instance._logEntries);
+            PrintCurrentLogEntries(cut.Instance._logEntries);
 
             var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
             var pause = pauseEntry.Pause;
@@ -504,7 +504,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForAssertion(() =>
         {
             var logViewer = cut.FindComponent<LogViewer>();
-            PrintCurrentLogEntries(logger, logViewer.Instance.LogEntries!);
+            PrintCurrentLogEntries(logViewer.Instance.LogEntries!);
 
             var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries(), e => e.RawContent == resumeContent);
             // We discarded one log while paused, so the new log should be line 3, skipping one
@@ -512,13 +512,13 @@ public partial class ConsoleLogsTests : DashboardTestContext
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
         });
 
-        static void PrintCurrentLogEntries(ILogger logger, LogEntries logEntries)
+        void PrintCurrentLogEntries(LogEntries logEntries)
         {
             logger.LogInformation($"Log entries count: : {logEntries.EntriesCount}");
 
             foreach (var logEntry in logEntries.GetEntries())
             {
-                logger.LogInformation($"Log line raw content: {logEntry.RawContent ?? "no content"}, type: {logEntry.Type}");
+                logger.LogInformation($"Log line. Type = {logEntry.Type}, Raw content = {logEntry.RawContent ?? "no content"}, Pause content: {logEntry.Pause?.GetDisplayText(loc, browserTimeProvider) ?? "n/a"}");
             }
         }
     }
