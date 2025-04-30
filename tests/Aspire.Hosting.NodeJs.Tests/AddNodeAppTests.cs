@@ -72,5 +72,6 @@ public class AddNodeAppTests
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
+        builder.WithResourceCleanUp(true);
     }
 }
