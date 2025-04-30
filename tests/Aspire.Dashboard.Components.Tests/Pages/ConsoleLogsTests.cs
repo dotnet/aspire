@@ -432,6 +432,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var timeProvider = Services.GetRequiredService<BrowserTimeProvider>();
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
@@ -447,11 +448,11 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Assert initial state
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
 
-        // Pause logs
+        logger.LogInformation("Pause logs.");
         var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>();
         pauseResumeButton.Find("fluent-button").Click();
 
-        // A pause line should be visible
+        logger.LogInformation("Wait for pause log.");
         var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
 
         // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
@@ -461,6 +462,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(3, pauseContent, IsErrorMessage: false)]);
 
+        logger.LogInformation("Assert that the last log is the pause log.");
         cut.WaitForAssertion(() => Assert.Equal(
             string.Format(
                 loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
@@ -469,18 +471,23 @@ public partial class ConsoleLogsTests : DashboardTestContext
                 3),
             pauseConsoleLogLine.TextContent));
 
-        // Resume and write a new log, check that
+        logger.LogInformation("Resume logs.");
+        // Check that
         // - the pause line has been replaced with pause details
         // - the log viewer shows the new log
         // - the log viewer does not show the discarded log
         pauseResumeButton.Find("fluent-button").Click();
         cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
 
+        logger.LogInformation("Write a new log.");
         var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
 
+        logger.LogInformation("Assert that pause log has expected content.");
         cut.WaitForAssertion(() =>
         {
+            PrintCurrentLogEntries(logger, cut.Instance._logEntries);
+
             var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
@@ -494,18 +501,27 @@ public partial class ConsoleLogsTests : DashboardTestContext
                 pauseConsoleLogLine.TextContent);
         });
 
+        logger.LogInformation("Assert that log entries discarded aren't in log viewer and log entries that should be logged are in log viewer.");
         cut.WaitForAssertion(() =>
         {
             var logViewer = cut.FindComponent<LogViewer>();
-            foreach (var logEntry in logViewer.Instance.LogEntries!.GetEntries())
-            {
-                _testOutputHelper.WriteLine(logEntry.RawContent ?? "no content");
-            }
+            PrintCurrentLogEntries(logger, logViewer.Instance.LogEntries!);
+
             var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries(), e => e.RawContent == resumeContent);
             // We discarded one log while paused, so the new log should be line 3, skipping one
             Assert.Equal(4, newLog.LineNumber);
             Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
         });
+
+        static void PrintCurrentLogEntries(ILogger logger, LogEntries logEntries)
+        {
+            logger.LogInformation($"Log entries count: : {logEntries.EntriesCount}");
+
+            foreach (var logEntry in logEntries.GetEntries())
+            {
+                logger.LogInformation($"Log line raw content: {logEntry.RawContent ?? "no content"}, type: {logEntry.Type}");
+            }
+        }
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
