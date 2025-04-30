@@ -413,7 +413,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8931")]
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
