@@ -13,7 +13,6 @@ using Azure.Provisioning.ServiceBus;
 using Azure.Provisioning.SignalR;
 using Azure.Provisioning.WebPubSub;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;

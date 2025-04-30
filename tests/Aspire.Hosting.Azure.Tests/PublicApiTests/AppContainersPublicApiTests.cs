@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppContainers;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
