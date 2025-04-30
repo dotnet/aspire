@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "env": {
+      "type": "azure.bicep.v0",
+      "path": "env.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "mysqlserver": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{mysqlserver.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "mysqlserver.module.bicep"
+    },
+    "todosdb": {
+      "type": "value.v0",
+      "connectionString": "{mysqlserver.connectionString};Database=todosdb"
+    },
+    "api1": {
+      "type": "project.v1",
+      "path": "../WebApplication1/WebApplication1.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "api1.module.bicep",
+        "params": {
+          "api1_identity_outputs_id": "{api1-identity.outputs.id}",
+          "api1_identity_outputs_clientid": "{api1-identity.outputs.clientId}",
+          "api1_containerport": "{api1.containerPort}",
+          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "api1_containerimage": "{api1.containerImage}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api1.bindings.http.targetPort}",
+        "ConnectionStrings__todosdb": "{todosdb.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "api2": {
+      "type": "project.v1",
+      "path": "../WebApplication2/WebApplication2.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "api2.module.bicep",
+        "params": {
+          "api2_identity_outputs_id": "{api2-identity.outputs.id}",
+          "api2_identity_outputs_clientid": "{api2-identity.outputs.clientId}",
+          "api2_containerport": "{api2.containerPort}",
+          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "api2_containerimage": "{api2.containerImage}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api2.bindings.http.targetPort}",
+        "ConnectionStrings__todosdb": "{todosdb.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "api1-identity": {
+      "type": "azure.bicep.v0",
+      "path": "api1-identity.module.bicep"
+    },
+    "api1-roles-mysqlserver": {
+      "type": "azure.bicep.v0",
+      "path": "api1-roles-mysqlserver.module.bicep",
+      "params": {
+        "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
+        "principalName": "{api1-identity.outputs.principalName}",
+        "principalId": "{api1-identity.outputs.principalId}"
+      }
+    },
+    "api2-identity": {
+      "type": "azure.bicep.v0",
+      "path": "api2-identity.module.bicep"
+    },
+    "api2-roles-mysqlserver": {
+      "type": "azure.bicep.v0",
+      "path": "api2-roles-mysqlserver.module.bicep",
+      "params": {
+        "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
+        "principalName": "{api2-identity.outputs.principalName}",
+        "principalId": "{api2-identity.outputs.principalId}"
+      }
+    }
+  }
+}

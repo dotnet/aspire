@@ -182,7 +182,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
                 """;
 
-            // infra.Add(scriptResource);
+            infra.Add(scriptResource);
         }
     }
 }
