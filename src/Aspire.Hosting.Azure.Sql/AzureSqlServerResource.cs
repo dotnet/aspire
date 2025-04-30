@@ -48,6 +48,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
+    private BicepOutputReference AdminName => new("sqlServerAdminName", this);
+
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
@@ -120,7 +122,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         var principalId = roleAssignmentContext.PrincipalId;
 
         var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
-        sqlServerAdmin.Name = sqlserver.Administrators.Login;
+        sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
         infra.Add(sqlServerAdmin);
 
         foreach (var database in Databases.Keys)

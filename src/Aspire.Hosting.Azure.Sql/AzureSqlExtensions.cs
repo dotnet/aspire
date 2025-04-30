@@ -227,7 +227,7 @@ public static class AzureSqlExtensions
                     AdministratorType = SqlAdministratorType.ActiveDirectory,
                     IsAzureADOnlyAuthenticationEnabled = true,
                     Sid = adminManagedIdentity.PrincipalId,
-                    Login = adminManagedIdentity.Name,
+                    Login = new IdentifierExpression("sqlServerAdminManagedIdentity.name"),
                     TenantId = BicepFunction.GetSubscription().TenantId
                 },
                 Version = "12.0",
@@ -282,5 +282,7 @@ public static class AzureSqlExtensions
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+
+        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
     }
 }

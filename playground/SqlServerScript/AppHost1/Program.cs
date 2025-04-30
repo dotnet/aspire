@@ -17,8 +17,7 @@ var dbServer = builder.AddAzureSqlServer("mysqlserver")
         {
             database.Sku = new SqlSku() { Name = FREE_DB_SKU };
         }
-    })
-    ;
+    });
 
 var todosDb = dbServer.AddDatabase("todosdb");
 
