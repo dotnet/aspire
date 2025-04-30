@@ -7,12 +7,14 @@ param principalName string
 
 param principalId string
 
+param mysqlserver_outputs_sqlserveradminname string
+
 resource mysqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
   name: mysqlserver_outputs_name
 }
 
 resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: mysqlserver.properties.administrators.login
+  name: mysqlserver_outputs_sqlserveradminname
 }
 
 resource script_d4d29beaabeca77b 'Microsoft.Resources/deploymentScripts@2023-08-01' = {

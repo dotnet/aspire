@@ -12,7 +12,7 @@ resource mysqlserver 'Microsoft.Sql/servers@2021-11-01' = {
   properties: {
     administrators: {
       administratorType: 'ActiveDirectory'
-      login: take('mysqlserver-admin-${uniqueString(resourceGroup().id)}', 63)
+      login: sqlServerAdminManagedIdentity.name
       sid: sqlServerAdminManagedIdentity.properties.principalId
       tenantId: subscription().tenantId
       azureADOnlyAuthentication: true
@@ -47,3 +47,5 @@ resource todosdb 'Microsoft.Sql/servers/databases@2021-11-01' = {
 output sqlServerFqdn string = mysqlserver.properties.fullyQualifiedDomainName
 
 output name string = mysqlserver.name
+
+output sqlServerAdminName string = sqlServerAdminManagedIdentity.name

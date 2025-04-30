@@ -105,7 +105,8 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "principalName": "{api1-identity.outputs.principalName}",
-        "principalId": "{api1-identity.outputs.principalId}"
+        "principalId": "{api1-identity.outputs.principalId}",
+        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
       }
     },
     "api2-identity": {
@@ -118,7 +119,8 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "principalName": "{api2-identity.outputs.principalName}",
-        "principalId": "{api2-identity.outputs.principalId}"
+        "principalId": "{api2-identity.outputs.principalId}",
+        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
       }
     }
   }
