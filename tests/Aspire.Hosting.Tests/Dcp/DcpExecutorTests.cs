@@ -1200,6 +1200,37 @@ public class DcpExecutorTests
         Assert.Equal(ContainerPullPolicy.Missing, explicitMissingContainer.Spec.PullPolicy);
     }
 
+    [Fact]
+    public async Task CancelTokenDuringStartup()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        const int desiredTargetPort = TestKubernetesService.StartOfAutoPortRange - 999;
+        builder.AddContainer("database", "image")
+            .WithEndpoint(name: "NoPortTargetPortSet", targetPort: desiredTargetPort, env: "NO_PORT_TARGET_PORT_SET", isProxied: true);
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpEvents = new DcpExecutorEvents();
+        var tokenSource = new CancellationTokenSource();
+        dcpEvents.Subscribe<OnResourcesPreparedContext>((context) =>
+        {
+            tokenSource.Cancel();
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
+
+        // Act
+        await appExecutor.RunApplicationAsync(tokenSource.Token);
+
+        // Assert
+        Assert.True(tokenSource.IsCancellationRequested);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
