@@ -107,7 +107,7 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource<IServiceProvider>();
 
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrls(c =>
@@ -118,7 +118,7 @@ public class WithUrlsTests
                 }
                 catch (InvalidOperationException ex)
                 {
-                    exceptionTcs.TrySetException(ex);
+                    tcs.TrySetException(ex);
                 }
             });
 
