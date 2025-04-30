@@ -56,7 +56,7 @@ public static class ResourceMenuItems
         }
 
         // Show telemetry menu items if there is telemetry for the resource.
-        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name) ;
+        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name);
         if (telemetryApplication != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
