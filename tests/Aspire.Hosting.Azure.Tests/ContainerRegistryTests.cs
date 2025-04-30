@@ -58,16 +58,16 @@ public class ContainerRegistryTests
 
         // Assert
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var project = Assert.Single(model.GetProjectResources());
+        var project = Assert.IsType<IComputeResource>(Assert.Single(model.GetProjectResources()), exactMatch: false);
 
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
         Assert.NotNull(target);
 
         // Verify that ContainerRegistryInfo property is not null for project resources
-        Assert.NotNull(target.ContainerRegistryInfo);
+        Assert.NotNull(project.ContainerRegistry);
 
         // Verify that ContainerRegistryInfo is of type IContainerRegistry
-        var registry = Assert.IsType<IContainerRegistry>(target.ContainerRegistryInfo, exactMatch: false);
+        var registry = Assert.IsType<IContainerRegistry>(project.ContainerRegistry, exactMatch: false);
 
         // Verify registry properties are available
         Assert.NotNull(registry.Name);
@@ -156,11 +156,10 @@ public class ContainerRegistryTests
             // Look for container registry in deployment target annotations
             foreach (var resource in model.Resources)
             {
-                if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var annotation) &&
-                    annotation.ContainerRegistryInfo != null)
+                if (resource is IComputeResource computeResource && computeResource.ContainerRegistry is not null)
                 {
                     ComputeResourceRegistryFound = true;
-                    ComputeResourceRegistry = annotation.ContainerRegistryInfo;
+                    ComputeResourceRegistry = computeResource.ContainerRegistry;
                     if (ComputeResourceRegistry is IAzureContainerRegistry azureRegistry)
                     {
                         AzureContainerRegistry = azureRegistry;

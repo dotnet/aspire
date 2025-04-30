@@ -411,7 +411,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         {
             await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         }
-        
+
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 

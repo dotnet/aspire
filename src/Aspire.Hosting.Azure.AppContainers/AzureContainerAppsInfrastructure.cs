@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -60,11 +62,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             // container app environment in the deployment target information
             // associated with each compute resource that needs an image
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
+            if (r is IComputeResource computeResource)
             {
-                ContainerRegistryInfo = caes.FirstOrDefault(),
-                ComputeEnvironment = environment as IComputeEnvironmentResource // will be null if azd
-            });
+                computeResource.ContainerRegistry = caes.FirstOrDefault();
+                computeResource.ComputeEnvironment = environment as IComputeEnvironmentResource;
+            }
+            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 

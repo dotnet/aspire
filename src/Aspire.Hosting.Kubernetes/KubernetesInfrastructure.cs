@@ -57,10 +57,11 @@ internal sealed class KubernetesInfrastructure(
 
             // Add deployment target annotation to the resource
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
+            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource));
+            if (r is IComputeResource computeResource)
             {
-                ComputeEnvironment = environment,
-            });
+                computeResource.ComputeEnvironment = environment;
+            }
 #pragma warning restore ASPIRECOMPUTE001
         }
     }

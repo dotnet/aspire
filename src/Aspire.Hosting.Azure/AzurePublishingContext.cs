@@ -238,12 +238,14 @@ public sealed class AzurePublishingContext(
                 File.Copy(file.Path, modulePath, true);
 
                 // Capture any bicep outputs from the registry info as it may be needed
-                Visit(annotation.ContainerRegistryInfo?.Name, CaptureBicepOutputs);
-                Visit(annotation.ContainerRegistryInfo?.Endpoint, CaptureBicepOutputs);
-
-                if (annotation.ContainerRegistryInfo is IAzureContainerRegistry acr)
+                if (resource is IComputeResource computeResource)
                 {
-                    Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
+                    Visit(computeResource.ContainerRegistry?.Name, CaptureBicepOutputs);
+                    Visit(computeResource.ContainerRegistry?.Endpoint, CaptureBicepOutputs);
+                    if (computeResource.ContainerRegistry is IAzureContainerRegistry acr)
+                    {
+                        Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
+                    }
                 }
 
                 foreach (var parameter in br.Parameters)
