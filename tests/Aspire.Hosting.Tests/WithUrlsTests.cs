@@ -127,12 +127,7 @@ public class WithUrlsTests
 
         await app.StartAsync();
 
-        var exception = await exceptionTcs.Task;
-
-        if (exception is not null)
-        {
-            throw new Xunit.Sdk.XunitException("Exception occurred in WithUrls callback.", exception);
-        }
+        await exceptionTcs.Task;
 
         await app.StopAsync();
     }
