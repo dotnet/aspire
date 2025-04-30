@@ -119,7 +119,7 @@ public class WithUrlsTests
                 }
                 catch (InvalidOperationException ex)
                 {
-                    exceptionTcs.TrySetResult(ex);
+                    exceptionTcs.TrySetException(ex);
                 }
             });
 
