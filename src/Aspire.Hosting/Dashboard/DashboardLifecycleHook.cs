@@ -127,7 +127,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
         ConfigureAspireDashboardResource(dashboardResource);
-        
         // Make the dashboard first in the list so it starts as fast as possible.
         model.Resources.Insert(0, dashboardResource);
     }
