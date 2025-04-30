@@ -50,13 +50,15 @@ public class ReferenceExpressionTests
     }
 
     public static readonly object[][] ValidFormattingInParameterBracketCases = [
-        ["{0:D}", new DateTime(2024,05,22), string.Format(CultureInfo.InvariantCulture, "{0:D}", new DateTime(2024, 05, 22).ToString())],
-        ["{0:N}", 123456.78, string.Format(CultureInfo.InvariantCulture, "{0:N}", "123456.78")]
+        ["{0:D}", new DateTime(2024,05,22)],
+        ["{0:N}", 123456.78]
     ];
 
     [Theory, MemberData(nameof(ValidFormattingInParameterBracketCases))]
-    public void ReferenceExpressionHandlesValueWithFormattingInParameterBrackets(string input, string parameterValue, string expected)
+    public void ReferenceExpressionHandlesValueWithFormattingInParameterBrackets(string input, string parameterValue)
     {
+        var expected = string.Format(CultureInfo.InvariantCulture, input, parameterValue);
+
         var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue]).ValueExpression;
         Assert.Equal(expected, expr);
     }
