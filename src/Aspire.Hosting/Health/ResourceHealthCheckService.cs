@@ -39,7 +39,10 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     }
                 }
 
-                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                // HACK: We are special casing the Aspire dashboard here until we address this issue. This is so that
+                //       AppHostRpcTarget can hold until the resource is in a healthy state (due to health check) even
+                //       though it is a hidden resource.
+                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running || resourceEvent.Resource.Name == KnownResourceNames.AspireDashboard)
                 {
                     if (state == null)
                     {
