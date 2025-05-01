@@ -44,7 +44,7 @@ public sealed class AzureBlobStorageContainerSettings : AzureStorageBlobsSetting
             }
 
             // We can't use connectionBuilder.ConnectionString here, because connectionBuilder escapes values
-            // adding quotes and other characters, which upset the Azure SDK.
+            // adding quotes and other characters, which upsets the Azure SDK.
             // So, we have rebuilt the connection string manually.
 
             StringBuilder builder = new();
