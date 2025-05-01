@@ -93,7 +93,7 @@ public static partial class DistributedApplicationExtensions
     /// Waits for all resources in the application to reach one of the specified states.
     /// </summary>
     /// <remarks>
-    /// If <paramref name="targetStates"/> is null, the default states are <see cref="KnownResourceStates.Running"/> and <see cref="KnownResourceStates.Hidden"/>.
+    /// If <paramref name="targetStates"/> is null, the default state is <see cref="KnownResourceStates.Running"/>.
     /// </remarks>
     public static Task WaitForResources(this DistributedApplication app, IEnumerable<string>? targetStates = null, CancellationToken cancellationToken = default)
     {

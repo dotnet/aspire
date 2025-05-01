@@ -197,12 +197,14 @@ public class ResourcePublisherTests
             StartTimeStamp = null,
             StopTimeStamp = null,
             DisplayName = "",
+
             Urls = [],
             Volumes = [],
             Environment = [],
             HealthReports = [],
             Commands = [],
-            Relationships = []
+            Relationships = [],
+            Hidden = false
         };
     }
 

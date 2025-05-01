@@ -76,7 +76,7 @@ public class ResourceGraphMapperTests
     public void MapResource_ShowHiddenResources_IncludesHiddenResources()
     {
         // Arrange
-        var resource1 = ModelTestHelpers.CreateResource("app1-abcxyc", displayName: "app1", relationships: [new RelationshipViewModel("app2", "Reference")]);
+        var resource1 = ModelTestHelpers.CreateResource("app1-abcxyc", displayName: "app1", relationships: [new RelationshipViewModel("hidden-app", "Reference")]);
         var hiddenResource = ModelTestHelpers.CreateResource("hidden-app", displayName: "hidden-app", relationships: ImmutableArray<RelationshipViewModel>.Empty, hidden: true);
         var resources = new Dictionary<string, ResourceViewModel>
         {
