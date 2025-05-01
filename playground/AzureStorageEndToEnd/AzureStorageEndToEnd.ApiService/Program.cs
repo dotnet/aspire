@@ -8,9 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobClient("blobs");
-//builder.AddAzureBlobContainerClient("foocontainer");
-builder.AddKeyedAzureBlobContainerClient("mycontainer2");
+builder.AddAzureBlobClient("blobs")
+       .AddKeyedAzureBlobContainerClient(blobContainerName: "test-container-1")
+       .AddKeyedAzureBlobContainerClient(blobContainerName: "test-container-2");
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
 builder.AddAzureQueueClient("queues");
@@ -19,46 +19,32 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapGet("/", async ([FromKeyedServices("mycontainer2")] BlobContainerClient keyedContainerClinet1,
-                       [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClinet2) =>
+app.MapGet("/", async ([FromKeyedServices("test-container-1")] BlobContainerClient keyedContainerClient1,
+                       [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient2) =>
 {
     var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
 
-    await keyedContainerClinet1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
-    await keyedContainerClinet2.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
+    await keyedContainerClient1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
+    await keyedContainerClient2.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
-    var blobs = keyedContainerClinet1.GetBlobsAsync();
-    blobNames.Add(keyedContainerClinet1.Uri.ToString());
-    await foreach (var blob in blobs)
-    {
-        blobNames.Add(blob.Name);
-    }
-
-    blobs = keyedContainerClinet2.GetBlobsAsync();
-    blobNames.Add(keyedContainerClinet2.Uri.ToString());
-    await foreach (var blob in blobs)
-    {
-        blobNames.Add(blob.Name);
-    }
+    await ReadBlobsAsync(keyedContainerClient1, blobNames);
+    await ReadBlobsAsync(keyedContainerClient2, blobNames);
 
     return blobNames;
 });
-app.MapGet("/test", async (BlobServiceClient bsc, QueueServiceClient qsc, BlobContainerClient fooContainerClinet) =>
+app.MapGet("/test", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("test-container-2")] BlobContainerClient keyedContainerClient1) =>
 {
+    var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
 
-    var container = bsc.GetBlobContainerClient(blobContainerName: "test-container-1");
-    await container.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
+    await keyedContainerClient1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
-    var blobs = container.GetBlobsAsync();
+    var directContainerClient = bsc.GetBlobContainerClient(blobContainerName: "test-container-1");
+    await directContainerClient.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
-    var blobNames = new List<string>();
-
-    await foreach (var blob in blobs)
-    {
-        blobNames.Add(blob.Name);
-    }
+    await ReadBlobsAsync(directContainerClient, blobNames);
+    await ReadBlobsAsync(keyedContainerClient1, blobNames);
 
     var queue = qsc.GetQueueClient("myqueue");
     await queue.CreateIfNotExistsAsync();
@@ -68,3 +54,13 @@ app.MapGet("/test", async (BlobServiceClient bsc, QueueServiceClient qsc, BlobCo
 });
 
 app.Run();
+
+static async Task ReadBlobsAsync(BlobContainerClient containerClient, List<string> output)
+{
+    output.Add(containerClient.Uri.ToString());
+    var blobs = containerClient.GetBlobsAsync();
+    await foreach (var blob in blobs)
+    {
+        output.Add(blob.Name);
+    }
+}
