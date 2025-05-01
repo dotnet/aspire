@@ -53,8 +53,15 @@ public static class AzureContainerRegistryExtensions
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+
+        // Don't add the resource to the infrastructure if we're in run mode.
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            return builder.CreateResourceBuilder(resource);
+        }
+
         return builder.AddResource(resource)
-            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
+                .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
