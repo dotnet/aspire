@@ -1391,4 +1391,92 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
         output.WriteLine(BicepText);
         Assert.Equal(expectedBicep, BicepText);
     }
+
+    [Fact]
+    public async Task SupportsExistingAzureContainerRegistryInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var acr = builder.AddAzureContainerRegistry("acr")
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(acr.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "acr.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+              name: existingResourceName
+            }
+
+            output name string = existingResourceName
+
+            output loginServer string = acr.properties.loginServer
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureContainerRegistryInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var acr = builder.AddAzureContainerRegistry("acr")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        var (ManifestNode, BicepText) = await AzureManifestUtils.GetManifestWithBicep(acr.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "path": "acr.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}"
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+              name: existingResourceName
+            }
+
+            output name string = existingResourceName
+
+            output loginServer string = acr.properties.loginServer
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
 }

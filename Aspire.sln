@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -674,6 +674,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests", "tests\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj", "{8FCA0CFA-7823-6A2F-342A-107A994915B0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Components.Common.Tests", "tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj", "{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.ContainerRegistry", "src\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj", "{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -3961,6 +3965,18 @@ Global
 		{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}.Release|x64.Build.0 = Release|Any CPU
 		{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}.Release|x86.ActiveCfg = Release|Any CPU
 		{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}.Release|x86.Build.0 = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|x64.Build.0 = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Debug|x86.Build.0 = Debug|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|x64.ActiveCfg = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|x64.Build.0 = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|x86.ActiveCfg = Release|Any CPU
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -4285,6 +4301,7 @@ Global
 		{192747A2-9338-DECF-5C8C-28EB8E13829B} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{8FCA0CFA-7823-6A2F-342A-107A994915B0} = {C424395C-1235-41A4-BF55-07880A04368C}
 		{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7} = {C424395C-1235-41A4-BF55-07880A04368C}
+		{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {47DCFECF-5631-4BDE-A1EC-BE41E90F60C4}
