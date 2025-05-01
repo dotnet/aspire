@@ -38,7 +38,30 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
+              /p:SkipTestProjects=true
       displayName: Build
+
+    - script: ${{ parameters.dotnetScript }}
+              build
+              tests/workloads.proj
+              -p:SkipPackageCheckForTemplatesTesting=true
+      displayName: Prepare sdks for templates testing
+
+    - script: ${{ parameters.buildScript }}
+              -build
+              -restore
+              -test
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/BuildTemplatesTests.binlog
+              $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
+              /p:SkipTests=false
+              -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
+      env:
+        RunOnlyBasicBuildTemplateTests: true
+        TEST_ROOT_PATH: $(Build.SourcesDirectory)\..
+        TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
+      displayName: Run Template tests
 
   # Public pipeline - helix tests
   - ${{ if eq(parameters.runAsPublic, 'true') }}:
