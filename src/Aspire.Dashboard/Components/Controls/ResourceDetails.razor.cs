@@ -278,7 +278,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(Resource.ResourceType, AspireTelemetryPropertyType.Pii))
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(Resource.ResourceType)))
         ]);
     }
 
