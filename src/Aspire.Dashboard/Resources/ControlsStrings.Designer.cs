@@ -764,5 +764,17 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ToggleNesting", resourceCulture);
             }
         }
+        
+        public static string ShowHiddenResources {
+            get {
+                return ResourceManager.GetString("ShowHiddenResources", resourceCulture);
+            }
+        }
+        
+        public static string HideHiddenResources {
+            get {
+                return ResourceManager.GetString("HideHiddenResources", resourceCulture);
+            }
+        }
     }
 }

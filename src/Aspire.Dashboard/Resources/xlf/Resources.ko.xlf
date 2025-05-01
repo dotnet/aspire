@@ -197,11 +197,6 @@
         <target state="translated">축소</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesHideHidden">
-        <source>Hide hidden resources</source>
-        <target state="new">Hide hidden resources</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesHideTypes">
         <source>Hide resource types</source>
         <target state="translated">리소스 종류 숨기기</target>
@@ -215,11 +210,6 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">상태</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesShowHidden">
-        <source>Show hidden resources</source>
-        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesShowTypes">

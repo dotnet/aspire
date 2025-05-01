@@ -232,6 +232,11 @@
         <target state="translated">Afficher une valeur</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(Tout)</target>
@@ -425,6 +430,11 @@
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">Sélectionner une application</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">

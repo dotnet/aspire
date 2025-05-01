@@ -380,17 +380,5 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourcesShowTypes", resourceCulture);
             }
         }
-        
-        public static string ResourcesShowHidden {
-            get {
-                return ResourceManager.GetString("ResourcesShowHidden", resourceCulture);
-            }
-        }
-        
-        public static string ResourcesHideHidden {
-            get {
-                return ResourceManager.GetString("ResourcesHideHidden", resourceCulture);
-            }
-        }
     }
 }

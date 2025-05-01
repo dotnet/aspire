@@ -293,10 +293,4 @@
   <data name="ResourcesShowTypes" xml:space="preserve">
     <value>Show resource types</value>
   </data>
-  <data name="ResourcesShowHidden" xml:space="preserve">
-    <value>Show hidden resources</value>
-  </data>
-  <data name="ResourcesHideHidden" xml:space="preserve">
-    <value>Hide hidden resources</value>
-  </data>
 </root>
