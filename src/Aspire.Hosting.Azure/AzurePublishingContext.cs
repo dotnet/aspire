@@ -43,7 +43,7 @@ public sealed class AzurePublishingContext(
     /// The value is the <see cref="ProvisioningParameter"/> of the <see cref="MainInfrastructure"/>
     /// that was created to be filled with the value of the Aspire <see cref="ParameterResource"/>.
     /// </remarks>
-    public IDictionary<ParameterResource, ProvisioningParameter> ParameterMap { get; } = new Dictionary<ParameterResource, ProvisioningParameter>();
+    public Dictionary<ParameterResource, ProvisioningParameter> ParameterLookup { get; } = [];
 
     /// <summary>
     /// Gets a dictionary that maps output references to provisioning outputs.
@@ -52,7 +52,7 @@ public sealed class AzurePublishingContext(
     /// The value is the <see cref="ProvisioningOutput"/> of the <see cref="MainInfrastructure"/>
     /// that was created with the value of the output referenced by the Aspire <see cref="BicepOutputReference"/>.
     /// </remarks>
-    public IDictionary<BicepOutputReference, ProvisioningOutput> OutputMap { get; } = new Dictionary<BicepOutputReference, ProvisioningOutput>();
+    public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
 
     /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
@@ -134,7 +134,7 @@ public sealed class AzurePublishingContext(
 
         void MapParameter(object candidate)
         {
-            if (candidate is ParameterResource p && !ParameterMap.ContainsKey(p))
+            if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
             {
                 var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
 
@@ -148,7 +148,7 @@ public sealed class AzurePublishingContext(
                     pp.Value = p.Value;
                 }
 
-                ParameterMap[p] = pp;
+                ParameterLookup[p] = pp;
             }
         }
 
@@ -186,7 +186,7 @@ public sealed class AzurePublishingContext(
         object Eval(object? value) => value switch
         {
             BicepOutputReference b => GetOutputs(moduleMap[b.Resource], b.Name),
-            ParameterResource p => ParameterMap[p],
+            ParameterResource p => ParameterLookup[p],
             ConnectionStringReference r => Eval(r.Resource.ConnectionStringExpression),
             IResourceWithConnectionString cs => Eval(cs.ConnectionStringExpression),
             ReferenceExpression re => EvalExpr(re),
@@ -211,7 +211,7 @@ public sealed class AzurePublishingContext(
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterMap[p].Value.Compile()),
+                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterLookup[p].Value.Compile()),
                 _ => new IdentifierExpression(rg.BicepIdentifier)
             };
 
@@ -282,7 +282,7 @@ public sealed class AzurePublishingContext(
             }
         }
 
-        foreach (var (_, pp) in ParameterMap)
+        foreach (var (_, pp) in ParameterLookup)
         {
             MainInfrastructure.Add(pp);
         }
@@ -306,7 +306,7 @@ public sealed class AzurePublishingContext(
                 Value = GetOutputs(module, output.Name)
             };
 
-            OutputMap[output] = bicepOutput;
+            OutputLookup[output] = bicepOutput;
             MainInfrastructure.Add(bicepOutput);
         }
 

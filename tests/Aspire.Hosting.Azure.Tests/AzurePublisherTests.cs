@@ -315,7 +315,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
         await context.WriteModelAsync(model, default);
 
         Assert.Collection(
-            context.OutputMap,
+            context.OutputLookup,
             item =>
             {
                 Assert.Equal("acaEnv_AZURE_CONTAINER_REGISTRY_NAME", item.Value.BicepIdentifier);
@@ -361,7 +361,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
             });
 
         Assert.Collection(
-            context.ParameterMap,
+            context.ParameterLookup,
             item =>
             {
                 Assert.Equal(storageSku.Resource, item.Key);
