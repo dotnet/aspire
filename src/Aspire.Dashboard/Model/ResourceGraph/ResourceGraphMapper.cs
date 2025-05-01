@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Model.ResourceGraph;
 
 public static class ResourceGraphMapper
 {
-    public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc)
+    public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc, bool showHiddenResources)
     {
         var resolvedNames = new List<string>();
 
@@ -24,7 +24,7 @@ public static class ResourceGraphMapper
         {
             var matches = resourcesByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => !r.Hidden)
+                .Where(r => !r.Hidden || showHiddenResources)
                 .ToList();
 
             foreach (var match in matches)

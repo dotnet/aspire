@@ -25,6 +25,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
+    [Parameter]
+    public bool ShowHiddenResources { get; set; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
@@ -176,7 +179,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         {
             var matches = ResourceByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => !r.Hidden)
+                .Where(r => !r.Hidden || ShowHiddenResources)
                 .ToList();
 
             foreach (var match in matches)
@@ -199,7 +202,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
-            .Where(r => !r.Hidden);
+            .Where(r => !r.Hidden || ShowHiddenResources);
 
         foreach (var otherResource in otherResources)
         {

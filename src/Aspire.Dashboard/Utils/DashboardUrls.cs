@@ -15,7 +15,7 @@ internal static class DashboardUrls
     public const string TracesBasePath = "traces";
     public const string LoginBasePath = "login";
 
-    public static string ResourcesUrl(string? resource = null, string? view = null, string? hiddenTypes = null, string? hiddenStates = null, string? hiddenHealthStates = null)
+    public static string ResourcesUrl(string? resource = null, string? view = null, string? hiddenTypes = null, string? hiddenStates = null, string? hiddenHealthStates = null, bool showHiddenResources = false)
     {
         var url = $"/{ResourcesBasePath}";
         if (resource != null)
@@ -37,6 +37,11 @@ internal static class DashboardUrls
         if (hiddenHealthStates != null)
         {
             url = QueryHelpers.AddQueryString(url, "hiddenHealthStates", hiddenHealthStates);
+        }
+
+        if (showHiddenResources)
+        {
+            url = QueryHelpers.AddQueryString(url, "showHiddenResources", "true");
         }
 
         return url;
