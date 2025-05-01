@@ -40,7 +40,7 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
     /// <returns>A <see cref="global::Azure.Provisioning.Storage.BlobContainer"/> instance.</returns>
     internal global::Azure.Provisioning.Storage.BlobContainer ToProvisioningEntity()
     {
-        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(BlobContainerName))
+        global::Azure.Provisioning.Storage.BlobContainer blobContainer = new(Infrastructure.NormalizeBicepIdentifier(Name))
         {
             Name = BlobContainerName
         };
