@@ -75,6 +75,8 @@ serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linke
 serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/nested-trace-spans", "Out of order nested spans", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 
+builder.AddParameter("testParameterResource", () => "value", secret: true);
+
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
        .WithUrl("https://someotherplace.com/some-path", "Some other place");

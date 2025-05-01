@@ -451,6 +451,27 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 Icon = new Icons.Regular.Size16.Eye()
             });
         }
+
+        var areResourcesHidden = _resourceByName.Values.Any(r => r.Hidden);
+        if (!PageViewModel.ShowHiddenResources)
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = !areResourcesHidden,
+                OnClick = OnToggleShowHiddenResources,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesShowHidden)],
+                Icon = new Icons.Regular.Size16.Eye()
+            });
+        }
+        else
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                OnClick = OnToggleShowHiddenResources,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesHideHidden)],
+                Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
     }
 
     private bool HasCollapsedResources()
@@ -727,6 +748,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesShowResourceTypes, _showResourceTypeColumn);
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
+    }
+
+    private async Task OnToggleShowHiddenResources()
+    {
+        PageViewModel.ShowHiddenResources = !PageViewModel.ShowHiddenResources;
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private static List<DisplayedUrl> GetDisplayedUrls(ResourceViewModel resource)

@@ -197,6 +197,11 @@
         <target state="translated">Diminuir zoom</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideHidden">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesHideTypes">
         <source>Hide resource types</source>
         <target state="translated">Ocultar tipos de recursos</target>
@@ -210,6 +215,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Estado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowHidden">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesShowTypes">

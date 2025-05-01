@@ -197,6 +197,11 @@
         <target state="translated">Уменьшить</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideHidden">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesHideTypes">
         <source>Hide resource types</source>
         <target state="translated">Скрыть типы ресурсов</target>
@@ -210,6 +215,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Состояние</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowHidden">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesShowTypes">
