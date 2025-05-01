@@ -103,6 +103,35 @@ public class WithUrlsTests
     }
 
     [Fact]
+    public async Task WithUrlsProvidesServiceProviderInstanceOnCallbackContextAllocated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tcs = new TaskCompletionSource<IServiceProvider>();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithUrls(c =>
+            {
+                try
+                {
+                    tcs.TrySetResult(c.ExecutionContext.ServiceProvider);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+
+        var app = await builder.BuildAsync();
+
+        await app.StartAsync();
+
+        Assert.NotNull(await tcs.Task);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
     public async Task WithUrlsAddsUrlAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

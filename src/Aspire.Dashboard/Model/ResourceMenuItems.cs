@@ -56,21 +56,26 @@ public static class ResourceMenuItems
         }
 
         // Show telemetry menu items if there is telemetry for the resource.
-        var hasTelemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name) != null;
-        if (hasTelemetryApplication)
+        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name);
+        if (telemetryApplication != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
-            menuItems.Add(new MenuButtonItem
+
+            if (!telemetryApplication.UninstrumentedPeer)
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Icon = s_structuredLogsIcon,
-                OnClick = () =>
+                menuItems.Add(new MenuButtonItem
                 {
-                    navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
-                    return Task.CompletedTask;
-                }
-            });
+                    Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Icon = s_structuredLogsIcon,
+                    OnClick = () =>
+                    {
+                        navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
+                        return Task.CompletedTask;
+                    }
+                });
+            }
+
             menuItems.Add(new MenuButtonItem
             {
                 Text = loc[nameof(Resources.Resources.ResourceActionTracesText)],
@@ -82,17 +87,21 @@ public static class ResourceMenuItems
                     return Task.CompletedTask;
                 }
             });
-            menuItems.Add(new MenuButtonItem
+
+            if (!telemetryApplication.UninstrumentedPeer)
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Icon = s_metricsIcon,
-                OnClick = () =>
+                menuItems.Add(new MenuButtonItem
                 {
-                    navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
-                    return Task.CompletedTask;
-                }
-            });
+                    Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Icon = s_metricsIcon,
+                    OnClick = () =>
+                    {
+                        navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
+                        return Task.CompletedTask;
+                    }
+                });
+            }
         }
 
         var menuCommands = resource.Commands

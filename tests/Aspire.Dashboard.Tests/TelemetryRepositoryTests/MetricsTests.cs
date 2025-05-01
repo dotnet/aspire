@@ -75,28 +75,28 @@ public class MetricsTests
                 Assert.Equal("test", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test2", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter2", instrument.Parent.MeterName);
+                Assert.Equal("test-meter2", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test2", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter2", instrument.Parent.MeterName);
+                Assert.Equal("test-meter2", instrument.Parent.Name);
             });
     }
 
@@ -375,7 +375,7 @@ public class MetricsTests
         Assert.Equal("test", instrumentData.Summary.Name);
         Assert.Equal("Test metric description", instrumentData.Summary.Description);
         Assert.Equal("widget", instrumentData.Summary.Unit);
-        Assert.Equal("test-meter", instrumentData.Summary.Parent.MeterName);
+        Assert.Equal("test-meter", instrumentData.Summary.Parent.Name);
 
         Assert.Collection(instrumentData.KnownAttributeValues.OrderBy(kvp => kvp.Key),
             e =>
@@ -481,7 +481,7 @@ public class MetricsTests
         Assert.Equal("test", instrument.Summary.Name);
         Assert.Equal("Test metric description", instrument.Summary.Description);
         Assert.Equal("widget", instrument.Summary.Unit);
-        Assert.Equal("test-meter", instrument.Summary.Parent.MeterName);
+        Assert.Equal("test-meter", instrument.Summary.Parent.Name);
 
         // Only the last 3 values should be kept.
         var dimension = Assert.Single(instrument.Dimensions);
@@ -577,14 +577,14 @@ public class MetricsTests
                 Assert.Equal("test1", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test2", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             });
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
@@ -772,7 +772,7 @@ public class MetricsTests
         Assert.Equal("test1", app1Instrument.Name);
         Assert.Equal("Test metric description", app1Instrument.Description);
         Assert.Equal("widget", app1Instrument.Unit);
-        Assert.Equal("test-meter", app1Instrument.Parent.MeterName);
+        Assert.Equal("test-meter", app1Instrument.Parent.Name);
 
         var app1Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
@@ -817,14 +817,14 @@ public class MetricsTests
                 Assert.Equal("test1", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test3", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             });
 
         var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
@@ -957,14 +957,14 @@ public class MetricsTests
                 Assert.Equal("test1", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             },
             instrument =>
             {
                 Assert.Equal("test3", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             });
 
         var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
@@ -1038,7 +1038,7 @@ public class MetricsTests
                 Assert.Equal("test1", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
-                Assert.Equal("test-meter", instrument.Parent.MeterName);
+                Assert.Equal("test-meter", instrument.Parent.Name);
             });
     }
 
@@ -1123,7 +1123,7 @@ public class MetricsTests
         Assert.Equal("test", instrument.Summary.Name);
         Assert.Equal("Test metric description", instrument.Summary.Description);
         Assert.Equal("widget", instrument.Summary.Unit);
-        Assert.Equal("test-meter", instrument.Summary.Parent.MeterName);
+        Assert.Equal("test-meter", instrument.Summary.Parent.Name);
 
         var dimension = Assert.Single(instrument.Dimensions);
         Assert.Single(dimension.Values);
@@ -1190,6 +1190,55 @@ public class MetricsTests
 
         Assert.NotNull(instrument2);
         Assert.False(instrument2.HasOverflow);
+    }
+
+    [Fact]
+    public void AddMetrics_NoScope()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = null,
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var instruments = repository.GetInstrumentsSummaries(applications[0].ApplicationKey);
+        Assert.Collection(instruments,
+            instrument =>
+            {
+                Assert.Equal("test", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Same(OtlpScope.Empty, instrument.Parent);
+            });
     }
 
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)

@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Application Insights connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Application Insights connection and consume the connection using the following methods:
 
 ```csharp
 var appInsights = builder.AddAzureApplicationInsights("appInsights");

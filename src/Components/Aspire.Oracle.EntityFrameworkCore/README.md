@@ -18,7 +18,7 @@ dotnet add package Aspire.Oracle.EntityFrameworkCore
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddOracleDatabaseDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddOracleDatabaseDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddOracleDatabaseDbContext<MyDbContext>("orcl");
@@ -108,7 +108,7 @@ In your AppHost project, install the `Aspire.Hosting.Oracle` library with [NuGet
 dotnet add package Aspire.Hosting.Oracle
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register an Oracle container and consume the connection using the following methods: 
+Then, in the _AppHost.cs_ file of `AppHost`, register an Oracle container and consume the connection using the following methods: 
   
  ```csharp 
  var freepdb1 = builder.AddOracle("oracle").AddDatabase("freepdb1");

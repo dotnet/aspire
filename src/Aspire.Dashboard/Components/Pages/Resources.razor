@@ -63,9 +63,9 @@
                 }
 
                 <div>
-                    <ResourceFilters ResourceStates="@ResourceStatesToVisibility"
-                                     ResourceTypes="@ResourceTypesToVisibility"
-                                     ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
+                                     ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
+                                     ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
                                      OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                                      OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </div>
@@ -79,9 +79,9 @@
                            FixedPlacement="true"
                            Class="resources-filter-popup">
                 <Body>
-                    <ResourceFilters ResourceStates="@ResourceStatesToVisibility"
-                                     ResourceTypes="@ResourceTypesToVisibility"
-                                     ResourceHealthStates="@ResourceHealthStatusesToVisibility"
+                    <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
+                                     ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
+                                     ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
                                      OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                                      OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>
@@ -145,7 +145,7 @@
                                                     <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
                                                         @if (context.Children.Count > 0)
                                                         {
-                                                            <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                            <FluentButton aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ToggleNesting)]" Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
                                                                 <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
                                                             </FluentButton>
                                                         }

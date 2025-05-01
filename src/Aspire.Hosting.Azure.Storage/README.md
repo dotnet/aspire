@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-In the _Program.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
+In the _AppHost.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
 
 ```csharp
 var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");

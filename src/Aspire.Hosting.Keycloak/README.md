@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.Keycloak
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a Keycloak resource and enable service discovery using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Keycloak resource and enable service discovery using the following methods:
 
 ```csharp
 var keycloak = builder.AddKeycloak("keycloak", 8080);
