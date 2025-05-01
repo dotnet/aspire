@@ -1,4 +1,7 @@
 {
     "dotnet.previewSolution-freeWorkspaceMode": true,
-    "dotnet.testWindow.useTestingPlatformProtocol": false
+    "dotnet.testWindow.useTestingPlatformProtocol": false,
+    "cSpell.words": [
+        "astrojs"
+    ]
 }

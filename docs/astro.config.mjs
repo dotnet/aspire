@@ -1,0 +1,112 @@
+// @ts-check
+import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
+import catppuccin from "@catppuccin/starlight";
+import starlightLlmsTxt from 'starlight-llms-txt'
+import starlightKbd from 'starlight-kbd'
+
+// https://astro.build/config
+export default defineConfig({
+	site: 'https://aspire.dev',
+	integrations: [
+		starlight({
+			title: 'Aspire',
+			logo: {
+				src: './src/assets/dotnet-aspire-logo-32.svg'
+			},
+			editLink: {
+				baseUrl: 'https://github.com/dotnet/aspire/edit/main/',
+			},
+			favicon: './src/images/favicon.svg',
+			head: [
+				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: './src/images/favicon-96x96.png', sizes: '96x96' } },
+				{ tag: 'link', attrs: { rel: 'icon', type: 'image/svg+xml', href: './src/images/favicon.svg' } },
+				{ tag: 'link', attrs: { rel: 'shortcut icon', href: './src/images/favicon.ico' } },
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: './src/images/apple-touch-icon.png' } },
+				{ tag: 'meta', attrs: { name: 'apple-mobile-web-app-title', content: 'Aspire' } },
+				{ tag: 'link', attrs: { rel: 'manifest', href: './site.webmanifest' } },
+			],
+			social: [
+				{
+					icon: 'github',
+					label: 'GitHub',
+					href: 'https://github.com/dotnet/aspire'
+				},
+				{
+					icon: 'discord',
+					label: 'Discord',
+					href: 'https://discord.com/invite/h87kDAHQgJ'
+				},
+				{
+					icon: 'x.com',
+					label: 'X',
+					href: 'https://x.com/dotnet'
+				},
+				{
+					icon: 'blueSky',
+					label: 'BlueSky',
+					href: 'https://bsky.app/profile/dot.net'
+				},
+				{
+					icon: 'youtube',
+					label: 'YouTube',
+					href: 'https://www.youtube.com/dotnet'
+				},
+				{
+					icon: 'threads',
+					label: 'Threads',
+					href: 'https://www.threads.com/@dotnet.developers'
+				},
+				{
+					icon: 'tiktok',
+					label: 'TikTok',
+					href: 'https://www.tiktok.com/@dotnetdevelopers'
+				},
+				{
+					icon: 'linkedin',
+					label: 'LinkedIn',
+					href: 'https://www.linkedin.com/groups/40949/'
+				}
+			],
+			customCss: [
+				'./src/styles/home.css'
+			],
+			components: {
+				ContentPanel: './src/components/ContentPanel.astro',
+				Hero: './src/components/Hero.astro',
+				SocialIcons: './src/components/SocialIcons.astro',
+				Search: './src/components/Search.astro',
+			},
+			expressiveCode: {
+				/* TODO: decide which themes we want
+				   https://expressive-code.com/guides/themes/#using-bundled-themes
+				*/
+				themes: ['github-dark-default', 'github-light']
+			},
+			sidebar: [
+				{
+					label: 'Welcome',
+					items: [
+						{ label: 'Prerequisites', slug: 'get-started/prerequisites' },
+						{ label: 'Installation', slug: 'get-started/installation' },
+					],
+				},
+				{
+					label: 'Reference',
+					autogenerate: { directory: 'reference' },
+				},
+			],
+			plugins: [
+				catppuccin(),
+				starlightLlmsTxt(),
+				starlightKbd({
+					types: [
+					  { id: 'mac', label: 'macOS' },
+					  { id: 'windows', label: 'Windows', default: true },
+					  { id: 'linux', label: 'Linux' },
+					],
+				  }),
+			],
+		}),
+	],
+});

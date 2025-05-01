@@ -1,0 +1,48 @@
+---
+title: Install Aspire CLI
+description: Learn about essential tooling concepts for Aspire.
+
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Kbd } from 'starlight-kbd/components'
+
+Aspire includes tooling to help you create and configure cloud-native apps. The tooling includes useful starter project templates and other features to streamline getting started with Aspire for Visual Studio, Visual Studio Code, and CLI workflows. Assuming you have the [prerequisites](./prerequisites) installed, you can install the Aspire CLI and create a new project.
+
+<Steps>
+
+1. Install the Aspire CLI:
+
+    ```bash
+    dotnet tool install -g aspire.cli
+    ```
+
+1. Verify the installation by calling the CLI help command:
+
+    ```bash
+    aspire --help
+    ```
+
+    You should see usage example format, with a list of available options and commands.
+
+1. Create a new Aspire solution:
+
+    ```bash
+    aspire new <project-name>
+    ```
+
+    This relies on the Aspire templates. If they're not installed already, the CLI will install them for you.
+
+1. Change to the solution directory:
+
+    ```bash
+    cd <project-name>
+    ```
+
+1. Run the Aspire solution:
+
+    ```bash
+    aspire run
+    ```
+
+</Steps>

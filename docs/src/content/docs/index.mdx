@@ -1,0 +1,183 @@
+---
+title: Aspire
+description: From localhost to liftoff, your stack stays in orbit.
+template: splash
+editUrl: false
+hero:
+  tagline: From localhost to liftoff, your stack stays in orbit! 💫
+  image:
+    file: ../../assets/dotnet-aspire-logo-256.svg
+  actions:
+    - text: Liftoff
+      link: /get-started/installation
+      icon: rocket
+    - text: View Docs
+      link: /reference/example
+      icon: open-book
+      variant: secondary
+---
+
+import { Code, Card, CardGrid, Tabs, TabItem, LinkButton } from '@astrojs/starlight/components';
+
+## Why developers love Aspire
+
+<CardGrid stagger>
+	<Card title="Code-First Control" icon="setting">
+		Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
+	</Card>
+	<Card title="Modular and Extensible" icon="puzzle">
+		Orchestrate your existing stack—frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
+	</Card>
+	<Card title="Observability from the Start" icon="open-book">
+		Logs, traces, health checks—all local, all wired up automatically. OpenTelemetry included with zero setup.
+	</Card>
+	<Card title="Flexible Deployments" icon="rocket">
+		Ship it how you want — to Kubernetes, your own infra, or managed services. Aspire adapts to your environment, not the other way around.
+	</Card>
+</CardGrid>
+
+## Code-Centric Control
+
+Define your orbit however you want. Easily add services, connect them to each other, and get everything running with a single command.
+
+export const ts = `
+import { createBuilder } from "./.modules/distributed-application";
+
+const builder = createBuilder();
+
+// Add frontend and API to orbit
+const frontend = builder.addNpmApp("frontend", "../frontend")
+    .withHttpEndpoint({ env: "PORT", targetPort: 3000 })
+    .withNpmPackageInstallation();
+
+const api = builder.addProject("api", "../api/ApiService")
+    .withHttpEndpoint({ env: "API_URL" });
+
+// Add database services to orbit
+const redis = builder.addRedis("cache");
+const postgres = builder.addPostgres("db").addDatabase("appdata");
+
+// Connect services in orbit
+frontend.withReference(api);
+api.withReference(redis);
+api.withReference(postgres);
+
+// Add telemetry dashboard
+builder.addProject("dashboard")
+    .withReference(api)
+    .withReference(frontend);
+
+// Launch your services into orbit
+builder.build().run();
+`;
+
+export const py = `
+from aspire import create_builder
+
+builder = create_builder()
+
+# Add frontend and API to orbit
+frontend = builder.add_npm_app("frontend", "../frontend") \\
+                 .with_http_endpoint(env="PORT", target_port=3000) \\
+                 .with_npm_package_installation()
+
+api = builder.add_project("api", "../api/api_service.py") \\
+            .with_http_endpoint(env="API_URL")
+
+# Add database services to orbit
+redis = builder.add_redis("cache")
+postgres = builder.add_postgres("db").add_database("appdata")
+
+# Connect services in orbit
+frontend.with_reference(api)
+api.with_reference(redis)
+api.with_reference(postgres)
+
+# Add telemetry dashboard
+builder.add_project("dashboard") \\
+      .with_reference(api) \\
+      .with_reference(frontend)
+
+# Launch your services into orbit
+builder.build().run()
+`;
+
+export const cs = `
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add frontend and API to orbit
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation();
+
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithHttpEndpoint(env: "API_URL");
+
+// Add database services to orbit
+var redis = builder.AddRedis("cache");
+var postgres = builder.AddPostgres("db").AddDatabase("appdata");
+
+// Connect services in orbit
+frontend.WithReference(api);
+api.WithReference(redis);
+api.WithReference(postgres);
+
+// Add telemetry dashboard
+builder.AddProject("dashboard")
+       .WithReference(api)
+       .WithReference(frontend);
+
+// Launch your services into orbit
+builder.Build().Run();
+`;
+
+<Tabs>
+  <TabItem label="TypeScript" icon="seti:typescript">
+	  <Code code={ts} lang="ts" />
+  </TabItem>
+
+  <TabItem label="Python" icon="seti:python">
+	  <Code code={py} lang="python" />
+  </TabItem>
+
+  <TabItem label=".NET" icon="seti:c-sharp">
+	  <Code code={cs} lang="cs" />  
+  </TabItem>
+</Tabs>
+
+## Same orbit. Different systems.
+
+<CardGrid>
+  <Card title="Local Development" icon="laptop">
+    
+	- Runs Redis, Postgres, etc. with your local container runtime
+	- Dashboard available on localhost
+	- Uses dev secrets, volumes, dev-time config
+	
+  </Card>
+
+  <Card title="Production Deployment" icon="rocket">
+    
+	- Same app structure, deployed where you want
+	- Connects to cloud services (e.g., Azure Redis, Azure Monitor)
+	- No code changes required
+
+  </Card>
+</CardGrid>
+
+## Mission Control
+
+Monitor all your services from a central dashboard, like a mission control center for your orbit.
+
+<video autoplay loop muted>
+  <source src="src/assets/dashboard-graph.mp4" type="video/mp4" />
+</video>
+
+## Ready for liftoff?
+
+<LinkButton href="/get-started/installation" icon="rocket" iconPlacement="start">
+	  Liftoff
+</LinkButton>
+<LinkButton href="/reference/example" icon="open-book" variant="secondary" iconPlacement="start">
+    View Docs
+</LinkButton>

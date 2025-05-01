@@ -1,0 +1,36 @@
+---
+import Default from "@astrojs/starlight/components/Hero.astro";
+---
+
+<Default><slot /></Default>
+
+<style>
+    :root {
+        .hero * {
+            z-index: 2;
+        }
+
+        .hero #_top {
+                font-size: calc(var(--sl-text-6xl) * 2);
+                background: var(--sl-color-white);
+                background: radial-gradient(
+                    ellipse farthest-corner at center center,
+                    var(--sl-color-white) 0%,
+                    var(--sl-color-accent) 100%
+                );
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .hero .tagline {
+                font-size: 1.6rem;
+            }
+
+            .hero .sl-link-button {
+                font-size: 1.5rem;
+                padding: 1.5rem 2.5rem;
+            }
+        }
+    }
+</style>

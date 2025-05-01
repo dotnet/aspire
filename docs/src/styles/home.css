@@ -1,0 +1,77 @@
+/* Dark mode colors. */
+:root {
+	--sl-color-accent-low: #0F042C;
+	--sl-color-accent: #512BD4;
+	--sl-color-accent-high: #B9AAEE;
+	--sl-color-white: #FDF0DA;
+	--sl-color-gray-1: #EEEAFB;
+	--sl-color-gray-2: #E7F0FF;
+	--sl-color-gray-3: #9DC4FF;
+	--sl-color-gray-4: #70511D;
+	--sl-color-gray-5: #311A7F;
+	--sl-color-gray-6: #190649;
+	--sl-color-black: #14053A;
+
+	--color-dotnet-purple: #2c256b;
+	--background-gradient: linear-gradient(to bottom, var(--sl-color-bg), var(--color-dotnet-purple));
+	--color-purple: #512BD4;
+	--color-magenta: #D600AA;
+	--color-flamingo: #F65163;
+	--color-blue: #0078D7;
+	--color-cyan: #28C2D1;
+
+	/* Default to dark theme gradients */
+	--gradient-purple-magenta: linear-gradient(90deg, var(--color-purple), var(--color-magenta));
+	--gradient-magenta-flamingo: linear-gradient(90deg, var(--color-magenta), var(--color-flamingo));
+	--gradient-flamingo-purple: linear-gradient(90deg, var(--color-flamingo), var(--color-purple));
+	--gradient-purple-blue: linear-gradient(90deg, var(--color-purple), var(--color-blue));
+	--gradient-blue-purple: linear-gradient(90deg, var(--color-blue), var(--color-purple));
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #EEEAFB;
+	--sl-color-accent: #512BD4;
+	--sl-color-accent-high: #311A7F;
+	--sl-color-white: #14053A;
+	--sl-color-gray-1: #24272F;
+	--sl-color-gray-2: #311A7F;
+	--sl-color-gray-3: #70511D;
+	--sl-color-gray-4: #888B96;
+	--sl-color-gray-5: #E7F0FF;
+	--sl-color-gray-6: #EEEAFB;
+	--sl-color-gray-7: #FDF0DA;
+	--sl-color-black: #FFFFFF;
+
+	--background-gradient: linear-gradient(to bottom, var(--sl-color-bg), var(--sl-color-gray-6));
+
+	--gradient-purple-magenta: linear-gradient(90deg, var(--color-purple), var(--color-magenta));
+	--gradient-magenta-flamingo: linear-gradient(90deg, var(--color-magenta), var(--color-flamingo));
+	--gradient-flamingo-purple: linear-gradient(90deg, var(--color-flamingo), var(--color-purple));
+	--gradient-purple-cyan: linear-gradient(90deg, var(--color-purple), var(--color-cyan));
+	--gradient-cyan-purple: linear-gradient(90deg, var(--color-cyan), var(--color-purple));
+}
+
+
+
+/* Dark mode by default */
+:root {
+	video {
+		border-radius: .5rem;
+	}
+
+	.site-title span {
+		color: var(--sl-color-white);
+	}
+}
+
+@media (min-width: 72rem) {
+	:root {
+		--sl-content-width: 68rem;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+}

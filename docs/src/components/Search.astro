@@ -1,0 +1,21 @@
+---
+import Default from "@astrojs/starlight/components/Search.astro";
+
+const isHomepage = Astro.locals.starlightRoute.id === "";
+---
+
+{
+    isHomepage ? (
+        <></>
+    ) : (
+        <Default><slot /></Default>
+    )
+}
+
+<style>
+    :root {
+        svg {
+            --sl-icon-size: 1.25rem !important;
+        }
+    }
+</style>

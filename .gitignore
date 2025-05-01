@@ -13,6 +13,10 @@ syntax: glob
 *.userosscache
 *.sln.docstates
 
+# Docs
+docs/.docusaurus
+docs/node_modules
+
 # Build results
 
 artifacts/
