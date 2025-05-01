@@ -10,7 +10,7 @@
   "symbols/AspireVersion/choices/9.2/displayName": "9.2",
   "symbols/AspireVersion/choices/9.2/description": "Wybiera program .NET Aspire 9.2",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
-  "symbols/AspireVersion/choices/9.3/description": "Chooses .NET Aspire 9.3",
+  "symbols/AspireVersion/choices/9.3/description": "Wybiera platformę .NET Aspire 9.3",
   "symbols/appHostHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP OTLP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP usługi zasobów w pliku launchSettings.json projektu AppHost.",
