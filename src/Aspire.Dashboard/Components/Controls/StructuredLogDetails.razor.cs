@@ -60,7 +60,7 @@ public partial class StructuredLogDetails
 
             _contextAttributes =
             [
-                new TelemetryPropertyViewModel { Name ="Category", Key = KnownStructuredLogFields.CategoryField, Value = _viewModel.LogEntry.Scope.ScopeName }
+                new TelemetryPropertyViewModel { Name ="Category", Key = KnownStructuredLogFields.CategoryField, Value = _viewModel.LogEntry.Scope.Name }
             ];
             MoveAttributes(attributes, _contextAttributes, a => a.Name is "event.name" or "logrecord.event.id" or "logrecord.event.name");
             if (HasTelemetryBaggage(_viewModel.LogEntry.TraceId))

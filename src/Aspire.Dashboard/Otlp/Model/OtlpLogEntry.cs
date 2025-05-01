@@ -113,7 +113,7 @@ public class OtlpLogEntry
             KnownStructuredLogFields.TraceIdField => log.TraceId,
             KnownStructuredLogFields.SpanIdField => log.SpanId,
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
-            KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            KnownStructuredLogFields.CategoryField => log.Scope.Name,
             KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
             _ => log.Attributes.GetValue(field)
         };
