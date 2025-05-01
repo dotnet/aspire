@@ -22,12 +22,6 @@ public class ProjectResource(string name)
     // Track the https endpoint that was added as a default, and should be excluded from the port & kestrel environment
     internal EndpointAnnotation? DefaultHttpsEndpoint { get; set; }
 
-    /// <inheritdoc />
-    IComputeEnvironmentResource? IComputeResource.ComputeEnvironment { get; set; }
-
-    /// <inheritdoc />
-    IContainerRegistry? IComputeResource.ContainerRegistry { get; set; }
-
     internal bool ShouldInjectEndpointEnvironment(EndpointReference e)
     {
         var endpoint = e.EndpointAnnotation;

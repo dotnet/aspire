@@ -28,12 +28,6 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// </summary>
     public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
 
-    /// <inheritdoc />
-    IComputeEnvironmentResource? IComputeResource.ComputeEnvironment { get; set; }
-
-    /// <inheritdoc />
-    IContainerRegistry? IComputeResource.ContainerRegistry { get; set; }
-
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);

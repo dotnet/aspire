@@ -62,12 +62,11 @@ internal sealed class AzureContainerAppsInfrastructure(
             // container app environment in the deployment target information
             // associated with each compute resource that needs an image
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            if (r is IComputeResource computeResource)
+            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
-                computeResource.ContainerRegistry = caes.FirstOrDefault();
-                computeResource.ComputeEnvironment = environment as IComputeEnvironmentResource;
-            }
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
+                ContainerRegistry = caes.FirstOrDefault(),
+                ComputeEnvironment = environment as IComputeEnvironmentResource
+            });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 

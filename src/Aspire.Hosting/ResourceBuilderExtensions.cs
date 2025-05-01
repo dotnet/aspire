@@ -1951,7 +1951,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(computeEnvironmentResource);
 
-        builder.Resource.ComputeEnvironment = computeEnvironmentResource.Resource;
+        builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
 }

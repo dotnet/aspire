@@ -303,15 +303,15 @@ public class ResourceExtensionsTests
         void RunTest<T>(IResourceBuilder<T> resourceBuilder) where T : IComputeResource
         {
             resourceBuilder
-                .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource))
-                .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource));
+                .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
+                .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
 
             var ex = Assert.Throws<InvalidOperationException>(resourceBuilder.Resource.GetDeploymentTargetAnnotation);
             Assert.Contains("'compute1, compute2'", ex.Message);
 
             resourceBuilder.WithComputeEnvironment(compute2);
 
-            Assert.Equal(compute2.Resource, resourceBuilder.Resource.ComputeEnvironment);
+            Assert.Equal(compute2.Resource, resourceBuilder.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
         }
 
         RunTest(builder.AddContainer("myContainer", "nginx"));

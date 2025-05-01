@@ -26,7 +26,7 @@ public class DockerComposeTests
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        Assert.Same(composeEnv.Resource, ((IComputeResource)container.Resource).ComputeEnvironment);
+        Assert.Same(composeEnv.Resource, container.Resource.GetDeploymentTargetAnnotation()?.ComputeEnvironment);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

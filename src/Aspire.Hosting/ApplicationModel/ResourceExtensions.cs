@@ -581,15 +581,29 @@ public static class ResourceExtensions
         if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
         {
             // find the deployment target for the compute environment
-            if (resource is IComputeResource { ComputeEnvironment: { } computeEnvironment } && computeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment)
-            {
-                return resource.Annotations
-                    .OfType<DeploymentTargetAnnotation>()
-                    .LastOrDefault();
-            }
+            return resource.Annotations
+                .OfType<DeploymentTargetAnnotation>()
+                .LastOrDefault(a => a.ComputeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment);
         }
+        else
+        {
+            DeploymentTargetAnnotation? result = null;
+            var computeEnvironments = resource.Annotations.OfType<DeploymentTargetAnnotation>();
+            foreach (var annotation in computeEnvironments)
+            {
+                if (result is null)
+                {
+                    result = annotation;
+                }
+                else
+                {
+                    var computeEnvironmentNames = string.Join(", ", computeEnvironments.Select(a => a.ComputeEnvironment?.Name));
+                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
+                }
+            }
 
-        return resource.Annotations.OfType<DeploymentTargetAnnotation>().SingleOrDefault();
+            return result;
+        }
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 

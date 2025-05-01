@@ -19,10 +19,4 @@ public class ContainerResource(string name, string? entrypoint = null)
     /// </summary>
     /// <remarks><c>null</c> means use the default Entrypoint defined by the container.</remarks>
     public string? Entrypoint { get; set; } = entrypoint;
-
-    /// <inheritdoc />
-    IComputeEnvironmentResource? IComputeResource.ComputeEnvironment { get; set; }
-
-    /// <inheritdoc />
-    IContainerRegistry? IComputeResource.ContainerRegistry { get; set; }
 }

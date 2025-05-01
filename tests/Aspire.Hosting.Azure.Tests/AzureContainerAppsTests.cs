@@ -223,7 +223,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var target = container.GetDeploymentTargetAnnotation();
 
         Assert.NotNull(target);
-        Assert.Same(env.Resource, container.ComputeEnvironment);
+        Assert.Same(env.Resource, target.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
         Assert.NotNull(resource);
@@ -363,7 +363,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var target = container.GetDeploymentTargetAnnotation();
 
         Assert.NotNull(target);
-        Assert.Same(infra.Resource, container.ComputeEnvironment);
+        Assert.Same(infra.Resource, target.ComputeEnvironment);
 
         var resource = target.DeploymentTarget as AzureProvisioningResource;
         Assert.NotNull(resource);
@@ -472,7 +472,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var target = container.GetDeploymentTargetAnnotation();
 
         Assert.NotNull(target);
-        Assert.Same(env.Resource, container.ComputeEnvironment);
+        Assert.Same(env.Resource, target.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
         Assert.NotNull(resource);
