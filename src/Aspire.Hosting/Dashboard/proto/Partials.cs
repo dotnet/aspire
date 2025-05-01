@@ -18,6 +18,7 @@ partial class Resource
             Uid = snapshot.Uid,
             State = snapshot.State ?? "",
             StateStyle = snapshot.StateStyle ?? "",
+            Hidden = snapshot.Hidden
         };
 
         if (snapshot.CreationTimeStamp.HasValue)

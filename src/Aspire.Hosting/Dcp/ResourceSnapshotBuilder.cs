@@ -24,7 +24,7 @@ internal class ResourceSnapshotBuilder
         var volumes = GetVolumes(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
-        var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
+        var state = container.Status?.State;
 
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
 

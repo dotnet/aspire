@@ -24,7 +24,7 @@ public static class ResourceGraphMapper
         {
             var matches = resourcesByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => r.KnownState != KnownResourceState.Hidden)
+                .Where(r => !r.Hidden)
                 .ToList();
 
             foreach (var match in matches)

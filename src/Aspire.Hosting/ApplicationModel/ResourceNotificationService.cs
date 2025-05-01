@@ -680,7 +680,7 @@ public class ResourceNotificationService : IDisposable
             }
 
             // If there is no initial snapshot, create an empty one.
-            previousState ??= new CustomResourceSnapshot()
+            previousState ??= new CustomResourceSnapshot
             {
                 ResourceType = resource.GetType().Name,
                 Properties = [],

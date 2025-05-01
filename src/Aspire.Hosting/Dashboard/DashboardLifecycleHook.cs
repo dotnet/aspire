@@ -171,9 +171,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
-                ? null
-                : KnownResourceStates.Hidden
+            Hidden = !configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
