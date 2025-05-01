@@ -29,6 +29,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -97,6 +98,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
@@ -147,6 +149,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [InlineData("9.*-*")]
     [InlineData("[9.0.0]")]
+    [Trait("category", "basic-build")]
     public async Task CreateAndModifyAspireAppHostTemplate(string version)
     {
         string id = GetNewProjectId(prefix: $"aspire_apphost_{version.Replace("*", "wildcard").Replace("[", "").Replace("]", "")}");
