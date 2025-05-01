@@ -58,7 +58,6 @@ public static class PythonProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-
     [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath, params string[] scriptArgs)

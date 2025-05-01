@@ -81,7 +81,7 @@ public static class AzureSearchExtensions
     /// <param name="target">The target Azure AI Search service resource.</param>
     /// <param name="roles">The built-in AI Search roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
-    /// <remarks
+    /// <remarks>
     /// <example>
     /// Assigns the SearchIndexDataReader role to the 'Projects.Api' project.
     /// <code lang="csharp">

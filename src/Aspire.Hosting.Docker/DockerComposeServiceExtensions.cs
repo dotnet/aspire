@@ -33,7 +33,6 @@ public static class DockerComposeServiceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-
     public static IResourceBuilder<T> PublishAsDockerComposeService<T>(this IResourceBuilder<T> builder, Action<DockerComposeServiceResource, Service> configure)
         where T : IComputeResource
     {

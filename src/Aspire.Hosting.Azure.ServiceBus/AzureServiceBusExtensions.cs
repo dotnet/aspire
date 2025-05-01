@@ -509,7 +509,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks
+    /// <remarks>
     /// <example>
     /// Here is an example of how to configure the emulator to use a different logging mechanism:
     /// <code language="csharp">
@@ -626,7 +626,7 @@ public static class AzureServiceBusExtensions
     /// <param name="target">The target Azure Service Bus namespace.</param>
     /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
-    /// <remarks
+    /// <remarks>
     /// <example>
     /// Assigns the AzureServiceBusDataSender role to the 'Projects.Api' project.
     /// <code lang="csharp">
