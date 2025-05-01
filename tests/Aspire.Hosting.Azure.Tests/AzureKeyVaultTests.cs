@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -27,8 +28,32 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
+              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
+              location: location
+              properties: {
+                tenantId: tenant().tenantId
+                sku: {
+                  family: 'A'
+                  name: 'standard'
+                }
+                enableRbacAuthorization: true
+              }
+              tags: {
+                'aspire-resource-name': 'mykv'
+              }
+            }
+
+            output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]
@@ -51,12 +76,36 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
+              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
+              location: location
+              properties: {
+                tenantId: tenant().tenantId
+                sku: {
+                  family: 'A'
+                  name: 'standard'
+                }
+                enableRbacAuthorization: true
+              }
+              tags: {
+                'aspire-resource-name': 'mykv'
+              }
+            }
+
+            output vaultUri string = mykv.properties.vaultUri
+
+            output name string = mykv.name
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
 
         var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
         var kvRolesManifest = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
-        var expectedBicep = """
+        expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 

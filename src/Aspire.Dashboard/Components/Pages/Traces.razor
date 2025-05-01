@@ -126,14 +126,18 @@
                                         @{
                                             var items = overflow.ItemsOverflow.ToList();
                                         }
-                                        <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
-                                            @foreach (var item in items)
-                                            {
-                                                <div style="margin-top: 8px; margin-bottom: 8px;">
-                                                    @item.ChildContent
-                                                </div>
-                                            }
-                                        </FluentTooltip>
+
+                                        @if (items.Count > 0)
+                                        {
+                                            <FluentTooltip aria-label="@(string.Join(", ", items.Select(i => i.Text)))" UseTooltipService="false" Anchor="@overflow.IdMoreButton">
+                                                @foreach (var item in items)
+                                                {
+                                                    <div style="margin-top: 8px; margin-bottom: 8px;">
+                                                        @item.ChildContent
+                                                    </div>
+                                                }
+                                            </FluentTooltip>
+                                        }
                                     </OverflowTemplate>
                                 </FluentOverflow>
                             </AspireTemplateColumn>

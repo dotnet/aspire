@@ -547,6 +547,11 @@
         <target state="translated">Horodatage</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="new">Toggle nesting</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterCapturePaused">
         <source>Capture paused</source>
         <target state="translated">Capture suspendue</target>

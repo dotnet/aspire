@@ -6,6 +6,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -266,6 +267,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -275,6 +277,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
     {
         var appBuilder = CreateBuilder();

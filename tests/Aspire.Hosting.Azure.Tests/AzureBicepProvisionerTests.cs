@@ -8,6 +8,7 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
