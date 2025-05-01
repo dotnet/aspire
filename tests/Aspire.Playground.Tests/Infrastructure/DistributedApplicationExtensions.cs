@@ -97,7 +97,7 @@ public static partial class DistributedApplicationExtensions
     /// </remarks>
     public static Task WaitForResources(this DistributedApplication app, IEnumerable<string>? targetStates = null, CancellationToken cancellationToken = default)
     {
-        targetStates ??= [KnownResourceStates.Running, KnownResourceStates.Hidden];
+        targetStates ??= [KnownResourceStates.Running];
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         return Task.WhenAll(applicationModel.Resources.Select(r => app.ResourceNotifications.WaitForResourceAsync(r.Name, targetStates, cancellationToken)));
