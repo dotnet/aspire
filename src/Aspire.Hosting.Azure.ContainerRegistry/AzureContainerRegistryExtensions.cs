@@ -76,4 +76,21 @@ public static class AzureContainerRegistryExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds role assignments to the specified Azure Container Registry resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource being configured.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will have role assignments.</param>
+    /// <param name="target">The target Azure Container Registry resource.</param>
+    /// <param name="roles">The roles to assign to the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureContainerRegistryResource> target,
+        params ContainerRegistryBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, ContainerRegistryBuiltInRole.GetBuiltInRoleName, roles);
+    }
 }
