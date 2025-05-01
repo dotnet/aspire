@@ -10,7 +10,7 @@
   "symbols/AspireVersion/choices/9.2/displayName": "9.2",
   "symbols/AspireVersion/choices/9.2/description": "選擇 .NET Aspire 9.2",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
-  "symbols/AspireVersion/choices/9.3/description": "Chooses .NET Aspire 9.3",
+  "symbols/AspireVersion/choices/9.3/description": "選擇 .NET Aspire 9.3",
   "symbols/appHostHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中 HTTP 端點的連接埠號碼。",
   "symbols/appHostOtlpHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中 OTLP HTTP 端點的連接埠號碼。",
   "symbols/appHostResourceHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中資源服務 HTTP 端點的連接埠號碼。",
