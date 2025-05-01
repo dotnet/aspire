@@ -19,7 +19,6 @@ public class AzureBlobStorageContainerResource(string name, string blobContainer
     IResourceWithConnectionString,
     IResourceWithParent<AzureBlobStorageResource>
 {
-
     /// <summary>
     /// Gets the blob container name.
     /// </summary>

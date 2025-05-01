@@ -39,7 +39,6 @@ partial class AspireBlobStorageExtensions
 
                 var containerClient = blobServiceClient.GetBlobContainerClient(settings.BlobContainerName);
                 return containerClient;
-
             }, requiresCredential: false);
         }
 
