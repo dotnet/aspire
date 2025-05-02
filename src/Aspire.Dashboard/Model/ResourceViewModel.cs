@@ -168,34 +168,8 @@ public sealed class CommandViewModel
 {
     public string Name { get; }
     public CommandViewModelState State { get; }
-
-    public string DisplayName
-    {
-        get
-        {
-            return Name switch
-            {
-                KnownResourceCommands.StartCommand => Commands.StartCommandDisplayName,
-                KnownResourceCommands.StopCommand => Commands.StopCommandDisplayName,
-                KnownResourceCommands.RestartCommand => Commands.RestartCommandDisplayName,
-                _ => field
-            };
-        }
-    }
-
-    public string DisplayDescription
-    {
-        get
-        {
-            return Name switch
-            {
-                KnownResourceCommands.StartCommand => Commands.StartCommandDisplayDescription,
-                KnownResourceCommands.StopCommand => Commands.StopCommandDisplayDescription,
-                KnownResourceCommands.RestartCommand => Commands.RestartCommandDisplayDescription,
-                _ => field
-            };
-        }
-    }
+    private string DisplayName { get; }
+    private string DisplayDescription { get; }
 
     public string ConfirmationMessage { get; }
     public Value? Parameter { get; }
@@ -217,6 +191,28 @@ public sealed class CommandViewModel
         IsHighlighted = isHighlighted;
         IconName = iconName;
         IconVariant = iconVariant;
+    }
+
+    public string GetDisplayName(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            _ => DisplayName
+        };
+    }
+
+    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription
+        };
     }
 }
 

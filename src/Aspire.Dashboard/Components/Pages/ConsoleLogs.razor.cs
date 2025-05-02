@@ -66,6 +66,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Inject]
@@ -356,6 +359,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 GetResourceName,
                 ControlsStringsLoc,
                 ResourcesLoc,
+                CommandsLoc,
                 buttonId =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
