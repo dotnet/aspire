@@ -71,7 +71,7 @@ public class AzureResourcePreparerTests
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
         }
         else
         {
@@ -115,7 +115,7 @@ public class AzureResourcePreparerTests
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
         }
         else
         {

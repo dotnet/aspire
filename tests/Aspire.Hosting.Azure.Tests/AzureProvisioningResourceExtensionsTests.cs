@@ -60,7 +60,7 @@ public class AzureProvisioningResourceExtensionsTests
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     private sealed class Project : IProjectMetadata

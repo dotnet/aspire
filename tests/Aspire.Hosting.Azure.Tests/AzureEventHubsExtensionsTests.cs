@@ -290,7 +290,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "eh-roles");
         var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);

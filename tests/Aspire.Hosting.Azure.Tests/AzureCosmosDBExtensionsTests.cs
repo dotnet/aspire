@@ -201,7 +201,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
@@ -256,6 +256,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(cosmos.Resource);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 }

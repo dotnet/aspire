@@ -325,7 +325,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -369,7 +369,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -446,7 +446,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, m);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -488,7 +488,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -612,7 +612,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
         await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -641,7 +641,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
         await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -674,7 +674,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
         await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -697,7 +697,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
 
         await Verifier.Verify(appInsightsManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -847,7 +847,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -884,7 +884,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -920,7 +920,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -964,7 +964,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -1008,7 +1008,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -1164,7 +1164,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expected, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "sb-roles");
         var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
@@ -1225,7 +1225,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("wps1", wps.Resource.Name);
         output.WriteLine(manifest.BicepText);
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "wps1-roles");
         var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
@@ -1284,7 +1284,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("wps1", wps.Resource.Name);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -1362,7 +1362,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -1448,7 +1448,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -1535,7 +1535,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
         var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
@@ -1562,7 +1562,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: storage
             }
-            
+
             resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
               properties: {
@@ -1572,7 +1572,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: storage
             }
-            
+
             resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
               properties: {
@@ -1671,7 +1671,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         await Verifier.Verify(storageManifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
@@ -1763,7 +1763,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var searchRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "search-roles");
         var searchRolesManifest = await GetManifestWithBicep(searchRoles, skipPreparer: true);
@@ -1790,7 +1790,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               scope: search
             }
-            
+
             resource search_SearchServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
               name: guid(search.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))
               properties: {
@@ -1895,7 +1895,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var openaiRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "openai-roles");
         var openaiRolesManifest = await GetManifestWithBicep(openaiRoles, skipPreparer: true);
@@ -1996,7 +1996,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ToString());
 
         await Verifier.Verify(bicep, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

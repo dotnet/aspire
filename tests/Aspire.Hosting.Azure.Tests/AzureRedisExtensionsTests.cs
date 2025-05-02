@@ -38,7 +38,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, redis.Resource);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "redis-cache-roles");
         var redisRolesManifest = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
@@ -121,7 +121,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, m);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]

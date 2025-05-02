@@ -33,7 +33,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "signalr-roles");
         var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
@@ -88,7 +88,7 @@ public class AzureSignalRExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseDirectory("Snapshots");
+            .UseHelixAwareDirectory("Snapshots");
 
         var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "signalr-roles");
         var signalrRolesManifest = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
