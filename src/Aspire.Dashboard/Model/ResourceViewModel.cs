@@ -7,7 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -166,8 +168,35 @@ public sealed class CommandViewModel
 {
     public string Name { get; }
     public CommandViewModelState State { get; }
-    public string DisplayName { get; }
-    public string DisplayDescription { get; }
+
+    public string DisplayName
+    {
+        get
+        {
+            return Name switch
+            {
+                KnownResourceCommands.StartCommand => Commands.StartCommandDisplayName,
+                KnownResourceCommands.StopCommand => Commands.StopCommandDisplayName,
+                KnownResourceCommands.RestartCommand => Commands.RestartCommandDisplayName,
+                _ => field
+            };
+        }
+    }
+
+    public string DisplayDescription
+    {
+        get
+        {
+            return Name switch
+            {
+                KnownResourceCommands.StartCommand => Commands.StartCommandDisplayDescription,
+                KnownResourceCommands.StopCommand => Commands.StopCommandDisplayDescription,
+                KnownResourceCommands.RestartCommand => Commands.RestartCommandDisplayDescription,
+                _ => field
+            };
+        }
+    }
+
     public string ConfirmationMessage { get; }
     public Value? Parameter { get; }
     public bool IsHighlighted { get; }
