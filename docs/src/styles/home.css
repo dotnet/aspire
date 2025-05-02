@@ -52,15 +52,65 @@
 }
 
 
-
 /* Dark mode by default */
 :root {
+
+	a:not(:disabled),
+	select:not(:disabled) option:not(:disabled) {
+		cursor: pointer;
+	}
+
+	a:hover {
+		filter: brightness(90%);
+	}
+
 	video {
 		border-radius: .5rem;
 	}
 
 	.site-title span {
 		color: var(--sl-color-white);
+	}
+
+	.hero * {
+		z-index: 2;
+	}
+
+	.hero #_top {
+		font-size: calc(var(--sl-text-6xl) * 2);
+		background: var(--sl-color-white);
+		background: radial-gradient(ellipse farthest-corner at center center,
+				var(--sl-color-white) 0%,
+				var(--sl-color-accent) 100%);
+		background-clip: text;
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
+	.hero .tagline {
+		font-size: 1.6rem;
+	}
+
+	.hero .sl-link-button {
+		font-size: 1.5rem;
+		padding: 1.5rem 2.5rem;
+	}
+}
+
+:root[data-has-hero] {
+	.tagline {
+		font-size: 1.6rem;
+	}
+
+	.sl-link-button {
+		font-size: 1.5rem;
+		padding: 1.5rem 2.5rem;
+	}
+}
+
+:root[data-theme='light'] {
+	a:hover {
+		filter: brightness(110%);
 	}
 }
 

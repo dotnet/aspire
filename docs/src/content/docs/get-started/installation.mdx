@@ -1,7 +1,6 @@
 ---
 title: Install Aspire CLI
 description: Learn about essential tooling concepts for Aspire.
-
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -13,36 +12,43 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
 1. Install the Aspire CLI:
 
-    ```bash
-    dotnet tool install -g aspire.cli
+    ```console
+    dotnet tool install --global aspire.cli --prerelease
     ```
+
+    <Aside type='note'>
+      The Aspire CLI is currently in preview, thus the `--prerelease` flag is used.
+    </Aside>
 
 1. Verify the installation by calling the CLI help command:
 
-    ```bash
+    ```console
     aspire --help
     ```
 
-    You should see usage example format, with a list of available options and commands.
+    You should see an example usage format, with a list of available options and commands, similar to the following:
 
-1. Create a new Aspire solution:
+    ```console frame="none"
+    Description:
+    The Aspire CLI can be used to create, run, and publish Aspire-based applications.
 
-    ```bash
-    aspire new <project-name>
-    ```
+    Usage:
+    aspire [command] [options]
 
-    This relies on the Aspire templates. If they're not installed already, the CLI will install them for you.
+    Options:
+    -?, -h, --help       Show help and usage information
+    --version            Show version information
+    -d, --debug          Enable debug logging to the console.
+    --wait-for-debugger  Wait for a debugger to attach before executing the command. [default: False]
 
-1. Change to the solution directory:
-
-    ```bash
-    cd <project-name>
-    ```
-
-1. Run the Aspire solution:
-
-    ```bash
-    aspire run
+    Commands:
+    new <template>     Create a new Aspire sample project.
+    run                Run an Aspire app host in development mode.
+    add <integration>  Add an integration to the Aspire project.
+    publish            Generates deployment artifacts for an Aspire app host project.
     ```
 
 </Steps>
+
+## Next
+

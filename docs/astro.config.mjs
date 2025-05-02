@@ -17,14 +17,13 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/dotnet/aspire/edit/main/',
 			},
-			favicon: './src/images/favicon.svg',
+			favicon: 'favicon.svg',
 			head: [
-				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: './src/images/favicon-96x96.png', sizes: '96x96' } },
-				{ tag: 'link', attrs: { rel: 'icon', type: 'image/svg+xml', href: './src/images/favicon.svg' } },
-				{ tag: 'link', attrs: { rel: 'shortcut icon', href: './src/images/favicon.ico' } },
-				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: './src/images/apple-touch-icon.png' } },
+				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: 'favicon-96x96.png', sizes: '96x96' } },
+				{ tag: 'link', attrs: { rel: 'icon', type: 'image/svg+xml', href: 'favicon.svg' } },
+				{ tag: 'link', attrs: { rel: 'shortcut icon', href: 'favicon.ico' } },
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: 'apple-touch-icon.png' } },
 				{ tag: 'meta', attrs: { name: 'apple-mobile-web-app-title', content: 'Aspire' } },
-				{ tag: 'link', attrs: { rel: 'manifest', href: './site.webmanifest' } },
 			],
 			social: [
 				{
@@ -73,7 +72,6 @@ export default defineConfig({
 			],
 			components: {
 				ContentPanel: './src/components/ContentPanel.astro',
-				Hero: './src/components/Hero.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 				Search: './src/components/Search.astro',
 			},
@@ -87,8 +85,10 @@ export default defineConfig({
 				{
 					label: 'Welcome',
 					items: [
+						{ label: 'Overview', slug: 'get-started/overview' },
 						{ label: 'Prerequisites', slug: 'get-started/prerequisites' },
 						{ label: 'Installation', slug: 'get-started/installation' },
+						{ label: 'First app', slug: 'get-started/first-app' }
 					],
 				},
 				{

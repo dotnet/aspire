@@ -10,10 +10,10 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.34.1",
+    "@astrojs/starlight": "^0.34.2",
     "@catppuccin/starlight": "^1.0.1",
-    "astro": "^5.6.1",
-    "sharp": "^0.32.5",
+    "astro": "^5.7.10",
+    "sharp": "^0.34.1",
     "starlight-kbd": "^0.2.0",
     "starlight-llms-txt": "^0.5.1"
   }
