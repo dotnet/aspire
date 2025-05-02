@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -426,5 +427,27 @@ public static class OtlpHelpers
             TotalItemCount = totalItemCount,
             IsFull = isFull
         };
+    }
+
+    public static bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, [NotNullWhen(true)] out OtlpScope? s)
+    {
+        try
+        {
+            // The instrumentation scope information for the spans in this message.
+            // Semantically when InstrumentationScope isn't set, it is equivalent with
+            // an empty instrumentation scope name (unknown).
+            var name = scope?.Name ?? string.Empty;
+            ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
+            // Adds to dictionary if not present.
+            scopeRef ??= (scope != null) ? new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context)) : OtlpScope.Empty;
+            s = scopeRef;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogInformation(ex, "Error adding scope.");
+            s = null;
+            return false;
+        }
     }
 }

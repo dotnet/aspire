@@ -76,7 +76,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -180,7 +180,7 @@ public class LogTests
             l =>
             {
                 Assert.Equal("1", l.Message);
-                Assert.Equal("", l.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, l.Scope);
             },
             l => Assert.Equal("2", l.Message),
             l => Assert.Equal("3", l.Message),
@@ -601,7 +601,7 @@ public class LogTests
                         }
                     }
                 });
-            }, TestContext.Current.CancellationToken);
+            });
         }
 
         await task.DefaultTimeout();
@@ -745,7 +745,7 @@ public class LogTests
         });
 
         // Assert
-        var read1 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, read1);
         logger.LogInformation("Received log 1 callback");
 
@@ -766,7 +766,7 @@ public class LogTests
             }
         });
 
-        var read2 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, read2);
         logger.LogInformation("Received log 2 callback");
 
@@ -888,7 +888,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -911,7 +911,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -984,7 +984,7 @@ public class LogTests
             app =>
             {
                 Assert.Equal("message-1", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -995,7 +995,7 @@ public class LogTests
             app =>
             {
                 Assert.Equal("message-2", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -1140,12 +1140,12 @@ public class LogTests
                     app =>
                     {
                         Assert.Equal("message-2", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                        Assert.Equal("TestLogger", app.Scope.Name);
                     },
                     app =>
                     {
                         Assert.Equal("message-3", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                        Assert.Equal("TestLogger", app.Scope.Name);
                     });
     }
 
@@ -1212,7 +1212,7 @@ public class LogTests
         Assert.Equal(1, logs.TotalItemCount);
         var log = Assert.Single(logs.Items);
         Assert.Equal("message-3", log.Message);
-        Assert.Equal("TestLogger", log.Scope.ScopeName);
+        Assert.Equal("TestLogger", log.Scope.Name);
     }
 
     [Fact]

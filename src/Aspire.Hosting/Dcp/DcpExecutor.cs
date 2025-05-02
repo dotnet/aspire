@@ -130,6 +130,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // This is here so hosting does not throw an exception when CTRL+C during startup.
+            _logger.LogDebug("Cancellation received during application startup.");
+        }
         catch
         {
             _shutdownCancellation.Cancel();

@@ -44,6 +44,12 @@ internal static class TelemetryTestHelpers
         return OtlpHelpers.ToHexString(id);
     }
 
+    public static OtlpScope CreateOtlpScope(OtlpContext context, string? name = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    {
+        var scope = CreateScope(name, attributes);
+        return new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context));
+    }
+
     public static InstrumentationScope CreateScope(string? name = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
         var scope = new InstrumentationScope() { Name = name ?? "TestScope" };

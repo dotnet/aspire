@@ -29,7 +29,7 @@ public class ChannelExtensionsTests
                 readBatch = batch;
                 cts.Cancel();
             }
-        }, TestContext.Current.CancellationToken);
+        });
 
         // Assert
         await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
@@ -53,7 +53,7 @@ public class ChannelExtensionsTests
                 readBatch = batch;
                 cts.Cancel();
             }
-        }, TestContext.Current.CancellationToken);
+        });
 
         // Assert
         await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
@@ -84,16 +84,16 @@ public class ChannelExtensionsTests
             {
                 resultChannel.Writer.Complete();
             }
-        }, TestContext.Current.CancellationToken);
+        });
 
         // Assert
         var stopwatch = Stopwatch.StartNew();
-        var read1 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["a", "b", "c"], read1.Single());
 
         channel.Writer.TryWrite(["d", "e", "f"]);
 
-        var read2 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["d", "e", "f"], read2.Single());
 
         var elapsed = stopwatch.Elapsed;
@@ -128,16 +128,16 @@ public class ChannelExtensionsTests
             {
                 resultChannel.Writer.Complete();
             }
-        }, TestContext.Current.CancellationToken);
+        });
 
         // Assert
         var stopwatch = Stopwatch.StartNew();
-        var read1 = await resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["a", "b", "c"], read1.Single());
 
         channel.Writer.TryWrite(["d", "e", "f"]);
 
-        var read2Task = resultChannel.Reader.ReadAsync(TestContext.Current.CancellationToken).DefaultTimeout();
+        var read2Task = resultChannel.Reader.ReadAsync().DefaultTimeout();
         cts.Cancel();
 
         await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();

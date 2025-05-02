@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using System.Text;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -334,8 +333,8 @@ public class TraceTests
                 Assert.Equal(2, trace.Spans.Count);
 
                 Assert.Collection(trace.Spans,
-                    span => Assert.Equal("scope1", span.Scope.ScopeName),
-                    span => Assert.Equal("scope2", span.Scope.ScopeName));
+                    span => Assert.Equal("scope1", span.Scope.Name),
+                    span => Assert.Equal("scope2", span.Scope.Name));
             });
     }
 
@@ -449,14 +448,14 @@ public class TraceTests
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("1-1", trace.RootSpan!.SpanId);
             },
             trace =>
             {
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("2-1", trace.RootSpan!.SpanId);
             });
     }
@@ -1927,49 +1926,6 @@ public class TraceTests
             {
                 AssertId("3-2", s.SpanId);
             });
-    }
-
-    private sealed class TestOutgoingPeerResolver : IOutgoingPeerResolver, IDisposable
-    {
-        private readonly Func<KeyValuePair<string, string>[], (string? Name, ResourceViewModel? Resource)>? _onResolve;
-        private readonly List<Func<Task>> _callbacks;
-
-        public TestOutgoingPeerResolver(Func<KeyValuePair<string, string>[], (string? Name, ResourceViewModel? Resource)>? onResolve = null)
-        {
-            _onResolve = onResolve;
-            _callbacks = new();
-        }
-
-        public void Dispose()
-        {
-        }
-
-        public IDisposable OnPeerChanges(Func<Task> callback)
-        {
-            _callbacks.Add(callback);
-            return this;
-        }
-
-        public async Task InvokePeerChanges()
-        {
-            foreach (var callback in _callbacks)
-            {
-                await callback();
-            }
-        }
-
-        public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResourced)
-        {
-            if (_onResolve != null)
-            {
-                (name, matchedResourced) = _onResolve(attributes);
-                return (name != null);
-            }
-
-            name = "TestPeer";
-            matchedResourced = ModelTestHelpers.CreateResource(appName: "TestPeer");
-            return true;
-        }
     }
 
     [Fact]
