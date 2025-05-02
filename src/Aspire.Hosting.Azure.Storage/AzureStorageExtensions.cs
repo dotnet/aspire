@@ -280,6 +280,11 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        if (builder.Resource.BlobsResource is not null)
+        {
+            throw new InvalidOperationException("The Azure Storage resource already has a blob endpoint.");
+        }
+
         var resource = new AzureBlobStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
     }
