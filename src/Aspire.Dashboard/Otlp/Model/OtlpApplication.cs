@@ -30,7 +30,7 @@ public class OtlpApplication
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
-    private readonly Dictionary<string, OtlpMeter> _meters = new();
+    private readonly Dictionary<string, OtlpScope> _meters = new();
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
@@ -53,6 +53,12 @@ public class OtlpApplication
 
             foreach (var sm in scopeMetrics)
             {
+                if (!OtlpHelpers.TryAddScope(_meters, sm.Scope, Context, out var scope))
+                {
+                    context.FailureCount += sm.Metrics.Count;
+                    continue;
+                }
+
                 foreach (var metric in sm.Metrics)
                 {
                     OtlpInstrument instrument;
@@ -64,7 +70,7 @@ public class OtlpApplication
                             throw new InvalidOperationException("Instrument name is required.");
                         }
 
-                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        var instrumentKey = new OtlpInstrumentKey(scope.Name, metric.Name);
                         ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
                         // Adds to dictionary if not present.
                         instrumentRef ??= new OtlpInstrument
@@ -75,7 +81,7 @@ public class OtlpApplication
                                 Description = metric.Description,
                                 Unit = metric.Unit,
                                 Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope)
+                                Parent = scope
                             },
                             Context = Context
                         };
@@ -193,15 +199,6 @@ public class OtlpApplication
             Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
             _ => OtlpInstrumentType.Unsupported
         };
-    }
-
-    private OtlpMeter GetMeter(InstrumentationScope scope)
-    {
-        ref var meter = ref CollectionsMarshal.GetValueRefOrAddDefault(_meters, scope.Name, out _);
-        // Adds to dictionary if not present.
-        meter ??= new OtlpMeter(scope, Context);
-
-        return meter;
     }
 
     public OtlpInstrument? GetInstrument(string meterName, string instrumentName, DateTime? valuesStart, DateTime? valuesEnd)

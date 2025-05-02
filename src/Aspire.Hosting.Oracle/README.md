@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.Oracle
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a Oracle database resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Oracle database resource and consume the connection using the following methods:
 
 ```csharp
 var db = builder.AddOracle("oracle").AddDatabase("mydb");

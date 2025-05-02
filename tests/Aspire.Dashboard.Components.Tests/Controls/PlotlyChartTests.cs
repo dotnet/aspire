@@ -9,7 +9,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Bunit;
 using Microsoft.Extensions.Logging.Abstractions;
-using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
 
@@ -62,10 +61,7 @@ public class PlotlyChartTests : DashboardTestContext
                 Name = "Name-<b>Bold</b>",
                 Unit = "Unit-<b>Bold</b>",
                 Description = "Description-<b>Bold</b>",
-                Parent = new OtlpMeter(new InstrumentationScope
-                {
-                    Name = "Parent-Name-<b>Bold</b>"
-                }, context),
+                Parent = new OtlpScope("Parent-Name-<b>Bold</b>", string.Empty, []),
                 Type = OtlpInstrumentType.Sum
             },
             Context = context

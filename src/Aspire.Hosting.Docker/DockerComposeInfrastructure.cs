@@ -59,7 +59,7 @@ internal sealed class DockerComposeInfrastructure(
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
             {
-                ComputeEnvironment = environment,
+                ComputeEnvironment = environment
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }

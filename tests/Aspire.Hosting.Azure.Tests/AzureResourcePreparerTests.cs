@@ -68,7 +68,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         {
             // when AzureContainerAppsInfrastructure is not added, we always apply the default role assignments to a new 'storage-roles' resource.
             // The same applies when in RunMode and we are provisioning Azure resources for F5 local development.
-            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             var expectedBicep = """
@@ -156,7 +156,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper output)
         {
             // in RunMode, we apply the role assignments to a new 'storage-roles' resource, so the provisioned resource
             // adds these role assignments for F5 local development.
-            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"storage-roles"));
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
             var expectedBicep = """

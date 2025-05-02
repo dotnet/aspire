@@ -1,6 +1,6 @@
 # List of Diagnostics Produced by Aspire
 
-## MSBuild Warnings[
+## MSBuild Warnings
 
 | Diagnostic ID | Severity | Description | Location |
 | ------------- | -------- | ----------- | -------- |

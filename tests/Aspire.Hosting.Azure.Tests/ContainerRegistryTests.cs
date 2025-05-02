@@ -64,10 +64,10 @@ public class ContainerRegistryTests
         Assert.NotNull(target);
 
         // Verify that ContainerRegistryInfo property is not null for project resources
-        Assert.NotNull(target.ContainerRegistryInfo);
+        Assert.NotNull(target.ContainerRegistry);
 
         // Verify that ContainerRegistryInfo is of type IContainerRegistry
-        var registry = Assert.IsType<IContainerRegistry>(target.ContainerRegistryInfo, exactMatch: false);
+        var registry = Assert.IsType<IContainerRegistry>(target.ContainerRegistry, exactMatch: false);
 
         // Verify registry properties are available
         Assert.NotNull(registry.Name);
@@ -157,10 +157,10 @@ public class ContainerRegistryTests
             foreach (var resource in model.Resources)
             {
                 if (resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var annotation) &&
-                    annotation.ContainerRegistryInfo != null)
+                    annotation.ContainerRegistry != null)
                 {
                     ComputeResourceRegistryFound = true;
-                    ComputeResourceRegistry = annotation.ContainerRegistryInfo;
+                    ComputeResourceRegistry = annotation.ContainerRegistry;
                     if (ComputeResourceRegistry is IAzureContainerRegistry azureRegistry)
                     {
                         AzureContainerRegistry = azureRegistry;

@@ -322,6 +322,7 @@ public static class AzureStorageExtensions
     /// <param name="target">The target Azure Storage account.</param>
     /// <param name="roles">The built-in storage roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the StorageBlobDataContributor role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -335,6 +336,7 @@ public static class AzureStorageExtensions
     ///   .WithReference(blobs);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureStorageResource> target,

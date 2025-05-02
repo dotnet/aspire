@@ -20,7 +20,7 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// the deployment target, if the deployment target is an image-based environment.
     /// </summary>
     [Experimental("ASPIRECOMPUTE001")]
-    public IContainerRegistry? ContainerRegistryInfo { get; set; }
+    public IContainerRegistry? ContainerRegistry { get; set; }
 
     /// <summary>
     /// Gets or sets the compute environment resource associated with the deployment target.

@@ -152,14 +152,13 @@ public static class ResourceExtensions
     /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
+    /// <param name="resource">The resource to get the environment variables from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
-    /// </remarks>
-    /// <param name="resource">The resource to get the environment variables from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
-    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
     /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
     /// a unit test to validate environment variable values.
@@ -184,6 +183,7 @@ public static class ResourceExtensions
     ///         });
     /// </code>
     /// </example>
+    /// </remarks>
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
@@ -206,14 +206,13 @@ public static class ResourceExtensions
     /// <summary>
     /// Get the arguments from the given resource.
     /// </summary>
+    /// <param name="resource">The resource to get the arguments from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The arguments retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the arguments are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and arguments were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
-    /// </remarks>
-    /// <param name="resource">The resource to get the arguments from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
-    /// <returns>The arguments retrieved from the resource.</returns>
     /// <example>
     /// Using <see cref="GetArgumentValuesAsync(IResourceWithArgs, DistributedApplicationOperation)"/> inside
     /// a unit test to validate argument values.
@@ -236,6 +235,7 @@ public static class ResourceExtensions
     ///         });
     /// </code>
     /// </example>
+    /// </remarks>
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {

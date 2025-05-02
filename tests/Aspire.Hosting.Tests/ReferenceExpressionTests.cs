@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -14,7 +13,7 @@ public class ReferenceExpressionTests
     [InlineData("}", "Hello }}", "Hello }")]
     [InlineData("{1}", "Hello {{1}}", "Hello {1}")]
     [InlineData("{x}", "Hello {{x}}", "Hello {x}")]
-    [InlineData("{{x}}", "Hello {{{{x}}}}", "Hello {{x}}")]
+    [InlineData("{{x}}", "Hello {{x}}", "Hello {x}")]
     public void TestReferenceExpressionCreateInputStringTreatedAsLiteral(string input, string expectedFormat, string expectedExpression)
     {
         var refExpression = ReferenceExpression.Create($"Hello {input}");
@@ -51,13 +50,15 @@ public class ReferenceExpressionTests
     }
 
     public static readonly object[][] ValidFormattingInParameterBracketCases = [
-        ["{0:D}", new DateTime(2024,05,22), string.Format(CultureInfo.InvariantCulture, "{0:D}", new DateTime(2024, 05, 22).ToString())],
-        ["{0:N}", 123456.78, string.Format(CultureInfo.InvariantCulture, "{0:N}", "123456.78")]
+        ["{0:D}", new DateTime(2024,05,22)],
+        ["{0:N}", 123456.78]
     ];
 
     [Theory, MemberData(nameof(ValidFormattingInParameterBracketCases))]
-    public void ReferenceExpressionHandlesValueWithFormattingInParameterBrackets(string input, string parameterValue, string expected)
+    public void ReferenceExpressionHandlesValueWithFormattingInParameterBrackets(string input, string parameterValue)
     {
+        var expected = string.Format(CultureInfo.InvariantCulture, input, parameterValue);
+
         var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue]).ValueExpression;
         Assert.Equal(expected, expr);
     }
@@ -68,5 +69,37 @@ public class ReferenceExpressionTests
         var s = "Test";
         var expr = ReferenceExpression.Create($"{s}").ValueExpression;
         Assert.Equal("Test", expr);
+    }
+
+    [Fact]
+    public async Task ReferenceExpressionWithBracketsAndInterpolation()
+    {
+        var v = new Value();
+
+        var expr = ReferenceExpression.Create($"[{{\"api_uri\":\"{v}\"}}]");
+
+        Assert.Equal("[{\"api_uri\":\"{value}\"}]", expr.ValueExpression);
+        Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
+    }
+
+    [Fact]
+    public async Task ReferenceExpressionWithEscapedBracketsAndInterpolation()
+    {
+        var v = new Value();
+
+        var expr = ReferenceExpression.Create($"[{{{{\"api_uri\":\"{v}\"}}}}]");
+
+        Assert.Equal("[{\"api_uri\":\"{value}\"}]", expr.ValueExpression);
+        Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
+    }
+
+    private sealed class Value : IValueProvider, IManifestExpressionProvider
+    {
+        public string ValueExpression => "{value}";
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+        {
+            return new("Hello World");
+        }
     }
 }

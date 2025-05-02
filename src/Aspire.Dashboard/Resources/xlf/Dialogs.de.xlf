@@ -209,12 +209,12 @@
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
-        <target state="new">Resource logs and telemetry</target>
+        <target state="translated">Ressourcenprotokolle und Telemetrie</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogEnableTelemetry">
         <source>Enable dashboard telemetry</source>
-        <target state="new">Enable dashboard telemetry</target>
+        <target state="translated">Dashboardtelemetrie aktivieren</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -239,12 +239,12 @@
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryEnabledInfo">
         <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
-        <target state="new">Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</target>
+        <target state="translated">Dashboardtelemetrie ist aktiviert. Aspire sammelt Nutzungsdaten und sendet sie an Microsoft.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
         <source>Why?</source>
-        <target state="new">Why?</target>
+        <target state="translated">Warum?</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

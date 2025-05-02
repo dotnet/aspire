@@ -448,6 +448,10 @@ fluent-switch.table-switch::part(label) {
     --fill-color: var(--neutral-layer-1);
 }
 
+.property-grid-container > fluent-accordion > fluent-accordion-item::part(heading) {
+    padding-left: calc(var(--design-unit) * 2 * 1px);
+}
+
 .property-grid-container fluent-accordion .fluent-data-grid {
     --datagrid-hover-color: var(--neutral-layer-1-hover);
 }
@@ -813,4 +817,3 @@ fluent-tooltip[anchor="dialog_close"] > div {
     vertical-align: text-bottom;
     margin-right: 3px;
 }
-

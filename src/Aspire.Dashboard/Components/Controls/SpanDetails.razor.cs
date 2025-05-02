@@ -87,7 +87,7 @@ public partial class SpanDetails : IDisposable
 
             _contextAttributes =
             [
-                new TelemetryPropertyViewModel { Name = "Source", Key = KnownSourceFields.NameField, Value = _viewModel.Span.Scope.ScopeName }
+                new TelemetryPropertyViewModel { Name = "Source", Key = KnownSourceFields.NameField, Value = _viewModel.Span.Scope.Name }
             ];
             if (!string.IsNullOrEmpty(_viewModel.Span.Scope.Version))
             {
