@@ -9,7 +9,6 @@ using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
-using k8s.KubeConfigModels;
 
 namespace Aspire.Hosting.Azure;
 
