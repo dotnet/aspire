@@ -549,7 +549,7 @@
       </trans-unit>
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
-        <target state="new">Toggle nesting</target>
+        <target state="translated">切換巢狀項目</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterCapturePaused">
