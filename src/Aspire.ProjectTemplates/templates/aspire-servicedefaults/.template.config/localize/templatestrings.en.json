@@ -1,7 +1,7 @@
 {
   "author": "Microsoft",
   "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "Service and cloud defaults wired up — just add your app logic.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

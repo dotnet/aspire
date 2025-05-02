@@ -8,7 +8,7 @@
   ],
   "name": ".NET Aspire App Host",
   "defaultName": "AppHost",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": "Manages and runs multiple services in your .NET Aspire app from one place.",
   "shortName": "aspire-apphost",
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,
