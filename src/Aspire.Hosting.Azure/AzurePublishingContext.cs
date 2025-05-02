@@ -212,12 +212,6 @@ public sealed class AzurePublishingContext(
                     continue;
                 }
 
-                if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalName && parameter.Value is null)
-                {
-                    module.Parameters.Add(parameter.Key, principalName);
-                    continue;
-                }
-
                 var value = ResolveValue(Eval(parameter.Value));
 
                 module.Parameters.Add(parameter.Key, value);
