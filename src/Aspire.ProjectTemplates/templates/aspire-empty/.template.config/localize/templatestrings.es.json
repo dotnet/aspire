@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplicación vacía de .NET Aspire",
-  "description": "Una plantilla de proyecto para crear una aplicación vacía de .NET Aspire.",
+  "description": "Build cloud-native systems without preset services.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",
