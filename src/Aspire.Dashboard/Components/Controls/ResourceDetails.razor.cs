@@ -179,7 +179,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         {
             var matches = ResourceByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => !r.Hidden || ShowHiddenResources)
+                .Where(r => !r.IsHidden(ShowHiddenResources))
                 .ToList();
 
             foreach (var match in matches)
@@ -202,7 +202,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
-            .Where(r => !r.Hidden || ShowHiddenResources);
+            .Where(r => !r.IsHidden(ShowHiddenResources));
 
         foreach (var otherResource in otherResources)
         {

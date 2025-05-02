@@ -123,7 +123,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
-               && (!resource.Hidden || _showHiddenResources);
+               && !resource.IsHidden(_showHiddenResources);
 
         static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
@@ -475,7 +475,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool HasCollapsedResources()
     {
-        return _resourceByName.Any(r => !(r.Value.Hidden && _showHiddenResources) && _collapsedResourceNames.Contains(r.Key));
+        return _resourceByName.Any(r => !r.Value.IsHidden(_showHiddenResources) && _collapsedResourceNames.Contains(r.Key));
     }
 
     private void UpdateMaxHighlightedCount()
@@ -643,7 +643,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.Hidden && !_showHiddenResources)
+            if (item.IsHidden(_showHiddenResources))
             {
                 continue;
             }
@@ -717,7 +717,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private async Task OnToggleCollapseAll()
     {
         var resourcesWithChildren = _resourceByName.Values
-            .Where(r => !r.Hidden || _showHiddenResources)
+            .Where(r => !r.IsHidden(_showHiddenResources))
             .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
             .ToList();
 

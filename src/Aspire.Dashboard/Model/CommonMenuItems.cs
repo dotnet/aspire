@@ -19,7 +19,7 @@ public static class CommonMenuItems
         ISessionStorage sessionStorage,
         Func<bool, Task> refreshFunction)
     {
-        var areResourcesHidden = resources.Any(r => r.Hidden);
+        var areResourcesHidden = resources.Any(r => r.IsHidden(false));
         if (!showHiddenResources)
         {
             menuItems.Add(new MenuButtonItem

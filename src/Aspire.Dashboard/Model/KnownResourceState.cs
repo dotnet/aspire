@@ -11,6 +11,7 @@ public enum KnownResourceState
     Starting,
     Running,
     Building,
+    Hidden,
     Waiting,
     Stopping,
     Unknown,

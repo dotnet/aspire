@@ -38,7 +38,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
-    public required bool Hidden { get; init; }
+    public required bool Hidden { private get; init; }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -100,7 +100,7 @@ public sealed class ResourceViewModel
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.Hidden && !showHiddenResources)
+            if (item.IsHidden(showHiddenResources))
             {
                 continue;
             }
@@ -135,6 +135,11 @@ public sealed class ResourceViewModel
         }
 
         return false;
+    }
+
+    public bool IsHidden(bool showHiddenResources)
+    {
+        return (KnownState is KnownResourceState.Hidden || Hidden) & !showHiddenResources;
     }
 }
 
