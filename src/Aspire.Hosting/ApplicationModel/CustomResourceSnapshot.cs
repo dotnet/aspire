@@ -340,6 +340,13 @@ public static class KnownResourceStateStyles
 public static class KnownResourceStates
 {
     /// <summary>
+    /// The hidden state. Useful for hiding the resource.
+    ///
+    /// <remarks>This member is obsolete. Please set <see cref="CustomResourceSnapshot.Hidden"/> instead.</remarks>
+    /// </summary>
+    public static readonly string Hidden = nameof(Hidden);
+
+    /// <summary>
     /// The starting state. Useful for showing the resource is starting.
     /// </summary>
     public static readonly string Starting = nameof(Starting);
