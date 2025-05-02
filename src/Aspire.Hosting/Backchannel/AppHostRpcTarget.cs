@@ -117,7 +117,10 @@ internal class AppHostRpcTarget(
         // Wait for the dashboard to be healthy before returning the URL. This next statement has several
         // layers of hacks. Some to work around devcontainer/codespaces port forwarding behavior, and one to
         // temporarily work around the fact that resource events abuse the state to mark the resource as
-        // hidden instead of having another field.
+        // hidden instead of having another field. There is a corresponding modification in the ResourceHealthService
+        // which allows the dashboard resource to trigger health reports even though it never enters
+        // the Running state. This is a hack. The reason we can't just check HealthStatus is because
+        // the current implementation of HealthStatus depends on the state of the resource as well.
         await resourceNotificationService.WaitForResourceAsync(
             KnownResourceNames.AspireDashboard,
             re => re.Snapshot.HealthReports.All(h => h.Status == HealthStatus.Healthy),
