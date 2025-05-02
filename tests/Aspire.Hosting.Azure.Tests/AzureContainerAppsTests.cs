@@ -275,7 +275,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               activeRevisionsMode: 'Single'
               ingress: {
                 external: false
-                targetPort: api_containerport
+                targetPort: int(api_containerport)
                 transport: 'http'
               }
               registries: [
@@ -902,7 +902,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               activeRevisionsMode: 'Single'
               ingress: {
                 external: false
-                targetPort: api_containerport
+                targetPort: int(api_containerport)
                 transport: 'http'
                 additionalPortMappings: [
                   {
@@ -2359,7 +2359,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               activeRevisionsMode: 'Single'
               ingress: {
                 external: false
-                targetPort: api_containerport
+                targetPort: int(api_containerport)
                 transport: 'http'
               }
               registries: [
@@ -3868,7 +3868,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               activeRevisionsMode: 'Single'
               ingress: {
                 external: false
-                targetPort: api_containerport
+                targetPort: int(api_containerport)
                 transport: 'http'
               }
               registries: [
