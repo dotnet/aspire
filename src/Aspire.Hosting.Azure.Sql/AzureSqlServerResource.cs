@@ -142,10 +142,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.Identity.UserAssignedIdentities["${sqlServerAdmin.id}"] = new UserAssignedIdentityDetails();
 
             // Script don't support Bicep expression, they need to be passed as ENVs
-            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBNAME", Value = database });
-            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "USERNAME", Value = principalName });
-            scriptResource.EnvironmentVariables.Add(new ContainerAppEnvironmentVariable() { Name = "CLIENTID", Value = principalId });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "USERNAME", Value = principalName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = principalId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"

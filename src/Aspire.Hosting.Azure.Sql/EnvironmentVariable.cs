@@ -15,9 +15,9 @@ using System;
 namespace Azure.Provisioning.AppContainers;
 
 /// <summary>
-/// Container App container environment variable.
+/// Environment variable.
 /// </summary>
-internal partial class ContainerAppEnvironmentVariable : ProvisionableConstruct
+sealed class EnvironmentVariable : ProvisionableConstruct
 {
     /// <summary>
     /// Environment variable name.
@@ -40,7 +40,7 @@ internal partial class ContainerAppEnvironmentVariable : ProvisionableConstruct
     private BicepValue<string>? _value;
 
     /// <summary>
-    /// Name of the Container App secret from which to pull the environment
+    /// Name of the secret from which to pull the environment
     /// variable value.
     /// </summary>
     public BicepValue<string> SecretRef
@@ -51,15 +51,15 @@ internal partial class ContainerAppEnvironmentVariable : ProvisionableConstruct
     private BicepValue<string>? _secretRef;
 
     /// <summary>
-    /// Creates a new ContainerAppEnvironmentVariable.
+    /// Creates a new EnvironmentVariable.
     /// </summary>
-    public ContainerAppEnvironmentVariable()
+    public EnvironmentVariable()
     {
     }
 
     /// <summary>
     /// Define all the provisionable properties of
-    /// ContainerAppEnvironmentVariable.
+    /// EnvironmentVariable.
     /// </summary>
     protected override void DefineProvisionableProperties()
     {

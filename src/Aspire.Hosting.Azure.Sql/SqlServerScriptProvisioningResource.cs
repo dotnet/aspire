@@ -7,6 +7,9 @@ using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure;
 
+// The existing class doesn't expose necessary properties like EnvironmentVariables and Kind.
+// This class is a workaround until the Azure SDK for .NET exposes these properties in the CDK
+// c.f. https://github.com/Azure/azure-sdk-for-net/issues/49283
 sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
 {
     private BicepValue<string>? _scriptContent;
@@ -14,7 +17,7 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
     private BicepValue<string>? _azCliVersion;
     private BicepValue<string>? _azPowerShellVersion;
     private BicepValue<TimeSpan>? _retentionInterval;
-    private BicepList<ContainerAppEnvironmentVariable>? _environmentVariables;
+    private BicepList<EnvironmentVariable>? _environmentVariables;
 
     public SqlServerScriptProvisioningResource(string bicepIdentifier) : base(bicepIdentifier)
     {
@@ -66,7 +69,7 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
         set { Initialize(); _retentionInterval!.Assign(value); }
     }
 
-    public BicepList<ContainerAppEnvironmentVariable> EnvironmentVariables
+    public BicepList<EnvironmentVariable> EnvironmentVariables
     {
         get { Initialize(); return _environmentVariables!; }
         set { Initialize(); _environmentVariables!.Assign(value); }
@@ -81,6 +84,6 @@ sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
         _azCliVersion = DefineProperty<string>(nameof(AZCliVersion), ["properties", "azCliVersion"]);
         _azPowerShellVersion = DefineProperty<string>(nameof(AZPowerShellVersion), ["properties", "azPowerShellVersion"]);
         _retentionInterval = DefineProperty<TimeSpan>(nameof(RetentionInterval), ["properties", "retentionInterval"], format: "P");
-        _environmentVariables = DefineListProperty<ContainerAppEnvironmentVariable>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
+        _environmentVariables = DefineListProperty<EnvironmentVariable>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
     }
 }
