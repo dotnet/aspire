@@ -49,7 +49,8 @@ internal sealed class DashboardServiceData : IDisposable
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
                     HealthReports = snapshot.HealthReports,
-                    Commands = snapshot.Commands
+                    Commands = snapshot.Commands,
+                    Hidden = snapshot.Hidden,
                 };
             }
 

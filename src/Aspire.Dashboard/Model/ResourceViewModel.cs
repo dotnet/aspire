@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
@@ -39,6 +38,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
+    public bool Hidden { private get; init; }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -79,6 +79,11 @@ public sealed class ResourceViewModel
         return null;
     }
 
+    public bool IsHidden()
+    {
+        return Hidden || KnownState is KnownResourceState.Hidden;
+    }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
         if (state != KnownResourceState.Running)
@@ -100,7 +105,7 @@ public sealed class ResourceViewModel
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.IsHiddenState())
+            if (item.IsHidden())
             {
                 continue;
             }
