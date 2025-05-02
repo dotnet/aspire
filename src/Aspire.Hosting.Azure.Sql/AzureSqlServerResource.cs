@@ -5,6 +5,7 @@ using System.IO.Hashing;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -138,8 +139,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.AZPowerShellVersion = "7.4";
 
             // Run the script as the administrator
+
+            var id = BicepFunction.Interpolate($"{sqlServerAdmin.Id}").Compile().ToString();
             scriptResource.Identity.IdentityType = ArmDeploymentScriptManagedIdentityType.UserAssigned;
-            scriptResource.Identity.UserAssignedIdentities["${sqlServerAdmin.id}"] = new UserAssignedIdentityDetails();
+            scriptResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
             // Script don't support Bicep expression, they need to be passed as ENVs
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
