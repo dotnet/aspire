@@ -9,6 +9,7 @@ using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
+using k8s.KubeConfigModels;
 
 namespace Aspire.Hosting.Azure;
 
@@ -145,13 +146,13 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "USERNAME", Value = principalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = principalId });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "OBJECTID", Value = principalId }); // Managed Identity's object ID in Microsoft Entra
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
                 $sqlDatabaseName = "$env:DBNAME"
                 $username = "$env:USERNAME"
-                $clientId = "$env:CLIENTID"
+                $objectId = "$env:OBJECTID"
 
                 # Install SqlServer module
                 Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
@@ -159,13 +160,13 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
                 $sqlCmd = @"
                 DECLARE @principal_name SYSNAME = '$username';
-                DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
+                DECLARE @objectId UNIQUEIDENTIFIER = '$objectId';
                 
                 -- Convert the guid to the right type
-                DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
+                DECLARE @castObjectId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @objectId), 1);
                 
-                -- Construct command: CREATE USER [@principal_name] WITH SID = @castClientId, TYPE = E;
-                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
+                -- Construct command: CREATE USER [@principal_name] WITH SID = @castObjectId, TYPE = E;
+                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castObjectId + ', TYPE = E;'
                 EXEC (@cmd);
                 
                 -- Assign roles to the new user
