@@ -43,7 +43,7 @@ public static class ModelTestHelpers
             HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
             Commands = commands ?? [],
             Relationships = relationships ?? [],
-            Hidden = hidden
+            IsHidden = hidden
         };
     }
 }

@@ -239,7 +239,7 @@ message Resource {
     repeated ResourceRelationship relationships = 20;
 
     // Whether the resource should be visually hidden in the dashboard.
-    bool hidden = 21;
+    bool is_hidden = 21;
 }
 
 ////////////////////////////////////////////

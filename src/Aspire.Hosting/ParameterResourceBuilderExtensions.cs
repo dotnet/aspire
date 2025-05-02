@@ -152,17 +152,19 @@ public static class ParameterResourceBuilderExtensions
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
-            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
+            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
 
     internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder, T resource)
         where T : ParameterResource
     {
-        var state = new CustomResourceSnapshot()
+        var state = new CustomResourceSnapshot
         {
             ResourceType = "Parameter",
             // hide parameters by default
+#pragma warning disable CS0618 // Type or member is obsolete
             State = KnownResourceStates.Hidden,
+#pragma warning restore CS0618 // Type or member is obsolete
             Properties = [
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)

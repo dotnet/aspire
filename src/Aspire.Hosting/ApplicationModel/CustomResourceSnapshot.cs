@@ -126,7 +126,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Whether this resource should be hidden in UI.
     /// </summary>
-    public bool Hidden { get; init; }
+    public bool IsHidden { get; init; }
 
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
@@ -342,7 +342,7 @@ public static class KnownResourceStates
     /// <summary>
     /// The hidden state. Useful for hiding the resource.
     /// </summary>
-    /// <remarks>This member is obsolete. Please set <see cref="CustomResourceSnapshot.Hidden"/> instead.</remarks>
+    [Obsolete("Use CustomResourceSnapshot.Hidden instead.")]
     public static readonly string Hidden = nameof(Hidden);
 
     /// <summary>
