@@ -26,7 +26,7 @@ resource api2 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: false
+        external: true
         targetPort: api2_containerport
         transport: 'http'
       }

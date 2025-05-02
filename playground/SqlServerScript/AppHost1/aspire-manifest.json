@@ -47,12 +47,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -86,12 +88,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -105,7 +109,7 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "principalName": "{api1-identity.outputs.principalName}",
-        "principalId": "{api1-identity.outputs.principalId}",
+        "clientId": "{api1-identity.outputs.clientId}",
         "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
       }
     },
@@ -119,7 +123,7 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "principalName": "{api2-identity.outputs.principalName}",
-        "principalId": "{api2-identity.outputs.principalId}",
+        "clientId": "{api2-identity.outputs.clientId}",
         "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
       }
     }

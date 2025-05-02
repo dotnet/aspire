@@ -120,7 +120,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
         // The name of the user assigned identity for the container app
         var principalName = roleAssignmentContext.PrincipalName;
-        var principalId = roleAssignmentContext.PrincipalId;
+        var clientId = roleAssignmentContext.ClientId;
 
         var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
         sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
@@ -148,13 +148,13 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "USERNAME", Value = principalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "OBJECTID", Value = principalId }); // Managed Identity's object ID in Microsoft Entra
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = clientId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
                 $sqlDatabaseName = "$env:DBNAME"
                 $username = "$env:USERNAME"
-                $objectId = "$env:OBJECTID"
+                $clientId = "$env:CLIENTID"
 
                 # Install SqlServer module
                 Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
@@ -162,21 +162,19 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
                 $sqlCmd = @"
                 DECLARE @principal_name SYSNAME = '$username';
-                DECLARE @objectId UNIQUEIDENTIFIER = '$objectId';
+                DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
                 
                 -- Convert the guid to the right type
-                DECLARE @castObjectId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @objectId), 1);
+                DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
                 
                 -- Construct command: CREATE USER [@principal_name] WITH SID = @castObjectId, TYPE = E;
-                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castObjectId + ', TYPE = E;'
+                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
                 EXEC (@cmd);
                 
                 -- Assign roles to the new user
-                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_datareader ADD MEMBER [' + @principal_name + ']';
+                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_owner ADD MEMBER [' + @principal_name + ']';
                 EXEC (@role1);
                 
-                DECLARE @role2 NVARCHAR(MAX) = N'ALTER ROLE db_datawriter ADD MEMBER [' + @principal_name + ']';
-                EXEC (@role2);
                 "@
                 # Note: the string terminator must not have whitespace before it, therefore it is not indented.
 

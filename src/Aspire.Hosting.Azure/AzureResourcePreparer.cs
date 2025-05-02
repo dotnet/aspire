@@ -278,7 +278,8 @@ internal sealed class AzureResourcePreparer(
             roles,
             new(() => RoleManagementPrincipalType.ServicePrincipal),
             new(() => appIdentityResource.PrincipalId.AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalId)),
-            new(() => appIdentityResource.PrincipalName.AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalName)));
+            new(() => appIdentityResource.PrincipalName.AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalName)),
+            new(() => appIdentityResource.ClientId.AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.ClientId)));
 
         azureResource.AddRoleAssignments(context);
     }
@@ -291,7 +292,8 @@ internal sealed class AzureResourcePreparer(
         IEnumerable<RoleDefinition> roles,
         Lazy<BicepValue<RoleManagementPrincipalType>> getPrincipalType,
         Lazy<BicepValue<Guid>> getPrincipalId,
-        Lazy<BicepValue<string>> getPrincipalName) : IAddRoleAssignmentsContext
+        Lazy<BicepValue<string>> getPrincipalName,
+        Lazy<BicepValue<string>> getClientId) : IAddRoleAssignmentsContext
     {
         public AzureResourceInfrastructure Infrastructure { get; } = infrastructure;
 
@@ -302,6 +304,8 @@ internal sealed class AzureResourcePreparer(
         public BicepValue<Guid> PrincipalId => getPrincipalId.Value;
 
         public BicepValue<string> PrincipalName => getPrincipalName.Value;
+
+        public BicepValue<string> ClientId => getClientId.Value;
     }
 
     private async Task<HashSet<IAzureResource>> GetAzureReferences(IResource resource, CancellationToken cancellationToken)
@@ -466,7 +470,8 @@ internal sealed class AzureResourcePreparer(
             roles,
             new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalType)),
             new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalId)),
-            new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalName)));
+            new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalName)),
+            new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.ClientId)));
 
         azureResource.AddRoleAssignments(context);
     }

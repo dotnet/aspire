@@ -222,12 +222,18 @@ public class AzureBicepResource : Resource, IAzureResource
     public static class KnownParameters
     {
         private const string UserPrincipalIdConst = "userPrincipalId";
+        private const string ClientIdConst = "clientId";
         private const string PrincipalIdConst = "principalId";
         private const string PrincipalNameConst = "principalName";
         private const string PrincipalTypeConst = "principalType";
         private const string KeyVaultNameConst = "keyVaultName";
         private const string LocationConst = "location";
         private const string LogAnalyticsWorkspaceIdConst = "logAnalyticsWorkspaceId";
+
+        /// <summary>
+        /// The client id of the current user or managed identity.
+        /// </summary>
+        public static readonly string ClientId = ClientIdConst;
 
         /// <summary>
         /// The principal id of the current user or managed identity.
@@ -266,7 +272,7 @@ public class AzureBicepResource : Resource, IAzureResource
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>
-            name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+            name is ClientIdConst or PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
 
     }
 }

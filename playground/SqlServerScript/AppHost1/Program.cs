@@ -21,7 +21,12 @@ var dbServer = builder.AddAzureSqlServer("mysqlserver")
 
 var todosDb = dbServer.AddDatabase("todosdb");
 
-builder.AddProject<Projects.WebApplication1>("api1").WithReference(todosDb).WaitFor(todosDb);
-builder.AddProject<Projects.WebApplication2>("api2").WithReference(todosDb).WaitFor(todosDb);
+builder.AddProject<Projects.WebApplication1>("api1")
+    .WithExternalHttpEndpoints()
+    .WithReference(todosDb).WaitFor(todosDb);
+
+builder.AddProject<Projects.WebApplication2>("api2")
+    .WithExternalHttpEndpoints()
+    .WithReference(todosDb).WaitFor(todosDb);
 
 builder.Build().Run();
