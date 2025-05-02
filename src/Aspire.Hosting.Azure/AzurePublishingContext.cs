@@ -75,9 +75,6 @@ public sealed class AzurePublishingContext(
         var principalId = new ProvisioningParameter("principalId", typeof(string));
         MainInfrastructure.Add(principalId);
 
-        var principalName = new ProvisioningParameter("principalName", typeof(string));
-        MainInfrastructure.Add(principalName);
-
         var tags = new ProvisioningVariable("tags", typeof(object))
         {
             Value = new BicepDictionary<string>
