@@ -17,7 +17,8 @@ on:
 
     # Configure the branches that need to have PRs labeled
     branches:
-      - main
+      - 'main'
+      - 'release/**'
 
   # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
   workflow_dispatch:
