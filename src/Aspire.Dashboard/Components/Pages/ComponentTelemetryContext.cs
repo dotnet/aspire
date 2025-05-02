@@ -31,6 +31,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     private DashboardTelemetryService? _telemetryService;
     private OperationContext? _initializeCorrelation;
     private readonly string _componentType;
+    private bool _disposed;
 
     public ComponentTelemetryContext(string componentType)
     {
@@ -95,13 +96,18 @@ public sealed class ComponentTelemetryContext : IDisposable
 
     public void Dispose()
     {
-        TelemetryService.PostOperation(
-            TelemetryEventKeys.ComponentDispose,
-            TelemetryResult.Success,
-            properties: new Dictionary<string, AspireTelemetryProperty>
-            {
+        if (!_disposed)
+        {
+            TelemetryService.PostOperation(
+                TelemetryEventKeys.ComponentDispose,
+                TelemetryResult.Success,
+                properties: new Dictionary<string, AspireTelemetryProperty>
+                {
                 { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentType) }
-            },
-            correlatedWith: _initializeCorrelation?.Properties);
+                },
+                correlatedWith: _initializeCorrelation?.Properties);
+
+            _disposed = true;
+        }
     }
 }
