@@ -21,14 +21,11 @@ public class BuildEnvironment
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
-    public static readonly string TempDir =
-        string.IsNullOrEmpty(EnvironmentVariables.TestRootPath)
-            ? (IsRunningOnCI
-                ? Path.GetTempPath()
-                : Environment.GetEnvironmentVariable("DEV_TEMP") is { } devTemp && Path.Exists(devTemp)
-                    ? devTemp
-                    : Path.GetTempPath())
-            : EnvironmentVariables.TestRootPath;
+    public static readonly string TempDir = IsRunningOnCI
+        ? Path.GetTempPath()
+        : Environment.GetEnvironmentVariable("DEV_TEMP") is { } devTemp && Path.Exists(devTemp)
+            ? devTemp
+            : Path.GetTempPath();
 
     public static readonly TestTargetFramework DefaultTargetFramework = ComputeDefaultTargetFramework();
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");

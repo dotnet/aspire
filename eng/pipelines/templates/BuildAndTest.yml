@@ -59,7 +59,8 @@ steps:
               -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
       env:
         RunOnlyBasicBuildTemplateTests: true
-        TEST_ROOT_PATH: $(Build.SourcesDirectory)\..
+        # test root path for template test projects
+        DEV_TEMP: $(Build.SourcesDirectory)\..
         TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
       displayName: Run Template tests
 
