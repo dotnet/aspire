@@ -42,6 +42,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
+            executionContext,
             environment);
 
         foreach (var r in appModel.Resources)
@@ -56,7 +57,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 continue;
             }
 
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
+            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
             // Capture information about the container registry used by the
             // container app environment in the deployment target information

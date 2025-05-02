@@ -73,6 +73,26 @@ public static class AzureProvisioningResourceExtensions
 
     /// <summary>
     /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// </summary>
+    /// <param name="manifestExpressionProvider">The <see cref="IManifestExpressionProvider"/> that represents the value to use for the <see cref="ProvisioningParameter"/>. </param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <param name="isSecure">Indicates whether the parameter is secure.</param>
+    /// <returns></returns>
+    public static ProvisioningParameter AsProvisioningParameter(this IManifestExpressionProvider manifestExpressionProvider, AzureResourceInfrastructure infrastructure, string? parameterName = null, bool? isSecure = null)
+    {
+        ArgumentNullException.ThrowIfNull(manifestExpressionProvider);
+        ArgumentNullException.ThrowIfNull(infrastructure);
+
+        parameterName ??= GetNameFromValueExpression(manifestExpressionProvider);
+
+        infrastructure.AspireResource.Parameters[parameterName] = manifestExpressionProvider;
+
+        return GetOrAddParameter(infrastructure, parameterName, isSecure);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
     /// the same name already exists, that corresponds to <paramref name="parameterResource"/>.
     /// </summary>
     /// <param name="parameterResource">

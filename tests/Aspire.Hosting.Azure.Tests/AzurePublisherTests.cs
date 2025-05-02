@@ -235,21 +235,21 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
             output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 
-            output myapp_identity_id string = myapp_identity.outputs.id
-
-            output myapp_identity_clientId string = myapp_identity.outputs.clientId
-
-            output account_connectionString string = account.outputs.connectionString
-
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 
+            output myapp_identity_id string = myapp_identity.outputs.id
+
+            output account_connectionString string = account.outputs.connectionString
+
+            output myapp_identity_clientId string = myapp_identity.outputs.clientId
+
             output fe_identity_id string = fe_identity.outputs.id
 
-            output fe_identity_clientId string = fe_identity.outputs.clientId
-
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
+
+            output fe_identity_clientId string = fe_identity.outputs.clientId
             """;
         output.WriteLine(content);
         Assert.Equal(expectedBicep, content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
