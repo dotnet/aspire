@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 服务默认值",
-  "description": "一个用于创建“.NET Aspire 服务默认值”项目的项目模板。",
+  "description": "Service and cloud defaults wired up — just add your app logic.",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",

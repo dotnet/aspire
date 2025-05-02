@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 入门应用",
-  "description": "一个用于使用 Blazor Web 前端和 Web API 后端服务创建 .NET Aspire 应用的项目模板，可以选择使用 Redis 进行缓存。",
+  "description": "A complete web app setup: frontend, backend, and optional caching for faster responses.",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",
