@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Узел приложений .NET Aspire",
-  "description": "Шаблон проекта для создания проекта узла приложения .NET Aspire (оркестратора).",
+  "description": "Manages and runs multiple services in your .NET Aspire app from one place.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
