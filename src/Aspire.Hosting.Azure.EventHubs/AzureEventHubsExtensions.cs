@@ -10,7 +10,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
-using Microsoft.Extensions.DependencyInjection;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting;

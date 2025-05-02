@@ -10,7 +10,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Azure.Provisioning;
 using Azure.Provisioning.ServiceBus;
-using Microsoft.Extensions.DependencyInjection;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
