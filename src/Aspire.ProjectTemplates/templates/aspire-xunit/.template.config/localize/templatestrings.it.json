@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Progetto di test di .NET Aspire (xUnit)",
-  "description": "Progetto che contiene test di integrazione xUnit.net di un progetto AppHost di .NET Aspire.",
+  "description": "Modern, clean integration tests for your app using xUnit — great for scalable apps and teams.",
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",

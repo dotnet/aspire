@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 测试项目(NUnit)",
-  "description": "包含 .NET Aspire 应用主机项目的 NUnit 集成测试的项目。",
+  "description": "Powerful integration testing for your app with the flexible and feature-rich NUnit framework.",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",
