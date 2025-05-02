@@ -199,6 +199,7 @@ public static class AzureOpenAIExtensions
     /// <param name="target">The target Azure OpenAI resource.</param>
     /// <param name="roles">The built-in Cognitive Services roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the CognitiveServicesOpenAIUser role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -211,6 +212,7 @@ public static class AzureOpenAIExtensions
     ///   .WithReference(openai);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureOpenAIResource> target,

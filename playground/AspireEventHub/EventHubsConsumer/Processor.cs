@@ -17,10 +17,10 @@ namespace EventHubsConsumer;
 ///   Use <see cref="EventProcessorClientOptions"/> to specify options such as the maximum wait time and prefetch count.
 ///   Proper configuration and usage of the EventProcessorClient can significantly improve the efficiency and performance of your Azure Event Hubs
 ///   applications. Remember to handle exceptions and monitor the health of your nodes to ensure smooth operation.
-/// </remarks>
 /// <example>
 ///   See samples at https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/eventhub/Azure.Messaging.EventHubs.Processor/samples
 /// </example>
+/// </remarks>
 internal sealed class Processor(EventProcessorClient client, ILogger<Processor> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
