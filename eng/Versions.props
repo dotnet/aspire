@@ -77,12 +77,11 @@
     <SystemFormatsAsn1Version>9.0.4</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.4</SystemTextJsonVersion>
     <!-- OpenTelemetry (OTel) -->
-    <OpenTelemetryVersion>1.11.2</OpenTelemetryVersion>
-    <OpenTelemetryInstrumentationAspNetCoreVersion>1.11.1</OpenTelemetryInstrumentationAspNetCoreVersion>
-    <OpenTelemetryInstrumentationHttpVersion>1.11.1</OpenTelemetryInstrumentationHttpVersion>
-    <OpenTelemetryInstrumentationExtensionsHostingVersion>1.11.2</OpenTelemetryInstrumentationExtensionsHostingVersion>
-    <OpenTelemetryInstrumentationRuntimeVersion>1.11.1</OpenTelemetryInstrumentationRuntimeVersion>
-    <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.11.2</OpenTelemetryExporterOpenTelemetryProtocolVersion>
+    <OpenTelemetryInstrumentationAspNetCoreVersion>1.12.0</OpenTelemetryInstrumentationAspNetCoreVersion>
+    <OpenTelemetryInstrumentationHttpVersion>1.12.0</OpenTelemetryInstrumentationHttpVersion>
+    <OpenTelemetryInstrumentationExtensionsHostingVersion>1.12.0</OpenTelemetryInstrumentationExtensionsHostingVersion>
+    <OpenTelemetryInstrumentationRuntimeVersion>1.12.0</OpenTelemetryInstrumentationRuntimeVersion>
+    <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.12.0</OpenTelemetryExporterOpenTelemetryProtocolVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">
