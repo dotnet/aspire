@@ -17,10 +17,6 @@
     <ProjectReference Include="..\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Sql" />
-
-    <!-- Used to define environment variables in Bicep on a deployment script until it's available in the CDK -->
-    <!-- c.f., https://github.com/Azure/azure-sdk-for-net/issues/49283 -->
-    <PackageReference Include="Azure.Provisioning.AppContainers" />
   </ItemGroup>
 
 </Project>
