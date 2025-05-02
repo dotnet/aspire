@@ -412,5 +412,5 @@ public sealed class BicepOutputReference(string name, AzureBicepResource resourc
 
     /// <inheritdoc/>
     public override int GetHashCode() =>
-        Resource.GetHashCode() ^ Name.GetHashCode();
+        HashCode.Combine(Resource, Name);
 }
