@@ -330,11 +330,15 @@ public class AzurePublisherTests(ITestOutputHelper output)
             },
             item =>
             {
-                Assert.Equal("fe_identity_id", item.Value.BicepIdentifier);
+                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", item.Value.BicepIdentifier);
             },
             item =>
             {
-                Assert.Equal("fe_identity_clientId", item.Value.BicepIdentifier);
+                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("fe_identity_id", item.Value.BicepIdentifier);
             },
             item =>
             {
@@ -348,11 +352,7 @@ public class AzurePublisherTests(ITestOutputHelper output)
             },
             item =>
             {
-                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", item.Value.BicepIdentifier);
-            },
-            item =>
-            {
-                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID", item.Value.BicepIdentifier);
+                Assert.Equal("fe_identity_clientId", item.Value.BicepIdentifier);
             },
             item =>
             {
