@@ -130,7 +130,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{database}");
             var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
             {
-                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 24),
+                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), new StringLiteralExpression(database), BicepFunction.GetResourceGroup().Id)}"), 24),
                 Kind = "AzurePowerShell",
                 AZPowerShellVersion = "7.4"
             };

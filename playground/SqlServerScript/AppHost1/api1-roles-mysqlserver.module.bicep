@@ -18,7 +18,7 @@ resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
 }
 
 resource script_mysqlserver_todosdb 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: take('script-${uniqueString(resourceGroup().id)}', 24)
+  name: take('script-${uniqueString('mysqlserver', 'todosdb', resourceGroup().id)}', 24)
   location: location
   identity: {
     type: 'UserAssigned'
