@@ -17,9 +17,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppService" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
 
     <ProjectReference Include="..\AzureAppService.ApiService\AzureAppService.ApiService.csproj" />
   </ItemGroup>
