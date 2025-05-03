@@ -3848,19 +3848,19 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-        
+
         param env_outputs_azure_container_apps_environment_default_domain string
-        
+
         param env_outputs_azure_container_apps_environment_id string
-        
+
         param env_outputs_azure_container_registry_endpoint string
-        
+
         param env_outputs_azure_container_registry_managed_identity_id string
-        
+
         param api_containerimage string
-        
+
         param api_containerport string
-        
+
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
