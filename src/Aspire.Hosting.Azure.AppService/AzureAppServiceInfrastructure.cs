@@ -31,6 +31,11 @@ internal sealed class AzureAppServiceInfrastructure(
 
         foreach (var resource in appModel.Resources)
         {
+            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            {
+                continue;
+            }
+
             // We only support project resources for now.
             if (resource is not ProjectResource)
             {

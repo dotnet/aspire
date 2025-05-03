@@ -50,7 +50,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
         {
-            var context = new EnvironmentCallbackContext(environmentContext.ExecutionContext, EnvironmentVariables, cancellationToken);
+            var context = new EnvironmentCallbackContext(
+                environmentContext.ExecutionContext, resource, EnvironmentVariables, cancellationToken);
 
             foreach (var c in environmentCallbacks)
             {
@@ -65,7 +66,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = new CommandLineArgsCallbackContext(Args, cancellationToken)
             {
-                ExecutionContext = environmentContext.ExecutionContext,
+                ExecutionContext = environmentContext.ExecutionContext
             };
 
             foreach (var c in commandLineArgsCallbackAnnotations)
@@ -86,14 +87,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("http" or "https")).ToArray();
         if (unsupportedEndpoints.Length > 0)
         {
-            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} specify an unsupported scheme. Only http and https are supported in App Service.");
+            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
         }
 
         foreach (var endpoint in endpoints)
         {
             if (!endpoint.IsExternal)
             {
-                throw new NotSupportedException($"The endpoint '{endpoint.Name}' is not external. App Service only supports external endpoints.");
+                throw new NotSupportedException($"The endpoint '{endpoint.Name}' on resource '{resource.Name}' is not external. App Service only supports external endpoints.");
             }
 
             // For App Service, we ignore port mappings since ports are handled by the platform
