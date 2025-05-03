@@ -69,6 +69,66 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandDerivesOutputPathFromProjectNameForStarterTemplate()
+    {
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+
+                prompter.PromptForTemplateCallback = (templates) =>
+                {
+                    return templates.Single(t => t.TemplateName == "aspire-starter");
+                };
+
+                prompter.PromptForProjectNameCallback = (defaultName) =>
+                {
+                    return "CustomName";
+                };
+
+                prompter.PromptForOutputPathCallback = (path) =>
+                {
+                    Assert.Equal("./CustomName", path);
+                    return path;
+                };
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
     public async Task NewCommandPromptsForProjectTemplateIfInvalidTemplateSpecified()
     {
         var tcs = new TaskCompletionSource();
@@ -593,11 +653,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
 {
     public Func<IEnumerable<NuGetPackage>, NuGetPackage>? PromptForTemplatesVersionCallback { get; set; }
-    public Func<(string TemplateName, string TemplateDescription, string? PathAppendage)[], (string TemplateName, string TemplateDescription, string? PathAppendage)>? PromptForTemplateCallback { get; set; }
+    public Func<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[], (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)>? PromptForTemplateCallback { get; set; }
     public Func<string, string>? PromptForProjectNameCallback { get; set; }
     public Func<string, string>? PromptForOutputPathCallback { get; set; }
 
-    public override Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken)
+    public override Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken)
     {
         return PromptForTemplateCallback switch
         {
