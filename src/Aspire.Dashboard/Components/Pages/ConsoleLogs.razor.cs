@@ -393,7 +393,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsHiddenState())
+            .Where(r => !r.Value.IsResourceHidden())
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {

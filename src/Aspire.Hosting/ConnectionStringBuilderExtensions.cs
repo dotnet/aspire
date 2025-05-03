@@ -44,7 +44,9 @@ public static class ConnectionStringBuilderExtensions
                       {
                           ResourceType = "ConnectionString",
                           // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
+#pragma warning disable CS0618 // Type or member is obsolete
                           State = KnownResourceStates.Hidden,
+#pragma warning restore CS0618 // Type or member is obsolete
                           Properties = []
                       });
     }

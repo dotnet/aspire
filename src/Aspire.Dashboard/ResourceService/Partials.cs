@@ -41,6 +41,7 @@ partial class Resource
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
+                IsHidden = IsHidden
             };
         }
         catch (Exception ex)
