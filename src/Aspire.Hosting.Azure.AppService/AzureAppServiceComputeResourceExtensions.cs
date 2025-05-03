@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for publishing compute resources as Azure App Service websites.
 /// </summary>
-public static class AzureContainerAppExecutableExtensions
+public static class AzureAppServiceComputeResourceExtensions
 {
     /// <summary>
     /// Publishes the specified compute resource as an Azure App Service.
