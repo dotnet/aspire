@@ -31,7 +31,7 @@ public class AddParameterTests
 
         var state = annotation.InitialSnapshot;
 
-        Assert.Equal("Hidden", state.State);
+        Assert.True(state.IsHidden);
         Assert.Collection(state.Properties,
             prop =>
             {
