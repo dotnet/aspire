@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.KeyVault;
 
 namespace Aspire.Hosting;
 
@@ -43,6 +44,55 @@ public static class AzureProvisioningResourceExtensions
 
         builder.Resource.ConfigureInfrastructure += configure;
         return builder;
+    }
+
+    /// <summary>
+    /// Gets or creates a <see cref="KeyVaultSecret"/> resource in the specified <see cref="AzureResourceInfrastructure"/>
+    /// for the given <see cref="IAzureKeyVaultSecretReference"/>.
+    /// <para>
+    /// If the referenced Key Vault or secret does not already exist in the infrastructure, they will be created and added.
+    /// This allows referencing secrets that are provisioned outside of the current deployment.
+    /// </para>
+    /// </summary>
+    /// <param name="secretReference">The <see cref="IAzureKeyVaultSecretReference"/> representing the Key Vault secret to reference.</param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> in which to locate or add the <see cref="KeyVaultSecret"/>.</param>
+    /// <returns>
+    /// The <see cref="KeyVaultSecret"/> instance corresponding to the given secret reference.
+    /// </returns>
+    public static KeyVaultSecret AsKeyVaultSecret(this IAzureKeyVaultSecretReference secretReference, AzureResourceInfrastructure infrastructure)
+    {
+        ArgumentNullException.ThrowIfNull(secretReference);
+        ArgumentNullException.ThrowIfNull(infrastructure);
+
+        var resources = infrastructure.GetProvisionableResources();
+
+        var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv =>
+            kv.BicepIdentifier == GetNameFromValueExpression(secretReference.Resource.NameOutputReference)
+        );
+
+        if (kv is null)
+        {
+            // We resolve the keyvault that represents the storage for secret outputs
+            var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
+            kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
+            kv.Name = parameter;
+            infrastructure.Add(kv);
+        }
+
+        var kvsName = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretReference.SecretName}");
+        var kvs = resources.OfType<KeyVaultSecret>().SingleOrDefault(kvSecret =>
+            kvSecret.BicepIdentifier == kvsName
+        );
+
+        if (kvs is null)
+        {
+            kvs = KeyVaultSecret.FromExisting(kvsName);
+            kvs.Name = secretReference.SecretName;
+            kvs.Parent = kv;
+            infrastructure.Add(kvs);
+        }
+
+        return kvs;
     }
 
     /// <summary>
@@ -211,7 +261,8 @@ public static class AzureProvisioningResourceExtensions
             if (isSecure.HasValue)
             {
                 parameter.IsSecure = isSecure.Value;
-            };
+            }
+
             infrastructure.Add(parameter);
         }
 

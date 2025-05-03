@@ -628,26 +628,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
     private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
     {
-        if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
-        {
-            // We resolve the keyvault that represents the storage for secret outputs
-            var parameter = AllocateParameter(secretOutputReference.Resource.NameOutputReference);
-            kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
-            kv.Name = parameter;
-
-            KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
-        }
-
-        if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
-        {
-            // Now we resolve the secret
-            var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.SecretName}");
-            secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
-            secret.Name = secretOutputReference.SecretName;
-            secret.Parent = kv;
-
-            KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
-        }
+        var secret = secretOutputReference.AsKeyVaultSecret(Infra);
 
         return secret.Properties.SecretUri;
     }

@@ -7,7 +7,6 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure.AppService;
@@ -28,8 +27,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
 
-    public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
-    public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
@@ -289,17 +286,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             });
         }
 
-        // Keyvault
-        foreach (var (_, v) in KeyVaultRefs)
-        {
-            infra.Add(v);
-        }
-
-        foreach (var (_, v) in KeyVaultSecretRefs)
-        {
-            infra.Add(v);
-        }
-
         infra.Add(webSite);
 
         // Allow users to customize the web app here
@@ -327,28 +313,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         };
     }
 
-    private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
+    private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretReference)
     {
-        if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
-        {
-            // We resolve the keyvault that represents the storage for secret outputs
-            var parameter = AllocateParameter(secretOutputReference.Resource.NameOutputReference);
-            kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
-            kv.Name = parameter;
-
-            KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
-        }
-
-        if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
-        {
-            // Now we resolve the secret
-            var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.SecretName}");
-            secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
-            secret.Name = secretOutputReference.SecretName;
-            secret.Parent = kv;
-
-            KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
-        }
+        var secret = secretReference.AsKeyVaultSecret(Infra);
 
         // App Service does not support non-versioned secret URIs for Key Vault references.
         return secret.Properties.SecretUriWithVersion;
