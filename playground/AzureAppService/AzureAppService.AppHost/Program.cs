@@ -15,13 +15,17 @@ var param = builder.AddParameter("secretparam", "fakeSecret", secret: true);
 
 // Testing kv secret refs
 var cosmosDb = builder.AddAzureCosmosDB("account")
-                      .WithAccessKeyAuthentication()
                       .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
 
 cosmosDb.AddCosmosDatabase("db");
 
-// Testing a connection string
+// Testing managed identity
 var storage = builder.AddAzureStorage("storage")
+                     .ConfigureInfrastructure(infra =>
+                     {
+                         var storage = infra.GetProvisionableResources().OfType<StorageAccount>().Single();
+                         storage.AllowBlobPublicAccess = false;
+                     })
                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
 var blobs = storage.AddBlobs("blobs");
 
