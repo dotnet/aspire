@@ -170,11 +170,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
-                ? null
-#pragma warning disable CS0618 // Type or member is obsolete
-                : KnownResourceStates.Hidden
-#pragma warning restore CS0618 // Type or member is obsolete
+            IsHidden = !configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
