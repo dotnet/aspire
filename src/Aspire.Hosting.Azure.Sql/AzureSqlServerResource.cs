@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Hashing;
-using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -128,15 +127,13 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
         foreach (var database in Databases.Keys)
         {
-            // Create a unique resource identifier for the script resource
-            var hash = new XxHash3();
-            hash.Append(Encoding.UTF8.GetBytes(database));
-            hash.Append(Encoding.UTF8.GetBytes(infra.AspireResource.GetBicepIdentifier()));
-
-            var scriptResource = new SqlServerScriptProvisioningResource($"script_{Convert.ToHexString(hash.GetCurrentHash()).ToLowerInvariant()}");
-
-            scriptResource.Kind = "AzurePowerShell";
-            scriptResource.AZPowerShellVersion = "7.4";
+            var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{database}");
+            var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
+            {
+                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 24),
+                Kind = "AzurePowerShell",
+                AZPowerShellVersion = "7.4"
+            };
 
             // Run the script as the administrator
 

@@ -17,8 +17,8 @@ resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
   name: mysqlserver_outputs_sqlserveradminname
 }
 
-resource script_d4d29beaabeca77b 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: take('scriptddbeaabecab${uniqueString(resourceGroup().id)}', 24)
+resource script_mysqlserver_todosdb 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: take('script-${uniqueString(resourceGroup().id)}', 24)
   location: location
   identity: {
     type: 'UserAssigned'
