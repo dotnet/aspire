@@ -24,9 +24,6 @@ app.MapGet("/", () =>
             <ul>
                 <li><a href="/blobs">Blobs</a></li>
                 <li><a href="/cosmos">Cosmos</a></li>
-                <li><a href="/redis/ping">Redis Ping</a></li>
-                <li><a href="/redis/set">Redis Set</a></li>
-                <li><a href="/redis/get">Redis Get</a></li>
             </ul>
         </body>
     </html>
