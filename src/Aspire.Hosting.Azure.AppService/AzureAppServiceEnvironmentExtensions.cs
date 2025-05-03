@@ -40,12 +40,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
             var prefix = infra.AspireResource.Name;
             var resource = infra.AspireResource;
 
-            var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
-            {
-            };
-
-            infra.Add(identity);
-
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string));
             infra.Add(userPrincipalId);
@@ -56,6 +50,13 @@ public static partial class AzureAppServiceEnvironmentExtensions
             };
 
             infra.Add(tags);
+
+            var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
+            {
+                Tags = tags
+            };
+
+            infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
             if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)

@@ -175,6 +175,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
         resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
           name: take('env_mi-${uniqueString(resourceGroup().id)}', 128)
           location: location
+          tags: tags
         }
         
         resource env_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
