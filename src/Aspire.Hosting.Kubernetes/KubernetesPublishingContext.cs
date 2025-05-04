@@ -65,24 +65,29 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource)
     {
-        var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
+        var environment = environmentResource;
 
-        if (kubernetesEnvironments.Length > 1)
+        if (environment is null)
         {
-            throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
-        }
+            var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
 
-        var environment = kubernetesEnvironments.FirstOrDefault();
+            if (kubernetesEnvironments.Length > 1)
+            {
+                throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
+            }
 
-        if (environment == null)
-        {
-            // No Kubernetes environment found
-            throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
+            environment = kubernetesEnvironments.FirstOrDefault();
+
+            if (environment == null)
+            {
+                // No Kubernetes environment found
+                throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
+            }
         }
 
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation(environmentResource)?.DeploymentTarget is KubernetesResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {
