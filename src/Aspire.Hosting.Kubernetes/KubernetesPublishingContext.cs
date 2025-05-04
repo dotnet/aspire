@@ -39,7 +39,7 @@ internal sealed class KubernetesPublishingContext(
 
     public ILogger Logger => logger;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource = null)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -58,12 +58,12 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        await WriteKubernetesOutputAsync(model).ConfigureAwait(false);
+        await WriteKubernetesOutputAsync(model, environmentResource).ConfigureAwait(false);
 
         logger.FinishGeneratingKubernetes(publisherOptions.OutputPath);
     }
 
-    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model)
+    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource)
     {
         var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
 
@@ -82,7 +82,7 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is KubernetesResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation(environmentResource)?.DeploymentTarget is KubernetesResource serviceResource)
             {
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {

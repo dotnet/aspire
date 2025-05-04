@@ -1,0 +1,19 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+namespace Aspire.Hosting.ApplicationModel;
+
+/// <summary>
+/// Represents a default publishing callback annotation for a distributed application model.
+/// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="DefaultPublishingCallbackAnnotation"/> class.
+/// </remarks>
+/// <param name="callback">The publishing callback.</param>
+public class DefaultPublishingCallbackAnnotation(Func<DefaultPublishingContext, Task> callback) : IResourceAnnotation
+{
+    /// <summary>
+    /// The publishing callback.
+    /// </summary>
+    public Func<DefaultPublishingContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
+}

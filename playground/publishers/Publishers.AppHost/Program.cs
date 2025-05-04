@@ -6,23 +6,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-if (builder.ExecutionContext.PublisherName == "azure" ||
-    builder.ExecutionContext.IsInspectMode)
-{
-    builder.AddAzureContainerAppEnvironment("env");
-}
-
-if (builder.ExecutionContext.PublisherName == "docker-compose" ||
-    builder.ExecutionContext.IsInspectMode)
-{
-    builder.AddDockerComposeEnvironment("docker-env");
-}
-
-if (builder.ExecutionContext.PublisherName == "kubernetes" ||
-    builder.ExecutionContext.IsInspectMode)
-{
-    builder.AddKubernetesEnvironment("k8s-env");
-}
+builder.AddAzureContainerAppEnvironment("env");
+builder.AddDockerComposeEnvironment("docker-env");
+builder.AddKubernetesEnvironment("k8s-env");
 
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);

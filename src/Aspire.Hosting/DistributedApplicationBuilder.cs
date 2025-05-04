@@ -383,6 +383,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
+        this.AddPublisher<DefaultPublisher, DefaultPublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
@@ -478,6 +479,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+        _innerBuilder.Services.Configure<DefaultPublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
     }
 
     /// <inheritdoc />

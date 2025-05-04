@@ -30,7 +30,7 @@ internal sealed class DockerComposePublishingContext(
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly DockerComposePublisherOptions PublisherOptions = publisherOptions;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource = null)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -49,26 +49,31 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        await WriteDockerComposeOutputAsync(model).ConfigureAwait(false);
+        await WriteDockerComposeOutputAsync(model, environmentResource).ConfigureAwait(false);
 
         logger.FinishGeneratingDockerCompose(PublisherOptions.OutputPath);
     }
 
-    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model)
+    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource)
     {
-        var dockerComposeEnvironments = model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
+        var environment = environmentResource;
 
-        if (dockerComposeEnvironments.Length > 1)
+        if (environment is null)
         {
-            throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
-        }
+            var dockerComposeEnvironments = model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
 
-        var environment = dockerComposeEnvironments.FirstOrDefault();
+            if (dockerComposeEnvironments.Length > 1)
+            {
+                throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
+            }
 
-        if (environment == null)
-        {
-            // No Docker Compose environment found
-            throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
+            environment = dockerComposeEnvironments.FirstOrDefault();
+
+            if (environment == null)
+            {
+                // No Docker Compose environment found
+                throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
+            }
         }
 
         var defaultNetwork = new Network
@@ -82,7 +87,7 @@ internal sealed class DockerComposePublishingContext(
 
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is DockerComposeServiceResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
                 if (PublisherOptions.BuildImages)
                 {
