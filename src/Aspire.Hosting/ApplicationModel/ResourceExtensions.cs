@@ -578,6 +578,13 @@ public static class ResourceExtensions
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? computeEnvironmentResource = null)
     {
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            // If the resource has a ComputeEnvironmentAnnotation, use it to get the compute environment.
+            // This wins over the specified computeEnvironmentResource
+            computeEnvironmentResource = computeEnvironmentAnnotation.ComputeEnvironment;
+        }
+
         if (resource.TryGetAnnotationsOfType<DeploymentTargetAnnotation>(out var deploymentTargetAnnotations))
         {
             var annotations = deploymentTargetAnnotations.ToArray();
