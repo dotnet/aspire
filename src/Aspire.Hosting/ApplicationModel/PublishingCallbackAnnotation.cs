@@ -7,13 +7,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a default publishing callback annotation for a distributed application model.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="DefaultPublishingCallbackAnnotation"/> class.
+/// Initializes a new instance of the <see cref="PublishingCallbackAnnotation"/> class.
 /// </remarks>
 /// <param name="callback">The publishing callback.</param>
-public class DefaultPublishingCallbackAnnotation(Func<DefaultPublishingContext, Task> callback) : IResourceAnnotation
+public class PublishingCallbackAnnotation(Func<PublishingContext, Task> callback) : IResourceAnnotation
 {
     /// <summary>
     /// The publishing callback.
     /// </summary>
-    public Func<DefaultPublishingContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
+    public Func<PublishingContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
 }

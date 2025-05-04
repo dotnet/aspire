@@ -39,10 +39,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)
     {
-        Annotations.Add(new DefaultPublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
     }
 
-    private Task PublishAsync(DefaultPublishingContext context)
+    private Task PublishAsync(PublishingContext context)
     {
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();

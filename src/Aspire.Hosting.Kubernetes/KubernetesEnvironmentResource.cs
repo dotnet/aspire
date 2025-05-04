@@ -81,10 +81,10 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
-        Annotations.Add(new DefaultPublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
     }
 
-    private Task PublishAsync(DefaultPublishingContext context)
+    private Task PublishAsync(PublishingContext context)
     {
         var publisherOptions = new KubernetesPublisherOptions()
         {

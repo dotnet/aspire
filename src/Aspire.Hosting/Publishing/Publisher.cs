@@ -7,9 +7,9 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-internal class DefaultPublisher(
-    ILogger<DefaultPublisher> logger,
-    IOptions<DefaultPublishingOptions> options,
+internal class Publisher(
+    ILogger<Publisher> logger,
+    IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,
     IServiceProvider serviceProvider) : IDistributedApplicationPublisher
 {
@@ -22,7 +22,7 @@ internal class DefaultPublisher(
             );
         }
 
-        var context = new DefaultPublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath);
+        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath);
         return context.WriteModelAsync(model);
     }
 }
