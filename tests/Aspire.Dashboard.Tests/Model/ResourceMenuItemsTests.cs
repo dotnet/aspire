@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 using Aspire.Tests.Shared.DashboardModel;
 using Aspire.Tests.Shared.Telemetry;
@@ -35,6 +36,7 @@ public sealed class ResourceMenuItemsTests
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Commands>(),
             _ => Task.CompletedTask,
             _ => Task.CompletedTask,
             (_, _) => false,
@@ -86,6 +88,7 @@ public sealed class ResourceMenuItemsTests
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Commands>(),
             _ => Task.CompletedTask,
             _ => Task.CompletedTask,
             (_, _) => false,
@@ -137,6 +140,7 @@ public sealed class ResourceMenuItemsTests
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Commands>(),
             _ => Task.CompletedTask,
             _ => Task.CompletedTask,
             (_, _) => false,

@@ -537,6 +537,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 GetResourceName,
                 ControlsStringsLoc,
                 Loc,
+                CommandsLoc,
                 (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
                 (command) => ExecuteResourceCommandAsync(resource, command),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
