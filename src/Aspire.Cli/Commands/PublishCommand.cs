@@ -127,12 +127,10 @@ internal sealed class PublishCommand : BaseCommand
                         $"{nameof(ExecuteAsync)}-Action-GetPublishers",
                         ActivityKind.Client);
 
-                    var getPublishesProcessIdCompletionSource = new TaskCompletionSource();
                     var getPublishersRunOptions = new DotNetCliRunnerInvocationOptions
                     {
                         StandardOutputCallback = outputCollector.AppendOutput,
                         StandardErrorCallback = outputCollector.AppendError,
-                        ProcessIdCallback = getPublishesProcessIdCompletionSource.SetResult,
                     };
 
                     var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -148,7 +146,6 @@ internal sealed class PublishCommand : BaseCommand
 
                     if (waitForDebugger)
                     {
-                        await getPublishesProcessIdCompletionSource.Task.WaitAsync(cancellationToken);
                         _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process.");
                     }
 
@@ -206,12 +203,10 @@ internal sealed class PublishCommand : BaseCommand
                     launchingAppHostTask.IsIndeterminate();
                     launchingAppHostTask.StartTask();
 
-                    var publishProcessIdCompletionSource = new TaskCompletionSource();
                     var publishRunOptions = new DotNetCliRunnerInvocationOptions
                     {
                         StandardOutputCallback = outputCollector.AppendOutput,
                         StandardErrorCallback = outputCollector.AppendError,
-                        ProcessIdCallback = publishProcessIdCompletionSource.SetResult,
                     };
 
                     var pendingRun = _runner.RunAsync(
@@ -227,7 +222,6 @@ internal sealed class PublishCommand : BaseCommand
                     ProgressTask? attachDebuggerTask = null;
                     if (waitForDebugger)
                     {
-                        await publishProcessIdCompletionSource.Task.WaitAsync(cancellationToken);
                         attachDebuggerTask = context.AddTask($":bug:  Waiting for debugger to attach to app host process");
                         attachDebuggerTask.IsIndeterminate();
                         attachDebuggerTask.StartTask();

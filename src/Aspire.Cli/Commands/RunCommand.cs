@@ -112,12 +112,10 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            var processLaunchedCompletionSource = new TaskCompletionSource();
             var runOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = outputCollector.AppendOutput,
                 StandardErrorCallback = outputCollector.AppendError,
-                ProcessIdCallback = processLaunchedCompletionSource.SetResult
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -146,7 +144,6 @@ internal sealed class RunCommand : BaseCommand
                         // the completion source to be set.
                         if (waitForDebugger)
                         {
-                            await processLaunchedCompletionSource.Task.WaitAsync(cancellationToken);
                             _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
                         }
 

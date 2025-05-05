@@ -32,8 +32,6 @@ internal sealed class DotNetCliRunnerInvocationOptions
 {
     public Action<string>? StandardOutputCallback { get; set; }
     public Action<string>? StandardErrorCallback { get; set; }
-
-    public Action? ProcessIdCallback { get; set; }
 }
 
 internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider) : IDotNetCliRunner
@@ -389,8 +387,6 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
 
         var started = process.Start();
-
-        options.ProcessIdCallback?.Invoke();
 
         if (backchannelCompletionSource is not null)
         {
