@@ -12,17 +12,17 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
 1. Install the Aspire CLI:
 
-    ```console
+    ```console title="Install the Aspire CLI globally"
     dotnet tool install --global aspire.cli --prerelease
     ```
 
     <Aside type='note'>
-      The Aspire CLI is currently in preview, thus the `--prerelease` flag is used.
+      The Aspire CLI is currently in preview, hence the `--prerelease` flag is used.
     </Aside>
 
 1. Verify the installation by calling the CLI help command:
 
-    ```console
+    ```console title="Aspire CLI help command"
     aspire --help
     ```
 
@@ -30,25 +30,26 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
     ```console frame="none"
     Description:
-    The Aspire CLI can be used to create, run, and publish Aspire-based applications.
+      The Aspire CLI can be used to create, run, and publish Aspire-based applications.
 
     Usage:
-    aspire [command] [options]
+      aspire [command] [options]
 
     Options:
-    -?, -h, --help       Show help and usage information
-    --version            Show version information
-    -d, --debug          Enable debug logging to the console.
-    --wait-for-debugger  Wait for a debugger to attach before executing the command. [default: False]
+      -?, -h, --help       Show help and usage information
+      --version            Show version information
+      -d, --debug          Enable debug logging to the console.
+      --wait-for-debugger  Wait for a debugger to attach before executing the command. [default: False]
 
     Commands:
-    new <template>     Create a new Aspire sample project.
-    run                Run an Aspire app host in development mode.
-    add <integration>  Add an integration to the Aspire project.
-    publish            Generates deployment artifacts for an Aspire app host project.
+      new <template>     Create a new Aspire sample project.
+      run                Run an Aspire app host in development mode.
+      add <integration>  Add an integration to the Aspire project.
+      publish            Generates deployment artifacts for an Aspire app host project.
     ```
 
 </Steps>
 
-## Next
+## Next steps
 
+After installing the Aspire CLI, you can initiate liftoff by creating your first app. The Aspire CLI includes various templates, and makes it easy to run distributed apps locally or publish that same collection of apps to your favorite production environments.

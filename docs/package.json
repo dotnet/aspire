@@ -14,6 +14,7 @@
     "@catppuccin/starlight": "^1.0.1",
     "astro": "^5.7.10",
     "sharp": "^0.34.1",
+    "starlight-image-zoom": "^0.12.0",
     "starlight-kbd": "^0.2.0",
     "starlight-llms-txt": "^0.5.1"
   }

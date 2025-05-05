@@ -3,7 +3,7 @@ title: Create your first app
 description: Learn about essential tooling concepts for Aspire.
 ---
 
-import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
+import { Aside, Steps, Tabs, TabItem, FileTree, Image } from '@astrojs/starlight/components';
 import { Kbd } from 'starlight-kbd/components'
 
 Aspire includes tooling to help you create and configure cloud-native apps. The tooling includes useful starter project templates and other features to streamline getting started with Aspire for Visual Studio, Visual Studio Code, and CLI workflows. Assuming you have the [prerequisites](./prerequisites) installed, you can install the Aspire CLI and create a new project.
@@ -29,15 +29,13 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
     - first-app.sln
     - first-app.ApiService
-        - Properties
-            - launchSettings.json
-    - appsettings.Development.json
-    - appsettings.json
-    - first-app.ApiService.csproj
-    - Program.cs
-    - first-app.AppHost
-        - Properties
-            - launchSettings.json
+        - Properties/
+        - appsettings.Development.json
+        - appsettings.json
+        - first-app.ApiService.csproj
+        - Program.cs
+    - **first-app.AppHost** this is your local **dev-time** orchestrator
+        - Properties/
         - appsettings.Development.json
         - appsettings.json
         - first-app.AppHost.csproj
@@ -46,10 +44,8 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
         - Extensions.cs
         - first-app.ServiceDefaults.csproj
     - first-app.Web
-        - Properties
-            - launchSettings.json
-        - wwwroot
-            - ...
+        - Properties/
+        - wwwroot/
         - appsettings.Development.json
         - appsettings.json
         - first-app.Web.csproj
@@ -61,13 +57,13 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
 1. Change to the solution directory:
 
-    ```console
+    ```console title="Change directories—stepping into the solution folder"
     cd <solution-name>
     ```
 
 1. Run the Aspire app host project:
 
-    ```console
+    ```console title="Run the app host project"
     aspire run --project ./first-app.AppHost/first-app.AppHost.csproj
     ```
 
@@ -77,7 +73,7 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
     aspire run --project ./first-app.AppHost/first-app.AppHost.csproj
 
     Dashboard:
-    📈  https://localhost:17286/login?t=7004d8b71b6cab80effaea5531622945
+    📈  https://localhost:17286/login?t=<Your unique dev-time access token>
 
     ╭─────────────┬─────────┬─────────┬────────────────────────╮
     │ Resource    │ Type    │ State   │ Endpoint(s)            │
@@ -89,4 +85,15 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
     ╰─────────────┴─────────┴─────────┴────────────────────────╯
     ```
 
+1. Explore the running distributed application. From the dashboard, open the `HTTPS` endpoint from each resource.
+
+    ![The Aspire dashboard](../../../assets/get-started/aspire-dashboard.png)
+
+
+1. Stop the app host and close the dashboard.
+
+    <Kbd windows="Ctrl+C" mac="⌘+C" />
+
 </Steps>
+
+Congratulations! You've created your first Aspire app.

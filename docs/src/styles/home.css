@@ -58,9 +58,12 @@
 	a:not(:disabled),
 	select:not(:disabled) option:not(:disabled) {
 		cursor: pointer;
+		--transition-property: transform;
+		--transition-duration: 180ms;
+		transition: var(--transition-property) var(--transition-duration) ease-in-out;
 	}
 
-	a:hover {
+	a:not(:disabled):hover {
 		filter: brightness(90%);
 	}
 
@@ -94,6 +97,10 @@
 	.hero .sl-link-button {
 		font-size: 1.5rem;
 		padding: 1.5rem 2.5rem;
+	}
+
+	.hero .sl-link-button:hover {
+		transform: translateY(-10%);
 	}
 }
 

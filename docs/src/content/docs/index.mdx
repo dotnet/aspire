@@ -17,7 +17,7 @@ hero:
       variant: secondary
 ---
 
-import { Code, Card, CardGrid, Tabs, TabItem, LinkButton } from '@astrojs/starlight/components';
+import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astrojs/starlight/components';
 
 ## Why developers love Aspire
 
@@ -78,11 +78,11 @@ builder = create_builder()
 
 # Add frontend and API to orbit
 frontend = builder.add_npm_app("frontend", "../frontend") \\
-                 .with_http_endpoint(env="PORT", target_port=3000) \\
-                 .with_npm_package_installation()
+                  .with_http_endpoint(env="PORT", target_port=3000) \\
+                  .with_npm_package_installation()
 
 api = builder.add_project("api", "../api/api_service.py") \\
-            .with_http_endpoint(env="API_URL")
+             .with_http_endpoint(env="API_URL")
 
 # Add database services to orbit
 redis = builder.add_redis("cache")
@@ -176,7 +176,7 @@ Monitor all your services from a central dashboard, like a mission control cente
 ## Ready for liftoff?
 
 <LinkButton href="/get-started/installation" icon="rocket" iconPlacement="start">
-	  Liftoff
+    Liftoff
 </LinkButton>
 <LinkButton href="/reference/example" icon="open-book" variant="secondary" iconPlacement="start">
     View Docs

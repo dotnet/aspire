@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import catppuccin from "@catppuccin/starlight";
 import starlightLlmsTxt from 'starlight-llms-txt'
 import starlightKbd from 'starlight-kbd'
+import starlightImageZoom from 'starlight-image-zoom'
 
 // https://astro.build/config
 export default defineConfig({
@@ -74,6 +75,7 @@ export default defineConfig({
 				ContentPanel: './src/components/ContentPanel.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 				Search: './src/components/Search.astro',
+				Footer: './src/components/Footer.astro'
 			},
 			expressiveCode: {
 				/* TODO: decide which themes we want
@@ -99,6 +101,9 @@ export default defineConfig({
 			plugins: [
 				catppuccin(),
 				starlightLlmsTxt(),
+				starlightImageZoom({
+					showCaptions: true
+				}),
 				starlightKbd({
 					types: [
 					  { id: 'mac', label: 'macOS' },

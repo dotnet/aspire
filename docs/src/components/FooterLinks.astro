@@ -1,0 +1,51 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+import config from 'virtual:starlight/user-config';
+
+const links = config.social || [];
+const gitHubLink = links.filter(l => l.label == 'GitHub')[0].href || null;
+const discordLink = links.filter(l => l.label == 'Discord')[0].href || null;
+---
+
+<section class="sl-flex">
+{
+    gitHubLink ? (
+        <a href={gitHubLink} class="sl-flex" target="_blank">
+            <Icon name="github" size="1.2em" />
+            GitHub
+        </a>
+    ) : (
+        <></>
+    )
+}
+{
+    discordLink ? (
+        <a href={discordLink} class="sl-flex" target="_blank">
+            <Icon name='discord' />
+            Community
+        </a>
+    ) : (
+        <></>
+    )
+}
+</section>
+
+<style>
+	section {
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 0.5rem 1.5rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	a {
+		align-items: center;
+		text-decoration: none;
+		gap: 0.5rem;
+		color: var(--sl-color-gray-3);
+	}
+
+	a:hover {
+		color: var(--sl-color-white);
+	}
+</style>
