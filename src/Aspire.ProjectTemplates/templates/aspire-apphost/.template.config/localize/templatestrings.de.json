@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire-App-Host",
-  "description": "Eine Projektvorlage zum Erstellen eines .NET Aspire-App-Hostprojekts (Orchestrator).",
+  "description": "Verwaltet und führt mehrere Dienste in Ihrer .NET Aspire-App von einem einzigen Ort aus.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

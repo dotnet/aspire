@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 테스트 프로젝트(xUnit)",
-  "description": ".NET Aspire AppHost 프로젝트의 xUnit.net 통합 테스트를 포함하는 프로젝트입니다.",
+  "description": "xUnit을 사용하여 앱에 대한 최신의 깔끔한 통합 테스트 — 확장 가능한 앱 및 팀에 적합합니다.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Тестовый проект .NET Aspire (NUnit)",
-  "description": "Проект, содержащий тесты интеграции NUnit проекта хоста приложений .NET Aspire.",
+  "description": "Мощное интеграционное тестирование приложения с помощью гибкой и многофункциональной платформы NUnit.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

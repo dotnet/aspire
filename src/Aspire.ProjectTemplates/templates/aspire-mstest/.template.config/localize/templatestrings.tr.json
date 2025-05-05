@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Test Projesi (MSTest)",
-  "description": ".NET Aspire uygulama ana işlemi projesinin MSTest tümleştirme testlerini içeren bir proje.",
+  "description": "MSTest kullanarak .NET Aspire uygulamanız için acemi dostu tümleştirme testleri.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

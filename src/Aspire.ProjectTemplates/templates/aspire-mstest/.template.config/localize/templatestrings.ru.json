@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Тестовый проект .NET Aspire (MSTest)",
-  "description": "Проект, содержащий тесты интеграции MSTest проекта хоста приложений .NET Aspire.",
+  "description": "Интеграционные тесты для начинающих для приложения .NET Aspire с использованием MSTest.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

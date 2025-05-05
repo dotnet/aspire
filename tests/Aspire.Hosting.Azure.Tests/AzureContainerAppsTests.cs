@@ -15,7 +15,6 @@ using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -238,12 +237,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_containerport": "{api.containerPort}",
             "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "api_containerimage": "{api.containerImage}"
+            "api_containerimage": "{api.containerImage}",
+            "api_containerport": "{api.containerPort}"
           }
         }
         """;
@@ -255,8 +254,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param api_containerport string
-
         param env_outputs_azure_container_apps_environment_default_domain string
 
         param env_outputs_azure_container_apps_environment_id string
@@ -266,6 +263,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param env_outputs_azure_container_registry_managed_identity_id string
 
         param api_containerimage string
+
+        param api_containerport string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -358,7 +357,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var container = Assert.IsType<IComputeResource>(Assert.Single(model.GetContainerResources()), exactMatch: false);
+       var container = Assert.IsType<IComputeResource>(Assert.Single(model.GetContainerResources()), exactMatch: false);
 
         var target = container.GetDeploymentTargetAnnotation();
 
@@ -467,12 +466,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var container = Assert.IsType<IComputeResource>(Assert.Single(model.GetContainerResources()), exactMatch: false);
+        var container = Assert.Single(model.GetContainerResources());
 
         var target = container.GetDeploymentTargetAnnotation();
 
-        Assert.NotNull(target);
-        Assert.Same(env.Resource, target.ComputeEnvironment);
+        Assert.Same(env.Resource, target?.ComputeEnvironment);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
         Assert.NotNull(resource);
@@ -801,8 +799,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
+            "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "api_containerimage": "{api.containerImage}",
             "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "api_containerport": "{api.containerPort}",
             "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
@@ -810,11 +812,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
             "cs_connectionstring": "{cs.connectionString}",
-            "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
-            "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "api_containerimage": "{api.containerImage}"
+            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
           }
         }
         """;
@@ -836,9 +834,17 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param api_identity_outputs_id string
+        param env_outputs_azure_container_apps_environment_default_domain string
 
-        param api_identity_outputs_clientid string
+        param env_outputs_azure_container_apps_environment_id string
+
+        param env_outputs_azure_container_registry_endpoint string
+
+        param env_outputs_azure_container_registry_managed_identity_id string
+
+        param api_containerimage string
+
+        param api_identity_outputs_id string
 
         param api_containerport string
 
@@ -856,15 +862,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @secure()
         param cs_connectionstring string
 
-        param env_outputs_azure_container_apps_environment_default_domain string
-
-        param env_outputs_azure_container_apps_environment_id string
-
-        param env_outputs_azure_container_registry_endpoint string
-
-        param env_outputs_azure_container_registry_managed_identity_id string
-
-        param api_containerimage string
+        param api_identity_outputs_clientid string
 
         resource pg_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
           name: pg_kv_outputs_name
@@ -1139,8 +1137,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
+            "cae_outputs_azure_container_apps_environment_default_domain": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "cae_outputs_azure_container_apps_environment_id": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "cae_outputs_azure_container_registry_endpoint": "{cae.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "cae_outputs_azure_container_registry_managed_identity_id": "{cae.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "api_containerimage": "{api.containerImage}",
             "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "api_containerport": "{api.containerPort}",
             "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
@@ -1148,11 +1150,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
             "cs_connectionstring": "{cs.connectionString}",
-            "cae_outputs_azure_container_apps_environment_default_domain": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
-            "cae_outputs_azure_container_apps_environment_id": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-            "cae_outputs_azure_container_registry_endpoint": "{cae.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "cae_outputs_azure_container_registry_managed_identity_id": "{cae.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "api_containerimage": "{api.containerImage}"
+            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
           }
         }
         """;
@@ -1637,11 +1635,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
+            "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "env_outputs_volumes_api_0": "{env.outputs.volumes_api_0}",
             "env_outputs_volumes_api_1": "{env.outputs.volumes_api_1}",
-            "env_outputs_bindmounts_api_0": "{env.outputs.bindmounts_api_0}",
-            "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
-            "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+            "env_outputs_bindmounts_api_2": "{env.outputs.bindmounts_api_2}"
           }
         }
         """;
@@ -1653,15 +1651,15 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
+        param env_outputs_azure_container_apps_environment_default_domain string
+
+        param env_outputs_azure_container_apps_environment_id string
+
         param env_outputs_volumes_api_0 string
 
         param env_outputs_volumes_api_1 string
 
-        param env_outputs_bindmounts_api_0 string
-
-        param env_outputs_azure_container_apps_environment_default_domain string
-
-        param env_outputs_azure_container_apps_environment_id string
+        param env_outputs_bindmounts_api_2 string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -1709,7 +1707,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'bm0'
                   storageType: 'AzureFile'
-                  storageName: env_outputs_bindmounts_api_0
+                  storageName: env_outputs_bindmounts_api_2
                 }
               ]
             }
@@ -1776,14 +1774,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
+            "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
             "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
             "mydb_secretoutputs": "{mydb.secretOutputs}",
             "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
             "mydb_secretoutputs_connectionstring1": "{mydb.secretOutputs.connectionString1}",
-            "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
-            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
           }
         }
         """;
@@ -1795,9 +1793,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param api_identity_outputs_id string
+        param outputs_azure_container_apps_environment_default_domain string
 
-        param api_identity_outputs_clientid string
+        param outputs_azure_container_apps_environment_id string
+
+        param api_identity_outputs_id string
 
         param mydb_kv_outputs_name string
 
@@ -1809,21 +1809,19 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @secure()
         param mydb_secretoutputs_connectionstring1 string
 
-        param outputs_azure_container_apps_environment_default_domain string
-
-        param outputs_azure_container_apps_environment_id string
+        param api_identity_outputs_clientid string
 
         resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
           name: mydb_kv_outputs_name
         }
 
-        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: mydb_secretoutputs
-        }
-
         resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
           name: 'connectionstrings--mydb'
           parent: mydb_kv_outputs_name_kv
+        }
+
+        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: mydb_secretoutputs
         }
 
         resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
@@ -2322,12 +2320,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_containerport": "{api.containerPort}",
             "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "api_containerimage": "{api.containerImage}"
+            "api_containerimage": "{api.containerImage}",
+            "api_containerport": "{api.containerPort}"
           }
         }
         """;
@@ -2339,8 +2337,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
 
-        param api_containerport string
-
         param env_outputs_azure_container_apps_environment_default_domain string
 
         param env_outputs_azure_container_apps_environment_id string
@@ -2350,6 +2346,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param env_outputs_azure_container_registry_managed_identity_id string
 
         param api_containerimage string
+
+        param api_containerport string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -2463,13 +2461,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "api.module.bicep",
               "params": {
-                "api_identity_outputs_id": "{api-identity.outputs.id}",
-                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
                 "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
                 "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
                 "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
                 "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-                "api_containerimage": "{api.containerImage}"
+                "api_containerimage": "{api.containerImage}",
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
               }
             }
             """;
@@ -2507,10 +2505,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param api_identity_outputs_id string
-
-            param api_identity_outputs_clientid string
-
             param env_outputs_azure_container_apps_environment_default_domain string
 
             param env_outputs_azure_container_apps_environment_id string
@@ -2520,6 +2514,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             param env_outputs_azure_container_registry_managed_identity_id string
 
             param api_containerimage string
+
+            param api_identity_outputs_id string
+
+            param api_identity_outputs_clientid string
 
             resource api 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'api'
@@ -2667,14 +2665,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "api.module.bicep",
               "params": {
-                "api_identity_outputs_id": "{api-identity.outputs.id}",
-                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
-                "cosmos_outputs_connectionstring": "{cosmos.outputs.connectionString}",
                 "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
                 "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
                 "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
                 "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-                "api_containerimage": "{api.containerImage}"
+                "api_containerimage": "{api.containerImage}",
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "cosmos_outputs_connectionstring": "{cosmos.outputs.connectionString}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
               }
             }
             """;
@@ -2712,12 +2710,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param api_identity_outputs_id string
-
-            param api_identity_outputs_clientid string
-
-            param cosmos_outputs_connectionstring string
-
             param env_outputs_azure_container_apps_environment_default_domain string
 
             param env_outputs_azure_container_apps_environment_id string
@@ -2727,6 +2719,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             param env_outputs_azure_container_registry_managed_identity_id string
 
             param api_containerimage string
+
+            param api_identity_outputs_id string
+
+            param cosmos_outputs_connectionstring string
+
+            param api_identity_outputs_clientid string
 
             resource api 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'api'
@@ -2880,14 +2878,14 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "api.module.bicep",
               "params": {
-                "api_identity_outputs_id": "{api-identity.outputs.id}",
-                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
-                "redis_outputs_connectionstring": "{redis.outputs.connectionString}",
                 "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
                 "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
                 "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
                 "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-                "api_containerimage": "{api.containerImage}"
+                "api_containerimage": "{api.containerImage}",
+                "api_identity_outputs_id": "{api-identity.outputs.id}",
+                "redis_outputs_connectionstring": "{redis.outputs.connectionString}",
+                "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
               }
             }
             """;
@@ -2926,12 +2924,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param api_identity_outputs_id string
-
-            param api_identity_outputs_clientid string
-
-            param redis_outputs_connectionstring string
-
             param env_outputs_azure_container_apps_environment_default_domain string
 
             param env_outputs_azure_container_apps_environment_id string
@@ -2941,6 +2933,12 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             param env_outputs_azure_container_registry_managed_identity_id string
 
             param api_containerimage string
+
+            param api_identity_outputs_id string
+
+            param redis_outputs_connectionstring string
+
+            param api_identity_outputs_clientid string
 
             resource api 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'api'
@@ -3831,24 +3829,24 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "type": "azure.bicep.v0",
           "path": "api.module.bicep",
           "params": {
-            "api_containerport": "{api.containerPort}",
             "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "api_containerimage": "{api.containerImage}"
+            "api_containerimage": "{api.containerImage}",
+            "api_containerport": "{api.containerPort}"
           }
         }
         """;
 
-        Assert.Equal(expectedContainerManifest, containerManifest.ToString());
+        var m = containerManifest.ToString();
+        output.WriteLine(m);
+        Assert.Equal(expectedContainerManifest, m);
 
         var expectedContainerBicep =
         """
         @description('The location for the resource(s) to be deployed.')
         param location string = resourceGroup().location
-
-        param api_containerport string
 
         param env_outputs_azure_container_apps_environment_default_domain string
 
@@ -3859,6 +3857,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param env_outputs_azure_container_registry_managed_identity_id string
 
         param api_containerimage string
+
+        param api_containerport string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
@@ -3921,6 +3921,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           }
         }
         """;
+        output.WriteLine(containerBicep);
         Assert.Equal(expectedContainerBicep, containerBicep);
 
         // Verify the Azure Container Registry resource manifest and bicep

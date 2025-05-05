@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 测试项目(xUnit)",
-  "description": "包含 .NET Aspire AppHost 项目的 xUnit.net 集成测试的项目。",
+  "description": "使用 xUnit 为应用进行干净的现代化集成测试 - 非常适合可扩展的应用和团队。",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",
