@@ -20,6 +20,9 @@ internal sealed class AzureKeyVaultCertificatesComponent : AbstractAzureKeyVault
     internal override CertificateClient CreateComponentClient(Uri vaultUri, CertificateClientOptions options, TokenCredential cred)
         => new(vaultUri, cred, options);
 
+    protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
+        => false;
+
     protected override IHealthCheck CreateHealthCheck(CertificateClient client, AzureSecurityKeyVaultSettings settings)
         => throw new NotImplementedException();
 
