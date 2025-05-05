@@ -76,7 +76,7 @@ internal sealed class RunCommand : BaseCommand
 
             var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
             
-            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
+            var useRichConsole = forceUseRichConsole || !debug;
 
             if (waitForDebugger)
             {
@@ -112,10 +112,12 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
+            var processLaunchedCompletionSource = new TaskCompletionSource();
             var runOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = outputCollector.AppendOutput,
                 StandardErrorCallback = outputCollector.AppendError,
+                ProcessIdCallback = processLaunchedCompletionSource.SetResult
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -136,7 +138,24 @@ internal sealed class RunCommand : BaseCommand
                 // the AppHost is ready to accept requests.
                 var backchannel = await _interactionService.ShowStatusAsync(
                     ":linked_paperclips:  Starting Aspire app host...",
-                    () => backchannelCompletitionSource.Task);
+                    async () => {
+
+                        // If we use the --wait-for-debugger option we print out the process ID
+                        // of the apphost so that the user can attach to it. The process ID comes
+                        // from the ProcessIdCallback on the invocation options and we just await
+                        // the completion source to be set.
+                        if (waitForDebugger)
+                        {
+                            await processLaunchedCompletionSource.Task.WaitAsync(cancellationToken);
+                            _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                        }
+
+                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
+                        // before the backchannel is created, therefore waiting on the backchannel is a 
+                        // good signal that the debugger was attached (or timed out).
+                        var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
 
                 // We wait for the first update of the console model via RPC from the AppHost.
                 var dashboardUrls = await _interactionService.ShowStatusAsync(

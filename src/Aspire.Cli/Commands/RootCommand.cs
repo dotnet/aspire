@@ -38,15 +38,21 @@ internal sealed class RootCommand : BaseRootCommand
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
+        var cliWaitForDebuggerOption = new Option<bool>("--cli-wait-for-debugger");
+        cliWaitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
+        cliWaitForDebuggerOption.Recursive = true;
+        cliWaitForDebuggerOption.Hidden = true;
+        cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
+
         #if DEBUG
-        waitForDebuggerOption.Validators.Add((result) => {
+        cliWaitForDebuggerOption.Validators.Add((result) => {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
 
             if (waitForDebugger)
             {
                 _interactionService.ShowStatus(
-                    $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
+                    $":bug:  Waiting for debugger to attach to CLI process ID: {Environment.ProcessId}",
                     () => {
                         while (!Debugger.IsAttached)
                         {
@@ -58,6 +64,7 @@ internal sealed class RootCommand : BaseRootCommand
         #endif
 
         Options.Add(waitForDebuggerOption);
+        Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
         Subcommands.Add(runCommand);

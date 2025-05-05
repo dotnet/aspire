@@ -88,7 +88,8 @@ internal sealed class PublishCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
+            var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
+            if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
@@ -103,7 +104,7 @@ internal sealed class PublishCommand : BaseCommand
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = outputCollector.AppendOutput,
-                StandardErrorCallback = outputCollector.AppendError,
+                StandardErrorCallback = outputCollector.AppendError
             };
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
@@ -126,10 +127,12 @@ internal sealed class PublishCommand : BaseCommand
                         $"{nameof(ExecuteAsync)}-Action-GetPublishers",
                         ActivityKind.Client);
 
+                    var getPublishesProcessIdCompletionSource = new TaskCompletionSource();
                     var getPublishersRunOptions = new DotNetCliRunnerInvocationOptions
                     {
                         StandardOutputCallback = outputCollector.AppendOutput,
                         StandardErrorCallback = outputCollector.AppendError,
+                        ProcessIdCallback = getPublishesProcessIdCompletionSource.SetResult,
                     };
 
                     var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -138,10 +141,16 @@ internal sealed class PublishCommand : BaseCommand
                         false,
                         true,
                         ["--operation", "inspect"],
-                        null,
+                        env,
                         backchannelCompletionSource,
                         getPublishersRunOptions,
                         cancellationToken).ConfigureAwait(false);
+
+                    if (waitForDebugger)
+                    {
+                        await getPublishesProcessIdCompletionSource.Task.WaitAsync(cancellationToken);
+                        _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process.");
+                    }
 
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
                     var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
@@ -197,10 +206,12 @@ internal sealed class PublishCommand : BaseCommand
                     launchingAppHostTask.IsIndeterminate();
                     launchingAppHostTask.StartTask();
 
+                    var publishProcessIdCompletionSource = new TaskCompletionSource();
                     var publishRunOptions = new DotNetCliRunnerInvocationOptions
                     {
                         StandardOutputCallback = outputCollector.AppendOutput,
                         StandardErrorCallback = outputCollector.AppendError,
+                        ProcessIdCallback = publishProcessIdCompletionSource.SetResult,
                     };
 
                     var pendingRun = _runner.RunAsync(
@@ -213,7 +224,23 @@ internal sealed class PublishCommand : BaseCommand
                         publishRunOptions,
                         cancellationToken);
 
+                    ProgressTask? attachDebuggerTask = null;
+                    if (waitForDebugger)
+                    {
+                        await publishProcessIdCompletionSource.Task.WaitAsync(cancellationToken);
+                        attachDebuggerTask = context.AddTask($":bug:  Waiting for debugger to attach to app host process");
+                        attachDebuggerTask.IsIndeterminate();
+                        attachDebuggerTask.StartTask();
+                    }
+
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    if (attachDebuggerTask is not null)
+                    {
+                        attachDebuggerTask.Description = $":check_mark:  Debugger attached (or timed out)";
+                        attachDebuggerTask.Value = 100;
+                        attachDebuggerTask.StopTask();
+                    }
 
                     launchingAppHostTask.Description = $":check_mark:  Launching apphost";
                     launchingAppHostTask.Value = 100;
