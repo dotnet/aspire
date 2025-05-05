@@ -19,12 +19,8 @@ public static class AzureAppServiceComputeResourceExtensions
     /// <param name="builder">The compute resource builder.</param>
     /// <param name="configure">The configuration action for the App Service WebSite resource.</param>
     /// <returns>The updated compute resource builder.</returns>
-    /// <remarks>
-    /// This method checks if the application is in publish mode. If it is, it adds the necessary infrastructure
-    /// for Azure App Service and applies the provided configuration action to the App Service WebSite resource.
-    /// <example>
     /// <code>
-    /// builder.AddNpmApp("name", "image").PublishAsAzureAppServiceWebsite((infrastructure, app) =>
+    /// builder.AddProject&lt;Projects.Api&gt;("name").PublishAsAzureAppServiceWebsite((infrastructure, app) =>
     /// {
     ///     // Configure the App Service WebSite resource here
     /// });
