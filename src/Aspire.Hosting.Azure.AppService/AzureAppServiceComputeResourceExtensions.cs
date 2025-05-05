@@ -19,6 +19,8 @@ public static class AzureAppServiceComputeResourceExtensions
     /// <param name="builder">The compute resource builder.</param>
     /// <param name="configure">The configuration action for the App Service WebSite resource.</param>
     /// <returns>The updated compute resource builder.</returns>
+    /// <remarks>
+    /// <example>
     /// <code>
     /// builder.AddProject&lt;Projects.Api&gt;("name").PublishAsAzureAppServiceWebsite((infrastructure, app) =>
     /// {
