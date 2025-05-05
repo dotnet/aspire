@@ -66,23 +66,20 @@ public static class AzureProvisioningResourceExtensions
 
         var resources = infrastructure.GetProvisionableResources();
 
-        var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv =>
-            kv.BicepIdentifier == GetNameFromValueExpression(secretReference.Resource.NameOutputReference)
-        );
+        var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
+        var kvName = $"{parameter.BicepIdentifier}_kv";
+
+        var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv => kv.BicepIdentifier == kvName);
 
         if (kv is null)
         {
-            // We resolve the keyvault that represents the storage for secret outputs
-            var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
-            kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
+            kv = KeyVaultService.FromExisting(kvName);
             kv.Name = parameter;
             infrastructure.Add(kv);
         }
 
         var kvsName = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretReference.SecretName}");
-        var kvs = resources.OfType<KeyVaultSecret>().SingleOrDefault(kvSecret =>
-            kvSecret.BicepIdentifier == kvsName
-        );
+        var kvs = resources.OfType<KeyVaultSecret>().SingleOrDefault(kvSecret => kvSecret.BicepIdentifier == kvsName);
 
         if (kvs is null)
         {
