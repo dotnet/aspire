@@ -9,7 +9,6 @@ using Aspire.Hosting.Azure.ContainerRegistry;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.ContainerRegistry;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
