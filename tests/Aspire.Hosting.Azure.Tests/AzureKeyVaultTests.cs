@@ -53,11 +53,13 @@ public class AzureKeyVaultTests
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.main")
             .UseHelixAwareDirectory("Snapshots");
 
         var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
         var kvRolesManifest = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
         await Verifier.Verify(kvRolesManifest.BicepText, extension: "bicep")
+            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.kvroles")
             .UseHelixAwareDirectory("Snapshots");
     }
 
