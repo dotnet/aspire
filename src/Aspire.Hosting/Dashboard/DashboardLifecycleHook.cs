@@ -127,7 +127,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
         ConfigureAspireDashboardResource(dashboardResource);
-
         // Make the dashboard first in the list so it starts as fast as possible.
         model.Resources.Insert(0, dashboardResource);
     }
@@ -173,12 +172,15 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             },
             State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
                 ? null
+#pragma warning disable CS0618 // Type or member is obsolete
                 : KnownResourceStates.Hidden
+#pragma warning restore CS0618 // Type or member is obsolete
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(ConfigureEnvironmentVariables));
+        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DasboardHealthCheck));
     }
 
     internal async Task ConfigureEnvironmentVariables(EnvironmentCallbackContext context)

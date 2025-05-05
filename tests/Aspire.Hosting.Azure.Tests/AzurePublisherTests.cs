@@ -22,7 +22,6 @@ public class AzurePublisherTests(ITestOutputHelper output)
     [InlineData(false)]
     public async Task PublishAsync_GeneratesMainBicep(bool useContext)
     {
-        using var tempDirectory = new TempDirectory();
         using var tempDir = new TempDirectory();
         // Arrange
         var options = new OptionsMonitor(new AzurePublisherOptions { OutputPath = tempDir.Path });
@@ -236,24 +235,150 @@ public class AzurePublisherTests(ITestOutputHelper output)
 
             output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 
-            output myapp_identity_id string = myapp_identity.outputs.id
-
-            output myapp_identity_clientId string = myapp_identity.outputs.clientId
-
-            output account_connectionString string = account.outputs.connectionString
-
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 
             output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 
+            output myapp_identity_id string = myapp_identity.outputs.id
+
+            output account_connectionString string = account.outputs.connectionString
+
+            output myapp_identity_clientId string = myapp_identity.outputs.clientId
+
             output fe_identity_id string = fe_identity.outputs.id
 
-            output fe_identity_clientId string = fe_identity.outputs.clientId
-
             output storage_blobEndpoint string = storage.outputs.blobEndpoint
+
+            output fe_identity_clientId string = fe_identity.outputs.clientId
             """;
         output.WriteLine(content);
         Assert.Equal(expectedBicep, content, ignoreAllWhiteSpace: true, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task AzurePublishingContext_CapturesParametersAndOutputsCorrectly()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("acaEnv");
+
+        var storageSku = builder.AddParameter("storage-Sku", "Standard_LRS", publishValueAsDefault: true);
+        var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
+        var skuDescriptionExpr = ReferenceExpression.Create($"{description} {storageSku}");
+
+        var kv = builder.AddAzureKeyVault("kv");
+        var cosmos = builder.AddAzureCosmosDB("account").AddCosmosDatabase("db");
+
+        var blobs = builder.AddAzureStorage("storage")
+                            .ConfigureInfrastructure(c =>
+                            {
+                                var storageAccount = c.GetProvisionableResources().OfType<StorageAccount>().FirstOrDefault();
+
+                                storageAccount!.Sku.Name = storageSku.AsProvisioningParameter(c);
+
+                                var output = new ProvisioningOutput("description", typeof(string))
+                                {
+                                    Value = skuDescriptionExpr.AsProvisioningParameter(c, "sku_description")
+                                };
+
+                                c.Add(output);
+                            })
+                            .AddBlobs("blobs");
+
+        builder.AddProject<TestProject>("fe", launchProfileName: null)
+            .WithEnvironment("BLOB_CONTAINER_URL", $"{blobs}/container")
+            .WithReference(cosmos);
+
+        var externalResource = new ExternalResourceWithParameters("external")
+        {
+            Parameters =
+            {
+                ["kvUri"] = kv.Resource.VaultUri,
+                ["blob"] = blobs.Resource.ConnectionStringExpression,
+            }
+        };
+        builder.AddResource(externalResource);
+
+        var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var context = new AzurePublishingContext(
+            new AzurePublisherOptions { OutputPath = tempDir.Path },
+            new AzureProvisioningOptions(),
+            NullLogger<AzurePublishingContext>.Instance);
+
+        await context.WriteModelAsync(model, default);
+
+        Assert.Collection(
+            context.OutputLookup,
+            item =>
+            {
+                Assert.Equal("acaEnv_AZURE_CONTAINER_REGISTRY_NAME", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("fe_identity_id", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal(new BicepOutputReference("blobEndpoint", blobs.Resource.Parent), item.Key);
+                Assert.Equal("storage_blobEndpoint", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal(new BicepOutputReference("connectionString", cosmos.Resource.Parent), item.Key);
+                Assert.Equal("account_connectionString", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal("fe_identity_clientId", item.Value.BicepIdentifier);
+            },
+            item =>
+            {
+                Assert.Equal(new BicepOutputReference("vaultUri", kv.Resource), item.Key);
+                Assert.Equal("kv_vaultUri", item.Value.BicepIdentifier);
+            });
+
+        Assert.Collection(
+            context.ParameterLookup,
+            item =>
+            {
+                Assert.Equal(storageSku.Resource, item.Key);
+                Assert.Equal("storage_Sku", item.Value.BicepIdentifier);
+                Assert.Equal("Standard_LRS", item.Value.Value.Value);
+            },
+            item =>
+            {
+                Assert.Equal(description.Resource, item.Key);
+                Assert.Equal(description.Resource.Name, item.Value.BicepIdentifier);
+                Assert.Equal("The sku is ", item.Value.Value.Value);
+            });
+    }
+
+    private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
+    {
+        public IDictionary<string, object?> Parameters { get; } = new Dictionary<string, object?>();
     }
 
     private sealed class OptionsMonitor(AzurePublisherOptions options) : IOptionsMonitor<AzurePublisherOptions>

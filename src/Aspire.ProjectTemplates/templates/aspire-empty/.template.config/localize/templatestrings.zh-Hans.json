@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 空应用",
-  "description": "一个用于创建空 .NET Aspire 应用的项目模板。",
+  "description": "Build cloud-native systems without preset services.",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",
@@ -10,7 +10,7 @@
   "symbols/AspireVersion/choices/9.2/displayName": "9.2",
   "symbols/AspireVersion/choices/9.2/description": "选择 .NET Aspire 9.2",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
-  "symbols/AspireVersion/choices/9.3/description": "Chooses .NET Aspire 9.3",
+  "symbols/AspireVersion/choices/9.3/description": "选择 .NET Aspire 9.3",
   "symbols/appHostHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的 HTTP 终结点。",
   "symbols/appHostOtlpHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的 OTLP HTTP 终结点。",
   "symbols/appHostResourceHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的资源服务 HTTP 终结点。",

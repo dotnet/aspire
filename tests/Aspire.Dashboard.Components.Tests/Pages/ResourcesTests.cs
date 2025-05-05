@@ -328,6 +328,7 @@ public partial class ResourcesTests : DashboardTestContext
             Relationships = default,
             Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             Commands = [],
+            IsHidden = false,
         };
     }
 }

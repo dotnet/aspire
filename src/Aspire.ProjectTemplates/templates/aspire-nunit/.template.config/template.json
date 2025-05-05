@@ -14,7 +14,7 @@
   ],
   "name": ".NET Aspire Test Project (NUnit)",
   "defaultName": "Tests",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
+  "description": "Powerful integration testing for your app with the flexible and feature-rich NUnit framework.",
   "shortName": "aspire-nunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,

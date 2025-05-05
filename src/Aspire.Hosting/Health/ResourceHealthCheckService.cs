@@ -39,7 +39,10 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     }
                 }
 
-                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                // HACK: We are special casing the Aspire dashboard here until we address the issue of the Hidden state
+                //       making it impossible to determine whether a hidden resource is running or not. When that change
+                //       is made we can remove the special case logic here for the dashboard.
+                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running || resourceEvent.Resource.Name == KnownResourceNames.AspireDashboard)
                 {
                     if (state == null)
                     {
