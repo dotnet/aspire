@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.Dashboard;
