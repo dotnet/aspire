@@ -171,7 +171,8 @@ public static class AspireAzureAIInferenceExtensions
                 return result;
             }
 
-            var loggerFactory = services.GetService<ILoggerFactory>();
-            return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+            return new ChatClientBuilder(result)
+                .UseOpenTelemetry()
+                .Build();
         });
 }
