@@ -121,7 +121,7 @@ public static class AzureAIProjectExtensions
         }
 
         protected override bool GetHealthCheckEnabled(AzureAIProjectSettings settings)
-            => !settings.DisableHealthChecks;
+            => false;
 
         protected override TokenCredential? GetTokenCredential(AzureAIProjectSettings settings)
             => settings.Credential;
