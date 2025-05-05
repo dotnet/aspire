@@ -317,8 +317,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         var secret = secretReference.AsKeyVaultSecret(Infra);
 
-        // App Service does not support non-versioned secret URIs for Key Vault references.
-        return secret.Properties.SecretUriWithVersion;
+        // https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
+        return secret.Properties.SecretUri;
     }
 
     private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, SecretType secretType = SecretType.None)

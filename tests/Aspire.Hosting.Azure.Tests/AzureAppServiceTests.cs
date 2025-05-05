@@ -331,7 +331,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
                 }
                 {
                   name: 'ConnectionStrings__mydb'
-                  value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_outputs_name_kv_connectionstrings__mydb.properties.secretUriWithVersion})'
+                  value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_outputs_name_kv_connectionstrings__mydb.properties.secretUri})'
                 }
                 {
                   name: 'AZURE_CLIENT_ID'
