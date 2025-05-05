@@ -9,7 +9,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -114,16 +113,11 @@ internal class AppHostRpcTarget(
             throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
         }
 
-        // Wait for the dashboard to be healthy before returning the URL. This next statement has several
-        // layers of hacks. Some to work around devcontainer/codespaces port forwarding behavior, and one to
-        // temporarily work around the fact that resource events abuse the state to mark the resource as
-        // hidden instead of having another field. There is a corresponding modification in the ResourceHealthService
-        // which allows the dashboard resource to trigger health reports even though it never enters
-        // the Running state. This is a hack. The reason we can't just check HealthStatus is because
-        // the current implementation of HealthStatus depends on the state of the resource as well.
-        await resourceNotificationService.WaitForResourceAsync(
+        // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
+        // endpoint for the resource is available and the dashboard is ready to be used. This helps
+        // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
+        await resourceNotificationService.WaitForResourceHealthyAsync(
             KnownResourceNames.AspireDashboard,
-            re => re.Snapshot.HealthReports.All(h => h.Status == HealthStatus.Healthy),
             cancellationToken).ConfigureAwait(false);
 
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
