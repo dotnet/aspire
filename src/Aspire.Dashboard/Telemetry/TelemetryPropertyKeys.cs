@@ -15,8 +15,6 @@ public static class TelemetryPropertyKeys
     public const string DashboardComponentId = AspireDashboardPropertyPrefix + "ComponentId";
     public const string UserAgent = AspireDashboardPropertyPrefix + "UserAgent";
 
-    public const string ApplicationInstanceId = AspireDashboardPropertyPrefix + "Metrics.ApplicationInstanceId";
-
     // ConsoleLogs properties
     public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + "ConsoleLogs.ShowTimestamp";
     public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + "ConsoleLogs.ApplicationName";
@@ -24,8 +22,6 @@ public static class TelemetryPropertyKeys
     // Metrics properties
     public const string MetricsApplicationIsReplica = AspireDashboardPropertyPrefix + "Metrics.ApplicationIsReplica";
     public const string MetricsInstrumentsCount = AspireDashboardPropertyPrefix + "Metrics.InstrumentsCount";
-    public const string MetricsSelectedMeter = AspireDashboardPropertyPrefix + "Metrics.SelectedMeter";
-    public const string MetricsSelectedInstrument = AspireDashboardPropertyPrefix + "Metrics.SelectedInstrument";
     public const string MetricsSelectedDuration = AspireDashboardPropertyPrefix + "Metrics.SelectedDuration";
     public const string MetricsSelectedView = AspireDashboardPropertyPrefix + "Metrics.SelectedView";
 
@@ -35,21 +31,16 @@ public static class TelemetryPropertyKeys
     public const string ExceptionStackTrace = AspireDashboardPropertyPrefix + "Exception.StackTrace";
 
     // Resources properties
+    public const string ResourceTypes = AspireDashboardPropertyPrefix + "Resource.Types";
     public const string ResourceType = AspireDashboardPropertyPrefix + "Resource.Type";
     public const string ResourceView = AspireDashboardPropertyPrefix + "Resource.View";
 
     // Error properties
     public const string ErrorRequestId = AspireDashboardPropertyPrefix + "RequestId";
 
-    // Trace detail properties
-    public const string TraceDetailTraceId = AspireDashboardPropertyPrefix + "TraceDetail.TraceId";
-
     // Structured logs properties
-    public const string StructuredLogsSelectedApplication = AspireDashboardPropertyPrefix + "StructuredLogs.SelectedApplication";
     public const string StructuredLogsSelectedLogLevel = AspireDashboardPropertyPrefix + "StructuredLogs.SelectedLogLevel";
     public const string StructuredLogsFilterCount = AspireDashboardPropertyPrefix + "StructuredLogs.FilterCount";
-    public const string StructuredLogsTraceId = AspireDashboardPropertyPrefix + "StructuredLogs.TraceId";
-    public const string StructuredLogsSpanId = AspireDashboardPropertyPrefix + "StructuredLogs.SpanId";
 
     // Command properties
     public const string CommandName = AspireDashboardPropertyPrefix + "Command.Name";
