@@ -148,7 +148,7 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             });
         });
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
 
         var expectedManifest =
             """
@@ -164,32 +164,7 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
         var m = manifest.ToString();
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep =
-        """
-        @description('The location for the resource(s) to be deployed.')
-        param location string = resourceGroup().location
-
-        param mykeyvault_outputs_name string
-
-        resource mykeyvault_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: mykeyvault_outputs_name
-        }
-
-        resource mykeyvault_outputs_name_kv_mySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'mySecret'
-          parent: mykeyvault_outputs_name_kv
-        }
-
-        resource mykeyvault_outputs_name_kv_mySecret2 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'mySecret2'
-          parent: mykeyvault_outputs_name_kv
-        }
-
-        output secretUri1 string = mykeyvault_outputs_name_kv_mySecret.properties.secretUri
-
-        output secretUri2 string = mykeyvault_outputs_name_kv_mySecret2.properties.secretUri
-        """;
-        output.WriteLine(bicep);
-        Assert.Equal(expectedBicep, bicep);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
     }
 }
