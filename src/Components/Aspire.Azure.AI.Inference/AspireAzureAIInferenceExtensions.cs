@@ -12,7 +12,6 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -159,7 +158,7 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="builder"></param>
     /// <returns></returns>
     public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder) =>
-        builder.Builder.Services.AddChatClient(services =>
+        builder.HostBuilder.Services.AddChatClient(services =>
         {
             var chatCompletionsClient = !string.IsNullOrEmpty(builder.ServiceKey) ?
                 services.GetRequiredService<ChatCompletionsClient>() :
