@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Leere .NET Aspire-App",
-  "description": "Build cloud-native systems without preset services.",
+  "description": "Erstellen Sie cloudnative Systeme ohne vordefinierte Dienste.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

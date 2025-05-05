@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Hôte de l’application .NET Aspire",
-  "description": "Manages and runs multiple services in your .NET Aspire app from one place.",
+  "description": "Gère et exécute plusieurs services dans votre application .NET Aspire à partir d’un seul endroit.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",
