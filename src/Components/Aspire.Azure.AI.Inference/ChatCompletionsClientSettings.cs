@@ -1,25 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Core;
 using System.Data.Common;
+using Aspire.Azure.Common;
+using Azure.Core;
 
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Represents configuration settings for Azure AI Chat Completions client.
 /// </summary>
-public sealed class ChatCompletionsClientSettings
+public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
 {
     /// <summary>
-    /// Gets or sets the name of the AI model to use for chat completions.
+    /// Gets or sets the ID of the AI model deployment to use for chat completions.
     /// </summary>
-    public string? ModelName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the ID of the AI model to use for chat completions.
-    /// </summary>
-    public string? ModelId { get; set; }
+    public string? DeploymentId { get; set; }
 
     /// <summary>
     /// Gets or sets the endpoint URI for the Azure AI service.
@@ -58,26 +54,20 @@ public sealed class ChatCompletionsClientSettings
     /// <param name="connectionString">The connection string containing configuration values.</param>
     /// <remarks>
     /// The connection string can contain the following keys:
-    /// - ModelName: The name of the AI model
-    /// - ModelId: The ID of the AI model
+    /// - DeploymentId: The ID of the AI model
     /// - Endpoint: The service endpoint URI
     /// - Key: The API key for authentication
     /// </remarks>
-    internal void ParseConnectionString(string connectionString)
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         var connectionBuilder = new DbConnectionStringBuilder
         {
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue(nameof(ModelName), out var model))
+        if (connectionBuilder.TryGetValue(nameof(DeploymentId), out var modelId))
         {
-            ModelName = model.ToString();
-        }
-
-        if (connectionBuilder.TryGetValue(nameof(ModelId), out var modelId))
-        {
-            ModelId = modelId.ToString();
+            DeploymentId = modelId.ToString();
         }
 
         if (connectionBuilder.TryGetValue(nameof(Endpoint), out var endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var serviceUri))

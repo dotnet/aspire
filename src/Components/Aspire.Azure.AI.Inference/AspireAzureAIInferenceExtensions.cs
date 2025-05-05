@@ -56,7 +56,7 @@ public static class AspireAzureAIInferenceExtensions
             connectionName,
             serviceKey: null);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.ModelId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentId, settings.DisableTracing);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public static class AspireAzureAIInferenceExtensions
             name,
             serviceKey: name);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.ModelId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentId, settings.DisableTracing);
     }
 
     private sealed class ChatCompletionsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, ChatCompletionsClient, AzureAIInferenceClientOptions>
