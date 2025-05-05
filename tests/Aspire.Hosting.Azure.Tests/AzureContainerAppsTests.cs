@@ -1815,13 +1815,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           name: mydb_kv_outputs_name
         }
 
-        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: mydb_secretoutputs
-        }
-
         resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
           name: 'connectionstrings--mydb'
           parent: mydb_kv_outputs_name_kv
+        }
+
+        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: mydb_secretoutputs
         }
 
         resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {

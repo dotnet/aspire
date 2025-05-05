@@ -333,19 +333,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
 
-                // Dashboard health check.
-                _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
-
-                    var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
-                    if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
-                    {
-                        return firstDashboardUrl;
-                    }
-                    else
-                    {
-                        throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
-                    }
-                }, KnownHealthCheckNames.DasboardHealthCheck);
+                ConfigureDashboardHealthCheck();
             }
 
             if (options.EnableResourceLogging)
@@ -399,6 +387,24 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureDashboardHealthCheck()
+    {
+        _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
+
+            var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
+            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
+            {
+                return firstDashboardUrl;
+            }
+            else
+            {
+                throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
+            }
+        }, KnownHealthCheckNames.DasboardHealthCheck);
+
+        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DasboardHealthCheck);
     }
 
     private void ConfigureHealthChecks()

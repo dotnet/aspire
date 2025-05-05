@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -116,5 +117,79 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
 
         Assert.Equal("MY_SECRET", pubishKvp.Key);
         Assert.Equal("{myKeyVault.secrets.mySecret}", pubishKvp.Value);
+    }
+
+    [Fact]
+    public async Task ConsumingAKeyVaultSecretInAnotherBicepModule()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        var secretReference = kv.Resource.GetSecret("mySecret");
+        var secretReference2 = kv.Resource.GetSecret("mySecret2");
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            var secret = secretReference.AsKeyVaultSecret(infra);
+            var secret2 = secretReference2.AsKeyVaultSecret(infra);
+
+            // Should be idempotent
+            _ = secretReference.AsKeyVaultSecret(infra);
+
+            infra.Add(new ProvisioningOutput("secretUri1", typeof(string))
+            {
+                Value = secret.Properties.SecretUri
+            });
+
+            infra.Add(new ProvisioningOutput("secretUri2", typeof(string))
+            {
+                Value = secret2.Properties.SecretUri
+            });
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        var expectedManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "path": "mymodule.module.bicep",
+              "params": {
+                "mykeyvault_outputs_name": "{myKeyVault.outputs.name}"
+              }
+            }
+            """;
+
+        var m = manifest.ToString();
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param mykeyvault_outputs_name string
+
+        resource mykeyvault_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: mykeyvault_outputs_name
+        }
+
+        resource mykeyvault_outputs_name_kv_mySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'mySecret'
+          parent: mykeyvault_outputs_name_kv
+        }
+
+        resource mykeyvault_outputs_name_kv_mySecret2 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'mySecret2'
+          parent: mykeyvault_outputs_name_kv
+        }
+
+        output secretUri1 string = mykeyvault_outputs_name_kv_mySecret.properties.secretUri
+
+        output secretUri2 string = mykeyvault_outputs_name_kv_mySecret2.properties.secretUri
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
     }
 }

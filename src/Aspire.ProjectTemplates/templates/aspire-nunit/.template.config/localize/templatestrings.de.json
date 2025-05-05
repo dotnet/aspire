@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire-Testprojekt (NUnit)",
-  "description": "Powerful integration testing for your app with the flexible and feature-rich NUnit framework.",
+  "description": "Leistungsstarke Integrationstests für Ihre Anwendung mit dem flexiblen und funktionsreichen NUnit-Framework.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

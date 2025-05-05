@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -22,6 +23,9 @@ public partial class ResourceActions : ComponentBase
 
     [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -70,6 +74,7 @@ public partial class ResourceActions : ComponentBase
             GetResourceName,
             ControlLoc,
             Loc,
+            CommandsLoc,
             OnViewDetails.InvokeAsync,
             CommandSelected.InvokeAsync,
             IsCommandExecuting,

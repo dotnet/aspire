@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Paramètres par défaut du service .NET Aspire",
-  "description": "Service and cloud defaults wired up — just add your app logic.",
+  "description": "Les paramètres par défaut du service et du cloud sont configurés, il vous suffit d’ajouter votre logique d’application.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",
