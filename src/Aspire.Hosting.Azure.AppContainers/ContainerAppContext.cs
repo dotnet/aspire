@@ -634,10 +634,10 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     }
 
     private ProvisioningParameter AllocateContainerImageParameter()
-        => AllocateParameter(new ContainerImage(resource));
+        => AllocateParameter(new ContainerImageReference(resource));
 
     private BicepValue<string> AllocateContainerPortParameter()
-        => AllocateParameter(new ContainerPort(resource));
+        => AllocateParameter(new ContainerPortReference(resource));
 
     private static BicepValue<int> AsInt(BicepValue<string> value)
     {

@@ -6,18 +6,18 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents the fully‑qualified container image reference that should be deployed.
+/// Represents a TCP/UDP port that a container can expose.
 /// </summary>
 [DebuggerDisplay("{ValueExpression}")]
-public class ContainerImage(IResource resource) : IManifestExpressionProvider, IValueWithReferences
+public class ContainerPortReference(IResource resource) : IManifestExpressionProvider, IValueWithReferences
 {
     /// <summary>
-    /// Gets the resource that this container image is associated with.
+    /// Gets the resource that this container port is associated with.
     /// </summary>
     public IResource Resource { get; } = resource;
 
     /// <inheritdoc/>
-    public string ValueExpression => $"{{{Resource.Name}.containerImage}}";
+    public string ValueExpression => $"{{{Resource.Name}.containerPort}}";
 
     /// <inheritdoc/>
     public IEnumerable<object> References => [Resource];

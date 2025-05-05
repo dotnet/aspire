@@ -205,7 +205,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
-        var containerImage = AllocateParameter(new ContainerImage(Resource));
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
         var webSite = new WebSite("webapp")
         {
@@ -305,7 +305,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.azurewebsites.net"),
             EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
             EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
-            EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPort(Resource)),
+            EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
             EndpointProperty.Scheme => mapping.Scheme,
             EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
             EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
