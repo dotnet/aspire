@@ -202,7 +202,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         // We need to reference the container registry URL so that it exists in the manifest
         var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
-        var appServicePlanParameter = environmentContext.Environment.IdOutputReference.AsProvisioningParameter(infra);
+        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(ResourceExpression.GetContainerImageExpression(Resource));

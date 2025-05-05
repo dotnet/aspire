@@ -19,7 +19,7 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 {
     // We don't want these to be public if we end up with an app service
     // per compute resource.
-    internal BicepOutputReference IdOutputReference => new("id", this);
+    internal BicepOutputReference PlanIdOutputReference => new("planId", this);
     internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
