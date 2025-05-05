@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents the fully‑qualified container image reference that should be deployed.
 /// </summary>
 [DebuggerDisplay("{ValueExpression}")]
-public readonly record struct ContainerImage(IResource resource) : IManifestExpressionProvider
+public class ContainerImage(IResource resource) : IManifestExpressionProvider, IValueWithReferences
 {
     /// <summary>
     /// Gets the resource that this container image is associated with.
@@ -17,5 +17,8 @@ public readonly record struct ContainerImage(IResource resource) : IManifestExpr
     public IResource Resource { get; } = resource;
 
     /// <inheritdoc/>
-    public string ValueExpression => $"{{{resource.Name}.containerImage}}";
+    public string ValueExpression => $"{{{Resource.Name}.containerImage}}";
+
+    /// <inheritdoc/>
+    public IEnumerable<object> References => [Resource];
 }

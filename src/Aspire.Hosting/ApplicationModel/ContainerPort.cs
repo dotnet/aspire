@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a TCP/UDP port that a container can expose.
 /// </summary>
 [DebuggerDisplay("{ValueExpression}")]
-public readonly record struct ContainerPort(IResource resource) : IManifestExpressionProvider
+public class ContainerPort(IResource resource) : IManifestExpressionProvider, IValueWithReferences
 {
     /// <summary>
     /// Gets the resource that this container port is associated with.
@@ -17,5 +17,8 @@ public readonly record struct ContainerPort(IResource resource) : IManifestExpre
     public IResource Resource { get; } = resource;
 
     /// <inheritdoc/>
-    public string ValueExpression => $"{{{resource.Name}.containerPort}}";
+    public string ValueExpression => $"{{{Resource.Name}.containerPort}}";
+
+    /// <inheritdoc/>
+    public IEnumerable<object> References => [Resource];
 }
