@@ -52,12 +52,60 @@ public static class GarnetBuilderExtensions
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, [ResourceName] string name,
-        int? port = null)
+        int? port)
+    {
+        return builder.AddGarnet(name, port, password: null);
+    }
+
+    /// <summary>
+    /// Adds a Garnet container to the application model.
+    /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var garnet = builder.AddGarnet("garnet");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
+    ///                  .WithReference(garnet);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Use in Api with Aspire.StackExchange.Redis
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddRedisClient("garnet");
+    ///
+    /// var multiplexer = builder.Services.BuildServiceProvider()
+    ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
+    ///
+    /// var db = multiplexer.GetDatabase();
+    /// db.HashSet("key", [new HashEntry("hash", "value")]);
+    /// var value = db.HashGet("key", "hash");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, [ResourceName] string name,
+        int? port = null, IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var garnet = new GarnetResource(name);
+        // StackExchange.Redis doesn't support passwords with commas.
+        // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
+        // https://github.com/Azure/azure-dev/issues/4848 
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+
+        var garnet = new GarnetResource(name, passwordParameter);
 
         string? connectionString = null;
 
@@ -78,7 +126,46 @@ public static class GarnetBuilderExtensions
             .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
             .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
             .WithImageRegistry(GarnetContainerImageTags.Registry)
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+            .WithEntrypoint("/bin/sh")
+            .WithEnvironment(context =>
+            {
+                if (garnet.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["GARNET_PASSWORD"] = password;
+                }
+            })
+            .WithArgs(context =>
+            {
+                var garnetCommand = new List<string>
+                {
+                    "/app/GarnetServer"
+                };
+
+                if (garnet.PasswordParameter is { } password)
+                {
+                    garnetCommand.Add("--auth Password --password");
+                    garnetCommand.Add("$GARNET_PASSWORD");
+                }
+
+                if (garnet.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                {
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
+
+                    garnetCommand.Add("--checkpointdir");
+                    garnetCommand.Add("/data/checkpoints");
+                    garnetCommand.Add("--recover");
+                    garnetCommand.Add("--aof");
+                    garnetCommand.Add("--aof-commit-freq");
+                    garnetCommand.Add(interval);
+                }
+
+                context.Args.Add("-c");
+                context.Args.Add(string.Join(' ', garnetCommand));
+
+                return Task.CompletedTask;
+            });
     }
 
     /// <summary>
@@ -140,7 +227,7 @@ public static class GarnetBuilderExtensions
         string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
@@ -194,15 +281,11 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-        {
-            context.Args.Add("--checkpointdir");
-            context.Args.Add("/data/checkpoints");
-            context.Args.Add("--recover");
-            context.Args.Add("--aof");
-            context.Args.Add("--aof-commit-freq");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new PersistenceAnnotation(interval), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    private sealed class PersistenceAnnotation(TimeSpan? interval) : IResourceAnnotation
+    {
+        public TimeSpan? Interval => interval;
     }
 }

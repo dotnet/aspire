@@ -1,8 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.PostgreSql;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -11,9 +16,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
-public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
@@ -29,7 +33,10 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     ///
     /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     /// <summary>
     /// Gets a value indicating whether the resource uses password authentication.
     /// </summary>
@@ -92,11 +99,39 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         // Note that the bicep template puts each database's connection string in a KeyVault secret.
         if (InnerResource is null && ConnectionStringSecretOutput is not null)
         {
-            return ReferenceExpression.Create($"{new BicepSecretOutputReference(GetDatabaseKeyVaultSecretName(databaseResourceName), this)}");
+            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecret(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
         }
 
         return ReferenceExpression.Create($"{this};Database={databaseName}");
     }
 
-    internal static string GetDatabaseKeyVaultSecretName(string databaseResourceName) => $"{databaseResourceName}-connectionString";
+    internal static string GetDatabaseKeyVaultSecretName(string databaseResourceName) => $"connectionstrings--{databaseResourceName}";
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = PostgreSqlFlexibleServer.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        Debug.Assert(!UsePasswordAuthentication, "AddRoleAssignments should not be called when using UsePasswordAuthentication");
+
+        var infra = roleAssignmentContext.Infrastructure;
+        var postgres = (PostgreSqlFlexibleServer)AddAsExistingResource(infra);
+
+        var principalType = ConvertPrincipalTypeDangerously(roleAssignmentContext.PrincipalType);
+        var principalId = roleAssignmentContext.PrincipalId;
+        var principalName = roleAssignmentContext.PrincipalName;
+
+        AzurePostgresExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, principalType, principalName);
+    }
+
+    // Assumes original has a value in PostgreSqlFlexibleServerPrincipalType, will fail at runtime if not
+    static BicepValue<PostgreSqlFlexibleServerPrincipalType> ConvertPrincipalTypeDangerously(BicepValue<RoleManagementPrincipalType> original) =>
+        original.Compile();
 }

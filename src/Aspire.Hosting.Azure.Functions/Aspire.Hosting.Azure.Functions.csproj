@@ -10,16 +10,13 @@
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>0</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)AzureRoleAssignmentUtils.cs" />
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)\LaunchProfiles\*.cs" />
   </ItemGroup>

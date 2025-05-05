@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -11,6 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="modelVersion">The version of the model.</param>
 /// <param name="skuName">The name of the SKU.</param>
 /// <param name="skuCapacity">The capacity of the SKU.</param>
+[Obsolete("AzureOpenAIDeployment is deprecated. Please use AzureOpenAIDeploymentResource instead.")]
 public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string? skuName = null, int? skuCapacity = null)
 {
     /// <value>"Standard"</value>
@@ -22,17 +26,17 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// <summary>
     /// Gets the name of the deployment.
     /// </summary>
-    public string Name { get; private set; } = name;
+    public string Name { get; private set; } = ThrowIfNullOrEmpty(name);
 
     /// <summary>
     /// Gets the name of the model.
     /// </summary>
-    public string ModelName { get; private set; } = modelName;
+    public string ModelName { get; private set; } = ThrowIfNullOrEmpty(modelName);
 
     /// <summary>
     /// Gets the version of the model.
     /// </summary>
-    public string ModelVersion { get; private set; } = modelVersion;
+    public string ModelVersion { get; private set; } = ThrowIfNullOrEmpty(modelVersion);
 
     /// <summary>
     /// Gets the name of the SKU.
@@ -49,4 +53,10 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// The default value is <inheritdoc cref="DefaultSkuCapacity"/>.
     /// </value>
     public int SkuCapacity { get; set; } = skuCapacity ?? DefaultSkuCapacity;
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 }

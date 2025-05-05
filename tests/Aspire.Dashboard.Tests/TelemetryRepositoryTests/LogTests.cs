@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -77,7 +76,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -181,7 +180,7 @@ public class LogTests
             l =>
             {
                 Assert.Equal("1", l.Message);
-                Assert.Equal("", l.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, l.Scope);
             },
             l => Assert.Equal("2", l.Message),
             l => Assert.Equal("3", l.Message),
@@ -889,7 +888,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -912,7 +911,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -985,7 +984,7 @@ public class LogTests
             app =>
             {
                 Assert.Equal("message-1", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -996,7 +995,7 @@ public class LogTests
             app =>
             {
                 Assert.Equal("message-2", app.Message);
-                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Equal("TestLogger", app.Scope.Name);
                 Assert.Collection(app.Attributes,
                     p =>
                     {
@@ -1141,12 +1140,12 @@ public class LogTests
                     app =>
                     {
                         Assert.Equal("message-2", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                        Assert.Equal("TestLogger", app.Scope.Name);
                     },
                     app =>
                     {
                         Assert.Equal("message-3", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                        Assert.Equal("TestLogger", app.Scope.Name);
                     });
     }
 
@@ -1213,7 +1212,7 @@ public class LogTests
         Assert.Equal(1, logs.TotalItemCount);
         var log = Assert.Single(logs.Items);
         Assert.Equal("message-3", log.Message);
-        Assert.Equal("TestLogger", log.Scope.ScopeName);
+        Assert.Equal("TestLogger", log.Scope.Name);
     }
 
     [Fact]

@@ -41,3 +41,5 @@ resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
 }
 
 output sqlServerFqdn string = sql1.properties.fullyQualifiedDomainName
+
+output name string = sql1.name

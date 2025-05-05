@@ -14,7 +14,7 @@
     },
     "db": {
       "type": "value.v0",
-      "connectionString": "{sql.connectionString};Database=db"
+      "connectionString": "{sql.connectionString};Initial Catalog=db"
     },
     "insertionrows": {
       "type": "parameter.v0",
@@ -24,6 +24,10 @@
           "type": "string"
         }
       }
+    },
+    "cs": {
+      "type": "value.v0",
+      "connectionString": "sql={db.connectionString};rows={insertionrows.value}"
     },
     "api": {
       "type": "project.v0",
@@ -35,6 +39,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "InsertionRows": "{insertionrows.value}",
+        "ConnectionStrings__cs": "{cs.connectionString}",
         "ConnectionStrings__db": "{db.connectionString}"
       },
       "bindings": {

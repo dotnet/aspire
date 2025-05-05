@@ -8,10 +8,6 @@
     <NoWarn>$(NoWarn);SYSLIB1100</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>90</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
   </ItemGroup>

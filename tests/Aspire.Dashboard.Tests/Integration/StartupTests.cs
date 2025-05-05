@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
+using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.InternalTesting;
@@ -18,7 +20,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
@@ -105,8 +106,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains("ASPNETCORE_URLS", s),
-            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s),
+            s => Assert.Contains(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, s));
     }
 
     [Fact]
@@ -125,8 +126,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             s => Assert.Contains("Dashboard:Otlp:AllowedCertificates:0:Thumbprint", s));
     }
 
-    [Fact]
-    public async Task Configuration_ConfigFilePathDoesntExist_Error()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_ConfigFilePathDoesntExist_Error(string dashboardConfigFilePathNameKey)
     {
         // Arrange & Act
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -135,7 +138,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 });
         }).DefaultTimeout();
 
@@ -143,8 +146,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(configFilePath, ex.Message);
     }
 
-    [Fact]
-    public async Task Configuration_FileConfigDirectoryDoesExist_Success()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardFileConfigDirectory)]
+    [InlineData(KnownConfigNames.Legacy.DashboardFileConfigDirectory)]
+    public async Task Configuration_FileConfigDirectoryDoesExist_Success(string dashboardFileConfigDirectoryNameKey)
     {
         // Arrange
         const string frontendBrowserToken = "SomeSecretContent";
@@ -153,7 +158,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         try
         {
             var config = new ConfigurationManager()
-                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .AddInMemoryCollection(new Dictionary<string, string?> { [dashboardFileConfigDirectoryNameKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
 
@@ -257,6 +262,35 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
         Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+    }
+
+    [Fact]
+    public async Task Configuration_OptionsMonitor_DebugSession()
+    {
+        // Arrange
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
+                initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
+
+        var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
+        Assert.NotNull(cert);
+        Assert.Equal(testCert.Thumbprint, cert.Thumbprint);
+
+        Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
+        Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
     }
 
     [Fact]
@@ -496,13 +530,15 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
     }
 
-    [Fact]
-    public async Task Configuration_Logging_FileConfig_OverrideDefaults()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_Logging_FileConfig_OverrideDefaults(string dashboardConfigFilePathNameKey)
     {
         // Arrange
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -526,7 +562,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 },
                 clearLogFilterRules: false);
 
@@ -535,9 +571,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
         }
         finally
         {
@@ -711,6 +747,23 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Collection(app.ValidationFailures,
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.UIDisableResourceGraphName.ConfigKey] = value?.ToString().ToLower();
+            });
+
+        // Assert
+        Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.UI.DisableResourceGraph);
     }
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)

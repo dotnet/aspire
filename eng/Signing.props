@@ -3,7 +3,9 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" />
+
+    <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
+    <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +23,15 @@
     <FileSignInfo Include="Grpc.Net.Client.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.ClientFactory.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.Common.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="MessagePack.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="MessagePack.Annotations.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Spectre.Console.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Api.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Api.ProviderBuilderExtensions.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Exporter.OpenTelemetryProtocol.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
   </ItemGroup>
 
   <ItemGroup>

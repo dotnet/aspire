@@ -12,23 +12,27 @@ permissions:
 jobs:
   generate-and-pr:
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Restore and build
         run: |
           set +e
 
-          for proj in $(find src -name '*.csproj' ! -path 'src/Aspire.ProjectTemplates/**/*.csproj'); do
+          # Find all csproj files excluding specific paths
+          find src -name '*.csproj' | egrep -v 'Aspire.ProjectTemplates|Aspire.Cli' | while read proj; do
             export CI=false && ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
           done
         continue-on-error: true
 
       - name: Create or update pull request
-        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f
+        uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-api-diffs
           base: main
+          labels: |
+            NO-MERGE
           title: "[Automated] Update API Surface Area"
           body: "Auto-generated update to the API surface to compare current surface vs latest release. This should only be merged once this surface area ships in a new release."

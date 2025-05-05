@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppContainers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -47,7 +46,7 @@ public class AzureProvisioningResourceExtensionsTests(ITestOutputHelper output)
             infrastructure.Add(app);
         });
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(resource1.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(resource1.Resource);
 
         var expectedManifest = """
             {

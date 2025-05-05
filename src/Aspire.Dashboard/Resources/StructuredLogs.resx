@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -178,5 +178,8 @@
   </data>
   <data name="ActionLogMessageText" xml:space="preserve">
     <value>Log message</value>
+  </data>
+  <data name="PauseInProgressText" xml:space="preserve">
+    <value>Structured logs capture paused at {0}</value>
   </data>
 </root>

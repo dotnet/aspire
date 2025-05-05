@@ -11,81 +11,139 @@ namespace Aspire.NATS.Net.Tests;
 
 public class NatsClientPublicApiTests
 {
-    [Fact]
-    public void AddNatsClientShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddNatsClientShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IHostApplicationBuilder builder = null!;
+        const string connectionName = "nats";
+        Action<NatsClientSettings>? configureSettings = null;
+        Func<NatsOpts, NatsOpts>? configureOptions = null;
+        Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptionsWithService = null;
 
-        var connectionName = "Nats";
-
-        var action = () => builder.AddNatsClient(connectionName);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddNatsClient(connectionName),
+            1 => () => builder.AddNatsClient(connectionName, configureSettings),
+            2 => () => builder.AddNatsClient(connectionName, configureOptions),
+            3 => () => builder.AddNatsClient(connectionName, configureOptionsWithService),
+            4 => () => builder.AddNatsClient(connectionName, configureSettings, configureOptions),
+            5 => () => builder.AddNatsClient(connectionName, configureSettings, configureOptionsWithService),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNatsClientShouldThrowWhenConnectionNameIsNull()
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddNatsClientShouldThrowWhenConnectionNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
+        var connectionName = isNull ? null! : string.Empty;
+        Action<NatsClientSettings>? configureSettings = null;
+        Func<NatsOpts, NatsOpts>? configureOptions = null;
+        Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptionsWithService = null;
 
-        string connectionName = null!;
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddNatsClient(connectionName),
+            1 => () => builder.AddNatsClient(connectionName, configureSettings),
+            2 => () => builder.AddNatsClient(connectionName, configureOptions),
+            3 => () => builder.AddNatsClient(connectionName, configureOptionsWithService),
+            4 => () => builder.AddNatsClient(connectionName, configureSettings, configureOptions),
+            5 => () => builder.AddNatsClient(connectionName, configureSettings, configureOptionsWithService),
+            _ => throw new InvalidOperationException()
+        };
 
-        var action = () => builder.AddNatsClient(connectionName);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNatsClientShouldThrowWhenConnectionNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var connectionName = "";
-
-        var action = () => builder.AddNatsClient(connectionName);
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedNatsClientShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddKeyedNatsClientShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IHostApplicationBuilder builder = null!;
+        const string name = "nats";
+        Action<NatsClientSettings>? configureSettings = null;
+        Func<NatsOpts, NatsOpts>? configureOptions = null;
+        Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptionsWithService = null;
 
-        var connectionName = "Nats";
-
-        var action = () => builder.AddKeyedNatsClient(connectionName);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedNatsClient(name),
+            1 => () => builder.AddKeyedNatsClient(name, configureSettings),
+            2 => () => builder.AddKeyedNatsClient(name, configureOptions),
+            3 => () => builder.AddKeyedNatsClient(name, configureOptionsWithService),
+            4 => () => builder.AddKeyedNatsClient(name, configureSettings, configureOptions),
+            5 => () => builder.AddKeyedNatsClient(name, configureSettings, configureOptionsWithService),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeyedNatsClientShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddKeyedNatsClientShouldThrowWhenNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
+        var name = isNull ? null! : string.Empty;
+        Action<NatsClientSettings>? configureSettings = null;
+        Func<NatsOpts, NatsOpts>? configureOptions = null;
+        Func<IServiceProvider, NatsOpts, NatsOpts>? configureOptionsWithService = null;
 
-        string name = null!;
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedNatsClient(name),
+            1 => () => builder.AddKeyedNatsClient(name, configureSettings),
+            2 => () => builder.AddKeyedNatsClient(name, configureOptions),
+            3 => () => builder.AddKeyedNatsClient(name, configureOptionsWithService),
+            4 => () => builder.AddKeyedNatsClient(name, configureSettings, configureOptions),
+            5 => () => builder.AddKeyedNatsClient(name, configureSettings, configureOptionsWithService),
+            _ => throw new InvalidOperationException()
+        };
 
-        var action = () => builder.AddKeyedNatsClient(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedNatsClientShouldThrowWhenNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var name = "";
-
-        var action = () => builder.AddKeyedNatsClient(name);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 

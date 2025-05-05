@@ -17,6 +17,11 @@
         <target state="translated">Przekroczono limit dzienników strukturalnych</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Przechwytywanie dzienników strukturalnych zostało wstrzymane w {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Dodaj filtr</target>

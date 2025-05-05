@@ -5,7 +5,6 @@ using System.Net;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 

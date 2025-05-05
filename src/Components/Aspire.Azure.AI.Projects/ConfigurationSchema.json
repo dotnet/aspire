@@ -31,6 +31,10 @@
                     "AIProjectClientOptions": {
                       "type": "object",
                       "properties": {
+                        "ClientCacheSize": {
+                          "type": "integer",
+                          "description": "The size of the client cache."
+                        },
                         "Diagnostics": {
                           "type": "object",
                           "properties": {

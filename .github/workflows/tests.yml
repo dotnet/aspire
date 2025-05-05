@@ -1,4 +1,5 @@
-name: Run Integration Tests
+# Executes all the tests on all the platforms
+name: Tests
 
 on:
   pull_request:
@@ -11,264 +12,164 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  # Duplicated jobs so their dependencies are not blocked on both the
+  # setup jobs
+
+  setup_for_tests_lin:
+    name: Setup for tests (Linux)
+    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    name: ${{ matrix.name }}
+    outputs:
+      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
+      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
+
+  setup_for_tests_win:
+    name: Setup for tests (Windows)
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: windows-latest
+    outputs:
+      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
+      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
+
+  build_packages:
+    name: Build packages
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build with packages
+        env:
+          CI: false
+        run: ./build.sh -restore -build -ci -pack /bl /p:InstallBrowsersForPlaywright=false /p:SkipTestProjects=true
+
+      - name: Upload built NuGets
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: built-nugets
+          path: artifacts/packages
+
+  integrations_test_lin:
+    uses: ./.github/workflows/run-tests.yml
+    name: Integrations Linux
+    needs: setup_for_tests_lin
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Hosting projects
-          - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
-            name: Hosting.Analyzers
-          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
-            name: Hosting.Azure
-          - project: tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj
-            name: Hosting.Containers
-          - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
-            name: Hosting.Elasticsearch
-          - project: tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj
-            name: Hosting.Garnet
-          - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
-            name: Hosting.Kafka
-          - project: tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj
-            name: Hosting.Keycloak
-          - project: tests/Aspire.Hosting.Milvus.Tests/Aspire.Hosting.Milvus.Tests.csproj
-            name: Hosting.Milvus
-          - project: tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj
-            name: Hosting.MongoDB
-          - project: tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj
-            name: Hosting.MySql
-          - project: tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj
-            name: Hosting.Nats
-          - project: tests/Aspire.Hosting.NodeJs.Tests/Aspire.Hosting.NodeJs.Tests.csproj
-            name: Hosting.NodeJs
-          - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
-            name: Hosting.Oracle
-          - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
-            name: Hosting.PostgreSQL
-          - project: tests/Aspire.Hosting.Python.Tests/Aspire.Hosting.Python.Tests.csproj
-            name: Hosting.Python
-          - project: tests/Aspire.Hosting.Qdrant.Tests/Aspire.Hosting.Qdrant.Tests.csproj
-            name: Hosting.Qdrant
-          - project: tests/Aspire.Hosting.RabbitMQ.Tests/Aspire.Hosting.RabbitMQ.Tests.csproj
-            name: Hosting.RabbitMQ
-          - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
-            name: Hosting.Redis
-          - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
-            name: Hosting.Sdk
-          - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
-            name: Hosting.SqlServer
-          - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj
-            name: Hosting.Testing
-          - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
-            name: Hosting
-          - project: tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj
-            name: Hosting.Valkey
+        ${{ fromJson(needs.setup_for_tests_lin.outputs.integrations_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "ubuntu-latest"
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
-          # Client projects
-          - project: tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj
-            name: Azure.AI.OpenAI
-          - project: tests/Aspire.Azure.Data.Tables.Tests/Aspire.Azure.Data.Tables.Tests.csproj
-            name: Azure.Data.Tables
-          - project: tests/Aspire.Azure.Messaging.EventHubs.Tests/Aspire.Azure.Messaging.EventHubs.Tests.csproj
-            name: Azure.Messaging.EventHubs
-          - project: tests/Aspire.Azure.Messaging.ServiceBus.Tests/Aspire.Azure.Messaging.ServiceBus.Tests.csproj
-            name: Azure.Messaging.ServiceBus
-          - project: tests/Aspire.Azure.Messaging.WebPubSub.Tests/Aspire.Azure.Messaging.WebPubSub.Tests.csproj
-            name: Azure.Messaging.WebPubSub
-          - project: tests/Aspire.Azure.Search.Documents.Tests/Aspire.Azure.Search.Documents.Tests.csproj
-            name: Azure.Search.Documents
-          - project: tests/Aspire.Azure.Security.KeyVault.Tests/Aspire.Azure.Security.KeyVault.Tests.csproj
-            name: Azure.Security.KeyVault
-          - project: tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj
-            name: Azure.Storage.Blobs
-          - project: tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj
-            name: Azure.Storage.Queues
-          - project: tests/Aspire.Components.Common.Tests/Aspire.Components.Common.Tests.csproj
-            name: Components.Common
-          - project: tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj
-            name: Confluent.Kafka
-          - project: tests/Aspire.Elastic.Clients.Elasticsearch.Tests/Aspire.Elastic.Clients.Elasticsearch.Tests.csproj
-            name: Elastic.Clients.Elasticsearch
-          - project: tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj
-            name: Keycloak.Authentication
-          - project: tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj
-            name: Microsoft.Azure.Cosmos
-          - project: tests/Aspire.Microsoft.Data.SqlClient.Tests/Aspire.Microsoft.Data.SqlClient.Tests.csproj
-            name: Microsoft.Data.SqlClient
-          - project: tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj
-            name: Microsoft.EntityFrameworkCore.Cosmos
-          - project: tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests.csproj
-            name: Microsoft.EntityFrameworkCore.SqlServer
-          - project: tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj
-            name: Milvus.Client
-          - project: tests/Aspire.MongoDB.Driver.Tests/Aspire.MongoDB.Driver.Tests.csproj
-            name: MongoDB.Driver
-          - project: tests/Aspire.MongoDB.Driver.v3.Tests/Aspire.MongoDB.Driver.v3.Tests.csproj
-            name: MongoDB.Driver.v3
-          - project: tests/Aspire.MySqlConnector.Tests/Aspire.MySqlConnector.Tests.csproj
-            name: MySqlConnector
-          - project: tests/Aspire.NATS.Net.Tests/Aspire.NATS.Net.Tests.csproj
-            name: NATS.Net
-          - project: tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj
-            name: Npgsql.EntityFrameworkCore.PostgreSQL
-          - project: tests/Aspire.Npgsql.Tests/Aspire.Npgsql.Tests.csproj
-            name: Npgsql
-          - project: tests/Aspire.OpenAI.Tests/Aspire.OpenAI.Tests.csproj
-            name: OpenAI
-          - project: tests/Aspire.Oracle.EntityFrameworkCore.Tests/Aspire.Oracle.EntityFrameworkCore.Tests.csproj
-            name: Oracle.EntityFrameworkCore
-          - project: tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests.csproj
-            name: Pomelo.EntityFrameworkCore.MySql
-          - project: tests/Aspire.Qdrant.Client.Tests/Aspire.Qdrant.Client.Tests.csproj
-            name: Qdrant.Client
-          - project: tests/Aspire.RabbitMQ.Client.Tests/Aspire.RabbitMQ.Client.Tests.csproj
-            name: RabbitMQ.Client
-          - project: tests/Aspire.RabbitMQ.Client.v7.Tests/Aspire.RabbitMQ.Client.v7.Tests.csproj
-            name: RabbitMQ.Client.v7
-          - project: tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj
-            name: Seq
-          - project: tests/Aspire.StackExchange.Redis.DistributedCaching.Tests/Aspire.StackExchange.Redis.DistributedCaching.Tests.csproj
-            name: StackExchange.Redis.DistributedCaching
-          - project: tests/Aspire.StackExchange.Redis.OutputCaching.Tests/Aspire.StackExchange.Redis.OutputCaching.Tests.csproj
-            name: StackExchange.Redis.OutputCaching
-          - project: tests/Aspire.StackExchange.Redis.Tests/Aspire.StackExchange.Redis.Tests.csproj
-            name: StackExchange.Redis
+  integrations_test_win:
+    uses: ./.github/workflows/run-tests.yml
+    name: Integrations Windows
+    needs: setup_for_tests_win
+    strategy:
+      fail-fast: false
+      matrix:
+        ${{ fromJson(needs.setup_for_tests_win.outputs.integrations_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "windows-latest"
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
-          # Dashboard projects
-          - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
-            name: Dashboard.Components
-          - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
-            name: Dashboard
+  templates_test_lin:
+    name: Templates Linux
+    uses: ./.github/workflows/run-tests.yml
+    needs: [setup_for_tests_lin, build_packages]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "ubuntu-latest"
+      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
+      testSessionTimeout: 20m
+      testHangTimeout: 12m
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      requiresNugets: true
+      requiresTestSdk: true
 
-          # Playground project
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-            name: Playground
+  templates_test_win:
+    name: Templates Windows
+    uses: ./.github/workflows/run-tests.yml
+    needs: [setup_for_tests_win, build_packages]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.templates_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "windows-latest"
+      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
+      testSessionTimeout: 20m
+      testHangTimeout: 12m
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      requiresNugets: true
+      requiresTestSdk: true
 
-          # Schema generator project
-          - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
-            name: ConfigurationSchemaGenerator
-
-          # Service discovery projects
-          - project: tests/Microsoft.Extensions.ServiceDiscovery.Tests/Microsoft.Extensions.ServiceDiscovery.Tests.csproj
-            name: Extensions.ServiceDiscovery
-          - project: tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests.csproj
-            name: Extensions.ServiceDiscovery.Dns
-          - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
-            name: Extensions.ServiceDiscovery.Yarp
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.x
-            9.x
-
-      - name: Trust HTTPS development certificate
-        run: dotnet dev-certs https --trust
-
-      - name: Verify Docker is running
-        run: docker info
-
-      - name: Install Azure Functions Core Tools
-        if: matrix.name == 'Playground' || matrix.name == 'Azure'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
-
-      - name: Build test project
-        env:
-          CI: false
-        run: |
-          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
-
-      # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
-      - name: Rebuild for Azure Functions project
-        if: matrix.name == 'Playground'
-        env:
-          CI: false
-        run: |
-          ./dotnet.sh build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
-
-      - name: Run tests
-        id: run-tests
-        env:
-          CI: false
-          DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-        run: |
-          ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
-            /p:ContinuousIntegrationBuild=true \
-            -s eng/testing/.runsettings \
-            --logger "console;verbosity=normal" \
-            --logger "trx" \
-            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
-            --blame \
-            --blame-hang-timeout 7m \
-            --blame-crash \
-            --results-directory testresults \
-            --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true
-
-      # Save the result of the previous steps - success or failure
-      # in the form of a file result-success/result-failure -{name}.rst
-      - name: Store result - success
-        if: ${{ success() }}
-        run: touch result-success-${{ matrix.name }}.rst
-      - name: Store result - failure
-        if: ${{ !success() }}
-        run: touch result-failed-${{ matrix.name }}.rst
-
-      # Upload that result file to artifact named test-job-result-{name}
-      - name: Upload test result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-job-result-${{ matrix.name }}
-          path: result-*.rst
-
-      - name: Dump docker info
-        if: always()
-        run: |
-          docker container ls --all
-          docker container ls --all --format json
-          docker volume ls
-          docker network ls
-
-      - name: Upload bin log artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: binlog-${{ matrix.name }}
-          path: "**/*.binlog"
-
-      - name: Upload test results artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: testresults-${{ matrix.name }}
-          path: testresults/**
+  endtoend_tests:
+    name: EndToEnd ${{ matrix.os }}
+    uses: ./.github/workflows/run-tests.yml
+    needs: build_packages
+    with:
+      testShortName: EndToEnd
+      # EndToEnd is not run on Windows due to missing Docker support
+      os: ubuntu-latest
+      testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+      requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
-    if: ${{ always() }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [test]
+    needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]
     steps:
       # get all the test-job-result* artifacts into a single directory
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: test-job-result-*
           merge-multiple: true
           path: test-job-result
 
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: logs-*-ubuntu-latest
+          merge-multiple: true
+          path: testresults/ubuntu-latest
+
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: logs-*-windows-latest
+          merge-multiple: true
+          path: testresults/windows-latest
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: All-TestResults
+          path: testresults/**/*.trx
+
       # return success if zero result-failed-* files are found
       - name: Compute result
         run: |
-          ls -al test-job-result/
           [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]

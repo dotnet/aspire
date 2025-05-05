@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
@@ -150,8 +149,10 @@ public class OtlpGrpcServiceTests
         Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
     }
 
-    [Fact]
-    public async Task CallService_OtlpGrpcEndPoint_ExternalFile_FileChanged_UseConfiguredKey()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task CallService_OtlpGrpcEndPoint_ExternalFile_FileChanged_UseConfiguredKey(string dashboardConfigFilePathNameKey)
     {
         // Arrange
         var testSink = new TestSink();
@@ -176,7 +177,7 @@ public class OtlpGrpcServiceTests
 
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory, config =>
         {
-            config[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configPath;
+            config[dashboardConfigFilePathNameKey] = configPath;
         });
         await app.StartAsync().DefaultTimeout();
 

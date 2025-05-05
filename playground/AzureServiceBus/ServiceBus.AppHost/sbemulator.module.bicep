@@ -3,10 +3,6 @@ param location string = resourceGroup().location
 
 param sku string = 'Standard'
 
-param principalType string
-
-param principalId string
-
 resource sbemulator 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: take('sbemulator-${uniqueString(resourceGroup().id)}', 50)
   location: location
@@ -21,17 +17,7 @@ resource sbemulator 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   }
 }
 
-resource sbemulator_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(sbemulator.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-  properties: {
-    principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-    principalType: principalType
-  }
-  scope: sbemulator
-}
-
-resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
+resource queueOne 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   name: 'queue1'
   properties: {
     deadLetteringOnMessageExpiration: false
@@ -39,7 +25,7 @@ resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   parent: sbemulator
 }
 
-resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+resource topicOne 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   name: 'topic1'
   parent: sbemulator
 }
@@ -49,7 +35,7 @@ resource sub1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' 
   properties: {
     maxDeliveryCount: 10
   }
-  parent: topic1
+  parent: topicOne
 }
 
 resource app_prop_filter_1 'Microsoft.ServiceBus/namespaces/topics/subscriptions/rules@2024-01-01' = {
@@ -71,3 +57,5 @@ resource app_prop_filter_1 'Microsoft.ServiceBus/namespaces/topics/subscriptions
 }
 
 output serviceBusEndpoint string = sbemulator.properties.serviceBusEndpoint
+
+output name string = sbemulator.name

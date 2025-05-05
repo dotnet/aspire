@@ -14,6 +14,11 @@
       "AspireVersionNet9": {
         "isHidden": true
       },
+      "XUnitVersion": {
+        "shortName": "",
+        "longName": "xunit-version",
+        "defaultValue": "v2"
+      },
       "skipRestore": {
         "longName": "no-restore",
         "shortName": ""

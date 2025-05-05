@@ -42,9 +42,19 @@
         <target state="translated">Dzienniki konsoli: {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Polecenia zasobów</target>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane {0}, liczba odfiltrowanych dzienników: {1}&gt;</target>
+        <note>{0} is a date, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane między {0} a {1}, liczba odfiltrowanych dzienników: {2}&gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Akcje zasobów</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
@@ -65,6 +75,11 @@
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
         <target state="translated">Pokaż sygnatury czasowe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShowUtc">
+        <source>UTC timestamps</source>
+        <target state="translated">Sygnatury czasowe UTC</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

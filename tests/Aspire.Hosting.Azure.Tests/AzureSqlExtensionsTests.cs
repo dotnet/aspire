@@ -1,19 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureSqlExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzureSqlServer(bool publishMode)
+    // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task AddAzureSqlServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
@@ -22,7 +25,20 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         sql.AddDatabase("db1");
         sql.AddDatabase("db2", "db2Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppEnvironment("env");
+
+            // on ACA infrastructure, if there are no references to the resource,
+            // then there won't be any roles created. So add a reference here.
+            builder.AddContainer("api", "myimage")
+                .WithReference(sql);
+        }
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource, skipPreparer: true);
 
         var principalTypeParam = "";
         if (!publishMode)
@@ -125,6 +141,8 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
             }
 
             output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
+
+            output name string = sql.name
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -170,6 +188,60 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureSqlServerRunAsContainerProducesCorrectPasswordAndPort(bool addDbBeforeRunAsContainer)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var sql = builder.AddAzureSqlServer("sql");
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+        IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        if (addDbBeforeRunAsContainer)
+        {
+            db1 = sql.AddDatabase("db1");
+            db2 = sql.AddDatabase("db2", "db2Name");
+        }
+
+        IResourceBuilder<SqlServerServerResource>? innerSql = null;
+        sql.RunAsContainer(configureContainer: c =>
+        {
+            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                .WithHostPort(12455)
+                .WithPassword(pass);
+            innerSql = c;
+        });
+
+        Assert.NotNull(innerSql);
+
+        if (!addDbBeforeRunAsContainer)
+        {
+            db1 = sql.AddDatabase("db1");
+            db2 = sql.AddDatabase("db2", "db2Name");
+        }
+
+        var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1433, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
+        var serverConnectionString = await sql.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", serverConnectionString);
+
+        var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db1", db1ConnectionString);
+
+        var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
     }
 
     [Theory]

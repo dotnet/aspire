@@ -16,6 +16,11 @@ public sealed class EntityFrameworkCoreCosmosSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
+    /// The name of the database to connect to.
+    /// </summary>
+    public string? DatabaseName { get; set; }
+
+    /// <summary>
     /// A <see cref="Uri"/> referencing the Azure Cosmos DB Endpoint.
     /// This is likely to be similar to "https://{account_name}.documents.azure.com".
     /// </summary>

@@ -51,6 +51,15 @@
                 <div>
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
                 </div>
+
+                <FluentSearch @bind-Value="_filter"
+                              @bind-Value:after="HandleAfterFilterBindAsync"
+                              Immediate="true"
+                              ImmediateDelay="@FluentUIExtensions.InputDelay"
+                              Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                              title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
+                              slot="end" />
+                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
                 <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
             </ToolbarSection>
             <MainSection>
@@ -111,7 +120,7 @@
                                         <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
                                             @if (context.Children.Count > 0)
                                             {
-                                                <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                <FluentButton aria-label="@ControlStringsLoc[nameof(ControlsStrings.ToggleNesting)]" Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
                                                     <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
                                                 </FluentButton>
                                             }
@@ -129,7 +138,7 @@
                                             {
                                                 <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                             }
-                                            @GetResourceName(context.Span.Source)
+                                            <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
                                             @if (context.HasUninstrumentedPeer)
                                             {
                                                 <span class="uninstrumented-peer">
@@ -153,10 +162,10 @@
                                                         Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")"
                                                         Value="icon"
                                                         Class="uninstrumented-peer-icon"/>
-                                                    @context.UninstrumentedPeer
+                                                    <FluentHighlighter HighlightedText="@_filter" Text="@context.UninstrumentedPeer" />
                                                 </span>
                                             }
-                                            <span class="span-row-name">@SpanWaterfallViewModel.GetDisplaySummary(context.Span)</span>
+                                            <span class="span-row-name"><FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" /></span>
                                         </span>
                                     </span>
                                 </AspireTemplateColumn>

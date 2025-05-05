@@ -53,11 +53,72 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder,
-        string name,
-        int? port = null)
+    /// check this
+    public static IResourceBuilder<ValkeyResource> AddValkey(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        int? port)
     {
-        var valkey = new ValkeyResource(name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        return builder.AddValkey(name, port, null);
+    }
+
+    /// <summary>
+    /// Adds a Valkey container to the application model.
+    /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="ValkeyContainerImageTags.Tag"/> tag of the <inheritdoc cref="ValkeyContainerImageTags.Image"/> container image.
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <param name="password">The parameter used to provide the password for the Valkey resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <remarks>
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var valkey = builder.AddValkey("valkey");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
+    ///                  .WithReference(valkey);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Use in service project with Aspire.StackExchange.Redis package.
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddRedisClient("valkey");
+    ///
+    /// var multiplexer = builder.Services.BuildServiceProvider()
+    ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
+    ///
+    /// var db = multiplexer.GetDatabase();
+    /// db.HashSet("key", [new HashEntry("hash", "value")]);
+    /// var value = db.HashGet("key", "hash");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ValkeyResource> AddValkey(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        int? port = null,
+        IResourceBuilder<ParameterResource>? password = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        // StackExchange.Redis doesn't support passwords with commas.
+        // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
+        // https://github.com/Azure/azure-dev/issues/4848 
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+
+        var valkey = new ValkeyResource(name, passwordParameter);
 
         string? connectionString = null;
 
@@ -79,7 +140,43 @@ public static class ValkeyBuilderExtensions
             .WithEndpoint(port: port, targetPort: 6379, name: ValkeyResource.PrimaryEndpointName)
             .WithImage(ValkeyContainerImageTags.Image, ValkeyContainerImageTags.Tag)
             .WithImageRegistry(ValkeyContainerImageTags.Registry)
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+            .WithEntrypoint("/bin/sh")
+            .WithEnvironment(context =>
+            {
+                if (valkey.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["VALKEY_PASSWORD"] = password;
+                }
+            })
+            .WithArgs(context =>
+            {
+                var valkeyCommand = new List<string>
+                {
+                    "valkey-server"
+                };
+
+                if (valkey.PasswordParameter is not null)
+                {
+                    valkeyCommand.Add("--requirepass");
+                    valkeyCommand.Add("$VALKEY_PASSWORD");
+                }
+
+                if (valkey.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                {
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
+
+                    valkeyCommand.Add("--save");
+                    valkeyCommand.Add(interval);
+                    valkeyCommand.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
+
+                context.Args.Add("-c");
+                context.Args.Add(string.Join(' ', valkeyCommand));
+
+                return Task.CompletedTask;
+            });
     }
 
     /// <summary>
@@ -102,9 +199,13 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
-        string? name = null, bool isReadOnly = false)
+    public static IResourceBuilder<ValkeyResource> WithDataVolume(
+        this IResourceBuilder<ValkeyResource> builder,
+        string? name = null,
+        bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
@@ -135,9 +236,14 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
-        string source, bool isReadOnly = false)
+    public static IResourceBuilder<ValkeyResource> WithDataBindMount(
+        this IResourceBuilder<ValkeyResource> builder,
+        string source,
+        bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
         builder.WithBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
@@ -165,13 +271,20 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-        {
-            context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+    public static IResourceBuilder<ValkeyResource> WithPersistence(
+        this IResourceBuilder<ValkeyResource> builder,
+        TimeSpan? interval = null,
+        long keysChangedThreshold = 1)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(
+            new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    private sealed class PersistenceAnnotation(TimeSpan? interval, long keysChangedThreshold) : IResourceAnnotation
+    {
+        public TimeSpan? Interval => interval;
+        public long KeysChangedThreshold => keysChangedThreshold;
+    }
 }

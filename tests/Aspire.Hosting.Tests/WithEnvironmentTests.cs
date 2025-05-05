@@ -19,6 +19,8 @@ public class WithEnvironmentTests
         var container = builder.AddContainer("container", "image")
                                .WithEnvironment(context =>
                                {
+                                   Assert.NotNull(context.Resource);
+
                                    var sp = context.ExecutionContext.ServiceProvider;
                                    context.EnvironmentVariables["SP_AVAILABLE"] = sp is not null ? "true" : "false";
                                });
@@ -53,6 +55,14 @@ public class WithEnvironmentTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["myName"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -115,6 +125,14 @@ public class WithEnvironmentTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("MY_PARAMETER_VALUE", config["MY_PARAMETER"]);
+
+        Assert.True(projectA.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(parameter.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -161,6 +179,32 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
                               .WithEnvironment(context =>
                               {
+                                  Assert.NotNull(context.Resource);
+
+                                  context.EnvironmentVariables["myName"] = environmentValue;
+                              });
+
+        environmentValue = "value2";
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("value2", config["myName"]);
+    }
+
+    [Fact]
+    public async Task ComplexAsyncEnvironmentCallbackPopulatesValueWhenCalled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var environmentValue = "value";
+        var projectA = builder.AddProject<ProjectA>("projectA")
+                              .WithEnvironment(async context =>
+                              {
+                                  await Task.Yield();
+
+                                  Assert.NotNull(context.Resource);
+
                                   context.EnvironmentVariables["myName"] = environmentValue;
                               });
 
@@ -208,6 +252,45 @@ public class WithEnvironmentTests
         Assert.Equal("{container1.bindings.primary.port}", manifestConfig["PORT"]);
         Assert.Equal("{container1.bindings.primary.targetPort}", manifestConfig["TARGET_PORT"]);
         Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
+
+        Assert.True(containerB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships.DistinctBy(r => (r.Resource, r.Type)),
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(container.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(test.Resource, r.Resource);
+            });
+    }
+
+    [Fact]
+    public void EnvironmentVariableSameResourceInSingleExpression()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("container1", "image")
+                               .WithHttpEndpoint(name: "primary", targetPort: 10005)
+                               .WithEndpoint("primary", ep =>
+                               {
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                               });
+
+        var endpoint = container.GetEndpoint("primary");
+
+        var containerB = builder.AddContainer("container2", "imageB")
+                                .WithEnvironment("URL", $"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+
+        Assert.True(containerB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(container.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -261,6 +344,14 @@ public class WithEnvironmentTests
 
         // Assert
         Assert.Single(publishConfig, kvp => kvp.Key == envVarName && kvp.Value == "{sourceService.connectionString}");
+
+        Assert.True(targetBuilder.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(sourceBuilder.Resource, r.Resource);
+            });
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

@@ -1,48 +1,104 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.NodeJs.Tests;
 
 public class NodeJsPublicApiTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorNodeAppResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+        const string command = "npm";
+        const string workingDirectory = ".\\app";
+
+        var action = () => new NodeAppResource(name, command, workingDirectory);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorNodeAppResourceShouldThrowWhenCommandIsNullOrEmpty(bool isNull)
+    {
+        const string name = "NodeApp";
+        var command = isNull ? null! : string.Empty;
+        const string workingDirectory = ".\\app";
+
+        var action = () => new NodeAppResource(name, command, workingDirectory);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(command), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorNodeAppResourceShouldThrowWhenWorkingDirectoryIsNull()
+    {
+        const string name = "NodeApp";
+        const string command = "npm";
+        string workingDirectory = null!;
+
+        var action = () => new NodeAppResource(name, command, workingDirectory);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(workingDirectory), exception.ParamName);
+    }
+
     [Fact]
     public void AddNodeAppShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
-        var name = "nodeapp";
-        var scriptPath = ".\\app.js";
+        const string name = "NodeApp";
+        const string scriptPath = ".\\app.js";
 
-        var action = () => builder.AddNodeApp(name: name, scriptPath: scriptPath);
+        var action = () => builder.AddNodeApp(name, scriptPath);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNodeAppShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNodeAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder();
-        string name = null!;
-        var scriptPath = ".\\app.js";
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+        const string scriptPath = ".\\app.js";
 
-        var action = () => builder.AddNodeApp(name: name, scriptPath: scriptPath);
+        var action = () => builder.AddNodeApp(name, scriptPath);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNodeAppShouldThrowWhenScriptPathIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNodeAppShouldThrowWhenScriptPathIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var name = "nodeapp";
-        string scriptPath = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        const string name = "NodeApp";
+        var scriptPath = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddNodeApp(name: name, scriptPath: scriptPath);
+        var action = () => builder.AddNodeApp(name, scriptPath);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+             ? Assert.Throws<ArgumentNullException>(action)
+             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(scriptPath), exception.ParamName);
     }
 
@@ -50,8 +106,8 @@ public class NodeJsPublicApiTests
     public void AddNpmAppShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
-        var name = "npmapp";
-        var workingDirectory = ".\\app";
+        const string name = "NpmApp";
+        const string workingDirectory = ".\\app";
 
         var action = () => builder.AddNpmApp(name: name, workingDirectory: workingDirectory);
 
@@ -59,82 +115,51 @@ public class NodeJsPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNpmAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+        const string workingDirectory = ".\\app";
+
+        var action = () => builder.AddNpmApp(name: name, workingDirectory);
+
+        var exception = isNull
+             ? Assert.Throws<ArgumentNullException>(action)
+             : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
     [Fact]
     public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var name = "npmapp";
+        var builder = TestDistributedApplicationBuilder.Create();
+        const string name = "NpmApp";
         string workingDirectory = null!;
 
-        var action = () => builder.AddNpmApp(name: name, workingDirectory: workingDirectory);
+        var action = () => builder.AddNpmApp(name, workingDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(workingDirectory), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNpmAppShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNpmAppShouldThrowWhenScriptNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder();
-        string name = null!;
-        var workingDirectory = ".\\app";
+        var builder = TestDistributedApplicationBuilder.Create();
+        const string name = "NpmApp";
+        const string workingDirectory = ".\\app";
+        var scriptName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddNpmApp(name: name, workingDirectory: workingDirectory);
+        var action = () => builder.AddNpmApp(name, workingDirectory, scriptName);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddNpmAppShouldThrowWhenScriptNameIsNull()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var name = "npmapp";
-        var workingDirectory = ".\\app";
-        string scriptName = null!;
-
-        var action = () => builder.AddNpmApp(name: name, workingDirectory: workingDirectory, scriptName: scriptName);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+             ? Assert.Throws<ArgumentNullException>(action)
+             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(scriptName), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorNodeAppResourceShouldThrowWhenNameIsNull()
-    {
-        string name = null!;
-        var command = "start";
-        var workingDirectory = ".\\app";
-
-        var action = () => new NodeAppResource(name, command, workingDirectory);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorNodeAppResourceShouldThrowWhenCommandIsNull()
-    {
-        var name = "nodeapp";
-        string command = null!;
-        var workingDirectory = ".\\app";
-
-        var action = () => new NodeAppResource(name, command, workingDirectory);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(command), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorNodeAppResourceShouldThrowWhenWorkingDirectoryIsNull()
-    {
-        var name = "nodeapp";
-        var command = "start";
-        string workingDirectory = null!;
-
-        var action = () => new NodeAppResource(name, command, workingDirectory);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(workingDirectory), exception.ParamName);
     }
 }

@@ -7,10 +7,6 @@
     <Description>Node.js support for .NET Aspire.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>95</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
   </ItemGroup>

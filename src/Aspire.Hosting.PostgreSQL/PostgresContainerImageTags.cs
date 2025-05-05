@@ -11,8 +11,8 @@ internal static class PostgresContainerImageTags
     /// <remarks>library/postgres</remarks>
     public const string Image = "library/postgres";
 
-    /// <remarks>17.2</remarks>
-    public const string Tag = "17.2";
+    /// <remarks>17.4</remarks>
+    public const string Tag = "17.4";
 
     /// <remarks>docker.io</remarks>
     public const string PgAdminRegistry = "docker.io";
@@ -20,8 +20,8 @@ internal static class PostgresContainerImageTags
     /// <remarks>dpage/pgadmin4</remarks>
     public const string PgAdminImage = "dpage/pgadmin4";
 
-    /// <remarks>8.14</remarks>
-    public const string PgAdminTag = "8.14";
+    /// <remarks>9.2.0</remarks>
+    public const string PgAdminTag = "9.2.0";
 
     /// <remarks>docker.io</remarks>
     public const string PgWebRegistry = "docker.io";

@@ -160,13 +160,24 @@
   <data name="ConsoleLogsSettings" xml:space="preserve">
     <value>Console logs settings</value>
   </data>
-  <data name="ConsoleLogsResourceCommands" xml:space="preserve">
-    <value>Resource commands</value>
+  <data name="ConsoleLogsResourceActions" xml:space="preserve">
+    <value>Resource actions</value>
   </data>
   <data name="ConsoleLogsTimestampShow" xml:space="preserve">
     <value>Show timestamps</value>
   </data>
   <data name="ConsoleLogsTimestampHide" xml:space="preserve">
     <value>Hide timestamps</value>
+  </data>
+  <data name="ConsoleLogsTimestampShowUtc" xml:space="preserve">
+    <value>UTC timestamps</value>
+  </data>
+  <data name="ConsoleLogsPauseActive" xml:space="preserve">
+    <value>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</value>
+    <comment>{0} is a date, {1} is a number</comment>
+  </data>
+  <data name="ConsoleLogsPauseDetails" xml:space="preserve">
+    <value>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</value>
+    <comment>{0} is a date, {1} is a date, {2} is a number.</comment>
   </data>
 </root>

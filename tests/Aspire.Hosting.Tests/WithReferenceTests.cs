@@ -29,6 +29,14 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -101,6 +109,14 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -122,6 +138,14 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -244,6 +268,76 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "123");
+    }
+
+    [Fact]
+    public async Task ConnectionStringResourceWithExpressionConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
+        var key = builder.AddParameter("key", "secretKey", secret: true);
+
+        var cs = ReferenceExpression.Create($"Endpoint={endpoint};Key={key}");
+
+        // Get the service provider.
+        var resource = builder.AddConnectionString("cs", cs);
+
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
+        Assert.Equal(1, servicesKeysCount);
+        Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(resource.Resource, r.Resource);
+            });
+
+        Assert.True(resource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var csRelationships));
+        Assert.Collection(csRelationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(endpoint.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(key.Resource, r.Resource);
+            });
+    }
+
+    [Fact]
+    public async Task ConnectionStringResourceWithExpressionConnectionStringBuilder()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
+        var key = builder.AddParameter("key", "secretKey", secret: true);
+
+        // Get the service provider.
+        var resource = builder.AddConnectionString("cs", b =>
+        {
+            b.Append($"Endpoint={endpoint};Key={key}");
+        });
+
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
+        Assert.Equal(1, servicesKeysCount);
+        Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
     }
 
     [Fact]

@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -68,7 +69,7 @@ public class AddValkeyTests
     }
 
     [Fact]
-    public async Task ValkeyCreatesConnectionString()
+    public async Task ValkeyCreatesConnectionStringWithDefaultPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddValkey("myValkey")
@@ -80,12 +81,46 @@ public class AddValkeyTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={myValkey-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public void ValkeyCreatesConnectionStringWithPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddValkey("myValkey", password: pass);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void ValkeyCreatesConnectionStringWithPasswordAndPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddValkey("myValkey", port: 3000, password: pass);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task VerifyWithoutPasswordManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey");
@@ -95,8 +130,16 @@ public class AddValkeyTests
         var expectedManifest = $$"""
                                  {
                                    "type": "container.v0",
-                                   "connectionString": "{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port}",
+                                   "connectionString": "{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={myValkey-password.value}",
                                    "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
+                                   "entrypoint": "/bin/sh",
+                                   "args": [
+                                     "-c",
+                                     "valkey-server --requirepass $VALKEY_PASSWORD"
+                                   ],
+                                   "env": {
+                                     "VALKEY_PASSWORD": "{myValkey-password.value}"
+                                   },
                                    "bindings": {
                                      "tcp": {
                                        "scheme": "tcp",
@@ -107,6 +150,44 @@ public class AddValkeyTests
                                    }
                                  }
                                  """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+        var valkey = builder.AddValkey("myValkey", password: pass);
+        var manifest = await ManifestUtils.GetManifest(valkey.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={pass.value}",
+              "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
+              "entrypoint": "/bin/sh",
+              "args": [
+                "-c",
+                "valkey-server --requirepass $VALKEY_PASSWORD"
+              ],
+              "env": {
+                "VALKEY_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
@@ -161,7 +242,7 @@ public class AddValkeyTests
     }
 
     [Fact]
-    public void WithDataVolumeAddsPersistenceAnnotation()
+    public async Task WithDataVolumeAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey")
@@ -169,30 +250,23 @@ public class AddValkeyTests
 
         Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(valkey);
+        Assert.Contains("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = valkey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(valkey);
+        Assert.DoesNotContain("--save", args);
     }
 
     [Fact]
-    public void WithDataBindMountAddsPersistenceAnnotation()
+    public async Task WithDataBindMountAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey")
@@ -200,30 +274,23 @@ public class AddValkeyTests
 
         Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(valkey);
+        Assert.Contains("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey")
                            .WithDataBindMount("myvalkeydata", isReadOnly: true);
 
-        var persistenceAnnotation = valkey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(valkey);
+        Assert.DoesNotContain("--save", args);
     }
 
     [Fact]
-    public void WithPersistenceReplacesPreviousAnnotationInstances()
+    public async Task WithPersistenceReplacesPreviousAnnotationInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var valkey = builder.AddValkey("myValkey")
@@ -232,14 +299,12 @@ public class AddValkeyTests
 
         Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        var args = await GetCommandLineArgs(valkey);
+        Assert.Contains("--save 10 2", args);
 
-        Assert.Equal("--save 10 2".Split(" "), args);
+        // ensure `--save` is not added twice
+        var saveIndex = args.IndexOf("--save");
+        Assert.DoesNotContain("--save", args.Substring(saveIndex + 1));
     }
 
     [Fact]
@@ -251,5 +316,34 @@ public class AddValkeyTests
 
         Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
+    }
+
+    [Fact]
+    public async Task AddValkeyContainerWithPasswordAnnotationMetadata()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var valkey = builder.
+            AddValkey("myValkey", password: pass)
+           .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(appModel.Resources.OfType<ValkeyResource>());
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.StartsWith($"localhost:5001,password={password}", connectionString);
+    }
+
+    private static async Task<string> GetCommandLineArgs(IResourceBuilder<ValkeyResource> builder)
+    {
+        var args = await ArgumentEvaluator.GetArgumentListAsync(builder.Resource);
+        return string.Join(" ", args);
     }
 }

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.ConformanceTests;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +40,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", client.GetService<ChatClientMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -218,7 +218,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         var completion = await client.GetResponseAsync("Whatever");
-        Assert.Equal("Hello from middleware", completion.Message.Text);
+        Assert.Equal("Hello from middleware", completion.Text);
     }
 
     [Theory]
@@ -252,7 +252,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
         var loggerFactory = (TestLoggerFactory)host.Services.GetRequiredService<ILoggerFactory>();
 
         var completion = await client.GetResponseAsync("Whatever");
-        Assert.Equal("Hello from middleware", completion.Message.Text);
+        Assert.Equal("Hello from middleware", completion.Text);
 
         const string category = "Microsoft.Extensions.AI.OpenTelemetryChatClient";
         if (disableOpenTelemetry)
@@ -265,6 +265,6 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
         }
     }
 
-    private static Task<ChatResponse> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
+    private static Task<ChatResponse> TestMiddleware(IEnumerable<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
         => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
 }

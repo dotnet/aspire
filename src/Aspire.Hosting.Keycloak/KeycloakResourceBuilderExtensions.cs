@@ -50,7 +50,7 @@ public static class KeycloakResourceBuilderExtensions
         IResourceBuilder<ParameterResource>? adminPassword = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = adminPassword?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -69,7 +69,8 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
-            });
+            })
+            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -128,7 +129,7 @@ public static class KeycloakResourceBuilderExtensions
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/opt/keycloak/data", false);
     }
@@ -156,7 +157,7 @@ public static class KeycloakResourceBuilderExtensions
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(import);
+        ArgumentException.ThrowIfNullOrEmpty(import);
 
         var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 

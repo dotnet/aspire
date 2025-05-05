@@ -16,10 +16,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 using DashboardServiceBase = Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -131,8 +129,6 @@ public sealed class DashboardClientAuthTests
             loggerFactory: loggerFactory,
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
-            dashboardClientStatus: new TestDashboardClientStatus(),
-            timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
             knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 
@@ -159,11 +155,6 @@ public sealed class DashboardClientAuthTests
     private sealed class TestCalls
     {
         public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ApplicationInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
-    }
-
-    private sealed class TestDashboardClientStatus : IDashboardClientStatus
-    {
-        public bool IsEnabled => true;
     }
 
     private sealed class MockDashboardService(TestCalls testCalls) : DashboardServiceBase

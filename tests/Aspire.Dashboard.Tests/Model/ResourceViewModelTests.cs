@@ -14,7 +14,6 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class ResourceViewModelTests
 {
     private static readonly DateTime s_dateTime = new(2000, 12, 30, 23, 59, 59, DateTimeKind.Utc);
-    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
 
     [Theory]
     [InlineData(KnownResourceState.Starting, null, null)]
@@ -48,14 +47,45 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup());
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
 
         // Assert
-        Assert.Collection(resource.Environment,
+        Assert.Collection(vm.Environment,
             e =>
             {
                 Assert.Empty(e.Name);
                 Assert.Equal("Value!", e.Value);
+            });
+    }
+
+    [Fact]
+    public void ToViewModel_DuplicatePropertyNames_Success()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestName-abc",
+            DisplayName = "TestName",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+            Properties =
+            {
+                new ResourceProperty { Name = "test", Value = Value.ForString("one!") },
+                new ResourceProperty { Name = "test", Value = Value.ForString("two!") }
+            }
+        };
+
+        // Act
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
+
+        // Assert
+        Assert.Collection(vm.Properties,
+            e =>
+            {
+                var (key, vm) = (e.Key, e.Value);
+
+                Assert.Equal("test", key);
+                Assert.Equal("test", vm.Name);
+                Assert.Equal("two!", vm.Value.StringValue);
             });
     }
 
@@ -69,7 +99,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup()));
+        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance));
 
         // Assert
         Assert.Equal(@"Error converting resource ""TestName-abc"" to ResourceViewModel.", ex.Message);
@@ -92,10 +122,10 @@ public sealed class ResourceViewModelTests
             }
         };
 
-        var kp = new KnownProperty("foo", "bar");
+        var kp = new KnownProperty("foo", loc => "bar");
 
         // Act
-        var viewModel = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(123, kp));
+        var viewModel = resource.ToViewModel(new MockKnownPropertyLookup(123, kp), NullLogger.Instance);
 
         // Assert
         Assert.Collection(

@@ -3,14 +3,15 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Tests.Utils;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
+[RequiresDocker]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
@@ -20,27 +21,27 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForResources().WaitAsync(TestConstants.ExtraLongTimeoutTimeSpan);
 
         await app.WaitForTextAsync($"I'm Batman. - Batman")
-                .WaitAsync(TimeSpan.FromMinutes(3));
+                .WaitAsync(TestConstants.ExtraLongTimeoutTimeSpan);
 
         app.EnsureNoErrorsLogged();
         await app.StopAsync();
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForResources().WaitAsync(TestConstants.ExtraLongTimeoutTimeSpan);
 
         // Wait for the producer to start sending messages
-        await app.WaitForTextAsync("Hello, World!").WaitAsync(TimeSpan.FromMinutes(5));
+        await app.WaitForTextAsync("Hello, World!").WaitAsync(TestConstants.ExtraLongTimeoutTimeSpan);
 
         // Wait for the consumer to receive some messages
         await WaitForAllTextAsync(app,
@@ -63,7 +64,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForResources().WaitAsync(TestConstants.ExtraLongTimeoutTimeSpan);
 
         // Wait for the 'Job host started' message as an indication
         // that the Functions host has initialized correctly

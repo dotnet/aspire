@@ -1,8 +1,14 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
-                       .WithPgAdmin()
+                       .WithPgAdmin(resource =>
+                       {
+                           resource.WithUrlForEndpoint("http", u => u.DisplayText = "PG Admin");
+                       })
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
@@ -12,15 +18,35 @@ var basketCache = builder.AddRedis("basketcache")
 basketCache.WithRedisCommander(c =>
             {
                 c.WithHostPort(33801);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Commander");
             })
            .WithRedisInsight(c =>
             {
                 c.WithHostPort(33802);
+                c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Insight");
             });
 #endif
 
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
                           .WithReference(catalogDb);
+
+if (builder.Environment.IsDevelopment())
+{
+    var resetDbKey = Guid.NewGuid().ToString();
+    catalogDbApp.WithEnvironment("DatabaseResetKey", resetDbKey)
+                .WithHttpCommand("/reset-db", "Reset Database",
+                    commandOptions: new()
+                    {
+                        Description = "Reset the catalog database to its initial state. This will delete and recreate the database.",
+                        ConfirmationMessage = "Are you sure you want to reset the catalog database?",
+                        IconName = "DatabaseLightning",
+                        PrepareRequest = requestContext =>
+                        {
+                            requestContext.Request.Headers.Add("Authorization", $"Key {resetDbKey}");
+                            return Task.CompletedTask;
+                        }
+                    });
+}
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
@@ -36,13 +62,21 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                            .WithReference(basketCache)
                            .WithReference(messaging).WaitFor(messaging);
 
-builder.AddProject<Projects.MyFrontend>("frontend")
+var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
        .WithReference(basketService)
-       .WithReference(catalogService);
+       .WithReference(catalogService)
+       // Modify the display text of the URLs
+       .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"))
+       // Don't show the non-HTTPS link on the resources page (details only)
+       .WithUrlForEndpoint("http", url => url.DisplayLocation = UrlDisplayLocation.DetailsOnly)
+       // Add health relative URL (show in details only)
+       .WithUrlForEndpoint("https", ep => new() { Url = "/health", DisplayText = "Health", DisplayLocation = UrlDisplayLocation.DetailsOnly });
+
+var _ = frontend.GetEndpoint("https").Exists ? frontend.WithHttpsHealthCheck("/health") : frontend.WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
-       .WithReference(messaging).WaitFor(messaging);
+        .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)

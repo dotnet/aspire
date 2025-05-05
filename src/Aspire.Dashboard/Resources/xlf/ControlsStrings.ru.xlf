@@ -59,17 +59,17 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="new">Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</target>
+        <target state="translated">Некоторые измерения метрики были удалены SDK OpenTelemetry.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="new">For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</target>
+        <target state="translated">Для получения дополнительной информации см. &lt;a href="{0}" target="_blank"&gt;ограничения кратности спецификации OpenTelemetry&lt;/a&gt;.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">
         <source>Cardinality capping has been detected</source>
-        <target state="new">Cardinality capping has been detected</target>
+        <target state="translated">Обнаружено ограничение кратности</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
@@ -107,6 +107,11 @@
         <target state="translated">Удалить для {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">Удалить данные</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Сведения</target>
@@ -115,6 +120,11 @@
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Длительность</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="translated">Имя конечной точки</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
@@ -152,14 +162,34 @@
         <target state="translated">Показать значения</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
+        <source>Grow column width</source>
+        <target state="translated">Увеличить ширину столбца</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResetAriaLabelText">
+        <source>Reset column widths</source>
+        <target state="translated">Сбросить ширину столбцов</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
         <target state="translated">Изменить размер</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeDiscreteLabel">
+        <source>Column width</source>
+        <target state="translated">Ширина столбца</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
         <target state="translated">Ширина столбца (в пикселях)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellShrinkAriaLabelText">
+        <source>Shrink column width</source>
+        <target state="translated">Уменьшить ширину столбца</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
@@ -175,6 +205,11 @@
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
         <target state="translated">Сортировать (по убыванию)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSubmitAriaLabelText">
+        <source>Set column widths</source>
+        <target state="translated">Настроить ширину столбцов</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -215,6 +250,16 @@
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
         <target state="translated">(Удалить)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Адрес</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Текст</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -277,6 +322,11 @@
         <target state="translated">Панель инструментов страницы</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">Приостановить входящие данные</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Количество</target>
@@ -317,11 +367,6 @@
         <target state="translated">Обратные ссылки</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">Конечные точки</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
         <target state="translated">Переменные среды</target>
@@ -342,6 +387,11 @@
         <target state="translated">Тип</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="translated">URL-адреса</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
         <target state="translated">Тома</target>
@@ -352,6 +402,11 @@
         <target state="translated">{0} (реплика {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="translated">Конечные точки отсутствуют</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
         <target state="translated">Проверки работоспособности</target>
@@ -360,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Ресурс</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">Возобновить входящие данные</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -487,6 +547,16 @@
         <target state="translated">Метка времени</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Переключить вложение</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">Запись приостановлена</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Атрибуты</target>
@@ -518,7 +588,7 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
         <target state="translated">Всего найдено результатов: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>

@@ -51,27 +51,12 @@ public static class TraceHelpers
         {
             var currentMinDate = (state.CurrentMinDate == null || state.CurrentMinDate < span.StartTime)
                 ? span.StartTime
-                : state.CurrentMinDate;
+                : state.CurrentMinDate.Value;
 
-            if (appFirstTimes.TryGetValue(span.Source.Application, out var orderedApp))
+            ProcessSpanApp(span, span.Source.Application, appFirstTimes, currentMinDate);
+            if (span.UninstrumentedPeer is { } peer)
             {
-                if (currentMinDate < orderedApp.FirstDateTime)
-                {
-                    orderedApp.FirstDateTime = currentMinDate.Value;
-                }
-
-                if (span.Status == OtlpSpanStatusCode.Error)
-                {
-                    orderedApp.ErroredSpans++;
-                }
-
-                orderedApp.TotalSpans++;
-            }
-            else
-            {
-                appFirstTimes.Add(
-                    span.Source.Application,
-                    new OrderedApplication(span.Source.Application, appFirstTimes.Count, currentMinDate.Value, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
+                ProcessSpanApp(span, peer, appFirstTimes, currentMinDate);
             }
 
             return new OrderedApplicationsState(currentMinDate);
@@ -80,6 +65,30 @@ public static class TraceHelpers
         return appFirstTimes.Select(kvp => kvp.Value)
             .OrderBy(s => s.FirstDateTime)
             .ThenBy(s => s.Index);
+    }
+
+    private static void ProcessSpanApp(OtlpSpan span, OtlpApplication application, Dictionary<OtlpApplication, OrderedApplication> appFirstTimes, DateTime currentMinDate)
+    {
+        if (appFirstTimes.TryGetValue(application, out var orderedApp))
+        {
+            if (currentMinDate < orderedApp.FirstDateTime)
+            {
+                orderedApp.FirstDateTime = currentMinDate;
+            }
+
+            if (span.Status == OtlpSpanStatusCode.Error)
+            {
+                orderedApp.ErroredSpans++;
+            }
+
+            orderedApp.TotalSpans++;
+        }
+        else
+        {
+            appFirstTimes.Add(
+                application,
+                new OrderedApplication(application, appFirstTimes.Count, currentMinDate, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
+        }
     }
 }
 

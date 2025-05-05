@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an App Configuration connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an App Configuration connection and consume the connection using the following methods:
 
 ```csharp
 var appConfig = builder.AddAzureAppConfiguration("config");

@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -20,7 +17,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <param name="name">The name of the resource.</param>
     /// <param name="userName">A parameter that contains the PostgreSQL server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="password">A parameter that contains the PostgreSQL server password.</param>
-    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(ThrowIfNull(name))
+    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
     {
         ArgumentNullException.ThrowIfNull(password);
 
@@ -95,7 +92,4 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         _databases.TryAdd(name, databaseName);
     }
-
-    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-        => argument ?? throw new ArgumentNullException(paramName);
 }

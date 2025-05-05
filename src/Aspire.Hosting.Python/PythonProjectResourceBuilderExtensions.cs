@@ -43,7 +43,6 @@ public static class PythonProjectResourceBuilderExtensions
     /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
     /// your Python project.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
@@ -58,14 +57,11 @@ public static class PythonProjectResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    /// </remarks>
     [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddPythonProject(name, projectDirectory, scriptPath, ".venv", scriptArgs);
-    }
+        => AddPythonProject(builder, name, projectDirectory, scriptPath, ".venv", scriptArgs);
 
     /// <summary>
     /// This method is retained only for compatibility.
@@ -93,7 +89,6 @@ public static class PythonProjectResourceBuilderExtensions
     /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
     /// your Python project.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
@@ -108,17 +103,18 @@ public static class PythonProjectResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    /// </remarks>
     [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(projectDirectory);
-        ArgumentNullException.ThrowIfNull(scriptPath);
-        ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
-        ArgumentNullException.ThrowIfNull(scriptArgs);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+        ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
 
         projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
@@ -179,5 +175,22 @@ public static class PythonProjectResourceBuilderExtensions
 
         context.Args.Add("--metrics_exporter");
         context.Args.Add("otlp");
+    }
+
+    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
+    {
+        ArgumentNullException.ThrowIfNull(scriptArgs);
+        foreach (var scriptArg in scriptArgs)
+        {
+            if (string.IsNullOrEmpty(scriptArg))
+            {
+                var values = string.Join(", ", scriptArgs);
+                if (scriptArg is null)
+                {
+                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{values}]");
+                }
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
+            }
+        }
     }
 }

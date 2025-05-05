@@ -29,6 +29,6 @@ internal static class RedisContainerImageTags
     /// <remarks>redis/redisinsight</remarks>
     public const string RedisInsightImage = "redis/redisinsight";
 
-    /// <remarks>2.64</remarks>
-    public const string RedisInsightTag = "2.64";
+    /// <remarks>2.68</remarks>
+    public const string RedisInsightTag = "2.68";
 }

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -330,6 +330,58 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void AddOracleDatabaseDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:CommandTimeout"] = "60",
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:DisableTracing"] = "true"
+        });
+
+        OracleEntityFrameworkCoreSettings? capturedSettings = null;
+        builder.AddOracleDatabaseDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(60, capturedSettings.CommandTimeout);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddOracleDatabaseDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Oracle:EntityFrameworkCore:{connectionName}:CommandTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Oracle:EntityFrameworkCore:TestDbContext:CommandTimeout"] = "120"
+        });
+
+        OracleEntityFrameworkCoreSettings? capturedSettings = null;
+        builder.AddOracleDatabaseDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(120, capturedSettings.CommandTimeout);
     }
 
     public class TestDbContext2 : DbContext

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -43,54 +42,7 @@ public class AddParameterTests
             {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
                 Assert.Equal("Parameters:pass", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal("Value", prop.Name);
-                Assert.Equal("pass1", prop.Value);
             });
-    }
-
-    [Fact]
-    public void MissingParametersAreConfigurationMissing()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        appBuilder.AddParameter("pass");
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
-        var annotation = parameterResource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
-
-        Assert.NotNull(annotation);
-
-        var state = annotation.InitialSnapshot;
-
-        Assert.NotNull(state.State);
-        Assert.Equal("Configuration missing", state.State.Text);
-        Assert.Equal(KnownResourceStateStyles.Error, state.State.Style);
-        Assert.Collection(state.Properties,
-            prop =>
-            {
-                Assert.Equal("parameter.secret", prop.Name);
-                Assert.Equal("False", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
-                Assert.Equal("Parameters:pass", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal("Value", prop.Name);
-                Assert.Contains("configuration key 'Parameters:pass' is missing", prop.Value?.ToString());
-            });
-
-        // verify that the logging hook is registered
-        Assert.Contains(app.Services.GetServices<IDistributedApplicationLifecycleHook>(), hook => hook.GetType().Name == "WriteParameterLogsHook");
     }
 
     [Fact]
@@ -335,7 +287,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public async Task AddConnectionStringIsASecretParameterInTheManifest()
+    public async Task AddConnectionStringParameterIsASecretParameterInTheManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -360,6 +312,37 @@ public class AddParameterTests
                   "secret": true
                 }
               }
+            }
+            """;
+
+        var s = connectionStringManifest.ToString();
+
+        Assert.Equal(expectedManifest, s);
+    }
+
+    [Fact]
+    public async Task AddConnectionStringExpressionIsAValueInTheManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var endpoint = appBuilder.AddParameter("endpoint", "http://localhost:3452");
+        var key = appBuilder.AddParameter("key", "secretKey", secret: true);
+
+        // Get the service provider.
+        appBuilder.AddConnectionString("mycs", ReferenceExpression.Create($"Endpoint={endpoint};Key={key}"));
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ConnectionStringResource>());
+
+        Assert.Equal("mycs", connectionStringResource.Name);
+        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
+
+        var expectedManifest = $$"""
+            {
+              "type": "value.v0",
+              "connectionString": "Endpoint={endpoint.value};Key={key.value}"
             }
             """;
 

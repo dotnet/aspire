@@ -2,7 +2,7 @@ trigger:
   batch: true
   branches:
     include:
-    - main
+    - main*
     - release/*
     - internal/release/*
   paths:
@@ -20,7 +20,7 @@ trigger:
 pr:
   branches:
     include:
-    - main
+    - main*
     - release/*
     - feature/*
     - internal/release/*
@@ -126,7 +126,7 @@ extends:
           enablePublishUsingPipelines: true
           enablePublishBuildAssets: true
           enableTelemetry: true
-          enableSourceIndex: true
+          enableSourceIndex: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/main') }}
           publishAssetsImmediately: true
           # Publish build logs
           enablePublishBuildArtifacts: true

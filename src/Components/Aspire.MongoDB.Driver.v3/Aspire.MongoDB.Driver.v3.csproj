@@ -6,7 +6,6 @@
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>A generic MongoDB client that integrates with Aspire.</Description>
-    <MinCodeCoverage>86</MinCodeCoverage>
     <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources is not signed -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <!-- Disable package validation as this package hasn't shipped yet. -->

@@ -13,6 +13,14 @@ namespace Aspire.Hosting.ApplicationModel;
 public class DistributedApplicationModel(IResourceCollection resources)
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationModel"/> class with the specified resource collection.
+    /// </summary>
+    /// <param name="resources">
+    /// The resources used to initiate the model.
+    /// </param>
+    public DistributedApplicationModel(IEnumerable<IResource> resources) : this(new ResourceCollection(resources)) { }
+
+    /// <summary>
     /// Gets the collection of resources associated with the distributed application.
     /// </summary>
     public IResourceCollection Resources { get; } = resources ?? throw new ArgumentNullException(nameof(resources));

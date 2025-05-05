@@ -11,6 +11,4 @@
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <Import Project="$(RepoRoot)\src\Components\Aspire.OpenAI\MEAIPackageOverrides.targets" />
-
 </Project>

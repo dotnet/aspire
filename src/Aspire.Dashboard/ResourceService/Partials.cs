@@ -7,6 +7,9 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 using CommandsResources = Aspire.Dashboard.Resources.Commands;
+using Aspire.Dashboard.Resources;
+using Aspire.Hosting;
+using Google.Protobuf.Collections;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -15,7 +18,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup)
+    public ResourceViewModel ToViewModel(IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -28,21 +31,7 @@ partial class Resource
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),
-                Properties = Properties.ToImmutableDictionary(
-                    keyComparer: StringComparers.ResourcePropertyName,
-                    keySelector: property => ValidateNotNull(property.Name),
-                    elementSelector: property =>
-                    {
-                        var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
-
-                        return new ResourcePropertyViewModel(
-                            name: ValidateNotNull(property.Name),
-                            value: ValidateNotNull(property.Value),
-                            isValueSensitive: property.IsSensitive,
-                            knownProperty: knownProperty,
-                            priority: priority,
-                            timeProvider: timeProvider);
-                    }),
+                Properties = CreatePropertyViewModels(Properties, knownPropertyLookup, logger),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
@@ -52,6 +41,7 @@ partial class Resource
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
+                IsHidden = IsHidden
             };
         }
         catch (Exception ex)
@@ -91,12 +81,21 @@ partial class Resource
 
         ImmutableArray<UrlViewModel> GetUrls()
         {
+            static string TranslateKnownUrlName(Url url)
+            {
+                return (url.EndpointName, url.DisplayProperties.DisplayName) switch
+                {
+                    (KnownUrls.DataExplorer.EndpointName, KnownUrls.DataExplorer.DisplayText) => KnownUrlsDisplay.DataExplorer,
+                    _ => url.DisplayProperties.DisplayName
+                };
+            }
+
             // Filter out bad urls
             return (from u in Urls
                     let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
                     where parsedUri != null
-                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
-                    .ToImmutableArray();
+                    select new UrlViewModel(u.EndpointName, parsedUri, u.IsInternal, u.IsInactive, new UrlDisplayPropertiesViewModel(TranslateKnownUrlName(u), u.DisplayProperties.SortOrder)))
+                .ToImmutableArray();
         }
 
         ImmutableArray<VolumeViewModel> GetVolumes()
@@ -149,16 +148,41 @@ partial class Resource
                 };
             }
         }
+    }
 
-        T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, ResourcePropertyViewModel>(StringComparers.ResourcePropertyName);
+
+        foreach (var property in properties)
         {
-            if (value is null)
+            var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
+            var propertyViewModel = new ResourcePropertyViewModel(
+                name: ValidateNotNull(property.Name),
+                value: ValidateNotNull(property.Value),
+                isValueSensitive: property.IsSensitive,
+                knownProperty: knownProperty,
+                priority: priority);
+
+            if (builder.ContainsKey(propertyViewModel.Name))
             {
-                throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
+                logger.LogWarning("Duplicate property '{PropertyName}' found in resource '{ResourceName}'.", propertyViewModel.Name, Name);
             }
 
-            return value;
+            builder[propertyViewModel.Name] = propertyViewModel;
         }
+
+        return builder.ToImmutable();
+    }
+
+    private T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+    {
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
+        }
+
+        return value;
     }
 }
 

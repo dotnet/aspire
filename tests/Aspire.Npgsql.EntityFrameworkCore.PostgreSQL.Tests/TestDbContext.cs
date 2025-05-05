@@ -3,7 +3,7 @@
 
 using Microsoft.EntityFrameworkCore;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.TestUtilities;
 
 public interface ITestDbContext
 {

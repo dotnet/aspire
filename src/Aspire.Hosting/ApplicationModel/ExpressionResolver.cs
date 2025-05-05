@@ -158,7 +158,9 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         // However, ConnectionStringReference#GetValueAsync will throw if the connection string is not optional but is not present.
         // so we need to do the same here.
         var value = await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(value.Value) && !cs.Optional)
+
+        // While pre-processing the endpoints, we never throw
+        if (!Preprocess && string.IsNullOrEmpty(value.Value) && !cs.Optional)
         {
             cs.ThrowConnectionStringUnavailableException();
         }
@@ -174,7 +176,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return value switch
         {
             ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs).ConfigureAwait(false),
-            IResourceWithConnectionString cs and not ResourceWithConnectionStringSurrogate => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
+            IResourceWithConnectionString cs and not ConnectionStringParameterResource => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
             EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
             EndpointReferenceExpression ep when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),

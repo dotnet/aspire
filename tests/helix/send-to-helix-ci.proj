@@ -4,7 +4,7 @@
       <TestCategory Include="basictests" />
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
-      <TestCategory Include="workloadtests" />
+      <TestCategory Include="templatestests" />
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="buildonhelixtests" />
 

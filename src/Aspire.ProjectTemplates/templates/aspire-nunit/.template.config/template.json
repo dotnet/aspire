@@ -14,7 +14,7 @@
   ],
   "name": ".NET Aspire Test Project (NUnit)",
   "defaultName": "Tests",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
+  "description": "Powerful integration testing for your app with the flexible and feature-rich NUnit framework.",
   "shortName": "aspire-nunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
@@ -28,19 +28,14 @@
   "groupIdentity": "Aspire.Tests.NUnit",
   "sources": [
     {
-      "source": "./9.1",
+      "source": "./9.2",
       "target": "./",
-      "condition": "AspireVersionActual == 9.1"
+      "condition": "AspireVersionActual == 9.2"
     },
     {
-      "source": "./9.0",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 9.0"
-    },
-    {
-      "source": "./8.2",
-      "target": "./",
-      "condition": "AspireVersionActual == 8.2"
+      "condition": "AspireVersionActual == 9.3"
     }
   ],
   "symbols": {
@@ -68,22 +63,17 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
-        },
-        {
-          "choice": "8.2",
-          "displayName": "8.2",
-          "description": "Chooses .NET Aspire 8.2 (only valid when '--framework net8.0' is specified)"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.1"
+      "defaultValue": "9.3"
     },
     "AspireVersion": {
       "type": "parameter",
@@ -93,22 +83,17 @@
       "isEnabled": "Framework == net8.0",
       "choices": [
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
-        },
-        {
-          "choice": "8.2",
-          "displayName": "8.2",
-          "description": "Chooses .NET Aspire 8.2"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.1"
+      "defaultValue": "9.3"
     },
     "AspireVersionNet9": {
       "type": "parameter",
@@ -118,17 +103,17 @@
       "isEnabled": "Framework == net9.0",
       "choices": [
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.1"
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -137,28 +122,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "(AspireVersion == 8.2 && Framework == net8.0)",
-            "value": "8.2"
+            "condition": "AspireVersionCli == 9.3",
+            "value": "9.3"
           },
           {
-            "condition": "(AspireVersionCli == 8.2 && Framework == net8.0)",
-            "value": "8.2"
+            "condition": "AspireVersion == 9.3",
+            "value": "9.3"
           },
           {
-            "condition": "AspireVersionCli == 9.0",
-            "value": "9.0"
-          },
-          {
-            "condition": "AspireVersion == 9.0",
-            "value": "9.0"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.0",
-            "value": "9.0"
+            "condition": "AspireVersionNet9 == 9.3",
+            "value": "9.3"
           },
           {
             "condition": "",
-            "value": "9.1"
+            "value": "9.2"
           }
         ]
       }

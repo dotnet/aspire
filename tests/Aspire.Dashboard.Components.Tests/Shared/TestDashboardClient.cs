@@ -12,6 +12,7 @@ public class TestDashboardClient : IDashboardClient
 {
     private readonly Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? _consoleLogsChannelProvider;
     private readonly Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? _resourceChannelProvider;
+    private readonly Channel<ResourceCommandResponseViewModel>? _resourceCommandsChannel;
     private readonly IList<ResourceViewModel>? _initialResources;
 
     public bool IsEnabled { get; }
@@ -22,11 +23,13 @@ public class TestDashboardClient : IDashboardClient
         bool? isEnabled = false,
         Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? consoleLogsChannelProvider = null,
         Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? resourceChannelProvider = null,
+        Channel<ResourceCommandResponseViewModel>? resourceCommandsChannel = null,
         IList<ResourceViewModel>? initialResources = null)
     {
         IsEnabled = isEnabled ?? false;
         _consoleLogsChannelProvider = consoleLogsChannelProvider;
         _resourceChannelProvider = resourceChannelProvider;
+        _resourceCommandsChannel = resourceCommandsChannel;
         _initialResources = initialResources;
     }
 
@@ -37,7 +40,12 @@ public class TestDashboardClient : IDashboardClient
 
     public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (_resourceCommandsChannel == null)
+        {
+            throw new InvalidOperationException("No resource command channel set.");
+        }
+
+        return _resourceCommandsChannel.Reader.ReadAsync(cancellationToken).AsTask();
     }
 
     public async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -53,6 +61,11 @@ public class TestDashboardClient : IDashboardClient
         {
             yield return item;
         }
+    }
+
+    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 
     public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)

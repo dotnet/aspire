@@ -64,23 +64,4 @@ public sealed class ManifestUtils
 
         return [.. results];
     }
-
-    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource)
-    {
-        string manifestDir = Directory.CreateTempSubdirectory(resource.Name).FullName;
-        var manifestNode = await GetManifest(resource, manifestDir);
-
-        if (!manifestNode.AsObject().TryGetPropertyValue("path", out var pathNode))
-        {
-            throw new ArgumentException("Specified resource does not contain a path property.", nameof(resource));
-        }
-
-        if (pathNode?.ToString() is not { } path || !File.Exists(Path.Combine(manifestDir, path)))
-        {
-            throw new ArgumentException("Path node in resource is null, empty, or does not exist.", nameof(resource));
-        }
-
-        var bicepText = await File.ReadAllTextAsync(Path.Combine(manifestDir, path));
-        return (manifestNode, bicepText);
-    }
 }

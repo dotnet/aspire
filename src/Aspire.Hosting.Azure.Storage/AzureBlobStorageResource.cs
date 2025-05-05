@@ -18,7 +18,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
     /// </summary>
-    public AzureStorageResource Parent => storage;
+    public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Grpc.Core;
@@ -13,7 +13,6 @@ using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 
@@ -218,6 +217,33 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddQdrantWithDefaultsAddsUrlAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var qdrant = builder.AddQdrant("qdrant");
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var urls = qdrant.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "grpc" && u.DisplayText == "Qdrant (GRPC)" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "http" && u.DisplayText == "Qdrant (HTTP)");
+        Assert.Single(urls, u => u.DisplayText == "Qdrant Dashboard" && u.Url.EndsWith("/dashboard"));
+
+        await app.StopAsync();
     }
 
     [Fact]

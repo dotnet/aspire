@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
+public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -81,6 +82,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -117,17 +124,20 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = TracesViewModel.GetTraces();
 
-        if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
+        if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
-            await MessageService.ShowMessageBarAsync(options =>
-            {
-                options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
-                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
-                options.Intent = MessageIntent.Info;
-                options.Section = "MessagesTop";
-                options.AllowDismiss = true;
-            });
+            TelemetryRepository.MaxTraceLimitMessage = await DashboardUIHelpers.DisplayMaxLimitMessageAsync(
+                MessageService,
+                Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)],
+                string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount),
+                () => TelemetryRepository.MaxTraceLimitMessage = null);
+
             TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
+        }
+        else if (!traces.IsFull && TelemetryRepository.MaxTraceLimitMessage is { } message)
+        {
+            // Telemetry could have been cleared from the dashboard. Automatically remove full message on data update.
+            message.Close();
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
@@ -138,7 +148,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -160,12 +170,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
-    }
-
-    private void DimensionManager_OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
-    {
-        throw new NotImplementedException();
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -177,11 +182,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications();
+        _applications = TelemetryRepository.GetApplications(includeUninstrumentedPeers: true);
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
@@ -241,6 +247,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             await JS.InvokeVoidAsync("initializeContinuousScroll");
         });
     }
+
+    private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
 
     public void Dispose()
     {
@@ -329,6 +342,14 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             {
                 TracesViewModel.AddFilter(filter);
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -340,6 +361,17 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return Task.CompletedTask;
     }
 
+    private List<MenuButtonItem> GetFilterMenuItems()
+    {
+        return this.GetFilterMenuItems(
+            TracesViewModel.Filters,
+            clearFilters: TracesViewModel.ClearFilters,
+            openFilterAsync: OpenFilterAsync,
+            filterLoc: FilterLoc,
+            dialogsLoc: DialogsLoc,
+            contentLayout: _contentLayout);
+    }
+
     public class TracesPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
@@ -349,5 +381,15 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     {
         public string? SelectedApplication { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
+        ]);
     }
 }

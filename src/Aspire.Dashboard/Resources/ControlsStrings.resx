@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
+  <!--
+    Microsoft ResX Schema
+
     Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
     associated with the data types.
-    
+
     Example:
-    
+
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-                
-    There are any number of "resheader" rows that contain simple 
+
+    There are any number of "resheader" rows that contain simple
     name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
     mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-    
+
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-    
+
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
+    value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -212,7 +212,7 @@
     <value>Close</value>
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
-    <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
+    <value>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</value>
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
@@ -296,8 +296,8 @@
     <value>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
-  <data name="ResourceDetailsEndpointsHeader" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="ResourceDetailsUrlsHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
@@ -374,6 +374,9 @@
   <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
     <value>Column width (in pixels)</value>
   </data>
+  <data name="FluentDataGridHeaderCellResizeDiscreteLabel" xml:space="preserve">
+    <value>Column width</value>
+  </data>
   <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
     <value>Sort</value>
   </data>
@@ -385,6 +388,18 @@
   </data>
   <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
     <value>Resize</value>
+  </data>
+  <data name="FluentDataGridHeaderCellGrowAriaLabelText" xml:space="preserve">
+    <value>Grow column width</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResetAriaLabelText" xml:space="preserve">
+    <value>Reset column widths</value>
+  </data>
+  <data name="FluentDataGridHeaderCellShrinkAriaLabelText" xml:space="preserve">
+    <value>Shrink column width</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSubmitAriaLabelText" xml:space="preserve">
+    <value>Set column widths</value>
   </data>
   <data name="StructuredFilteringFilters" xml:space="preserve">
     <value>Filters</value>
@@ -447,5 +462,32 @@
   <data name="ChartContainerOverflowLink" xml:space="preserve">
     <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
     <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="EndpointNameColumnHeader" xml:space="preserve">
+    <value>Endpoint name</value>
+  </data>
+  <data name="LinkAddressColumnHeader" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ResourceGraphNoEndpoints" xml:space="preserve">
+    <value>No endpoints</value>
+  </data>
+  <data name="PauseButtonTitle" xml:space="preserve">
+    <value>Pause incoming data</value>
+  </data>
+  <data name="ResumeButtonTitle" xml:space="preserve">
+    <value>Resume incoming data</value>
+  </data>
+  <data name="ClearSignalsButtonTitle" xml:space="preserve">
+    <value>Remove data</value>
+  </data>
+  <data name="TotalItemsFooterCapturePaused" xml:space="preserve">
+    <value>Capture paused</value>
+  </data>
+  <data name="LinkTextColumnHeader" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ToggleNesting" xml:space="preserve">
+    <value>Toggle nesting</value>
   </data>
 </root>

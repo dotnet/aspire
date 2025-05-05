@@ -1,0 +1,292 @@
+# This is a reusable workflow to run tests for a given test project.
+# It is designed to be called from other workflows, such as the integration or template tests workflows.
+# The workflow includes steps for setting up the environment, building the test project, running the tests, and uploading the results.
+name: Run Tests
+
+on:
+  workflow_call:
+    inputs:
+      testShortName:
+        required: true
+        type: string
+      testProjectPath:
+        # relative the repo root
+        required: false
+        type: string
+      testSessionTimeout:
+        required: false
+        type: string
+        default: "15m"
+      testHangTimeout:
+        required: false
+        type: string
+        default: "7m"
+      extraTestArgs:
+        required: false
+        type: string
+      # Triggers downloading the built nugets, and running the tests
+      # from the archive outside the repo
+      requiresNugets:
+        required: false
+        type: boolean
+        default: false
+      # Installs the sdks used for test via tests/workloads.proj
+      # Useful for tests that can't use system dotnet
+      requiresTestSdk:
+        required: false
+        type: boolean
+        default: false
+      os:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+
+jobs:
+
+  test:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+    name: ${{ inputs.testShortName }}
+    env:
+      DOTNET_ROOT: ${{ github.workspace }}/.dotnet
+    steps:
+      - name: Validate arguments
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrEmpty("${{ inputs.testShortName }}")) {
+            Write-Error "Error: testShortName is required."
+            exit 1
+          }
+
+      - name: Setup vars (Linux)
+        if: ${{ inputs.os == 'ubuntu-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
+
+      - name: Setup vars (Windows)
+        if: ${{ inputs.os == 'windows-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        # Used for running tests outside the repo
+        if: ${{ inputs.requiresNugets }}
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate (Linux)
+        if: inputs.os == 'ubuntu-latest'
+        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+
+      - name: Verify Docker is running
+        # nested docker containers not supported on windows
+        if: inputs.os == 'ubuntu-latest'
+        run: docker info
+
+      - name: Download built nugets
+        if: ${{ inputs.requiresNugets }}
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: built-nugets
+          path: ${{ github.workspace }}/artifacts/packages
+
+      - name: Copy nugets to the correct location
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run:
+          Move-Item -Path "${{ github.workspace }}/artifacts/packages/built-nugets/Debug" -Destination "${{ github.workspace }}/artifacts/packages"
+
+      - name: Install sdk for nuget based testing
+        if: ${{ inputs.requiresTestSdk }}
+        env:
+          CI: false
+        run: >
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
+          /p:SkipPackageCheckForTemplatesTesting=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      - name: Install Azure Functions Core Tools
+        if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Compute test project path
+        id: compute_project_path
+        shell: pwsh
+        env:
+          CI: false
+        run: |
+          $testShortName = "${{ inputs.testShortName }}"
+          $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
+          $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
+          $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
+
+          if (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {
+              $projectPath = "${{ github.workspace }}/$overrideTestProjectPath"
+          } elseif (Test-Path -Path $projectPath1) {
+              $projectPath = $projectPath1
+          } elseif (Test-Path -Path $projectPath2) {
+              $projectPath = $projectPath2
+          } else {
+              Write-Error "No matching project path found."
+              exit 1
+          }
+
+          $filenameWithoutExtension = (Get-Item $projectPath).BaseName
+          echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+          echo "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV
+
+      - name: Build test project
+        if: ${{ ! inputs.requiresNugets }}
+        env:
+          CI: false
+        run: |
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+
+      - name: Build and archive test project
+        if: ${{ inputs.requiresNugets }}
+        env:
+          CI: false
+        run: >
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          /p:PrepareForHelix=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+
+      # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
+      - name: Rebuild for Azure Functions project
+        if: inputs.testShortName == 'Playground'
+        env:
+          CI: false
+        run: |
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+
+      - name: Unpack tests
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run: |
+          # Find all zip files in the given path
+          $path = "${{ github.workspace }}/artifacts/helix"
+          $zipFiles = Get-ChildItem -Path $path -Filter *.zip -Recurse
+
+          # Check the number of zip files found
+          if ($zipFiles.Count -eq 0) {
+              Write-Error "No zip files found in path : $path"
+              exit 1
+          } elseif ($zipFiles.Count -gt 1) {
+              $zipFilesList = $zipFiles.FullName -join ", "
+              Write-Error "Multiple zip files found in path: $path : $zipFilesList"
+              exit 1
+          } else {
+              Write-Output "One zip file found: $($zipFiles[0].FullName)"
+          }
+
+          $zipFilePath = $zipFiles[0].FullName
+          $destinationPath = "$env:TEST_RUN_PATH"
+
+          if (-not (Test-Path $destinationPath)) {
+              New-Item -ItemType Directory -Path $destinationPath -Force
+          }
+
+          if ($IsWindows) {
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $destinationPath)
+          } else {
+              $unzipCommand = "unzip -o $zipFilePath -d $destinationPath"
+              Invoke-Expression $unzipCommand
+          }
+
+          Write-Output "Unzipped $zipFilePath to $destinationPath"
+
+      - name: Run nuget dependent tests
+        if: ${{ inputs.requiresNugets }}
+        working-directory: ${{ github.workspace }}/run-tests/
+        env:
+          CI: false
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+        run: >
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
+          --results-directory ${{ github.workspace }}/testresults
+          --filter-not-trait "category=failing"
+          --timeout ${{ inputs.testSessionTimeout }}
+          ${{ inputs.extraTestArgs }}
+
+      - name: Run tests
+        if: ${{ ! inputs.requiresNugets }}
+        id: run-tests
+        env:
+          CI: false
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
+          # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
+          # So, we manually set NUGET_PACKAGES
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
+        run: >
+          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
+          /p:ContinuousIntegrationBuild=true
+          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
+          -bl:${{ github.workspace }}/testresults/test.binlog
+          --no-restore
+          --no-build
+          --
+          --report-trx
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
+          --results-directory ${{ github.workspace }}/testresults
+          --timeout ${{ inputs.testSessionTimeout }}
+          ${{ inputs.extraTestArgs }}
+
+      # Save the result of the previous steps - success or failure
+      # in the form of a file result-success/result-failure -{name}.rst
+      - name: Store result - success
+        if: ${{ success() }}
+        run: touch result-success-${{ inputs.testShortName }}.rst
+      - name: Store result - failure
+        if: ${{ !success() }}
+        run: touch result-failed-${{ inputs.testShortName }}.rst
+
+      # Upload that result file to artifact named test-job-result-{name}
+      - name: Upload test result
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}
+          path: result-*.rst
+
+      - name: Dump docker info
+        if: always()
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
+
+      - name: Upload logs, and test results
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: logs-${{ inputs.testShortName }}-${{ inputs.os }}
+          path: |
+            **/*.binlog
+            testresults/**
+            artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
+            artifacts/log/test-logs/**

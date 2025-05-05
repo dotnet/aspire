@@ -59,17 +59,17 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="new">Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</target>
+        <target state="translated">Certaines dimensions de la métrique ont été supprimées par le Kit de développement logiciel (SDK) OpenTelemetry.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="new">For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</target>
+        <target state="translated">Pour découvrir plus d’informations, consultez &lt;a href="{0}" target="_blank"&gt;Plafonnement de cardinalité de la spécification OpenTelemetry&lt;/a&gt;.</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">
         <source>Cardinality capping has been detected</source>
-        <target state="new">Cardinality capping has been detected</target>
+        <target state="translated">Un plafonnement de cardinalité a été détecté</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
@@ -107,6 +107,11 @@
         <target state="translated">Supprimer pour {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">Supprimer des données</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Détails</target>
@@ -115,6 +120,11 @@
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Durée</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="translated">Nom du point de terminaison</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
@@ -152,14 +162,34 @@
         <target state="translated">Afficher les valeurs</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
+        <source>Grow column width</source>
+        <target state="translated">Agrandir la largeur de colonne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResetAriaLabelText">
+        <source>Reset column widths</source>
+        <target state="translated">Réinitialiser les largeurs des colonnes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
         <target state="translated">Redimensionner</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeDiscreteLabel">
+        <source>Column width</source>
+        <target state="translated">Largeur de colonne</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
         <target state="translated">Largeur de colonne (en pixels)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellShrinkAriaLabelText">
+        <source>Shrink column width</source>
+        <target state="translated">Réduire la largeur de colonne</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
@@ -175,6 +205,11 @@
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
         <target state="translated">Tri (décroissant)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSubmitAriaLabelText">
+        <source>Set column widths</source>
+        <target state="translated">Définir les largeurs des colonnes</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -215,6 +250,16 @@
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
         <target state="translated">(Annuler)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Adresse</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Texte</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -277,6 +322,11 @@
         <target state="translated">Barre d’outils de la page</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">Suspendre les données entrantes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Nombre</target>
@@ -317,11 +367,6 @@
         <target state="translated">Références de retour</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">Points de terminaison</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
         <target state="translated">Variables d’environnement</target>
@@ -342,6 +387,11 @@
         <target state="translated">Type</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
         <target state="translated">Volumes</target>
@@ -352,6 +402,11 @@
         <target state="translated">{0} (réplica de {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="translated">Aucun point de terminaison</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
         <target state="translated">Contrôles d’intégrité</target>
@@ -360,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Ressource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">Reprendre les données entrantes</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -487,6 +547,16 @@
         <target state="translated">Horodatage</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Activer/désactiver l’imbrication</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">Capture suspendue</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Attributs</target>
@@ -518,8 +588,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">Total : &lt;strong&gt;{0} résultats trouvés&lt;/strong&gt;</target>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
+        <target state="translated">Total : &lt;strong&gt;{0} résultat(s) trouvé(s)&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

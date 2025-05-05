@@ -11,6 +11,7 @@ internal static class KeycloakContainerImageTags
     /// <remarks>keycloak/keycloak</remarks>
     public const string Image = "keycloak/keycloak";
 
-    /// <remarks>26.0</remarks>
-    public const string Tag = "26.0";
+    /// <remarks>26.2</remarks>
+    public const string Tag = "26.2";
 }
+

@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Projects;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Testing.Tests;
 

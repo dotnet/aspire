@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Workload.Tests;
+using Aspire.Templates.Tests;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -11,7 +11,7 @@ public class PlaywrightFixture : IAsyncLifetime
 {
     public IBrowser Browser { get; set; } = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         // Default timeout of 5000 ms could time out on slow CI servers.
         Assertions.SetDefaultExpectTimeout(30_000);
@@ -20,7 +20,7 @@ public class PlaywrightFixture : IAsyncLifetime
         Browser = await PlaywrightProvider.CreateBrowserAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await Browser.CloseAsync();
     }

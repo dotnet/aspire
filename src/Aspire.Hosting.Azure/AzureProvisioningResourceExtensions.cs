@@ -25,8 +25,7 @@ public static class AzureProvisioningResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureProvisioningResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -70,6 +69,26 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(infrastructure);
 
         return parameterResourceBuilder.Resource.AsProvisioningParameter(infrastructure, parameterName);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// </summary>
+    /// <param name="manifestExpressionProvider">The <see cref="IManifestExpressionProvider"/> that represents the value to use for the <see cref="ProvisioningParameter"/>. </param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <param name="isSecure">Indicates whether the parameter is secure.</param>
+    /// <returns></returns>
+    public static ProvisioningParameter AsProvisioningParameter(this IManifestExpressionProvider manifestExpressionProvider, AzureResourceInfrastructure infrastructure, string? parameterName = null, bool? isSecure = null)
+    {
+        ArgumentNullException.ThrowIfNull(manifestExpressionProvider);
+        ArgumentNullException.ThrowIfNull(infrastructure);
+
+        parameterName ??= GetNameFromValueExpression(manifestExpressionProvider);
+
+        infrastructure.AspireResource.Parameters[parameterName] = manifestExpressionProvider;
+
+        return GetOrAddParameter(infrastructure, parameterName, isSecure);
     }
 
     /// <summary>
@@ -124,7 +143,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(outputReference);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= outputReference.Name;
+        parameterName ??= GetNameFromValueExpression(outputReference);
 
         infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
@@ -197,6 +216,17 @@ public static class AzureProvisioningResourceExtensions
         }
 
         return parameter;
+    }
+
+    private static string GetNameFromValueExpression(IManifestExpressionProvider ep)
+    {
+        var parameterName = ep.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
+
+        if (parameterName[0] == '_')
+        {
+            parameterName = parameterName[1..];
+        }
+        return parameterName;
     }
 }
 

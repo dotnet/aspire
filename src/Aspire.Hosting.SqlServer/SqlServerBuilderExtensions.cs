@@ -1,17 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Text;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
 /// <summary>
 /// Provides extension methods for adding SQL Server resources to the application model.
 /// </summary>
-public static class SqlServerBuilderExtensions
+public static partial class SqlServerBuilderExtensions
 {
+    // GO delimiter format: {spaces?}GO{spaces?}{repeat?}{comment?}
+    // https://learn.microsoft.com/sql/t-sql/language-elements/sql-server-utilities-statements-go
+    [GeneratedRegex(@"^\s*GO(?<repeat>\s+\d{1,6})?(\s*\-{2,}.*)?\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    internal static partial Regex GoStatements();
+
     /// <summary>
     /// Adds a SQL Server resource to the application model. A container is used for local development.
     /// </summary>
@@ -45,6 +55,27 @@ public static class SqlServerBuilderExtensions
             }
         });
 
+        builder.Eventing.Subscribe<ResourceReadyEvent>(sqlServer, async (@event, ct) =>
+        {
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+            }
+
+            using var sqlConnection = new SqlConnection(connectionString);
+            await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+            if (sqlConnection.State != System.Data.ConnectionState.Open)
+            {
+                throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
+            }
+
+            foreach (var sqlDatabase in sqlServer.DatabaseResources)
+            {
+                await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
+            }
+        });
+
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
@@ -75,9 +106,28 @@ public static class SqlServerBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(sqlServerDatabase);
+
+        builder.Resource.AddDatabase(sqlServerDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
+        {
+            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(sqlServerDatabase)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -110,6 +160,142 @@ public static class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+        if (!OperatingSystem.IsWindows())
+        {
+            return builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+        }
+        else
+        {
+            // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver15&pivots=cs1-bash#mount-a-host-directory-as-data-volume
+
+            foreach (var dir in new string[] { "data", "log", "secrets" })
+            {
+                var path = Path.Combine(source, dir);
+
+                Directory.CreateDirectory(path);
+
+                builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
+            }
+
+            return builder;
+        }
+    }
+
+    /// <summary>
+    /// Defines the SQL script used to create the database.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="SqlServerDatabaseResource"/>.</param>
+    /// <param name="script">The SQL script used to create the database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <value>Default script is <code>IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE [&lt;QUOTED_DATABASE_NAME%gt;];</code></value>
+    /// </remarks>
+    public static IResourceBuilder<SqlServerDatabaseResource> WithCreationScript(this IResourceBuilder<SqlServerDatabaseResource> builder, string script)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(script);
+
+        builder.WithAnnotation(new SqlServerCreateDatabaseScriptAnnotation(script));
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the SqlServer resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the SqlServer resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithPassword(this IResourceBuilder<SqlServerServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the SqlServer resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(SqlServerServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
+    {
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
+
+        logger.LogDebug("Creating database '{DatabaseName}'", sqlDatabase.DatabaseName);
+
+        try
+        {
+            var scriptAnnotation = sqlDatabase.Annotations.OfType<SqlServerCreateDatabaseScriptAnnotation>().LastOrDefault();
+
+            if (scriptAnnotation?.Script == null)
+            {
+                var quotedDatabaseIdentifier = new SqlCommandBuilder().QuoteIdentifier(sqlDatabase.DatabaseName);
+                using var command = sqlConnection.CreateCommand();
+                command.CommandText = $"IF ( NOT EXISTS ( SELECT 1 FROM sys.databases WHERE name = @DatabaseName ) ) CREATE DATABASE {quotedDatabaseIdentifier};";
+                command.Parameters.Add(new SqlParameter("@DatabaseName", sqlDatabase.DatabaseName));
+                await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                using var reader = new StringReader(scriptAnnotation.Script);
+                var batchBuilder = new StringBuilder();
+
+                while (reader.ReadLine() is { } line)
+                {
+                    var matchGo = GoStatements().Match(line);
+
+                    if (matchGo.Success)
+                    {
+                        // Execute the current batch
+                        var count = matchGo.Groups["repeat"].Success ? int.Parse(matchGo.Groups["repeat"].Value, CultureInfo.InvariantCulture) : 1;
+                        var batch = batchBuilder.ToString();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            using var command = sqlConnection.CreateCommand();
+                            command.CommandText = batch;
+                            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                        }
+
+                        batchBuilder.Clear();
+                    }
+                    else
+                    {
+                        // Prevent batches with only whitespace
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            batchBuilder.AppendLine(line);
+                        }
+                    }
+                }
+
+                // Process the remaining batch lines
+                if (batchBuilder.Length > 0)
+                {
+                    using var command = sqlConnection.CreateCommand();
+                    command.CommandText = batchBuilder.ToString();
+                    await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                }
+            }
+
+            logger.LogDebug("Database '{DatabaseName}' created successfully", sqlDatabase.DatabaseName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
+        }
     }
 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting.Azure;
 
@@ -38,6 +40,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// Gets the fully qualified domain name (FQDN) output reference from the bicep template for the Azure SQL Server resource.
     /// </summary>
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
+
+    private BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
@@ -89,5 +93,26 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
 
         InnerResource = innerResource;
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var store = SqlServer.FromExisting(this.GetBicepIdentifier());
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(store);
+        return store;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        var infra = roleAssignmentContext.Infrastructure;
+        var postgres = (SqlServer)AddAsExistingResource(infra);
+
+        var principalId = roleAssignmentContext.PrincipalId;
+        var principalName = roleAssignmentContext.PrincipalName;
+
+        AzureSqlExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, principalName);
     }
 }

@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.AppHost
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add project, container, and executable resources:
+Then, in the _AppHost.cs_ file of `AppHost`, add project, container, and executable resources:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);

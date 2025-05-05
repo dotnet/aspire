@@ -31,15 +31,12 @@
     },
     "garnet": {
       "type": "container.v0",
-      "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+      "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port},password={garnet-password.value}",
       "image": "ghcr.io/microsoft/garnet:1.0",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--checkpointdir",
-        "/data/checkpoints",
-        "--recover",
-        "--aof",
-        "--aof-commit-freq",
-        "60000"
+        "-c",
+        "/app/GarnetServer --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
       ],
       "volumes": [
         {
@@ -48,6 +45,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "GARNET_PASSWORD": "{garnet-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -59,12 +59,12 @@
     },
     "valkey": {
       "type": "container.v0",
-      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-      "image": "docker.io/valkey/valkey:8.0",
+      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port},password={valkey-password.value}",
+      "image": "docker.io/valkey/valkey:8.1",
+      "entrypoint": "/bin/sh",
       "args": [
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "valkey-server --requirepass $VALKEY_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -73,6 +73,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "VALKEY_PASSWORD": "{valkey-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -113,6 +116,38 @@
     "redis-password": {
       "type": "parameter.v0",
       "value": "{redis-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "garnet-password": {
+      "type": "parameter.v0",
+      "value": "{garnet-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "valkey-password": {
+      "type": "parameter.v0",
+      "value": "{valkey-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",

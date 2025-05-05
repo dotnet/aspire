@@ -1,0 +1,31 @@
+﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
+@using Aspire.Dashboard.Model
+@inherits FluentComponentBase
+
+<FluentMenu @ref="_menu" Anchor="@Anchor" Anchored="@Anchored" Open="@Open" OpenChanged="OnOpenChanged" Style="@Style" VerticalThreshold="@VerticalThreshold" HorizontalThreshold="200">
+    @foreach (var item in Items)
+    {
+        @if (item.IsDivider)
+        {
+            <FluentDivider />
+        }
+        else
+        {
+            var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+            {
+                { "title", item.Tooltip ?? item.Text ?? string.Empty }
+            };
+
+            <FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+                @item.Text
+                @if (item.Icon != null)
+                {
+                    <span slot="start">
+                        <FluentIcon Value="@item.Icon" Style="vertical-align: text-bottom;" Width="16px" />
+                    </span>
+                }
+            </FluentMenuItem>
+        }
+    }
+</FluentMenu>

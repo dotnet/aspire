@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
@@ -297,6 +297,58 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var exception = Record.Exception(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection"));
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddSqlServerDbContext_WithConnectionNameAndSettings_AppliesConnectionSpecificSettings()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            [$"Aspire:Microsoft:EntityFrameworkCore:SqlServer:{connectionName}:CommandTimeout"] = "60",
+            [$"Aspire:Microsoft:EntityFrameworkCore:SqlServer:{connectionName}:DisableTracing"] = "true"
+        });
+
+        MicrosoftEntityFrameworkCoreSqlServerSettings? capturedSettings = null;
+        builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(60, capturedSettings.CommandTimeout);
+        Assert.True(capturedSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void AddSqlServerDbContext_WithConnectionSpecificAndContextSpecificSettings_PrefersContextSpecific()
+    {
+        // Arrange
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var connectionName = "testdb";
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{connectionName}"] = ConnectionString,
+            // Connection-specific settings
+            [$"Aspire:Microsoft:EntityFrameworkCore:SqlServer:{connectionName}:CommandTimeout"] = "60",
+            // Context-specific settings wins
+            [$"Aspire:Microsoft:EntityFrameworkCore:SqlServer:TestDbContext:CommandTimeout"] = "120"
+        });
+
+        MicrosoftEntityFrameworkCoreSqlServerSettings? capturedSettings = null;
+        builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
+        {
+            capturedSettings = settings;
+        });
+
+        Assert.NotNull(capturedSettings);
+        Assert.Equal(120, capturedSettings.CommandTimeout);
     }
 
     public class TestDbContext2 : DbContext

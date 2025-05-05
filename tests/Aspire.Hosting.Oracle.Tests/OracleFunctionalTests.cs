@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -11,7 +11,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
@@ -27,7 +26,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyEfOracle()
     {
@@ -68,7 +67,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("BatMobile", cars[0].Brand);
     }
 
-    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
     [RequiresDocker]
@@ -243,7 +242,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
     [RequiresDocker]
@@ -346,7 +345,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWaitForOnOracleBlocksDependentResources()
     {

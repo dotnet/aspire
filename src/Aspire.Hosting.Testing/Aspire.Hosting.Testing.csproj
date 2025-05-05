@@ -11,12 +11,9 @@
     <IsAspireHost>false</IsAspireHost>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>4</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
+    <Compile Include="$(SharedDir)\KnownConfigNames.cs" Link="KnownConfigNames.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,7 +7,6 @@ using Aspire.Hosting.Utils;
 using Azure.Provisioning.WebPubSub;
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -35,7 +34,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var hub = wps.AddHub(hubName);
 
         Assert.Equal(hubName, hub.Resource.Name);
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         Assert.NotNull(realHub);
         Assert.Equal(hubName, realHub.Name.Value);
         Assert.Equal("a_b_c", realHub.BicepIdentifier);
@@ -52,15 +51,11 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{wps1.outputs.endpoint}",
-              "path": "wps1.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "wps1.module.bicep"
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -75,10 +70,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalType string
-
-            param principalId string
-
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -91,24 +82,30 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
-            }
-
             resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
               name: 'abc'
               parent: wps1
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public void AddAzureWebPubSub_HasCorrectConnectionExpressions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        var hub = wps.AddHub("abc");
+        var otherHub = wps.AddHub("def", "hij");
+
+        Assert.Equal("{wps1.outputs.endpoint}", wps.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=abc", hub.Resource.ConnectionStringExpression.ValueExpression);
+        // Uses hub name instead of resource name since it was explicitly provided
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hij", otherHub.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -127,15 +124,11 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "{wps1.outputs.endpoint}",
-              "path": "wps1.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
+              "path": "wps1.module.bicep"
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -150,10 +143,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalType string
-
-            param principalId string
-
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -166,16 +155,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
-            }
-
             resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
               name: 'abc'
               properties: {
@@ -185,6 +164,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -203,14 +184,12 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "abc_url_0": "{serviceA.bindings.https.url}/eventhandler/",
-                "principalType": "",
-                "principalId": ""
+                "abc_url_0": "{serviceA.bindings.https.url}/eventhandler/"
               }
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -225,10 +204,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalType string
-            
-            param principalId string
-
             param abc_url_0 string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
@@ -241,16 +216,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'wps1'
               }
-            }
-
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
             }
 
             resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
@@ -267,6 +232,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -287,7 +254,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         wps.AddHub("abc");
 
         wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -301,10 +268,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalType string
-
-            param principalId string
-
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
@@ -315,16 +278,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'wps1'
               }
-            }
-
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
             }
 
             resource ABC 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
@@ -344,6 +297,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -382,9 +337,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "params": {
                 "hub2_url_0": "{serviceA.bindings.https.url}/hub/eventhandler1",
                 "hub2_url_1": "{serviceA.bindings.https.url}/eventhandler2",
-                "hub2_url_2": "{serviceA.bindings.https.url}/eventhandler3",
-                "principalType": "",
-                "principalId": ""
+                "hub2_url_2": "{serviceA.bindings.https.url}/eventhandler3"
               }
             }
             """;
@@ -392,7 +345,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
 
         Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
-        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
         var manifestString = manifest.ManifestNode.ToString();
         output.WriteLine(manifestString);
         output.WriteLine(manifest.BicepText);
@@ -407,10 +360,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             param sku string = 'Free_F1'
 
             param capacity int = 1
-
-            param principalType string
-
-            param principalId string
 
             param hub2_url_0 string
 
@@ -428,16 +377,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               tags: {
                 'aspire-resource-name': 'wps1'
               }
-            }
-
-            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-                principalType: principalType
-              }
-              scope: wps1
             }
 
             resource hub1 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
@@ -496,8 +435,53 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'
+
+            output name string = wps1.name
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public void AddHub_WithDifferentNameAndHubName_SetsPropertiesCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        var hub1 = wps.AddHub("hub1");
+        var hub2 = wps.AddHub("resource2", "hub2");
+        var hub3 = wps.AddHub("hub3", "hub3");
+        var hub4 = wps.AddHub("hub4", null);
+
+        Assert.Equal("hub1", hub1.Resource.Name);
+        Assert.Equal("resource2", hub2.Resource.Name);
+        Assert.Equal("hub3", hub3.Resource.Name);
+        Assert.Equal("hub4", hub4.Resource.Name);
+
+        Assert.Equal("hub1", hub1.Resource.HubName);
+        Assert.Equal("hub2", hub2.Resource.HubName);
+        Assert.Equal("hub3", hub3.Resource.HubName);
+        Assert.Equal("hub4", hub4.Resource.HubName);
+
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub1", hub1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub2", hub2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub3", hub3.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={wps1.outputs.endpoint};Hub=hub4", hub4.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AddHub_CalledTwiceWithSameHubName_ReturnsSameResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        // Call AddHub twice with the same hub name but different resource names
+        var hub1 = wps.AddHub("resource1", "same-hub");
+        var hub2 = wps.AddHub("resource2", "same-hub");
+
+        // Verify both calls return the same hub resource (only the first one is registered)
+        Assert.Same(hub1.Resource, hub2.Resource);
+        Assert.Equal("resource1", hub1.Resource.Name);
+        Assert.Equal("same-hub", hub1.Resource.HubName);
     }
 
     private sealed class ProjectA : IProjectMetadata

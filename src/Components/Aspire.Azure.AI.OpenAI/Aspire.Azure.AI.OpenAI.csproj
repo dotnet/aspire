@@ -11,10 +11,6 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>70</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
@@ -33,7 +29,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.OpenAI\Aspire.OpenAI.csproj" />
   </ItemGroup>
-
-  <Import Project="..\Aspire.OpenAI\MEAIPackageOverrides.targets" />
 
 </Project>

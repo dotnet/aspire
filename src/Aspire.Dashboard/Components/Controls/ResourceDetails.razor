@@ -1,10 +1,10 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Humanizer
 @using Microsoft.Extensions.Diagnostics.HealthChecks
+@using Aspire.Dashboard.Model.Otlp
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IStringLocalizer<Resources> Loc
@@ -12,7 +12,7 @@
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName))" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
@@ -51,26 +51,53 @@
                     </FluentBadge>
                 </div>
                 <PropertyGrid
-                    TItem="ResourcePropertyViewModel"
+                    TItem="DisplayedResourcePropertyViewModel"
                     Items="@FilteredResourceProperties"
                     IsValueMaskedChanged="@OnValueMaskedChanged"
                     HighlightText="@_filter"
                     GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="@_isEndpointsExpanded">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsUrlsHeader)]" Expanded="@_isUrlsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
-                        @FilteredEndpoints.Count()
+                        @FilteredUrls.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid
-                    TItem="DisplayedEndpoint"
-                    Items="@FilteredEndpoints"
-                    ContentAfterValue="(vm) => GetContentAfterValue(vm)"
-                    ValueSort="_endpointValueSort"
-                    IsValueMaskedChanged="@OnValueMaskedChanged"
-                    HighlightText="@_filter"
-                    GridTemplateColumns="1fr 1.5fr" />
+                <FluentDataGrid TGridItem="DisplayedUrl"
+                                ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
+                                Items="@FilteredUrls"
+                                ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizableColumns="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                Style="width:100%"
+                                RowSize="DataGridRowSize.Medium"
+                                GridTemplateColumns="1fr 1fr 0.5fr"
+                                ShowHover="true">
+                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkAddressColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkAddressColumnHeader)]"
+                                   Value="@context.OriginalUrlString"
+                                   ValueTemplate="@(_ => RenderAddressValue(context, _filter))"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Sortable="true" SortBy="@_urlValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.LinkTextColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LinkTextColumnHeader)]"
+                                   Value="@context.DisplayName"
+                                   ValueTemplate="@(_ => RenderTextValue(context, _filter))"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter) && !string.IsNullOrEmpty(context.DisplayName))"
+                                   IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedUrl>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.EndpointNameColumnHeader)]"
+                                   Value="@context.Name"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                </FluentDataGrid>
             </FluentAccordionItem>
             @if (Resource.IsContainer())
             {
@@ -129,7 +156,7 @@
                                 ColumnSortLabels="@_sortLabels"
                                 HeaderCellAsButtonWithMenu="true"
                                 ResizeType="DataGridResizeType.Discrete"
-                                TGridItem="ResourceDetailRelationship"
+                                TGridItem="ResourceDetailRelationshipViewModel"
                                 Items="@FilteredRelationships"
                                 ItemKey="r => r.ResourceName"
                                 ResizableColumns="true"
@@ -158,7 +185,7 @@
                                 ColumnSortLabels="@_sortLabels"
                                 HeaderCellAsButtonWithMenu="true"
                                 ResizeType="DataGridResizeType.Discrete"
-                                TGridItem="ResourceDetailRelationship"
+                                TGridItem="ResourceDetailRelationshipViewModel"
                                 Items="@FilteredBackRelationships"
                                 ItemKey="r => r.ResourceName"
                                 ResizableColumns="true"
@@ -259,19 +286,47 @@
 </div>
 
 @code {
-    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
+    private static RenderFragment RenderAddressValue(DisplayedUrl vm, string filter)
     {
+        var highlighting = !string.IsNullOrEmpty(filter);
+
+        // If there's no URL, e.g. this is a tcp:// URI, just show the text
         if (vm.Url is null)
         {
+            if (highlighting)
+            {
+                return @<FluentHighlighter HighlightedText="@filter" Text="@vm.Text" />;
+            }
             return @<span>@vm.Text</span>;
         }
-        else if (string.Equals(vm.Url, vm.Text, StringComparison.Ordinal))
-        {
-            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
-        }
+        // Otherwise, render a link for the URL
         else
         {
-            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;
+            if (highlighting)
+            {
+                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
+            }
+            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+        }
+    }
+
+    private static RenderFragment RenderTextValue(DisplayedUrl vm, string filter)
+    {
+        var highlighting = !string.IsNullOrEmpty(filter) && !string.IsNullOrEmpty(vm.DisplayName);
+
+        // If there's no DisplayName then show nothing
+        if (string.IsNullOrEmpty(vm.DisplayName))
+        {
+            return @<span class="empty-data"></span>;
+        }
+        // Otherwise, render a link with the text as the anchor text & title as the URL
+        else
+        {
+            if (highlighting)
+            {
+                return @<a href="@vm.Url" title="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.DisplayName" /></a>;
+            }
+            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.DisplayName</a>;
         }
     }
 }

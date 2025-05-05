@@ -70,6 +70,7 @@ public static class AspireRabbitMQExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);
@@ -129,7 +130,7 @@ public static class AspireRabbitMQExtensions
                     traceBuilder
                         .AddSource(ActivitySourceName)
 #if RABBITMQ_V6
-                        // Note that RabbitMQ.Client v6.x doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
+                // Note that RabbitMQ.Client v6.x doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
 #else
                         .AddSource("RabbitMQ.Client.*")
 #endif

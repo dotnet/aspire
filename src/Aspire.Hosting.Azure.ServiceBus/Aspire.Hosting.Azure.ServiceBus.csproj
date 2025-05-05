@@ -8,21 +8,14 @@
     <PackageIconFullPath>$(SharedDir)AzureServiceBus_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>75</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.ServiceBus" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" />
-    <PackageReference Include="AspNetCore.HealthChecks.AzureServiceBus" />
   </ItemGroup>
 
 </Project>

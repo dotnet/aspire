@@ -8,10 +8,6 @@
     <PackageIconFullPath>$(SharedDir)nats-icon.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>7</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(ComponentsDir)Aspire.NATS.Net\NatsHealthCheck.cs" Link="NatsHealthCheck"></Compile>
   </ItemGroup>

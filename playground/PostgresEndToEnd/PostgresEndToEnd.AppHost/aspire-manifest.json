@@ -1,193 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "pg1": {
-      "type": "container.v0",
-      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg1-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
+    "pg": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pg.outputs.connectionString}",
+      "path": "pg.module.bicep"
     },
     "db1": {
       "type": "value.v0",
-      "connectionString": "{pg1.connectionString};Database=db1"
-    },
-    "pg2": {
-      "type": "container.v0",
-      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg2-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db2": {
-      "type": "value.v0",
-      "connectionString": "{pg2.connectionString};Database=db2"
-    },
-    "pg3": {
-      "type": "container.v0",
-      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg3-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db3": {
-      "type": "value.v0",
-      "connectionString": "{pg3.connectionString};Database=db3"
-    },
-    "db4": {
-      "type": "value.v0",
-      "connectionString": "{pg3.connectionString};Database=db4"
-    },
-    "pg4": {
-      "type": "container.v0",
-      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg4-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db5": {
-      "type": "value.v0",
-      "connectionString": "{pg4.connectionString};Database=db5"
-    },
-    "pg5": {
-      "type": "container.v0",
-      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg5-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db6": {
-      "type": "value.v0",
-      "connectionString": "{pg5.connectionString};Database=db6"
-    },
-    "pg6": {
-      "type": "container.v0",
-      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg6-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db7": {
-      "type": "value.v0",
-      "connectionString": "{pg6.connectionString};Database=db7"
-    },
-    "db8": {
-      "type": "value.v0",
-      "connectionString": "{pg6.connectionString};Database=db8"
-    },
-    "db9": {
-      "type": "value.v0",
-      "connectionString": "{pg6.connectionString};Database=db8"
-    },
-    "pg10": {
-      "type": "parameter.v0",
-      "connectionString": "{pg10.value}",
-      "value": "{pg10.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
-      }
-    },
-    "db10": {
-      "type": "value.v0",
-      "connectionString": "{pg10.connectionString};Database=db10"
-    },
-    "pg11": {
-      "type": "container.v0",
-      "connectionString": "Host={pg11.bindings.tcp.host};Port={pg11.bindings.tcp.port};Username=postgres;Password={pg11-password.value}",
-      "image": "docker.io/library/postgres:17.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg11-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "postgres": {
-      "type": "value.v0",
-      "connectionString": "{pg11.connectionString};Database=postgres"
+      "connectionString": "{pg.connectionString};Database=db1"
     },
     "api": {
       "type": "project.v0",
@@ -198,17 +19,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__db1": "{db1.connectionString}",
-        "ConnectionStrings__db2": "{db2.connectionString}",
-        "ConnectionStrings__db3": "{db3.connectionString}",
-        "ConnectionStrings__db4": "{db4.connectionString}",
-        "ConnectionStrings__db5": "{db5.connectionString}",
-        "ConnectionStrings__db6": "{db6.connectionString}",
-        "ConnectionStrings__db7": "{db7.connectionString}",
-        "ConnectionStrings__db8": "{db8.connectionString}",
-        "ConnectionStrings__db9": "{db9.connectionString}",
-        "ConnectionStrings__db10": "{db10.connectionString}",
-        "ConnectionStrings__postgres": "{postgres.connectionString}"
+        "ConnectionStrings__db1": "{db1.connectionString}"
       },
       "bindings": {
         "http": {
@@ -225,109 +36,14 @@
         }
       }
     },
-    "pg1-password": {
-      "type": "parameter.v0",
-      "value": "{pg1-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg2-password": {
-      "type": "parameter.v0",
-      "value": "{pg2-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg3-password": {
-      "type": "parameter.v0",
-      "value": "{pg3-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg4-password": {
-      "type": "parameter.v0",
-      "value": "{pg4-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg5-password": {
-      "type": "parameter.v0",
-      "value": "{pg5-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg6-password": {
-      "type": "parameter.v0",
-      "value": "{pg6-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg11-password": {
-      "type": "parameter.v0",
-      "value": "{pg11-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
+    "pg-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pg-roles.module.bicep",
+      "params": {
+        "pg_outputs_name": "{pg.outputs.name}",
+        "principalType": "",
+        "principalId": "",
+        "principalName": ""
       }
     }
   }

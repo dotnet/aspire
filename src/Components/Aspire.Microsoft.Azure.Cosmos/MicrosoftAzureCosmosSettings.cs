@@ -16,6 +16,16 @@ public sealed class MicrosoftAzureCosmosSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
+    /// Gets or sets the name of the database to connect to.
+    /// </summary>
+    public string? DatabaseName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the container to connect to.
+    /// </summary>
+    public string? ContainerName { get; set; }
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>

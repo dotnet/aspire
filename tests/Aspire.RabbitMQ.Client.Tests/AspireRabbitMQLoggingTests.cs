@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.RabbitMQ;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -50,7 +51,7 @@ public class AspireRabbitMQLoggingTests
         logger.LoggedMessage = () =>
         {
             // wait for at least 2 logs to be written
-            if (logger.Logs.Count >= 2)
+            if (logger.Logs.Count == 2)
             {
                 tsc.SetResult();
             }

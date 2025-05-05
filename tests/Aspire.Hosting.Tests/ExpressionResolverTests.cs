@@ -38,8 +38,8 @@ public class ExpressionResolverTests
         data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("String"), true)), null, ("String", false));
         data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("SecretParameter"), false)), null, ("SecretParameter", true));
 
-        // IResourceWithConnectionString resolves differently for ResourceWithConnectionStringSurrogate (as a secret parameter)
-        data.Add(new ExpressionResolverTestData(false, new ResourceWithConnectionStringSurrogate("SurrogateResource", _ => "SurrogateResource", null)), null, ("SurrogateResource", true));
+        // IResourceWithConnectionString resolves differently for ConnectionStringParameterResource (as a secret parameter)
+        data.Add(new ExpressionResolverTestData(false, new ConnectionStringParameterResource("SurrogateResource", _ => "SurrogateResource", null)), null, ("SurrogateResource", true));
         data.Add(new ExpressionResolverTestData(false, new TestExpressionResolverResource("String")), null, ("String", false));
 
         data.Add(new ExpressionResolverTestData(false, new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)), null, ("SecretParameter", true));
@@ -131,6 +131,8 @@ public class ExpressionResolverTests
         var test = builder.AddResource(new ContainerResource("testSource"))
             .WithEnvironment(env =>
             {
+                Assert.NotNull(env.Resource);
+
                 env.EnvironmentVariables["envname"] = new HostUrl(hostUrlVal);
             });
 
@@ -161,6 +163,41 @@ public class ExpressionResolverTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
+
+    [Fact]
+    public async Task ContainerToContainerEndpointShouldResolve()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var connectionStringResource = builder.AddResource(new MyContainerResource("myContainer"))
+           .WithImage("redis")
+           .WithHttpEndpoint(targetPort: 8080)
+           .WithEndpoint("http", e =>
+           {
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, "ContainerHostName", "{{ targetPort }}");
+           });
+
+        var dep = builder.AddContainer("container", "redis")
+           .WithReference(connectionStringResource)
+           .WaitFor(connectionStringResource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+
+        Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
+    }
+}
+
+sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
+{
+    public MyContainerResource(string name) : base(name)
+    {
+        PrimaryEndpoint = new(this, "http");
+    }
+
+    public EndpointReference PrimaryEndpoint { get; }
+
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 }
 
 sealed class TestValueProviderResource(string name) : Resource(name), IValueProvider

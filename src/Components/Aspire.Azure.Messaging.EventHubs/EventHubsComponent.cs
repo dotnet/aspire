@@ -42,9 +42,20 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
             };
 
-            _healthCheckClient = !string.IsNullOrEmpty(settings.ConnectionString) ?
-                new EventHubProducerClient(settings.ConnectionString, producerClientOptions) :
-                new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+            // If no connection is provided use TokenCredential
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+            }
+            // If no specific EventHubName is provided, it has to be in the connection string
+            else if (string.IsNullOrEmpty(settings.EventHubName))
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.ConnectionString, producerClientOptions);
+            }
+            else
+            {
+                _healthCheckClient = new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, producerClientOptions);
+            }
         }
 
         return new AzureEventHubHealthCheck(_healthCheckClient);

@@ -14,12 +14,12 @@ namespace Aspire.Hosting.Azure;
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The Azure PostgreSQL parent resource associated with this database.</param>
 public class AzurePostgresFlexibleServerDatabaseResource(string name, string databaseName, AzurePostgresFlexibleServerResource postgresParentResource)
-    : Resource(ThrowIfNull(name)), IResourceWithParent<AzurePostgresFlexibleServerResource>, IResourceWithConnectionString
+    : Resource(name), IResourceWithParent<AzurePostgresFlexibleServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the parent Azure PostgresSQL resource.
     /// </summary>
-    public AzurePostgresFlexibleServerResource Parent { get; } = ThrowIfNull(postgresParentResource);
+    public AzurePostgresFlexibleServerResource Parent { get; } = postgresParentResource ?? throw new ArgumentNullException(nameof(postgresParentResource));
 
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
@@ -29,7 +29,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; } = ThrowIfNull(databaseName);
+    public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
     /// <summary>
     /// Gets the inner PostgresDatabaseResource resource.
@@ -41,8 +41,11 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
-    private static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-        => argument ?? throw new ArgumentNullException(paramName);
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 
     internal void SetInnerResource(PostgresDatabaseResource innerResource)
     {

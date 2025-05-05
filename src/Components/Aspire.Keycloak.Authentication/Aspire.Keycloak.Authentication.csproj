@@ -8,10 +8,6 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>80</MinCodeCoverage>
-  </PropertyGroup>      
-
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"  />  

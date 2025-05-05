@@ -33,7 +33,7 @@ The following clients are supported by the library, along with their correspondi
 
 The following example assumes that you have an Azure Event Hubs namespace and an Event Hub created and wish to configure an `EventHubProducerClient` to send events to the Event Hub. The `EventHubConsumerClient`, `EventProcessorClient`, and `PartitionReceiver`are configured in a similar manner.
 
-In the _Program.cs_ file of your project, call the `AddAzureEventHubProducerClient` extension method to register
+In the _AppHost.cs_ file of your project, call the `AddAzureEventHubProducerClient` extension method to register
 a `EventHubProducerClient` for use via the dependency injection container. The method takes a connection name parameter. This assumes you have included the `EntityPath` in the connection string to specify the Event Hub name.
 
 ```csharp
@@ -136,7 +136,7 @@ In your AppHost project, install the Aspire Azure Event Hubs Hosting library wit
 dotnet add package Aspire.Hosting.Azure.EventHubs
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add an Event Hubs connection and an Event Hub resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Event Hubs connection and an Event Hub resource and consume the connection using the following methods:
 
 ```csharp
 var eventHubs = builder.ExecutionContext.IsPublishMode

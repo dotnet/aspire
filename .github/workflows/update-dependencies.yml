@@ -1,0 +1,50 @@
+name: "Update Dependencies"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 16 * * 1"  # Mondays at 8am PST
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@b2ace4b12f4cec1b96b6361ff2694ba9e931ceb4 # v3.3.1
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore solution
+        run: ./build.sh -restore
+
+      - name: Rewrite nuget.config
+        run: dotnet new nugetconfig --force
+
+      - name: Install dotnet-outdated
+        run: dotnet tool install --global dotnet-outdated-tool
+
+      - name: Update packages
+        continue-on-error: true
+        run: dotnet outdated --no-restore -u ./Aspire.sln || echo "Some dependencies could not be updated, but continuing workflow."
+
+      - name: Revert all changes except Directory.Packages.props files
+        run: |
+          git add **Directory.Packages.props
+          rm nuget.config
+          git checkout -- .
+
+      - name: Create Pull Request
+        uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-dependencies
+          commit-message: "[Automated] Updating package dependencies"
+          title: "[Automated] Update dependencies"
+          body: "Auto-generated update to the package dependencies. In order for this PR to be green, it will require all of the new dependencies to be [mirrored to our AzDO NuGet feeds](https://github.com/dotnet/arcade/blob/main/Documentation/MirroringPackages.md). Any updates made outside of the first itemgroup in Directory.Packages.props should be reverted as those are packages that get updated through arcade's dependency flow."

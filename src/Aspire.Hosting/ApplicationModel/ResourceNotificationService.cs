@@ -372,11 +372,9 @@ public class ResourceNotificationService : IDisposable
         var pendingDependencies = new List<Task>();
         foreach (var waitAnnotation in waitAnnotations)
         {
-            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            if (waitAnnotation.Resource is IResourceWithoutLifetime)
             {
-                // Parameters and connection string resources are inert and don't need to be waited on.
-                // If we add support for parameter resources that can be waited on, we can remove this check.
-                // As of right now, we don't support waiting on parameter resources.
+                // IResourceWithoutLifetime are inert and don't need to be waited on.
                 continue;
             }
 
@@ -537,27 +535,22 @@ public class ResourceNotificationService : IDisposable
 
             if (_logger.IsEnabled(LogLevel.Trace))
             {
+                // This is all logged on a single line so that logs have a single event on a single line, which
+                // makes them more easily analyzed in a text editor
                 _logger.LogTrace(
-                    """
-                    Version: {Version}
-                    Resource {Resource}/{ResourceId} update published:
-                    ResourceType = {ResourceType},
-                    CreationTimeStamp = {CreationTimeStamp:s},
-                    State = {{ Text = {StateText}, Style = {StateStyle} }},
-                    HeathStatus = {HealthStatus},
-                    ResourceReady = {ResourceReady},
-                    ExitCode = {ExitCode},
-                    Urls = {{ {Urls} }},
-                    EnvironmentVariables = {{
-                    {EnvironmentVariables}
-                    }},
-                    Properties = {{
-                    {Properties}
-                    }},
-                    HealthReports = {{
-                    {HealthReports}
-                    }}
-                    """,
+                    "Version: {Version} " +
+                    "Resource {Resource}/{ResourceId} update published: " +
+                    "ResourceType = {ResourceType}, " +
+                    "CreationTimeStamp = {CreationTimeStamp:s}, " +
+                    "State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "HeathStatus = {HealthStatus}, " +
+                    "ResourceReady = {ResourceReady}, " +
+                    "ExitCode = {ExitCode}, " +
+                    "Urls = {{ {Urls} }}, " +
+                    "EnvironmentVariables = {{ {EnvironmentVariables} }}, " +
+                    "Properties = {{ {Properties} }}, " +
+                    "HealthReports = {{ {HealthReports} }}, " +
+                    "Commands = {{ {Commands} }}",
                     newState.Version,
                     resource.Name,
                     resourceId,
@@ -568,10 +561,11 @@ public class ResourceNotificationService : IDisposable
                     newState.HealthStatus,
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
-                    string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    JoinIndentLines(newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
-                    JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+                    string.Join(" ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(" ", newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
+                    string.Join(" ", newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    string.Join(" ", newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")),
+                    string.Join(" ", newState.Commands.Select(c => $"{c.DisplayName} ({c.Name}) = {Stringify(c.State)}")));
 
                 static string Stringify(object? o) => o switch
                 {
@@ -580,22 +574,6 @@ public class ResourceNotificationService : IDisposable
                     null => "(null)",
                     _ => o.ToString()!
                 };
-
-                static string JoinIndentLines(IEnumerable<string> values)
-                {
-                    const int spaces = 2;
-                    var indent = new string(' ', spaces);
-                    var separator = Environment.NewLine + indent;
-
-                    var result = string.Join(separator, values);
-                    if (string.IsNullOrEmpty(result))
-                    {
-                        return result;
-                    }
-
-                    // Indent first line.
-                    return indent + result;
-                }
             }
         }
 

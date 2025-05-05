@@ -12,7 +12,7 @@
   ],
   "name": ".NET Aspire Empty App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "Build cloud-native systems without preset services.",
   "shortName": "aspire",
   "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,
@@ -20,9 +20,8 @@
     "language": "C#",
     "type": "solution",
     "editorTreatAs": "solution",
-    "aspire-8.2-tfms": "net8.0",
-    "aspire-9.0-tfms": "net8.0;net9.0",
-    "aspire-9.1-tfms": "net8.0;net9.0"
+    "aspire-9.3-tfms": "net8.0;net9.0",
+    "aspire-9.2-tfms": "net8.0;net9.0"
   },
   "precedence": "9000",
   "identity": "Aspire.Empty.CSharp.8.0",
@@ -36,9 +35,9 @@
   ],
   "sources": [
     {
-      "source": "./9.1",
+      "source": "./9.2",
       "target": "./",
-      "condition": "AspireVersionActual == 9.1",
+      "condition": "AspireVersionActual == 9.2",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -49,22 +48,9 @@
       ]
     },
     {
-      "source": "./9.0",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 9.0",
-      "modifiers": [
-        {
-          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
-          "exclude": [
-            "*.sln"
-          ]
-        }
-      ]
-    },
-    {
-      "source": "./8.2",
-      "target": "./",
-      "condition": "AspireVersionActual == 8.2",
+      "condition": "AspireVersionActual == 9.3",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -100,22 +86,17 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.0",
-          "displayName": "9.0",
-          "description": "Chooses .NET Aspire 9.0"
-        },
-        {
-          "choice": "8.2",
-          "displayName": "8.2 (.NET 8.0 only)",
-          "description": "Chooses .NET Aspire 8.2 (valid only when '--framework net8.0' is specified)"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.1"
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -124,16 +105,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "(AspireVersion == 8.2 && Framework == net8.0)",
-            "value": "8.2"
-          },
-          {
-            "condition": "AspireVersion == 9.0",
-            "value": "9.0"
+            "condition": "AspireVersion == 9.3",
+            "value": "9.3"
           },
           {
             "condition": "",
-            "value": "9.1"
+            "value": "9.2"
           }
         ]
       }

@@ -11,13 +11,13 @@ internal static class MilvusContainerImageTags
     /// <remarks>milvusdb/milvus</remarks>
     public const string Image = "milvusdb/milvus";
 
-    /// <remarks>v2.4.13</remarks>
-    public const string Tag = "v2.4.13";
+    /// <remarks>v2.5.9</remarks>
+    public const string Tag = "v2.5.9";
 
     /// <remarks>zilliz/attu</remarks>
     public const string AttuImage = "zilliz/attu";
 
-    /// <remarks>v2.4</remarks>
-    public const string AttuTag = "v2.4";
+    /// <remarks>v2.5</remarks>
+    public const string AttuTag = "v2.5";
 }
 

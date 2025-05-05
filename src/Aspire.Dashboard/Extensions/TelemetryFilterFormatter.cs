@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Web;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Dashboard.Extensions;
 
 public static class TelemetryFilterFormatter
 {
+    private const string DisabledText = "disabled";
+
     private static string SerializeFilterToString(TelemetryFilter filter)
     {
         var condition = filter.Condition switch
@@ -23,7 +25,13 @@ public static class TelemetryFilterFormatter
             _ => null
         };
 
-        return $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
+        var filterString = $"{StringUtils.Escape(filter.Field)}:{condition}:{StringUtils.Escape(filter.Value)}";
+        if (!filter.Enabled)
+        {
+            filterString += $":{DisabledText}";
+        }
+
+        return filterString;
     }
 
     public static string SerializeFiltersToString(IEnumerable<TelemetryFilter> filters)
@@ -34,12 +42,12 @@ public static class TelemetryFilterFormatter
     private static TelemetryFilter? DeserializeFilterFromString(string filterString)
     {
         var parts = filterString.Split(':');
-        if (parts.Length != 3)
+        if (parts.Length != 3 && parts.Length != 4)
         {
             return null;
         }
 
-        var field = Unescape(parts[0]);
+        var field = StringUtils.Unescape(parts[0]);
 
         FilterCondition? condition = parts[1] switch
         {
@@ -59,24 +67,17 @@ public static class TelemetryFilterFormatter
             return null;
         }
 
-        var value = Unescape(parts[2]);
+        var value = StringUtils.Unescape(parts[2]);
+
+        var enabled = parts is not [_, _, _, DisabledText];
 
         return new TelemetryFilter
         {
             Condition = condition.Value,
             Field = field,
-            Value = value
+            Value = value,
+            Enabled = enabled
         };
-    }
-
-    private static string Escape(string value)
-    {
-        return HttpUtility.UrlEncode(value);
-    }
-
-    private static string Unescape(string value)
-    {
-        return HttpUtility.UrlDecode(value);
     }
 
     public static List<TelemetryFilter> DeserializeFiltersFromString(string filtersString)

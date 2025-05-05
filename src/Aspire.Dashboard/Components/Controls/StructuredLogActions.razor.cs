@@ -19,16 +19,16 @@ public partial class StructuredLogActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.StructuredLogs> Loc { get; set; }
+    public required IStringLocalizer<Resources.StructuredLogs> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
+    public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; set; }
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -58,7 +58,7 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message, containsSecret: false);
             }
         });
     }

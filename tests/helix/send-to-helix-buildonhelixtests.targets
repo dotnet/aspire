@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
-    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsSdksForTesting>true</NeedsSdksForTesting>
     <NeedsPlaywright>true</NeedsPlaywright>
     <NeedsAzureFunctionsCli>true</NeedsAzureFunctionsCli>
 
@@ -31,23 +31,24 @@
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
       <_TestBlameArguments Remove="@(_TestBlameArguments)" />
-      <_TestBlameArguments Include="--blame-crash" />
-      <_TestBlameArguments Include="--blame-crash-dump-type full" />
+      <_TestBlameArguments Include="--crashdump" />
+      <_TestBlameArguments Include="--crashdump-type Full" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
+      <_TestRunCommandArguments Include="dotnet test -- --results-directory $(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
+
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
     </ItemGroup>
 
     <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
       <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
-      <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
-      <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
+      <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_TEMPLATES_TESTING_PATH}:$PATH</_SetPathEnvVar>
+      <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_TEMPLATES_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
     </PropertyGroup>
 
     <ItemGroup>
@@ -62,8 +63,7 @@
         <Timeout>00:15:00</Timeout>
         <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml;logs/%(FileName).trx</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/%(FileName).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

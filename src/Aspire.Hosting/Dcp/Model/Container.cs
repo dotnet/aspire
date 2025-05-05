@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.ApplicationModel;
 using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
@@ -80,6 +81,9 @@ internal sealed class ContainerSpec
     /// </summary>
     [JsonPropertyName("pullPolicy")]
     public string? PullPolicy { get; set; }
+
+    [JsonPropertyName("createFiles")]
+    public List<ContainerCreateFileSystem>? CreateFiles { get; set; }
 }
 
 internal sealed class BuildContext
@@ -283,6 +287,132 @@ internal sealed class ContainerPortSpec
     public string? HostIP { get; set; }
 }
 
+internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFileSystem>
+{
+    // The (absolute) base path to create the child file system entries in the container.
+    [JsonPropertyName("destination")]
+    public string? Destination { get; set; }
+
+    // The default owner UID to use for created (or updated) file system entries. Defaults to 0 for root.
+    [JsonPropertyName("defaultOwner")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultOwner { get; set; }
+
+    // The default group GID to use for created (or updated) file system entries. Defaults to 0 for root.
+    [JsonPropertyName("defaultGroup")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultGroup { get; set; }
+
+    // The umask for created files and folders without explicit permissions set (defaults to 022 if null)
+    [JsonPropertyName("umask")]
+    public int? Umask { get; set; }
+
+    // The list of file system entries to create (or update) in the container.
+    [JsonPropertyName("entries")]
+    public List<ContainerFileSystemEntry>? Entries { get; set; }
+
+    public bool Equals(ContainerCreateFileSystem? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        return Destination == other.Destination
+            && DefaultOwner == other.DefaultOwner
+            && DefaultGroup == other.DefaultGroup
+            && Umask == other.Umask
+            && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
+    }
+}
+
+internal static class ContainerFileSystemItemExtensions
+{
+    public static ContainerFileSystemEntry ToContainerFileSystemEntry(this ContainerFileSystemItem item)
+    {
+        var type = item switch
+        {
+            ContainerFile => ContainerFileSystemEntryType.File,
+            ContainerDirectory => ContainerFileSystemEntryType.Directory,
+            _ => throw new ArgumentException("Unknown file system entry type")
+        };
+
+        var entry = new ContainerFileSystemEntry
+        {
+            Type = type,
+            Name = item.Name,
+            Owner = item.Owner,
+            Group = item.Group,
+            Mode = (int)item.Mode,
+        };
+
+        if (item is ContainerFile file)
+        {
+            entry.Contents = file.Contents;
+        }
+        else if (item is ContainerDirectory directory)
+        {
+            entry.Entries = directory.Entries?.Select(e => e.ToContainerFileSystemEntry()).ToList();
+        }
+
+        return entry;
+    }
+}
+
+internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemEntry>
+{
+    // The type of the file system entry (file or directory)
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = ContainerFileSystemEntryType.File;
+
+    // The name of the file system entry
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    // The UID of the user that owns the file system (if null, the owner will be inherited from its parent directory or the request default)
+    [JsonPropertyName("owner")]
+    public int? Owner { get; set; }
+
+    // The GID of the group that owns the file system (if null, the group will be inherited from its parent directory or the request default)
+    [JsonPropertyName("group")]
+    public int? Group { get; set; }
+
+    // The file system mode (permissions) of the file system entry (if 0, the mode will be inherited from its parent directory or the request default)
+    [JsonPropertyName("mode")]
+    public int Mode { get; set; }
+
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error.
+    [JsonPropertyName("contents")]
+    public string? Contents { get; set; }
+
+    // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
+    [JsonPropertyName("entries")]
+    public List<ContainerFileSystemEntry>? Entries { get; set; }
+
+    public bool Equals(ContainerFileSystemEntry? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        return Type == other.Type
+            && Name == other.Name
+            && Owner == other.Owner
+            && Group == other.Group
+            && Mode == other.Mode
+            && Contents == other.Contents
+            && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
+    }
+}
+
+internal static class ContainerFileSystemEntryType
+{
+    public const string Directory = "directory";
+
+    public const string File = "file";
+}
+
 internal sealed class ContainerStatus : V1Status
 {
     // Container name displayed in Docker
@@ -372,6 +502,10 @@ internal static class ContainerState
 
     // Unknown means for some reason container state is unavailable.
     public const string Unknown = "Unknown";
+
+    // Indicates that the container start is blocked because the container runtime isn't healthy.
+    // Startup will resume once the runtime has recovered.
+    public const string RuntimeUnhealthy = "RuntimeUnhealthy";
 }
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>

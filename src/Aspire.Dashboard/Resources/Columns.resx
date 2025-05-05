@@ -117,7 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="EndpointsColumnDisplayPlaceholder" xml:space="preserve">
+  <data name="UrlsColumnDisplayPlaceholder" xml:space="preserve">
     <value>Starting...</value>
   </data>
   <data name="ResourceNameDisplayProcessIdText" xml:space="preserve">
@@ -180,8 +180,8 @@
     <value>Unknown</value>
     <comment>This term is displayed in the "state" column of a grid, and reflects the case where we don't know what state a given resource is in.</comment>
   </data>
-  <data name="EndpointsColumnDisplayOverflowTitle" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="UrlsColumnDisplayOverflowTitle" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="RunningAndUnhealthyResourceStateToolTip" xml:space="preserve">
     <value>Resource is running but not in a healthy state. Click for details.</value>

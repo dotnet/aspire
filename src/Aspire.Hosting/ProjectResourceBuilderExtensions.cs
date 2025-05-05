@@ -47,7 +47,6 @@ public static class ProjectResourceBuilderExtensions
     /// Note that endpoints coming from the Kestrel configuration are automatically added to the project. The Kestrel Url and Protocols are used
     /// to build the equivalent <see cref="EndpointAnnotation"/>.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -58,6 +57,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -80,7 +80,6 @@ public static class ProjectResourceBuilderExtensions
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -91,6 +90,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -127,7 +127,6 @@ public static class ProjectResourceBuilderExtensions
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -138,6 +137,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -165,7 +165,6 @@ public static class ProjectResourceBuilderExtensions
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -176,6 +175,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -214,7 +214,6 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -225,6 +224,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -254,7 +254,6 @@ public static class ProjectResourceBuilderExtensions
     /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -265,6 +264,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -458,6 +458,38 @@ public static class ProjectResourceBuilderExtensions
                     },
                     createIfNotExists: true);
                 }
+
+                // Update URLs for endpoints from the launch profile if a launchUrl is set
+                if (Uri.TryCreate(launchProfile.LaunchUrl, UriKind.RelativeOrAbsolute, out var launchUri))
+                {
+                    builder.WithUrls(context =>
+                    {
+                        if (context.Resource.TryGetEndpoints(out var endpoints))
+                        {
+                            foreach (var endpoint in endpoints)
+                            {
+                                if (endpoint.FromLaunchProfile)
+                                {
+                                    var url = context.Urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, endpoint.Name, StringComparisons.EndpointAnnotationName));
+                                    if (url is not null)
+                                    {
+                                        if (launchUri.IsAbsoluteUri)
+                                        {
+                                            // Launch URL is absolute, replace the url entirely
+                                            url.Url = launchProfile.LaunchUrl;
+                                        }
+                                        else
+                                        {
+                                            // Launch URL is relative so update the URL to use the launchUrl as path/query
+                                            var baseUri = new Uri(url.Url);
+                                            url.Url = (new Uri(baseUri, launchUri)).ToString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
             }
 
             builder.WithEnvironment(context =>
@@ -551,7 +583,6 @@ public static class ProjectResourceBuilderExtensions
     /// This capability can be useful when debugging scale out scenarios to ensure state is appropriately managed
     /// within a cluster of instances.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Start multiple instances of the same service.
     /// <code lang="csharp">
@@ -561,6 +592,7 @@ public static class ProjectResourceBuilderExtensions
     ///        .WithReplicas(3);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -585,7 +617,6 @@ public static class ProjectResourceBuilderExtensions
     /// into the project and set to true. If the <see cref="DisableForwardedHeaders(IResourceBuilder{ProjectResource})"/>
     /// extension is used this environment variable will not be set.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Disable forwarded headers for a project.
     /// <code lang="csharp">
@@ -595,6 +626,7 @@ public static class ProjectResourceBuilderExtensions
     ///        .DisableForwardedHeaders();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -656,7 +688,11 @@ public static class ProjectResourceBuilderExtensions
         var cb = builder.ApplicationBuilder.AddResource(container);
         // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
-        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+
+        var projectFilePath = builder.Resource.GetProjectMetadata().ProjectPath;
+        var projectDirectoryPath = Path.GetDirectoryName(projectFilePath) ?? throw new InvalidOperationException($"Unable to get directory name for {projectFilePath}");
+
+        cb.WithDockerfile(contextPath: projectDirectoryPath);
         // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());

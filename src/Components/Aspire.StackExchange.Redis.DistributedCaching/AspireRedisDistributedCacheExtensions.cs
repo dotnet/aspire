@@ -27,8 +27,15 @@ public static class AspireRedisDistributedCacheExtensions
     /// Also registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </remarks>
-    public static void AddRedisDistributedCache(this IHostApplicationBuilder builder, string connectionName, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
+    public static void AddRedisDistributedCache(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<StackExchangeRedisSettings>? configureSettings = null,
+        Action<ConfigurationOptions>? configureOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         builder.AddRedisClient(connectionName, configureSettings, configureOptions);
 
         builder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>
@@ -50,8 +57,15 @@ public static class AspireRedisDistributedCacheExtensions
     /// Also registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </remarks>
-    public static void AddKeyedRedisDistributedCache(this IHostApplicationBuilder builder, string name, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
+    public static void AddKeyedRedisDistributedCache(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<StackExchangeRedisSettings>? configureSettings = null,
+        Action<ConfigurationOptions>? configureOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddKeyedRedisClient(name, configureSettings, configureOptions);
 
         builder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>

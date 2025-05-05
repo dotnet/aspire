@@ -5,9 +5,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
 <script>
     let messages = document.querySelector('#messages');
-    const apiBaseUrl = window.location.origin;
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl(apiBaseUrl)
+        .withUrl("/notificationHub")
         .configureLogging(signalR.LogLevel.Information)
         .build();
       connection.on('newMessage', (message) => {

@@ -2,14 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
-using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Dashboard.Components.Tests;
 
-public class GridColumnManagerTests : TestContext
+public class GridColumnManagerTests : DashboardTestContext
 {
     [Fact]
     public void Returns_Correct_TemplateColumn_String()

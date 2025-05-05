@@ -12,7 +12,8 @@
            HighlightText="@FilterText"
            PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
            ToolTip="@Tooltip"
-           StopClickPropagation="true">
+           StopClickPropagation="true"
+           ContainsSecret="@(ContentAfterValue?.Any(v => !v.IsShown) is true)">
     <ContentAfterValue>
         @if (ContentAfterValue is not null)
         {

@@ -46,7 +46,7 @@ steps:
               -restore -build
               -configuration ${{ parameters.buildConfig }}
               -pack
-              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /p:PrepareForHelix=${{ lower(eq(parameters.runHelixTests, 'true')) }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build
@@ -60,12 +60,7 @@ steps:
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
-                chmod +x ubuntu-create-dotnet-devcert.sh &&
-                ./ubuntu-create-dotnet-devcert.sh
+      - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
         displayName: Install devcerts
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
@@ -83,18 +78,16 @@ steps:
         condition: always()
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
-              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /maxcpucount:1 /p:BuildInParallel=false $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
-        # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
-        DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
         DCP_DIAGNOSTICS_LOG_LEVEL: debug
         DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
         DCP_PRESERVE_EXECUTABLE_LOGS: 1
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
       displayName: Run non-helix tests
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
@@ -122,7 +115,7 @@ steps:
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
         # Code coverage on windows is disabled: <issue>
-        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -153,19 +146,3 @@ steps:
       displayName: Gather helix trx files
       continueOnError: true
       condition: always()
-
-  # Code coverage - only on public pipelines
-  - ${{ if and(eq(parameters.runAsPublic, 'true'), or(eq(parameters.runHelixTests, 'true'), eq(parameters.runPipelineTests, 'true'))) }}:
-    - task: CopyFiles@2
-      inputs:
-        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        flattenFolders: true
-      displayName: Gather code coverage results
-
-    - task: PublishPipelineArtifact@1
-      displayName: Publish coverage results (cobertura.xml)
-      inputs:
-        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        artifactName: '$(Agent.JobName)_CodeCoverageResults'
-        publishLocation: 'pipeline'

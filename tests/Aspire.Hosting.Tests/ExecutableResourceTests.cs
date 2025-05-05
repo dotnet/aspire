@@ -48,13 +48,24 @@ public class ExecutableResourceTests
             arg => Assert.Equal("anotherConnectionString", arg)
             );
 
-        var manifest = await ManifestUtils.GetManifest(exe2.Resource).DefaultTimeout();
+        Assert.True(exe2.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        // We don't yet process relationships set via the callbacks
+        // so we don't see the testResource2 nor exe1
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(testResource, r.Resource);
+            });
 
+        var manifest = await ManifestUtils.GetManifest(exe2.Resource).DefaultTimeout();
+        // Note: resource working directory is <repo-root>\tests\Aspire.Hosting.Tests
+        // Manifest directory is <repo-root>\artifacts\bin\Aspire.Hosting.Tests\Debug\net8.0
         var expectedManifest =
         """
         {
           "type": "executable.v0",
-          "workingDirectory": ".",
+          "workingDirectory": "../../../../../tests/Aspire.Hosting.Tests",
           "command": "python",
           "args": [
             "app.py",
@@ -69,6 +80,25 @@ public class ExecutableResourceTests
         """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void ExecutableResourceNullCommand()
+        => Assert.Throws<ArgumentNullException>("command", () => new ExecutableResource("name", command: null!, workingDirectory: "."));
+
+    [Fact]
+    public void ExecutableResourceEmptyCommand()
+        => Assert.Throws<ArgumentException>("command", () => new ExecutableResource("name", command: "", workingDirectory: "."));
+
+    [Fact]
+    public void ExecutableResourceNullWorkingDirectory()
+        => Assert.Throws<ArgumentNullException>("workingDirectory", () => new ExecutableResource("name", command: "cmd", workingDirectory: null!));
+
+    [Fact]
+    public void ExecutableResourceEmptyWorkingDirectory()
+    {
+        var er = new ExecutableResource("name", command: "cmd", workingDirectory: "");
+        Assert.Empty(er.WorkingDirectory);
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

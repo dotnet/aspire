@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -401,12 +402,12 @@ public static class OtlpHelpers
         return sb.ToString();
     }
 
-    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count)
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count, bool isFull)
     {
-        return GetItems<T, T>(results, startIndex, count, null);
+        return GetItems<T, T>(results, startIndex, count, isFull, null);
     }
 
-    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, Func<TSource, TResult>? select)
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, bool isFull, Func<TSource, TResult>? select)
     {
         var query = results.Skip(startIndex).Take(count);
         List<TResult> items;
@@ -423,7 +424,30 @@ public static class OtlpHelpers
         return new PagedResult<TResult>
         {
             Items = items,
-            TotalItemCount = totalItemCount
+            TotalItemCount = totalItemCount,
+            IsFull = isFull
         };
+    }
+
+    public static bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, [NotNullWhen(true)] out OtlpScope? s)
+    {
+        try
+        {
+            // The instrumentation scope information for the spans in this message.
+            // Semantically when InstrumentationScope isn't set, it is equivalent with
+            // an empty instrumentation scope name (unknown).
+            var name = scope?.Name ?? string.Empty;
+            ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
+            // Adds to dictionary if not present.
+            scopeRef ??= (scope != null) ? new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context)) : OtlpScope.Empty;
+            s = scopeRef;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogInformation(ex, "Error adding scope.");
+            s = null;
+            return false;
+        }
     }
 }

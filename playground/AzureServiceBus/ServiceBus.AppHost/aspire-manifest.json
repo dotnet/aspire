@@ -4,23 +4,19 @@
     "sbemulator": {
       "type": "azure.bicep.v0",
       "connectionString": "{sbemulator.outputs.serviceBusEndpoint}",
-      "path": "sbemulator.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "sbemulator.module.bicep"
     },
-    "queue1": {
+    "queueOne": {
       "type": "value.v0",
-      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sbemulator.outputs.serviceBusEndpoint};EntityPath=queue1"
     },
-    "topic1": {
+    "topicOne": {
       "type": "value.v0",
-      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sbemulator.outputs.serviceBusEndpoint};EntityPath=topic1"
     },
     "sub1": {
       "type": "value.v0",
-      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+      "connectionString": "Endpoint={sbemulator.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/sub1"
     },
     "worker": {
       "type": "project.v0",
@@ -29,7 +25,17 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ConnectionStrings__sbemulator": "{sbemulator.connectionString}"
+        "ConnectionStrings__queueOne": "{queueOne.connectionString}",
+        "ConnectionStrings__sub1": "{sub1.connectionString}"
+      }
+    },
+    "sbemulator-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sbemulator-roles.module.bicep",
+      "params": {
+        "sbemulator_outputs_name": "{sbemulator.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

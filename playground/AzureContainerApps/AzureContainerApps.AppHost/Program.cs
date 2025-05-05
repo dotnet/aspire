@@ -3,7 +3,12 @@
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using Aspire.Hosting.Azure;
+using Azure.Provisioning.Storage;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddAzureContainerAppEnvironment("infra");
 
 var customDomain = builder.AddParameter("customDomain");
 var certificateName = builder.AddParameter("certificateName");
@@ -18,13 +23,15 @@ var redis = builder.AddRedis("cache")
 
 // Testing secret outputs
 var cosmosDb = builder.AddAzureCosmosDB("account")
+                      .WithAccessKeyAuthentication()
                       .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+
 cosmosDb.AddCosmosDatabase("db");
 
 // Testing a connection string
-var blobs = builder.AddAzureStorage("storage")
-                   .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
-                   .AddBlobs("blobs");
+var storage = builder.AddAzureStorage("storage")
+                     .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+var blobs = storage.AddBlobs("blobs");
 
 // Testing docker files
 
@@ -34,9 +41,17 @@ builder.AddDockerfile("pythonapp", "AppWithDocker");
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs)
+       .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
        .WithReference(redis)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)
+       .WithEnvironment(context =>
+       {
+           if (context.Resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var identity))
+           {
+               context.EnvironmentVariables["AZURE_PRINCIPAL_NAME"] = identity.IdentityResource.PrincipalName;
+           }
+       })
        .PublishAsAzureContainerApp((module, app) =>
        {
            app.ConfigureCustomDomain(customDomain, certificateName);

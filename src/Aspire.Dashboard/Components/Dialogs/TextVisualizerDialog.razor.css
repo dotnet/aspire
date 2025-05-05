@@ -6,3 +6,25 @@
     width: 100%;
     background: transparent;
 }
+
+.text-visualizer-container ::deep.text-visualizer-unmask-content {
+    margin-top: auto;
+    align-self: start;
+}
+
+.text-visualizer-container ::deep.text-visualizer-copy {
+    margin-top: auto;
+    align-self: end;
+}
+
+.text-visualizer-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 120px;
+}
+
+.text-visualizer-container .log-overflow {
+    max-height: 60vh;
+    margin-bottom: 16px;
+}

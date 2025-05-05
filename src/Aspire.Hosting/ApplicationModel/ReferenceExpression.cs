@@ -94,6 +94,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     [InterpolatedStringHandler]
     public ref struct ExpressionInterpolatedStringHandler(int literalLength, int formattedCount)
     {
+        private static readonly char[] s_braces = ['{', '}'];
         private readonly StringBuilder _builder = new(literalLength * 2);
         private readonly List<IValueProvider> _valueProviders = new(formattedCount);
         private readonly List<string> _manifestExpressions = new(formattedCount);
@@ -104,7 +105,8 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <param name="value">The literal string value to be appended to the interpolated string.</param>
         public readonly void AppendLiteral(string value)
         {
-            _builder.Append(value);
+            // Only escape single braces, leave already escaped braces untouched
+            _builder.Append(EscapeUnescapedBraces(value));
         }
 
         /// <summary>
@@ -115,7 +117,10 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         {
             // The value that comes in is a literal string that is not meant to be interpreted.
             // But the _builder later gets treated as a format string, so we just need to escape the braces.
-            _builder.Append(value?.Replace("{", "{{").Replace("}", "}}"));
+            if (value is not null)
+            {
+                _builder.Append(EscapeUnescapedBraces(value));
+            }
         }
 
         /// <summary>
@@ -132,8 +137,63 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             _manifestExpressions.Add(valueProvider.ValueExpression);
         }
 
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            var index = _valueProviders.Count;
+            _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
+
+            _valueProviders.Add(valueProvider.Resource);
+            _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
+        }
+
         internal readonly ReferenceExpression GetExpression() =>
             new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+
+        private static string EscapeUnescapedBraces(string input)
+        {
+            // Fast path: nothing to escape
+            if (input.IndexOfAny(s_braces) == -1)
+            {
+                return input;
+            }
+
+            // Allocate a bit of extra space in case we need to escape a few braces.
+            var sb = new StringBuilder(input.Length + 4);
+
+            for (var i = 0; i < input.Length; i++)
+            {
+                var c = input[i];
+                if (IsBrace(c))
+                {
+                    if (IsNextCharSame(input, i))
+                    {
+                        // Already escaped, copy both and skip next
+                        sb.Append(c).Append(c);
+                        i++;
+                    }
+                    else
+                    {
+                        // Escape single brace
+                        sb.Append(c).Append(c);
+                    }
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+
+            static bool IsBrace(char ch) => ch == '{' || ch == '}';
+            static bool IsNextCharSame(string s, int idx) =>
+                idx + 1 < s.Length && s[idx + 1] == s[idx];
+        }
     }
 }
 
@@ -235,6 +295,17 @@ public class ReferenceExpressionBuilder
         public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
         {
             builder.AppendFormatted(valueProvider);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider.Resource);
         }
     }
 }

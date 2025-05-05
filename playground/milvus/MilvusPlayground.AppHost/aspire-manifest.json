@@ -4,7 +4,7 @@
     "milvus": {
       "type": "container.v0",
       "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-key.value}",
-      "image": "docker.io/milvusdb/milvus:v2.4.13",
+      "image": "docker.io/milvusdb/milvus:v2.5.5",
       "args": [
         "milvus",
         "run",

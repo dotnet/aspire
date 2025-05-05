@@ -12,6 +12,11 @@
         <target state="translated">Limite de rastreamento excedido</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Traces capture paused at {0}</source>
+        <target state="translated">Captura de rastreamentos em pausa às {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Nome: {0}</target>

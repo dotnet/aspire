@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -21,6 +23,8 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
+    private BicepOutputReference NameOutputReference => new("name", this);
+
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
@@ -37,13 +41,56 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+        => ApplyAzureFunctionsConfiguration(target, connectionName);
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var sbNamespace = ServiceBusNamespace.FromExisting(this.GetBicepIdentifier());
+        sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(sbNamespace);
+        return sbNamespace;
+    }
+
+    internal ReferenceExpression GetConnectionString(string? queueOrTopicName, string? subscriptionName)
+    {
+        if (string.IsNullOrEmpty(queueOrTopicName) && string.IsNullOrEmpty(subscriptionName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        if (!string.IsNullOrEmpty(queueOrTopicName))
+        {
+            builder.Append($";EntityPath={queueOrTopicName}");
+
+            if (!string.IsNullOrEmpty(subscriptionName))
+            {
+                builder.Append($"/Subscriptions/{subscriptionName}");
+            }
+        }
+
+        return builder.Build();
+    }
+
+    internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName, string? queueOrTopicName = null, string? subscriptionName = null)
     {
         if (IsEmulator)
         {
             // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}"] = ConnectionStringExpression;
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = GetConnectionString(queueOrTopicName, subscriptionName);
         }
         else
         {
@@ -51,6 +98,14 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
             target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
+            if (queueOrTopicName != null)
+            {
+                target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__QueueOrTopicName"] = queueOrTopicName;
+            }
+            if (subscriptionName != null)
+            {
+                target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__SubscriptionName"] = subscriptionName;
+            }
         }
     }
 }

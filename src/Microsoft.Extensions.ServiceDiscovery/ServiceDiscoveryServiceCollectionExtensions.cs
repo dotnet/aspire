@@ -24,11 +24,9 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddServiceDiscovery(this IServiceCollection services)
-    {
-        return services.AddServiceDiscoveryCore()
+        => AddServiceDiscoveryCore(services)
             .AddConfigurationServiceEndpointProvider()
             .AddPassThroughServiceEndpointProvider();
-    }
 
     /// <summary>
     /// Adds the core service discovery services and configures defaults.
@@ -37,18 +35,16 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions> configureOptions)
-    {
-        return services.AddServiceDiscoveryCore(configureOptions: configureOptions)
+        => AddServiceDiscoveryCore(services, configureOptions: configureOptions)
             .AddConfigurationServiceEndpointProvider()
             .AddPassThroughServiceEndpointProvider();
-    }
 
     /// <summary>
     /// Adds the core service discovery services.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => services.AddServiceDiscoveryCore(configureOptions: _ => { });
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => AddServiceDiscoveryCore(services, configureOptions: _ => { });
 
     /// <summary>
     /// Adds the core service discovery services.
@@ -58,6 +54,9 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services, Action<ServiceDiscoveryOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
         services.AddOptions();
         services.AddLogging();
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
@@ -80,9 +79,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services)
-    {
-        return services.AddConfigurationServiceEndpointProvider(configureOptions: _ => { });
-    }
+        => AddConfigurationServiceEndpointProvider(services, configureOptions: _ => { });
 
     /// <summary>
     /// Configures a service discovery endpoint provider which uses <see cref="IConfiguration"/> to resolve endpoints.
@@ -92,6 +89,9 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services, Action<ConfigurationServiceEndpointProviderOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndpointProviderFactory, ConfigurationServiceEndpointProviderFactory>();
         services.AddTransient<IValidateOptions<ConfigurationServiceEndpointProviderOptions>, ConfigurationServiceEndpointProviderOptionsValidator>();
@@ -110,6 +110,8 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddPassThroughServiceEndpointProvider(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndpointProviderFactory, PassThroughServiceEndpointProviderFactory>();
         return services;

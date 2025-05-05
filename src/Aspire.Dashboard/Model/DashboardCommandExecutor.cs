@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -15,9 +16,66 @@ public sealed class DashboardCommandExecutor(
     IDialogService dialogService,
     IToastService toastService,
     IStringLocalizer<Dashboard.Resources.Resources> loc,
-    NavigationManager navigationManager)
+    NavigationManager navigationManager,
+    DashboardTelemetryService telemetryService)
 {
+    private readonly HashSet<(string ResourceName, string CommandName)> _executingCommands = [];
+    private readonly object _lock = new object();
+
+    public bool IsExecuting(string resourceName, string commandName)
+    {
+        lock (_lock)
+        {
+            return _executingCommands.Contains((resourceName, commandName));
+        }
+    }
+
     public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
+    {
+        var executingCommandKey = (resource.Name, command.Name);
+        lock (_lock)
+        {
+            _executingCommands.Add(executingCommandKey);
+        }
+
+        var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
+            new Dictionary<string, AspireTelemetryProperty>
+            {
+                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(resource.ResourceType) },
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(command.Name) },
+            });
+
+        var operationId = startEvent.Properties.FirstOrDefault();
+
+        try
+        {
+            await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+            telemetryService.EndOperation(operationId, TelemetryResult.Success);
+        }
+        catch (Exception ex)
+        {
+            telemetryService.EndUserTask(operationId, TelemetryResult.Failure, ex.Message);
+        }
+        finally
+        {
+            // There may be a delay between a command finishing and the arrival of a new resource state with updated commands sent to the client.
+            // For example:
+            // 1. Click the stop command on a resource. The command is disabled while running.
+            // 2. The stop command finishes, and it is re-enabled.
+            // 3. A new resource state arrives in the dashboard, replacing the stop command with the run command.
+            //
+            // To prevent the stop command from being temporarily enabled, introduce a delay between a command finishing and re-enabling it in the dashboard.
+            // This delay is chosen to balance avoiding an incorrect temporary state (since the new resource state should arrive within a second) and maintaining responsiveness.
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+            lock (_lock)
+            {
+                _executingCommands.Remove(executingCommandKey);
+            }
+        }
+    }
+
+    public async Task ExecuteAsyncCore(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
         {
@@ -91,7 +149,7 @@ public sealed class DashboardCommandExecutor(
             toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
             toastParameters.Content.Details = response.ErrorMessage;
             toastParameters.PrimaryAction = loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)];
-            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
+            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource))));
         }
 
         if (!toastClosed)

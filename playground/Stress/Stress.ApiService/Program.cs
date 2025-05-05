@@ -15,7 +15,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName))
+    .WithTracing(tracing => tracing
+        .AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName)
+        .AddSource("Services.Api"))
     .WithMetrics(metrics => metrics.AddMeter(TestMetrics.MeterName));
 builder.Services.AddSingleton<TestMetrics>();
 
@@ -78,7 +80,7 @@ app.MapGet("/big-trace", async () =>
         IncludeBrokenLinks = true
     };
 
-    await traceCreator.CreateTraceAsync(count: 10, createChildren: true);
+    await traceCreator.CreateTraceAsync("bigtrace", count: 10, createChildren: true);
 
     return "Big trace created";
 });
@@ -93,7 +95,13 @@ app.MapGet("/trace-limit", async () =>
 
     for (var i = 0; i < TraceCount; i++)
     {
-        await traceCreator.CreateTraceAsync(count: 1, createChildren: false);
+        // Delay so OTEL has the opportunity to send traces.
+        if (i % 1000 == 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(0.5));
+        }
+
+        await traceCreator.CreateTraceAsync($"tracelimit-{i}", count: 1, createChildren: false);
     }
 
     Activity.Current = current;
@@ -117,7 +125,7 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
 app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
     const int LogCount = 10_000;
-    const int BatchSize = 10;
+    const int BatchSize = 100;
 
     for (var i = 0; i < LogCount / BatchSize; i++)
     {
@@ -270,13 +278,77 @@ app.MapGet("/multiple-traces-linked", async () =>
     Activity.Current = null;
     var traceCreator = new TraceCreator();
 
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace1");
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace2");
-    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace3");
+    await traceCreator.CreateTraceAsync("trace1", count: 1, createChildren: true, rootName: "LinkedTrace1");
+    await traceCreator.CreateTraceAsync("trace2", count: 1, createChildren: true, rootName: "LinkedTrace2");
+    await traceCreator.CreateTraceAsync("trace3", count: 1, createChildren: true, rootName: "LinkedTrace3");
 
     Activity.Current = current;
 
     return $"Created {TraceCount} traces.";
 });
 
+app.MapGet("/nested-trace-spans", async () =>
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    Random.Shared.Next(-20, 55),
+                    "Sample Text"
+                ))
+            .ToArray();
+        ActivitySource source = new("Services.Api", "1.0.0");
+        ActivitySource.AddActivityListener(new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+        });
+        using var activity = source.StartActivity("ValidateAndUpdateCacheService.ExecuteAsync");
+        await Task.Delay(100);
+        Debug.Assert(activity is not null);
+        using var innerActivity = source.StartActivity("ValidateAndUpdateCacheService.activeUser",
+            ActivityKind.Internal, parentContext: activity.Context);
+        await Task.Delay(100);
+        Debug.Assert(innerActivity is not null);
+        using (source.StartActivity("Perform1", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(10);
+        }
+
+        using (source.StartActivity("Perform2", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(20);
+        }
+
+        using (source.StartActivity("Perform3", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(30);
+        }
+
+        using var innerActivity2 = source.StartActivity("ValidateAndUpdateCacheService.activeUser",
+            ActivityKind.Internal, parentContext: activity.Context);
+        await Task.Delay(100);
+        Debug.Assert(innerActivity2 is not null);
+
+        using (source.StartActivity("Perform1", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(30);
+        }
+
+        using (source.StartActivity("Perform2", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(20);
+        }
+
+        using (source.StartActivity("Perform3", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(10);
+        }
+
+        return forecast;
+    })
+    .WithName("GetWeatherForecast");
+
 app.Run();
+
+public record WeatherForecast(DateOnly Date, int TemperatureC, string Summary);
