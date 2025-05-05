@@ -860,13 +860,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     {
         var properties = new List<ComponentTelemetryProperty>
         {
-            new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting))
+            new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting)),
+            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
         };
-
-        foreach (var resourceTypeGroup in _resourceByName.Values.GroupBy(r => r.ResourceType))
-        {
-            properties.Add(new ComponentTelemetryProperty($"{TelemetryPropertyKeys.ResourceType}.{resourceTypeGroup.Key}", new AspireTelemetryProperty(resourceTypeGroup.Count(), AspireTelemetryPropertyType.Metric)));
-        }
 
         TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
     }
