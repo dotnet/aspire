@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Impostazioni predefinite del servizio .NET Aspire",
-  "description": "Service and cloud defaults wired up — just add your app logic.",
+  "description": "Impostazioni predefinite per il servizio e il cloud già configurate: basta aggiungere la logica dell'app.",
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",

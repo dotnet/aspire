@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire サービスの既定値",
-  "description": "Service and cloud defaults wired up — just add your app logic.",
+  "description": "サービスとクラウドの既定値はワイヤード アップされており、アプリ ロジックを追加するだけです。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/Framework/choices/net9.0/description": "ターゲット net9.0",
