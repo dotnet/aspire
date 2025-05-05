@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
-using System.Globalization;
-using System.Text;
+using System.Text.RegularExpressions;
 using Aspire.Azure.Common;
 
 namespace Aspire.Azure.Storage.Blobs;
@@ -11,8 +9,11 @@ namespace Aspire.Azure.Storage.Blobs;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Blob Storage container.
 /// </summary>
-public sealed class AzureBlobStorageContainerSettings : AzureStorageBlobsSettings, IConnectionStringSettings
+public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlobsSettings, IConnectionStringSettings
 {
+    [GeneratedRegex(@"ContainerName=([^;]*);")]
+    private static partial Regex ExtractContainerName();
+
     public string? BlobContainerName { get; set; }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
@@ -22,38 +23,30 @@ public sealed class AzureBlobStorageContainerSettings : AzureStorageBlobsSetting
             return;
         }
 
+        // In the emulator mode, the connection string may look like:
+        //
+        //     DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=...;BlobEndpoint=http://127.0.0.1:5555/devstoreaccount1;ContainerName=<container_name>;
+        //
+        // When run against the real Azure resources, the connection string will look similar to:
+        //
+        //      https://<storage_name>.blob.core.windows.net/ContainerName=<container_name>;
+        //
+        // Retrieve the container name from the connection string, if it is present; and then
+        // remove it as it will upset BlobServiceClient.
+
+        if (ExtractContainerName().Match(connectionString) is var match)
+        {
+            BlobContainerName = match.Groups[1].Value;
+            connectionString = connectionString.Replace(match.Value, string.Empty);
+        }
+
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
             ServiceUri = uri;
-
-            // TODO: how do we get the container name from the URI?
         }
         else
         {
-            var connectionBuilder = new DbConnectionStringBuilder()
-            {
-                ConnectionString = connectionString
-            };
-
-            if (connectionBuilder.TryGetValue("ContainerName", out var containerValue))
-            {
-                BlobContainerName = (string)containerValue;
-
-                // Remove it from the connection string, it is our custom property.
-                connectionBuilder["ContainerName"] = null;
-            }
-
-            // We can't use connectionBuilder.ConnectionString here, because connectionBuilder escapes values
-            // adding quotes and other characters, which upsets the Azure SDK.
-            // So, we have rebuilt the connection string manually.
-
-            StringBuilder builder = new();
-            foreach (string keyword in connectionBuilder.Keys)
-            {
-                builder.Append(CultureInfo.InvariantCulture, $"{keyword}={connectionBuilder[keyword]};");
-            }
-
-            ConnectionString = builder.ToString();
+            ConnectionString = connectionString;
         }
     }
 }
