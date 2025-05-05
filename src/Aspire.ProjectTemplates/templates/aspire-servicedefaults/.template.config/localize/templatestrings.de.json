@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Standardwerte für den .NET Aspire-Dienst",
-  "description": "Service and cloud defaults wired up — just add your app logic.",
+  "description": "Dienst- und Cloudstandardwerte sind eingerichtet – fügen Sie einfach Ihre Anwendungslogik hinzu.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 测试项目(MSTest)",
-  "description": "Beginner-friendly integration tests for your .NET Aspire app using MSTest.",
+  "description": "使用 MSTest 对 .NET Aspire 应用进行的易入门集成测试。",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",

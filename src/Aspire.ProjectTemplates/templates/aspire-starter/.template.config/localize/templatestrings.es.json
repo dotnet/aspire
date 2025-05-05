@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplicación de inicio de .NET Aspire",
-  "description": "A complete web app setup: frontend, backend, and optional caching for faster responses.",
+  "description": "Una configuración completa de la aplicación web: front-end, back-end y almacenamiento en caché opcional para obtener respuestas más rápidas.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",
