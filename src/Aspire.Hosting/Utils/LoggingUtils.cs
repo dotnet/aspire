@@ -16,6 +16,5 @@ internal static class LoggingUtils
             configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckName}.LogicalHandler", LogLevel.None);
             configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckName}.ClientHandler", LogLevel.None);
         });
-
     }
 }
