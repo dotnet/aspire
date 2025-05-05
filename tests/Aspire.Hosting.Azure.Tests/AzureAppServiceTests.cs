@@ -57,7 +57,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_id": "{env.outputs.id}",
+            "env_outputs_planid": "{env.outputs.planId}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
             "api_containerimage": "{api.containerImage}",
@@ -75,7 +75,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
         
         param env_outputs_azure_container_registry_endpoint string
         
-        param env_outputs_id string
+        param env_outputs_planid string
         
         param env_outputs_azure_container_registry_managed_identity_id string
         
@@ -89,7 +89,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
           location: location
           properties: {
-            serverFarmId: env_outputs_id
+            serverFarmId: env_outputs_planid
             siteConfig: {
               linuxFxVersion: 'DOCKER|${api_containerimage}'
               acrUseManagedIdentityCreds: true
@@ -210,7 +210,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           }
         }
         
-        output id string = env_asplan.id
+        output planId string = env_asplan.id
         
         output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
         
@@ -263,7 +263,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           "path": "api.module.bicep",
           "params": {
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_id": "{env.outputs.id}",
+            "env_outputs_planid": "{env.outputs.planId}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
             "api_containerimage": "{api.containerImage}",
@@ -283,7 +283,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
         
         param env_outputs_azure_container_registry_endpoint string
         
-        param env_outputs_id string
+        param env_outputs_planid string
         
         param env_outputs_azure_container_registry_managed_identity_id string
         
@@ -310,7 +310,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
           location: location
           properties: {
-            serverFarmId: env_outputs_id
+            serverFarmId: env_outputs_planid
             keyVaultReferenceIdentity: api_identity_outputs_id
             siteConfig: {
               linuxFxVersion: 'DOCKER|${api_containerimage}'
@@ -393,7 +393,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           "path": "project2.module.bicep",
           "params": {
             "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_id": "{env.outputs.id}",
+            "env_outputs_planid": "{env.outputs.planId}",
             "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
             "project2_containerimage": "{project2.containerImage}",
@@ -411,7 +411,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
 
         param env_outputs_azure_container_registry_endpoint string
 
-        param env_outputs_id string
+        param env_outputs_planid string
 
         param env_outputs_azure_container_registry_managed_identity_id string
 
@@ -425,7 +425,7 @@ public class AzureAppServiceTests(ITestOutputHelper output)
           name: take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)
           location: location
           properties: {
-            serverFarmId: env_outputs_id
+            serverFarmId: env_outputs_planid
             siteConfig: {
               linuxFxVersion: 'DOCKER|${project2_containerimage}'
               acrUseManagedIdentityCreds: true
