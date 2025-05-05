@@ -67,7 +67,7 @@ public static class AzureProvisioningResourceExtensions
         var resources = infrastructure.GetProvisionableResources();
 
         var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
-        var kvName = $"{parameter.BicepIdentifier}_kv";
+        var kvName = Infrastructure.NormalizeBicepIdentifier($"{parameter.BicepIdentifier}_kv");
 
         var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv => kv.BicepIdentifier == kvName);
 
