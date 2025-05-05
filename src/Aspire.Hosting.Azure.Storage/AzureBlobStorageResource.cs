@@ -16,8 +16,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     IResourceWithParent<AzureStorageResource>,
     IResourceWithAzureFunctionsConfig
 {
-    internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
-
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
     /// </summary>

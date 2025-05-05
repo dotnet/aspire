@@ -83,14 +83,11 @@ public static class AzureStorageExtensions
 
             var azureResource = (AzureStorageResource)infrastructure.AspireResource;
 
-            foreach (var blobStorageResources in azureResource.Blobs)
+            foreach (var blobContainer in azureResource.BlobContainers)
             {
-                foreach (var blobContainer in blobStorageResources.BlobContainers)
-                {
-                    var cdkBlobContainer = blobContainer.ToProvisioningEntity();
-                    cdkBlobContainer.Parent = blobs;
-                    infrastructure.Add(cdkBlobContainer);
-                }
+                var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                cdkBlobContainer.Parent = blobs;
+                infrastructure.Add(cdkBlobContainer);
             }
 
             // We need to output name to externalize role assignments.
@@ -159,12 +156,9 @@ public static class AzureStorageExtensions
                 throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
-            foreach (var blobStorageResources in builder.Resource.Blobs)
+            foreach (var blobContainer in builder.Resource.BlobContainers)
             {
-                foreach (var blobContainer in blobStorageResources.BlobContainers)
-                {
-                    await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
-                }
+                await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
             }
         });
 
@@ -314,8 +308,6 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
-        builder.Resource.Blobs.Add(resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -335,7 +327,7 @@ public static class AzureStorageExtensions
 
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource);
 
-        builder.Resource.BlobContainers.Add(resource);
+        builder.Resource.Parent.BlobContainers.Add(resource);
 
         return builder.ApplicationBuilder.AddResource(resource);
     }

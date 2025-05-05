@@ -23,7 +23,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
-    internal List<AzureBlobStorageResource> Blobs { get; } = [];
+    internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
