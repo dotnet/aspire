@@ -5,11 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureKeyVaultTests(ITestOutputHelper output)
+public class AzureKeyVaultTests
 {
     [Fact]
     public async Task AddKeyVaultViaRunMode()
@@ -29,32 +28,8 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -77,61 +52,15 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-              location: location
-              properties: {
-                tenantId: tenant().tenantId
-                sku: {
-                  family: 'A'
-                  name: 'standard'
-                }
-                enableRbacAuthorization: true
-              }
-              tags: {
-                'aspire-resource-name': 'mykv'
-              }
-            }
-
-            output vaultUri string = mykv.properties.vaultUri
-
-            output name string = mykv.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.main")
+            .UseHelixAwareDirectory("Snapshots");
 
         var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
         var kvRolesManifest = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param mykv_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: mykv_outputs_name
-            }
-
-            resource mykv_KeyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-                principalType: principalType
-              }
-              scope: mykv
-            }
-            """;
-        output.WriteLine(kvRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, kvRolesManifest.BicepText);
+        await Verifier.Verify(kvRolesManifest.BicepText, extension: "bicep")
+            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.kvroles")
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -197,7 +126,7 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             });
         });
 
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
 
         var expectedManifest =
             """
@@ -210,35 +139,10 @@ public class AzureKeyVaultTests(ITestOutputHelper output)
             }
             """;
 
-        var m = manifest.ToString();
+        var m = manifest.ManifestNode.ToString();
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep =
-        """
-        @description('The location for the resource(s) to be deployed.')
-        param location string = resourceGroup().location
-        
-        param mykeyvault_outputs_name string
-        
-        resource mykeyvault_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-          name: mykeyvault_outputs_name
-        }
-        
-        resource mykeyvault_outputs_name_kv_mySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'mySecret'
-          parent: mykeyvault_outputs_name_kv
-        }
-        
-        resource mykeyvault_outputs_name_kv_mySecret2 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-          name: 'mySecret2'
-          parent: mykeyvault_outputs_name_kv
-        }
-        
-        output secretUri1 string = mykeyvault_outputs_name_kv_mySecret.properties.secretUri
-        
-        output secretUri2 string = mykeyvault_outputs_name_kv_mySecret2.properties.secretUri
-        """;
-        output.WriteLine(bicep);
-        Assert.Equal(expectedBicep, bicep);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
     }
 }
