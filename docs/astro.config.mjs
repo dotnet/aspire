@@ -99,19 +99,35 @@ export default defineConfig({
 				},
 				{
 					label: 'Dashboard',
-					badge: {
-						text: 'Screenshots',
-						variant: 'caution'
-					},
-					collapsed: true,
-					autogenerate: { directory: 'dahboard' },
+					items: [
+						{ label: 'Overview', slug: '' },
+						{
+							label: 'Features', slug: '', badge: {
+								text: 'Screenshots',
+								variant: 'caution'
+							},
+						},
+						{ label: 'Standalone', slug: '' },
+						{ label: 'Configuration', slug: '' },
+						{ label: 'Browser telemetry', slug: '' },
+					]
 				},
 				{
 					label: 'Integrations',
 					badge: 'New',
 					collapsed: true,
 					autogenerate: { directory: 'integrations' },
+				},
+				{
+					label: 'Custom Integrations',
+					collapsed: true,
+					items: [
+						{ label: 'Create hosting integration', slug: '' },
+						{ label: 'Create client integration', slug: '' },
+						{ label: 'Secure integrations', slug: '' },
+					]
 				}
+
 			],
 			plugins: [
 				catppuccin(),
