@@ -4,6 +4,7 @@
 using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -12,6 +13,14 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
 {
+    /// <summary>
+    /// Gets or sets the connection string used to connect to the AI Foundry account.
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/> and <see cref="Credential"/>.
+    /// </remarks>
+    public string? ConnectionString { get; set; }
+
     /// <summary>
     /// Gets or sets the ID of the AI model deployment to use for chat completions.
     /// </summary>

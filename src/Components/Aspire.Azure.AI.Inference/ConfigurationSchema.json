@@ -114,6 +114,10 @@
                       },
                       "description": "Client options for Azure.AI.Inference library clients."
                     },
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string used to connect to the AI Foundry account."
+                    },
                     "DeploymentId": {
                       "type": "string",
                       "description": "Gets or sets the ID of the AI model deployment to use for chat completions."
