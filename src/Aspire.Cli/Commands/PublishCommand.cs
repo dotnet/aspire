@@ -353,7 +353,7 @@ internal sealed class PublishCommand : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError($"An error occurred while connecting to the AppHost backchannel, app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayError($"An error occurred while connecting to the app host backchannel. The app host possibly crashed before it was available: {ex.Message}");
 
             var operationArgumentIndex = ex.Process.StartInfo.ArgumentList.IndexOf("--operation");
             var operation = ex.Process.StartInfo.ArgumentList[operationArgumentIndex + 1];

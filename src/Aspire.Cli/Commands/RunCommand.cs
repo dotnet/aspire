@@ -283,7 +283,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError($"An error occurred while connecting to the AppHost backchannel, app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayError($"An error occurred while connecting to the app host backchannel. The app host possibly crashed before it was available: {ex.Message}");
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
