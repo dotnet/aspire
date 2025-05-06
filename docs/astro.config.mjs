@@ -92,11 +92,7 @@ export default defineConfig({
 						{ label: 'Installation', slug: 'get-started/installation' },
 						{ label: 'First app', slug: 'get-started/first-app' }
 					],
-				},
-				{
-					label: 'Reference',
-					autogenerate: { directory: 'reference' },
-				},
+				}
 			],
 			plugins: [
 				catppuccin(),

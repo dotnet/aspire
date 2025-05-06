@@ -3,17 +3,61 @@ title: Prerequisites
 description: Learn about essential tooling concepts for Aspire.
 ---
 
-import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Icon, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-To work with Aspire, you need the following installed locally:
+To get started with Aspire, you need to install a few prerequisites. This guide will help you set up your development environment for building and running Aspire applications.
 
-- [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0).
-- An OCI compliant container runtime, such as [Docker Desktop](https://www.docker.com/products/docker-desktop) or [Podman](https://podman.io/).
-- An Integrated Developer Environment (IDE) or code editor, such as:
-  - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) version 17.9 or higher (Optional)
-  - [Visual Studio Code](https://code.visualstudio.com/) (with [C# Dev Kit: Extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit))
-  - [JetBrains Rider with Aspire plugin](https://blog.jetbrains.com/dotnet/2024/02/19/jetbrains-rider-and-the-net-aspire-plugin/) (Optional)
+## Install the required SDK
 
-<Aside type="note">
-  Alternatively, you can develop Aspire solutions using [GitHub Codespaces](../get-started/github-codespaces.md) or [Dev Containers](../get-started/dev-containers.md).
+Install either [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) to work with Aspire. No prior .NET experience is required.
+
+### OCI compliant container runtime
+
+Aspire uses an OCI compliant container runtime to run and manage containers. The most common option is Docker Desktop, which provides a user-friendly interface for managing containers and images.
+
+<LinkButton href="https://www.docker.com/products/docker-desktop" icon="seti:docker" iconPlacement="start" variant="secondary">
+  Docker Desktop
+</LinkButton>
+
+Alternatively, you can use [Podman](https://podman.io/), which is a daemonless container engine that can run containers without requiring root privileges.
+
+### Choose your IDE
+
+Aspire supports multiple IDEs and code editors. You can choose the one that best fits your workflow:
+
+<CardGrid>
+  <LinkCard
+    title="Visual Studio"
+    href="https://visualstudio.microsoft.com/vs/"
+    description="Visual Studio is a powerful IDE for .NET development. 
+    It provides a rich set of features, including debugging, IntelliSense, and integrated Git support." />
+  <LinkCard
+    title="Visual Studio Code"
+    icon="seti:visual-studio-code"
+    href="https://code.visualstudio.com/"
+    description="Visual Studio Code is a lightweight code editor with support for .NET development through extensions. It's ideal for cross-platform development and quick edits." />
+  <LinkCard
+    title="JetBrains Rider" 
+    href="https://blog.jetbrains.com/dotnet/2024/02/19/jetbrains-rider-and-the-net-aspire-plugin"
+    description="JetBrains Rider is a cross-platform .NET IDE that provides advanced code analysis, refactoring, and debugging capabilities." />
+</CardGrid>
+
+### Alternatives to local installation
+
+If you prefer not to install the prerequisites locally, you can develop Aspire solutions using either:
+
+<CardGrid>
+  <LinkCard
+    title="GitHub Codespaces"
+    href="../get-started/github-codespaces.md" />
+  <LinkCard
+    title="Dev Containers"
+    href="../get-started/dev-containers.md" />
+</CardGrid>
+
+
+<Aside type='tip'>
+  These options allow you to work in a cloud-based environment, eliminating the need for local installations. But they may not provide the same performance as local installations.
 </Aside>
+
+
