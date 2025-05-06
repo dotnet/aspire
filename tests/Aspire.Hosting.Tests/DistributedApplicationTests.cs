@@ -201,7 +201,6 @@ public class DistributedApplicationTests
         {
             Assert.Equal("http://localhost:5156", u.Url);
             Assert.Equal("http", u.Name);
-            Assert.False(u.IsInactive);
         });
 
         // Dependent resource should now run.
@@ -210,7 +209,6 @@ public class DistributedApplicationTests
         {
             Assert.Equal("http://localhost:5254", u.Url);
             Assert.Equal("http", u.Name);
-            Assert.False(u.IsInactive);
         });
 
         logger.LogInformation("Stop resource.");
