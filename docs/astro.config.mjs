@@ -94,7 +94,7 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'get-started/overview' },
 						{ label: 'Prerequisites', slug: 'get-started/prerequisites' },
 						{ label: 'Installation', slug: 'get-started/installation' },
-						{ label: 'First app', slug: 'get-started/first-app' }
+						{ label: 'First app', slug: 'get-started/first-app', badge: 'Quickstart' }
 					],
 				},
 				{
@@ -103,18 +103,22 @@ export default defineConfig({
 						{ label: 'Overview', slug: '' },
 						{
 							label: 'Features', slug: '', badge: {
-								text: 'Screenshots',
+								text: 'UX',
 								variant: 'caution'
 							},
 						},
-						{ label: 'Standalone', slug: '' },
+						{
+							label: 'Standalone', slug: '', badge: {
+								text: 'Container',
+								variant: 'danger'
+							},
+						},
 						{ label: 'Configuration', slug: '' },
 						{ label: 'Browser telemetry', slug: '' },
 					]
 				},
 				{
 					label: 'Integrations',
-					badge: 'New',
 					collapsed: true,
 					autogenerate: { directory: 'integrations' },
 				},
@@ -126,8 +130,21 @@ export default defineConfig({
 						{ label: 'Create client integration', slug: '' },
 						{ label: 'Secure integrations', slug: '' },
 					]
+				},
+				{
+					label: 'Deploy',
+					collapsed: true,
+					slug: '',
+				},
+				{
+					label: 'Reference',
+					badge: {
+						text: 'API',
+						variant: 'tip'
+					},
+					collapsed: true,
+					slug: '',
 				}
-
 			],
 			plugins: [
 				catppuccin(),
