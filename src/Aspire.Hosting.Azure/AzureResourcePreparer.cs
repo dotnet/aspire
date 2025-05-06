@@ -179,11 +179,10 @@ internal sealed class AzureResourcePreparer(
                     {
                         var (identityResource, roleAssignmentResources) = CreateIdentityAndRoleAssignmentResources(options, resource, roleAssignments);
 
-                        // attach the identity resource to compute resource so it can be used by the compute environment
-                        resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
-
                         if (resource != identityResource)
                         {
+                            // attach the identity resource to compute resource so it can be used by the compute environment
+                            resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
                             // add the identity resource to the resource collection so it can be provisioned
                             appModel.Resources.Add(identityResource);
                         }
