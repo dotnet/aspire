@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.MySql
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a MySQL resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a MySQL resource and consume the connection using the following methods:
 
 ```csharp
 var db = builder.AddMySql("mysql").AddDatabase("mydb");

@@ -16,7 +16,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class TraceDetail : ComponentBase, IDisposable
+public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -60,6 +60,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     protected override void OnInitialized()
     {
         _gridColumns = [
@@ -77,6 +80,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     // Internal to be used in unit tests
@@ -189,7 +194,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         }
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(_collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
     }
 
@@ -324,5 +329,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
             subscription.Dispose();
         }
         _tracesSubscription?.Dispose();
+        TelemetryContext.Dispose();
     }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
 }

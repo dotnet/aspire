@@ -98,12 +98,19 @@ public static class AzureContainerAppExtensions
 
             infra.Add(identity);
 
-            var containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
+            ContainerRegistryService? containerRegistry = null;
+            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
             {
-                Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                Tags = tags
-            };
-
+                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+            }
+            else
+            {
+                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
+                {
+                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
+                    Tags = tags
+                };
+            }
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -269,7 +276,9 @@ public static class AzureContainerAppExtensions
                 laWorkspace.Name = BicepFunction.Interpolate($"law-{resourceToken}");
                 containerAppEnvironment.Name = BicepFunction.Interpolate($"cae-{resourceToken}");
 
+#pragma warning disable IDE0031 // Use null propagation (IDE0031)
                 if (storageVolume is not null)
+#pragma warning restore IDE0031
                 {
                     storageVolume.Name = BicepFunction.Interpolate($"vol{resourceToken}");
                 }
@@ -343,7 +352,7 @@ public static class AzureContainerAppExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     /// <remarks>
     /// By default, the container app environment resources use a different naming convention than azd.
-    /// 
+    ///
     /// This method allows for reusing the previously deployed resources if the application was deployed using
     /// azd without calling <see cref="AddAzureContainerAppEnvironment"/>
     /// </remarks>

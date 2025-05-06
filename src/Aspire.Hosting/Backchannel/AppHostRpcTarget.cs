@@ -21,7 +21,8 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     IDistributedApplicationEventing eventing,
     PublishingActivityProgressReporter activityReporter,
-    IHostApplicationLifetime lifetime
+    IHostApplicationLifetime lifetime,
+    DistributedApplicationOptions options
     ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
@@ -101,6 +102,24 @@ internal class AppHostRpcTarget(
 
     public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
     {
+        return GetDashboardUrlsAsync(CancellationToken.None);
+    }
+
+    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    {
+        if (!options.DashboardEnabled)
+        {
+            logger.LogError("Dashboard URL requested but dashboard is disabled.");
+            throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
+        }
+
+        // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
+        // endpoint for the resource is available and the dashboard is ready to be used. This helps
+        // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
+        await resourceNotificationService.WaitForResourceHealthyAsync(
+            KnownResourceNames.AspireDashboard,
+            cancellationToken).ConfigureAwait(false);
+
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
         if (dashboardOptions is null)
@@ -122,11 +141,11 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return Task.FromResult<(string, string?)>((baseUrlWithLoginToken, null));
+            return (baseUrlWithLoginToken, null);
         }
         else
         {
-            return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+            return (baseUrlWithLoginToken, codespacesUrlWithLoginToken);
         }
     }
 

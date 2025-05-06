@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -267,7 +266,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7178")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7178")]
     public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));

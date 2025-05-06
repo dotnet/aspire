@@ -251,6 +251,56 @@ public class ApplicationOrchestratorTests
         Assert.Contains("Circular dependency detected", e.Message);
     }
 
+    [Fact]
+    public async Task GrandChildResourceWithConnectionString()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddResource(new ParentResourceWithConnectionString("parent"));
+        var childResource = builder.AddResource(
+            new ChildResourceWithConnectionString("child", new Dictionary<string, string> { {"Namespace", "ns"} }, parentResource.Resource)
+        );
+        var grandChildResource = builder.AddResource(
+            new ChildResourceWithConnectionString("grand-child", new Dictionary<string, string> { {"Database", "db"} }, childResource.Resource)
+        );
+
+        await using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var applicationEventing = new DistributedApplicationEventing();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events, applicationEventing: applicationEventing);
+        await appOrchestrator.RunApplicationAsync();
+
+        bool parentConnectionStringAvailable = false;
+        bool childConnectionStringAvailable = false;
+        bool grandChildConnectionStringAvailable = false;
+
+        applicationEventing.Subscribe<ConnectionStringAvailableEvent>(parentResource.Resource, (_, _) =>
+        {
+            parentConnectionStringAvailable = true;
+            return Task.CompletedTask;
+        });
+        applicationEventing.Subscribe<ConnectionStringAvailableEvent>(childResource.Resource, (_, _) =>
+        {
+            childConnectionStringAvailable = true;
+            return Task.CompletedTask;
+        });
+        applicationEventing.Subscribe<ConnectionStringAvailableEvent>(grandChildResource.Resource, (_, _) =>
+        {
+            grandChildConnectionStringAvailable = true;
+            return Task.CompletedTask;
+        });
+
+        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, parentResource.Resource, parentResource.Resource.Name));
+
+        Assert.True(parentConnectionStringAvailable);
+        Assert.True(childConnectionStringAvailable);
+        Assert.True(grandChildConnectionStringAvailable);
+    }
+
     private static ApplicationOrchestrator CreateOrchestrator(
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
@@ -258,6 +308,8 @@ public class ApplicationOrchestratorTests
         DistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+
         return new ApplicationOrchestrator(
             distributedAppModel,
             new TestDcpExecutor(),
@@ -266,7 +318,9 @@ public class ApplicationOrchestratorTests
             notificationService,
             resourceLoggerService ?? new ResourceLoggerService(),
             applicationEventing ?? new DistributedApplicationEventing(),
-            new ServiceCollection().BuildServiceProvider()
+            serviceProvider,
+            new DistributedApplicationExecutionContext(
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
             );
     }
 
@@ -286,5 +340,46 @@ public class ApplicationOrchestratorTests
     {
         public string ProjectPath => "projectB";
         public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private abstract class ResourceWithConnectionString(string name)
+        : Resource(name), IResourceWithConnectionString
+    {
+        protected abstract ReferenceExpression ConnectionString { get; }
+
+        public ReferenceExpression ConnectionStringExpression
+        {
+            get
+            {
+                if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+                {
+                    return connectionStringAnnotation.Resource.ConnectionStringExpression;
+                }
+
+                return ConnectionString;
+            }
+        }
+    }
+
+    private sealed class ParentResourceWithConnectionString(string name) : ResourceWithConnectionString(name)
+    {
+        protected override ReferenceExpression ConnectionString =>
+            ReferenceExpression.Create($"Server=localhost:8000");
+    }
+
+    private sealed class ChildResourceWithConnectionString(
+        string name,
+        Dictionary<string, string> kvConnectionString,
+        IResourceWithConnectionString parent
+    )
+        : ResourceWithConnectionString(name), IResourceWithParent
+    {
+        private string SubConnectionString =>
+            string.Join(';', kvConnectionString.Select(kv => $"{kv.Key}={kv.Value}"));
+
+        protected override ReferenceExpression ConnectionString =>
+            ReferenceExpression.Create($"{parent};{SubConnectionString}");
+
+        public IResource Parent { get; } = parent;
     }
 }

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 using Semver;
 using Spectre.Console;
 
@@ -61,13 +62,18 @@ internal sealed class AddCommand : BaseCommand
     {
         using var activity = _activitySource.StartActivity();
 
+        var outputCollector = new OutputCollector();
+
         try
         {
             var integrationName = parseResult.GetValue<string>("integration");
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile =  _projectLocator.UseOrFindAppHostProjectFile(passedAppHostProjectFile);
-            
+            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
+            {
+                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            });
+
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
@@ -119,12 +125,18 @@ internal sealed class AddCommand : BaseCommand
             var addPackageResult = await _interactionService.ShowStatusAsync(
                 "Adding Aspire integration...",
                 async () => {
+
+                    var addPackageOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = outputCollector.AppendOutput,
+                        StandardErrorCallback = outputCollector.AppendError,
+                    };
                     var addPackageResult = await _runner.AddPackageAsync(
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
                         selectedNuGetPackage.Package.Version,
-                        cancellationToken
-                        );
+                        addPackageOptions,
+                        cancellationToken);
 
                     return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
                 }
@@ -132,6 +144,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
+                _interactionService.DisplayLines(outputCollector.GetLines());
                 _interactionService.DisplayError($"The package installation failed with exit code {addPackageResult}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToAddPackage;
             }
@@ -146,9 +159,9 @@ internal sealed class AddCommand : BaseCommand
             _interactionService.DisplayError("The --project option specified a project that does not exist.");
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("Nultiple project files"))
+        catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files found."))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple *.csproj files were detected.");
+            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
@@ -158,11 +171,12 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+            _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
+            _interactionService.DisplayLines(outputCollector.GetLines());
             _interactionService.DisplayError($"An error occurred while adding the package: {ex.Message}");
             return ExitCodeConstants.FailedToAddPackage;
         }

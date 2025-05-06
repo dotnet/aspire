@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using HealthChecks.Uris;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -489,7 +490,6 @@ public static class ResourceBuilderExtensions
     /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
     /// All values should be set in the callback if the defaults are not acceptable.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Configure an endpoint to use UDP.
     /// <code lang="C#">
@@ -503,6 +503,7 @@ public static class ResourceBuilderExtensions
     ///                        });
     /// </code>
     /// </example>
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
@@ -712,7 +713,6 @@ public static class ResourceBuilderExtensions
     /// This allows you to modify any URLs for the resource, including adding, modifying, or even deletion.<br/>
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Update all displayed URLs to have display text:
     /// <code lang="C#">
@@ -746,6 +746,7 @@ public static class ResourceBuilderExtensions
     ///                       });
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
     {
@@ -873,7 +874,6 @@ public static class ResourceBuilderExtensions
     /// <para>
     /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Customize the URL for the "https" endpoint to use the link text "Home":
     /// <code lang="C#">
@@ -888,6 +888,7 @@ public static class ResourceBuilderExtensions
     ///                       .WithUrlForEndpoint("https", url => url.Url = "/home");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
         where T : IResource
     {
@@ -926,7 +927,6 @@ public static class ResourceBuilderExtensions
     /// <para>
     /// If the endpoint with the specified name does not exist, the callback will not be executed and a warning will be logged.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a URL for the "https" endpoint that deep-links to an admin page with the text "Admin":
     /// <code lang="C#">
@@ -934,6 +934,7 @@ public static class ResourceBuilderExtensions
     ///                       .WithUrlForEndpoint("https", ep => new() { Url = "/admin", DisplayText = "Admin" });
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
         where T : IResourceWithEndpoints
     {
@@ -983,7 +984,6 @@ public static class ResourceBuilderExtensions
     /// return <see cref="HealthStatus.Healthy"/>.</para>
     /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
     /// additional health checks with a resource.</para>
-    /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
     /// <code lang="C#">
@@ -994,6 +994,7 @@ public static class ResourceBuilderExtensions
     ///        .WaitFor(messaging);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1025,7 +1026,6 @@ public static class ResourceBuilderExtensions
     /// behavior with the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
     /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
     /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
-    /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
     /// <code lang="C#">
@@ -1036,6 +1036,7 @@ public static class ResourceBuilderExtensions
     ///        .WaitFor(messaging, WaitBehavior.StopOnResourceUnavailable);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1094,7 +1095,6 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>This method is useful when a resource shouldn't automatically start when the app host starts.</para>
-    /// </remarks>
     /// <example>
     /// The database clean up tool project isn't started with the app host.
     /// The resource start command can be used to run it ondemand later.
@@ -1106,6 +1106,7 @@ public static class ResourceBuilderExtensions
     ///        .WithExplicitStart();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithExplicitStart<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(new ExplicitStartupAnnotation());
@@ -1124,7 +1125,6 @@ public static class ResourceBuilderExtensions
     /// would be to include a console application that initializes the database schema or performs other one off
     /// initialization tasks.</para>
     /// <para>Note that this method has no impact at deployment time and only works for local development.</para>
-    /// </remarks>
     /// <example>
     /// Wait for database initialization app to complete running.
     /// <code lang="C#">
@@ -1137,6 +1137,7 @@ public static class ResourceBuilderExtensions
     ///        .WaitForCompletion(dbprep);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResourceWithWaitSupport
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1171,7 +1172,6 @@ public static class ResourceBuilderExtensions
     /// registered in the application hosts dependency injection container. The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/>
     /// method does not inject the health check itself it is purely an association mechanism.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Define a custom health check and associate it with a resource.
     /// <code lang="C#">
@@ -1193,6 +1193,7 @@ public static class ResourceBuilderExtensions
     ///                      // custom check defined in the code.
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1223,7 +1224,6 @@ public static class ResourceBuilderExtensions
     /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
     /// default the path is set to "/" and the status code is set to 200.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows adding an HTTP health check to a backend project.
     /// The health check makes sure that the front end does not start until the backend is
@@ -1237,6 +1237,7 @@ public static class ResourceBuilderExtensions
     ///        .WithReference(backend).WaitFor(backend);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1281,12 +1282,8 @@ public static class ResourceBuilderExtensions
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_{endpointName}_{path}_{statusCode}_check";
-        builder.ApplicationBuilder.Services.AddLogging(configure =>
-        {
-            // The AddUrlGroup health check makes use of http client factory.
-            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.LogicalHandler", LogLevel.None);
-            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.ClientHandler", LogLevel.None);
-        });
+
+        builder.ApplicationBuilder.Services.SuppressHealthCheckHttpClientLogging(healthCheckKey);
 
         builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup((UriHealthCheckOptions options) =>
         {
@@ -1318,7 +1315,6 @@ public static class ResourceBuilderExtensions
     /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
     /// default the path is set to "/" and the status code is set to 200.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows adding an HTTPS health check to a backend project.
     /// The health check makes sure that the front end does not start until the backend is
@@ -1332,6 +1328,7 @@ public static class ResourceBuilderExtensions
     ///        .WithReference(backend).WaitFor(backend);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1494,7 +1491,6 @@ public static class ResourceBuilderExtensions
     /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adds a command to the project resource that when invoked sends an HTTP POST request to the path <c>/clear-cache</c>.
     /// <code lang="csharp">
@@ -1524,6 +1520,7 @@ public static class ResourceBuilderExtensions
     ///                      });
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -1584,7 +1581,6 @@ public static class ResourceBuilderExtensions
     /// The <see cref="HttpCommandOptions.GetCommandResult"/> callback will be invoked after the response is received to determine the result of the command invocation. If this callback
     /// is not specified, the command will be considered succesful if the response status code is in the 2xx range.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adds commands to a project resource that when invoked sends an HTTP POST request to an endpoint on a separate load generator resource, to generate load against the
     /// resource the command was executed against.
@@ -1597,6 +1593,7 @@ public static class ResourceBuilderExtensions
     /// loadGenerator.WithReference(customerService);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -1760,7 +1757,6 @@ public static class ResourceBuilderExtensions
     /// The <c>WithRelationship</c> method is used to add relationships to the resource. Relationships are used to link
     /// resources together in UI. The <paramref name="type"/> indicates information about the relationship type.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows adding a relationship between two resources.
     /// <code lang="C#">
@@ -1770,6 +1766,7 @@ public static class ResourceBuilderExtensions
     ///                      .WithRelationship(backend.Resource, "Manager");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource resource,
@@ -1887,7 +1884,6 @@ public static class ResourceBuilderExtensions
     /// The <c>WithParentRelationship</c> method is used to add parent relationships to the resource. Relationships are used to link
     /// resources together in UI.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows adding a relationship between two resources.
     /// <code lang="C#">
@@ -1898,6 +1894,7 @@ public static class ResourceBuilderExtensions
     ///                      .WithParentRelationship(backend);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithParentRelationship<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource> parent) where T : IResource
@@ -1917,17 +1914,17 @@ public static class ResourceBuilderExtensions
     /// The <c>WithParentRelationship</c> method is used to add parent relationships to the resource. Relationships are used to link
     /// resources together in UI.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows adding a relationship between two resources.
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
-    /// 
+    ///
     /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
     ///                      .WithParentRelationship(backend.Resource);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithParentRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource parent) where T : IResource

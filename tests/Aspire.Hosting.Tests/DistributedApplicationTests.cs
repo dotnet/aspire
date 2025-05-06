@@ -306,7 +306,7 @@ public class DistributedApplicationTests
 
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
-        Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
+        Assert.Single(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback1);
         Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
     }
 
@@ -343,6 +343,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -570,6 +571,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8871")]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         const string testName = "ports-flow-to-env";
@@ -621,7 +623,7 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
@@ -661,7 +663,7 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
@@ -697,7 +699,7 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
@@ -950,6 +952,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [RequiresSSLCertificate]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
@@ -977,6 +980,9 @@ public class DistributedApplicationTests
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
+
+        // Wait for servicea to be ready
+        await app.WaitForTextAsync("Content root path:", resourceName: testProgram.ServiceABuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         var urls = string.Empty;
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
@@ -1011,6 +1017,7 @@ public class DistributedApplicationTests
             }
             catch (Exception ex) when (ex is not EqualException)
             {
+                _testOutputHelper.WriteLine($"Exception {ex} while trying to get https url");
                 await Task.Delay(100, token);
             }
         }
@@ -1050,18 +1057,18 @@ public class DistributedApplicationTests
         var s = app.Services.GetRequiredService<IKubernetesService>();
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
-        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
-        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
+        var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
+        var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
@@ -1104,18 +1111,18 @@ public class DistributedApplicationTests
 
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
-        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
-        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
+        var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
+        var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);

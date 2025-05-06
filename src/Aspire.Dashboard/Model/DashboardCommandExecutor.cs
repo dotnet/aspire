@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -15,7 +17,9 @@ public sealed class DashboardCommandExecutor(
     IDialogService dialogService,
     IToastService toastService,
     IStringLocalizer<Dashboard.Resources.Resources> loc,
-    NavigationManager navigationManager)
+    IStringLocalizer<Commands> commandsLoc,
+    NavigationManager navigationManager,
+    DashboardTelemetryService telemetryService)
 {
     private readonly HashSet<(string ResourceName, string CommandName)> _executingCommands = [];
     private readonly object _lock = new object();
@@ -36,9 +40,30 @@ public sealed class DashboardCommandExecutor(
             _executingCommands.Add(executingCommandKey);
         }
 
+        var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
+            new Dictionary<string, AspireTelemetryProperty>
+            {
+                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(resource.ResourceType)) },
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(TelemetryPropertyValues.GetCommandNameTelemetryValue(command.Name)) },
+            });
+
+        var operationId = startEvent.Properties.FirstOrDefault();
+
         try
         {
             await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+
+            if (operationId is not null)
+            {
+                telemetryService.EndOperation(operationId, TelemetryResult.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (operationId is not null)
+            {
+                telemetryService.EndUserTask(operationId, TelemetryResult.Failure, ex.Message);
+            }
         }
         finally
         {
@@ -82,7 +107,7 @@ public sealed class DashboardCommandExecutor(
         {
             Id = Guid.NewGuid().ToString(),
             Intent = ToastIntent.Progress,
-            Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.DisplayName),
+            Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.GetDisplayName(commandsLoc)),
             Content = new CommunicationToastContent(),
             Timeout = 0 // App logic will handle closing the toast
         };
@@ -122,13 +147,13 @@ public sealed class DashboardCommandExecutor(
         // Update toast with the result;
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.DisplayName);
+            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.GetDisplayName(commandsLoc));
             toastParameters.Intent = ToastIntent.Success;
             toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
         }
         else
         {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.DisplayName);
+            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.GetDisplayName(commandsLoc));
             toastParameters.Intent = ToastIntent.Error;
             toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
             toastParameters.Content.Details = response.ErrorMessage;

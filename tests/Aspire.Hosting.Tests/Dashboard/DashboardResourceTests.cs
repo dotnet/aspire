@@ -52,7 +52,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
         Assert.Equal(dashboardPath, dashboard.Command);
-        Assert.Equal("Hidden", initialSnapshot.InitialSnapshot.State);
+        Assert.True(initialSnapshot.InitialSnapshot.IsHidden);
     }
 
     [Fact]
@@ -321,11 +321,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Hack in an AllocatedEndpoint. This is what is used to build the list of CORS endpoints.
-        var container = Assert.Single(model.Resources.Where(r => r.Name == "my-container"));
+        var container = Assert.Single(model.Resources, r => r.Name == "my-container");
         var endpointAnnotation = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
         endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 8081);
 
-        var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
@@ -364,7 +364,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 

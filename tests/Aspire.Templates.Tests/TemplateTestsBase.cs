@@ -266,7 +266,7 @@ public partial class TemplateTestsBase
 
     public static IEnumerable<string> GetProjectNamesForTest()
     {
-        if (!PlatformDetection.IsRunningPRValidation)
+        if (!PlatformDetection.IsRunningPRValidation && !EnvironmentVariables.RunOnlyBasicBuildTemplatesTests)
         {
             // Avoid running these cases on PR validation
 

@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -9,9 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class ProjectResource(string name)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport,
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     IComputeResource
-#pragma warning restore ASPIRECOMPUTE001
 {
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
@@ -34,7 +34,7 @@ public class ProjectResource(string name)
 
         // If any filter rejects the endpoint, skip it
         return !Annotations.OfType<EndpointEnvironmentInjectionFilterAnnotation>()
-                           .Select(a => a.Filter)
-                           .Any(f => !f(endpoint));
+            .Select(a => a.Filter)
+            .Any(f => !f(endpoint));
     }
 }
