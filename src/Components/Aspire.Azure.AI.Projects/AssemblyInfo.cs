@@ -6,7 +6,7 @@ using Aspire.Azure.AI.Projects;
 using Azure.AI.Projects;
 
 [assembly: ConfigurationSchema("Aspire:Azure:AI:Projects", typeof(AzureAIProjectSettings))]
-[assembly: ConfigurationSchema("Aspire:Azure:AI:Projects:AIProjectClientOptions", typeof(AIProjectClientOptions))]
+[assembly: ConfigurationSchema("Aspire:Azure:AI:Projects:ClientOptions", typeof(AIProjectClientOptions))]
 
 [assembly: LoggingCategories(
     "Azure",

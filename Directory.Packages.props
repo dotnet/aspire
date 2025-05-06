@@ -12,8 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.Projects" Version="1.0.0-beta.8" />
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
+    <PackageVersion Include="Azure.AI.Projects" Version="1.0.0-beta.8" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.6" />

@@ -19,7 +19,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AzureAIProjectExtensions
 {
-    internal const string DefaultConfigSectionName = "Aspire:Azure:AI:Project";
+    internal const string DefaultConfigSectionName = "Aspire:Azure:AI:Projects";
 
     /// <summary>
     /// Registers <see cref="AIProjectClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
