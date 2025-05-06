@@ -1,9 +1,11 @@
 ---
 title: Prerequisites
 description: Learn about essential tooling concepts for Aspire.
+lastUpdated: true
 ---
 
 import { Aside, Icon, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import IconAside from '../../../components/IconAside.astro';
 
 To get started with Aspire, you need to install a few prerequisites. This guide will help you set up your development environment for building and running Aspire applications.
 
@@ -11,7 +13,7 @@ To get started with Aspire, you need to install a few prerequisites. This guide 
 
 Install either [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) to work with Aspire. No prior .NET experience is required.
 
-### OCI compliant container runtime
+### Install OCI compliant container runtime
 
 Aspire uses an OCI compliant container runtime to run and manage containers. The most common option is Docker Desktop, which provides a user-friendly interface for managing containers and images.
 
@@ -21,7 +23,7 @@ Aspire uses an OCI compliant container runtime to run and manage containers. The
 
 Alternatively, you can use [Podman](https://podman.io/), which is a daemonless container engine that can run containers without requiring root privileges.
 
-### Choose your IDE
+### Install desired IDE
 
 Aspire supports multiple IDEs and code editors. You can choose the one that best fits your workflow:
 
@@ -42,6 +44,11 @@ Aspire supports multiple IDEs and code editors. You can choose the one that best
     description="JetBrains Rider is a cross-platform .NET IDE that provides advanced code analysis, refactoring, and debugging capabilities." />
 </CardGrid>
 
+<IconAside type='tip' icon='vscode' title='Visual Studio Code Tip'>
+  When choosing Visual Studio Code, it's recommended to install the [C# DevKit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for .NET developmet. This extension provides features like IntelliSense, debugging, and project managemen
+</IconAside>
+
+
 ### Alternatives to local installation
 
 If you prefer not to install the prerequisites locally, you can develop Aspire solutions using either:
@@ -56,7 +63,7 @@ If you prefer not to install the prerequisites locally, you can develop Aspire s
 </CardGrid>
 
 
-<Aside type='tip'>
+<Aside type='note'>
   These options allow you to work in a cloud-based environment, eliminating the need for local installations. But they may not provide the same performance as local installations.
 </Aside>
 

@@ -1,0 +1,41 @@
+---
+import { AstroError } from 'astro/errors';
+import { Icon } from '@astrojs/starlight/components';
+
+const asideVariants = ['note', 'tip', 'caution', 'danger'] as const;
+
+interface Props {
+	type?: (typeof asideVariants)[number];
+	title?: string;
+    icon?: string;
+}
+
+let { type = 'note', title, icon } = Astro.props;
+
+if (!asideVariants.includes(type)) {
+	throw new AstroError(
+		'Invalid `type` prop passed to the `<Aside>` component.\n',
+		`Received: ${JSON.stringify(type)}\n` +
+			`Expected one of ${asideVariants.map((i) => JSON.stringify(i)).join(', ')}`
+	);
+}
+
+if (!title) {
+	title = Astro.locals.t(`aside.${type}`);
+}
+---
+
+<aside aria-label={title} class={`starlight-aside starlight-aside--${type}`}>
+	<p class="starlight-aside__title" aria-hidden="true">
+		<Icon name={icon ?? 'vscode'} class="starlight-aside__icon" />{title}
+	</p>
+	<div class="starlight-aside__content">
+		<slot />
+	</div>
+</aside>
+
+<style>
+    :root {
+        --vscode-color: #0098FF;
+    }
+</style>
