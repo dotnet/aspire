@@ -1,0 +1,13 @@
+﻿---
+apiVersion: "v1"
+kind: "Secret"
+metadata:
+  name: "myapp-secrets"
+  labels:
+    app: "aspire"
+    component: "myapp"
+stringData:
+  param1: "{{ .Values.secrets.myapp.param1 }}"
+  param3: "{{ .Values.secrets.myapp.param3 }}"
+  ConnectionStrings__cs: "Url={{ .Values.config.myapp.param0 }}, Secret={{ .Values.secrets.myapp.param1 }}"
+type: "Opaque"

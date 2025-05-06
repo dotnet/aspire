@@ -12,5 +12,10 @@ sealed class TestModuleInitializer
     internal static void Setup()
     {
         FileExtensions.AddTextExtension("bicep");
+        FileExtensions.AddTextExtension("json");
+        FileExtensions.AddTextExtension("yaml");
+        FileExtensions.AddTextExtension("yml");
+        FileExtensions.AddTextExtension("dockerfile");
+        FileExtensions.AddTextExtension("env");
     }
 }

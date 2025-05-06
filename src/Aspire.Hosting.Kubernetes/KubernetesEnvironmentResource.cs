@@ -86,11 +86,11 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     private Task PublishAsync(PublishingContext context)
     {
-        var publisherOptions = new KubernetesPublisherOptions()
-        {
-            OutputPath = context.OutputPath
-        };
-        var kubernetesContext = new KubernetesPublishingContext(context.ExecutionContext, publisherOptions, context.Logger, context.CancellationToken);
+        var kubernetesContext = new KubernetesPublishingContext(
+            context.ExecutionContext,
+            context.OutputPath,
+            context.Logger,
+            context.CancellationToken);
         return kubernetesContext.WriteModelAsync(context.Model, this);
     }
 }
