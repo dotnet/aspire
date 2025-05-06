@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using System.Text.RegularExpressions;
 using Aspire.Azure.Common;
 
@@ -11,9 +12,9 @@ namespace Aspire.Azure.Storage.Blobs;
 /// </summary>
 public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlobsSettings, IConnectionStringSettings
 {
-    [GeneratedRegex(@"ContainerName=([^;]*);")]
-    private static partial Regex ExtractContainerName();
-
+    /// <summary>
+    ///  Gets or sets the name of the blob container.
+    /// </summary>
     public string? BlobContainerName { get; set; }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
@@ -23,30 +24,15 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
             return;
         }
 
-        // In the emulator mode, the connection string may look like:
-        //
-        //     DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=...;BlobEndpoint=http://127.0.0.1:5555/devstoreaccount1;ContainerName=<container_name>;
-        //
-        // When run against the real Azure resources, the connection string will look similar to:
-        //
-        //      https://<storage_name>.blob.core.windows.net/ContainerName=<container_name>;
-        //
-        // Retrieve the container name from the connection string, if it is present; and then
-        // remove it as it will upset BlobServiceClient.
+        // NOTE: if ever these contants are changed, the AzureBlobStorageResource in Aspire.Hosting.Azure.Storage class should be updated as well.
+        const string Endpoint = nameof(Endpoint);
+        const string ContainerName = nameof(ContainerName);
 
-        if (ExtractContainerName().Match(connectionString) is var match)
+        DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
+        if (builder.TryGetValue(Endpoint, out var endpoint) && builder.TryGetValue(ContainerName, out var containerName))
         {
-            BlobContainerName = match.Groups[1].Value;
-            connectionString = connectionString.Replace(match.Value, string.Empty);
-        }
-
-        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-        {
-            ServiceUri = uri;
-        }
-        else
-        {
-            ConnectionString = connectionString;
+            ConnectionString = endpoint.ToString();
+            BlobContainerName = containerName.ToString();
         }
     }
 }
