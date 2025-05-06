@@ -580,6 +580,13 @@ public static class ResourceExtensions
     {
         if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
         {
+            // If you have a ComputeEnvironmentAnnotation, it means the resource is bound to a specific compute environment.
+            // Skip the annotation if it doesn't match the specified computeEnvironmentResource.
+            if (computeEnvironmentResource is not null && computeEnvironmentResource != computeEnvironmentAnnotation.ComputeEnvironment)
+            {
+                return null;
+            }
+
             // If the resource has a ComputeEnvironmentAnnotation, use it to get the compute environment.
             // This wins over the specified computeEnvironmentResource
             computeEnvironmentResource = computeEnvironmentAnnotation.ComputeEnvironment;

@@ -1,14 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREAZURE001
 #pragma warning disable ASPIREPUBLISHERS001
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureContainerAppEnvironment("env");
-builder.AddDockerComposeEnvironment("docker-env");
-builder.AddKubernetesEnvironment("k8s-env");
+IResourceBuilder<IComputeEnvironmentResource> environment = builder.Configuration["Deployment:Target"] switch
+{
+    "k8s" or "kube" => builder.AddKubernetesEnvironment("env"),
+    "aca" or "azure" => builder.AddAzureContainerAppEnvironment("env"),
+    _ => builder.AddDockerComposeEnvironment("env"),
+};
 
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);
