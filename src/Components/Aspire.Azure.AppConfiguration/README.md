@@ -91,7 +91,7 @@ When using a connection string from the `ConnectionStrings` configuration sectio
 builder.AddAzureAppConfiguration("appConfigConnectionName");
 ```
 
-And then the App Config endpoint will be retrieved from the `ConnectionStrings` configuration section. The App Config store URI which works with the `AzureAppConfigurationSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+And then the App Config endpoint will be retrieved from the `ConnectionStrings` configuration section. The App Config store URI works with the `AzureAppConfigurationSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {

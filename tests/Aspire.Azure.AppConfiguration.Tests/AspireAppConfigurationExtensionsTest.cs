@@ -42,7 +42,7 @@ public class AspireAppConfigurationExtensionsTest
         var mockTransport = new MockTransport(CreateResponse("""{}"""));
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Data:AppConfiguration", null, "Endpoint"), "https://unused.azconfig.io/"),
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:AppConfiguration", null, "Endpoint"), "https://unused.azconfig.io/"),
             new KeyValuePair<string, string?>("ConnectionStrings:appConfig", ConformanceTests.Endpoint)
         ]);
 
