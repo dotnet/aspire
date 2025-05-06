@@ -3,11 +3,9 @@
 
 using Aspire.TestUtilities;
 
-namespace Aspire.Hosting.Azure.Tests;
-
 internal static class VerifyExtensions
 {
-    public static SettingsTask UseHelixAwareDirectory(this SettingsTask settings, string directory)
+    public static SettingsTask UseHelixAwareDirectory(this SettingsTask settings, string directory = "Snapshots")
     {
         settings.UseDirectory(PlatformDetection.IsRunningOnHelix
             ? Path.Combine(Environment.GetEnvironmentVariable("HELIX_CORRELATION_PAYLOAD")!, directory)

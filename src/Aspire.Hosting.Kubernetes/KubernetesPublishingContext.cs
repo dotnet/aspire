@@ -39,7 +39,7 @@ internal sealed class KubernetesPublishingContext(
 
     public ILogger Logger => logger;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource = null)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -58,33 +58,13 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        await WriteKubernetesOutputAsync(model, environmentResource).ConfigureAwait(false);
+        await WriteKubernetesOutputAsync(model, environment).ConfigureAwait(false);
 
         logger.FinishGeneratingKubernetes(publisherOptions.OutputPath);
     }
 
-    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource)
+    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
-        var environment = environmentResource;
-
-        if (environment is null)
-        {
-            var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
-
-            if (kubernetesEnvironments.Length > 1)
-            {
-                throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
-            }
-
-            environment = kubernetesEnvironments.FirstOrDefault();
-
-            if (environment == null)
-            {
-                // No Kubernetes environment found
-                throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
-            }
-        }
-
         foreach (var resource in model.Resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)

@@ -576,29 +576,29 @@ public static class ResourceExtensions
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? computeEnvironmentResource = null)
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? targetComputeEnvironment = null)
     {
+        IComputeEnvironmentResource? selectedComputeEnvironment = null;
         if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
         {
             // If you have a ComputeEnvironmentAnnotation, it means the resource is bound to a specific compute environment.
             // Skip the annotation if it doesn't match the specified computeEnvironmentResource.
-            if (computeEnvironmentResource is not null && computeEnvironmentResource != computeEnvironmentAnnotation.ComputeEnvironment)
+            if (targetComputeEnvironment is not null && targetComputeEnvironment != computeEnvironmentAnnotation.ComputeEnvironment)
             {
                 return null;
             }
 
-            // If the resource has a ComputeEnvironmentAnnotation, use it to get the compute environment.
-            // This wins over the specified computeEnvironmentResource
-            computeEnvironmentResource = computeEnvironmentAnnotation.ComputeEnvironment;
+            // If the resource is bound to a specific compute environment, use that one.
+            selectedComputeEnvironment = computeEnvironmentAnnotation.ComputeEnvironment;
         }
 
         if (resource.TryGetAnnotationsOfType<DeploymentTargetAnnotation>(out var deploymentTargetAnnotations))
         {
             var annotations = deploymentTargetAnnotations.ToArray();
 
-            if (computeEnvironmentResource is not null)
+            if (selectedComputeEnvironment is not null)
             {
-                return annotations.SingleOrDefault(a => a.ComputeEnvironment == computeEnvironmentResource);
+                return annotations.SingleOrDefault(a => a.ComputeEnvironment == selectedComputeEnvironment);
             }
 
             if (annotations.Length > 1)

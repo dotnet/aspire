@@ -30,7 +30,7 @@ internal sealed class DockerComposePublishingContext(
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly DockerComposePublisherOptions PublisherOptions = publisherOptions;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource = null)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -49,33 +49,13 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        await WriteDockerComposeOutputAsync(model, environmentResource).ConfigureAwait(false);
+        await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
 
         logger.FinishGeneratingDockerCompose(PublisherOptions.OutputPath);
     }
 
-    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource)
+    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
-        var environment = environmentResource;
-
-        if (environment is null)
-        {
-            var dockerComposeEnvironments = model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
-
-            if (dockerComposeEnvironments.Length > 1)
-            {
-                throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
-            }
-
-            environment = dockerComposeEnvironments.FirstOrDefault();
-
-            if (environment == null)
-            {
-                // No Docker Compose environment found
-                throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
-            }
-        }
-
         var defaultNetwork = new Network
         {
             Name = environment.DefaultNetworkName ?? "aspire",
