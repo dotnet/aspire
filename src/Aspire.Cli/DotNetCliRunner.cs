@@ -493,7 +493,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
             catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
             {
                 logger.LogError(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
-                var backchannelException = new InvalidOperationException($"AppHost process has exited unexpectedly. Use --debug to see more details.");
+                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost process has exited unexpectedly. Use --debug to see more details.", process, ex);
                 backchannelCompletionSource.SetException(backchannelException);
                 return;
             }
