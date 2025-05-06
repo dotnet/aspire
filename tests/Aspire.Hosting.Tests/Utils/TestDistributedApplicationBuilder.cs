@@ -18,12 +18,12 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public static class TestDistributedApplicationBuilder
 {
-    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation)
+    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string publisher = "manifest")
     {
         var args = operation switch
         {
             DistributedApplicationOperation.Run => (string[])[],
-            DistributedApplicationOperation.Publish => ["Publishing:Publisher=manifest"],
+            DistributedApplicationOperation.Publish => [$"Publishing:Publisher={publisher}", "Publishing:OutputPath=./"],
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
