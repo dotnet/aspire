@@ -45,6 +45,7 @@ internal sealed class ApplicationOrchestrator
         _eventing = eventing;
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
+
         dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
