@@ -355,20 +355,31 @@ internal sealed class PublishCommand : BaseCommand
         {
             _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
 
-            var operationArgumentIndex = ex.Process.StartInfo.ArgumentList.IndexOf("--operation");
-            var operation = ex.Process.StartInfo.ArgumentList[operationArgumentIndex + 1];
-
             // This particular error can occur both when we are in inspect mode or in publish mode
             // depending on where the code is that is causing the apphost process to crash
             // before the backchannel is avaialble. When we remove publisher selection from the
             // CLI this code can be simplified again.
-            Func<IEnumerable<(string Stream, string Line)>> linesCallback = operation switch {
-                "inspect" => inspectOutputCollector.GetLines,
-                "publish" => publishOutputCollector.GetLines,
-                _ => throw new InvalidOperationException($"Unknown operation: {operation}")
-            };
+            var operationArgumentIndex = ex.Process.StartInfo.ArgumentList.IndexOf("--operation");
 
-            _interactionService.DisplayLines(linesCallback());
+            if (operationArgumentIndex == -1)
+            {
+                _interactionService.DisplayError("The --operation argument was not found in the app host process arguments. Displaying all logs.");
+                _interactionService.DisplayLines(inspectOutputCollector.GetLines());
+                _interactionService.DisplayLines(publishOutputCollector.GetLines());
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+            else
+            {
+                var operation = ex.Process.StartInfo.ArgumentList[operationArgumentIndex + 1];
+
+                Func<IEnumerable<(string Stream, string Line)>> linesCallback = operation switch {
+                    "inspect" => inspectOutputCollector.GetLines,
+                    "publish" => publishOutputCollector.GetLines,
+                    _ => throw new InvalidOperationException($"Unknown operation: {operation}")
+                };
+
+                _interactionService.DisplayLines(linesCallback());
+            }
 
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
