@@ -357,8 +357,7 @@ internal sealed class ApplicationOrchestrator
             // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
-                var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, _serviceProvider);
-                await _eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
             }
         }
     }
