@@ -10,12 +10,12 @@ using Xunit;
 
 namespace Aspire.Hosting.Docker.Tests;
 
-public class DockerComposeTests
+public class DockerComposeTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task DockerComposeSetsComputeEnvironment()
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -27,6 +27,27 @@ public class DockerComposeTests
         await ExecuteBeforeStartHooksAsync(app, default);
 
         Assert.Same(composeEnv.Resource, container.Resource.GetDeploymentTargetAnnotation()?.ComputeEnvironment);
+    }
+
+    [Fact]
+    public void PublishingDockerComposeEnviromentPublishesFile()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container to the application
+        builder.AddContainer("service", "nginx");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+
+        tempDir.Delete(recursive: true);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
