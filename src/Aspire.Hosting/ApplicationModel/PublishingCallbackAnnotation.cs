@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Initializes a new instance of the <see cref="PublishingCallbackAnnotation"/> class.
 /// </remarks>
 /// <param name="callback">The publishing callback.</param>
-public class PublishingCallbackAnnotation(Func<PublishingContext, Task> callback) : IResourceAnnotation
+public sealed class PublishingCallbackAnnotation(Func<PublishingContext, Task> callback) : IResourceAnnotation
 {
     /// <summary>
     /// The publishing callback.
