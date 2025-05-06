@@ -10,14 +10,14 @@ const discordLink = links.filter(l => l.label == 'Discord')[0].href || null;
 <section class="sl-flex">
 <a href="https://stackoverflow.com/questions/tagged/dotnet-aspire" class="sl-flex" target="_blank">
     <Icon name="stackOverflow" size="1.2em" />
-    StackOverflow
+    Ask & Answer
 </a>
 
 {
     gitHubLink ? (
         <a href={gitHubLink} class="sl-flex" target="_blank">
             <Icon name="github" size="1.2em" />
-            GitHub
+            Collaborate
         </a>
     ) : (
         <></>
@@ -36,12 +36,12 @@ const discordLink = links.filter(l => l.label == 'Discord')[0].href || null;
 
 <a href="https://www.reddit.com/r/dotnet/search/?q=aspire" class="sl-flex" target="_blank">
     <Icon name="reddit" size="1.2em" />
-    Reddit
+    Discuss
 </a>
 
 <a href="https://www.youtube.com/results?search_query=.net+aspire" class="sl-flex" target="_blank">
     <Icon name="youtube" size="1.2em" />
-    YouTube
+    Watch
 </a>
 </section>
 
