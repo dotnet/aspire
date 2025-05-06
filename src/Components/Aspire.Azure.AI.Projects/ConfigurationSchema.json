@@ -122,6 +122,11 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the table service account."
                     },
+                    "DisableMetrics": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics is disabled or not.",
+                      "default": false
+                    },
                     "DisableTracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",

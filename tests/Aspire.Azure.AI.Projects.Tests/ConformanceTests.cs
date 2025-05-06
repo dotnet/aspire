@@ -37,7 +37,8 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
                   "SubscriptionId": "YOUR_SUBSCRIPTION_ID",
                   "ResourceGroupName": "YOUR_RESOURCE_GROUP_NAME",
                   "ProjectName": "YOUR_PROJECT_NAME",
-                  "DisableTracing": false
+                  "DisableTracing": false,
+                  "DisableMetrics": false
                 }
               }
             }
@@ -77,7 +78,7 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
         => throw new NotImplementedException();
 
     protected override void SetMetrics(AzureAIProjectSettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(AzureAIProjectSettings options, bool enabled)
         => options.DisableTracing = !enabled;

@@ -12,13 +12,27 @@ namespace Aspire.Azure.AI.Projects;
 /// </summary>
 public sealed class AzureAIProjectSettings : IConnectionStringSettings
 {
+    private string? _connectionString;
+
     /// <summary>
     /// Gets or sets the connection string used to connect to the table service account. 
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="SubscriptionId"/>, <see cref="ResourceGroupName"/>, <see cref="ProjectName"/> and <see cref="Credential"/>.
     /// </remarks>
-    public string? ConnectionString { get; set; }
+    public string? ConnectionString
+    {
+        get
+        {
+            if (_connectionString is null && Endpoint is not null)
+            {
+                _connectionString = $"{Endpoint.Host};{SubscriptionId};{ResourceGroupName};{ProjectName}";
+            }
+
+            return _connectionString;
+        }
+        set => _connectionString = value;
+    }
 
     /// <summary>
     /// The Endpoint of the resource in Azure.
@@ -55,6 +69,14 @@ public sealed class AzureAIProjectSettings : IConnectionStringSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableMetrics { get; set; }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

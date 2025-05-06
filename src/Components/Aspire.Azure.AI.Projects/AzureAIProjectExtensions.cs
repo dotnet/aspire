@@ -35,6 +35,7 @@ public static class AzureAIProjectExtensions
         Action<AzureAIProjectSettings>? configureSettings = null,
         Action<IAzureClientBuilder<AIProjectClient, AIProjectClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         new AIProjectComponent().AddClient(
@@ -61,6 +62,7 @@ public static class AzureAIProjectExtensions
         Action<AzureAIProjectSettings>? configureSettings = null,
         Action<IAzureClientBuilder<AIProjectClient, AIProjectClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new AIProjectComponent().AddClient(
@@ -80,18 +82,9 @@ public static class AzureAIProjectExtensions
             return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<AIProjectClient, AIProjectClientOptions>((options, creds) =>
             {
                 var connectionString = settings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString) &&
-                    settings is { Endpoint: null } or
-                    { ProjectName: null or "" } or
-                    { ResourceGroupName: null or "" } or
-                    { SubscriptionId: null or "" })
+                if (string.IsNullOrEmpty(connectionString))
                 {
                     throw new InvalidOperationException($"An AIProjectClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' in the '{configurationSectionName}' configuration section.");
-                }
-
-                if (string.IsNullOrEmpty(connectionString) && settings.Endpoint is not null)
-                {
-                    connectionString = $"{settings.Endpoint.Host};{settings.SubscriptionId};{settings.ResourceGroupName};{settings.ProjectName}";
                 }
 
                 // AIProjectClient takes a TokenCredential instance so it either has to be a provided credential
@@ -111,14 +104,10 @@ public static class AzureAIProjectExtensions
         }
 
         protected override void BindSettingsToConfiguration(AzureAIProjectSettings settings, IConfiguration configuration)
-        {
-            configuration.Bind(settings);
-        }
+            => configuration.Bind(settings);
 
         protected override IHealthCheck CreateHealthCheck(AIProjectClient client, AzureAIProjectSettings settings)
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
 
         protected override bool GetHealthCheckEnabled(AzureAIProjectSettings settings)
             => false;
@@ -127,7 +116,7 @@ public static class AzureAIProjectExtensions
             => settings.Credential;
 
         protected override bool GetMetricsEnabled(AzureAIProjectSettings settings)
-            => false;
+            => !settings.DisableMetrics;
 
         protected override bool GetTracingEnabled(AzureAIProjectSettings settings)
             => !settings.DisableTracing;
