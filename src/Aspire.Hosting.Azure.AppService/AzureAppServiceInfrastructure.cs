@@ -26,7 +26,7 @@ internal sealed class AzureAppServiceInfrastructure(
 
         var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
             logger,
-            executionContext, 
+            executionContext,
             appServiceEnvironment);
 
         foreach (var resource in appModel.Resources)
