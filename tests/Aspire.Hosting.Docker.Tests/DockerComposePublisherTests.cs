@@ -106,7 +106,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+               .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 

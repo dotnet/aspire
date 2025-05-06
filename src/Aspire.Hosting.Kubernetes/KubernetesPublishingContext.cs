@@ -14,10 +14,12 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal sealed class KubernetesPublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    KubernetesPublisherOptions publisherOptions,
+    string outputPath,
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
+    public readonly string OutputPath = outputPath;
+
     private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
         [HelmExtensions.ParametersKey] = new Dictionary<string, object>(),
@@ -50,7 +52,7 @@ internal sealed class KubernetesPublishingContext(
         logger.StartGeneratingKubernetes();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(publisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -60,7 +62,7 @@ internal sealed class KubernetesPublishingContext(
 
         await WriteKubernetesOutputAsync(model, environment).ConfigureAwait(false);
 
-        logger.FinishGeneratingKubernetes(publisherOptions.OutputPath);
+        logger.FinishGeneratingKubernetes(OutputPath);
     }
 
     private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
@@ -123,7 +125,7 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task WriteKubernetesTemplatesForResource(IResource resource, IEnumerable<BaseKubernetesResource> templatedItems)
     {
-        var templatesFolder = Path.Combine(publisherOptions.OutputPath!, "templates", resource.Name);
+        var templatesFolder = Path.Combine(OutputPath, "templates", resource.Name);
         Directory.CreateDirectory(templatesFolder);
 
         foreach (var templatedItem in templatedItems)
@@ -141,8 +143,8 @@ internal sealed class KubernetesPublishingContext(
     private async Task WriteKubernetesHelmValuesAsync()
     {
         var valuesYaml = _serializer.Serialize(_helmValues);
-        var outputFile = Path.Combine(publisherOptions.OutputPath!, "values.yaml");
-        Directory.CreateDirectory(publisherOptions.OutputPath!);
+        var outputFile = Path.Combine(OutputPath!, "values.yaml");
+        Directory.CreateDirectory(OutputPath!);
         await File.WriteAllTextAsync(outputFile, valuesYaml, cancellationToken).ConfigureAwait(false);
     }
 
@@ -161,8 +163,8 @@ internal sealed class KubernetesPublishingContext(
         };
 
         var chartYaml = _serializer.Serialize(helmChart);
-        var outputFile = Path.Combine(publisherOptions.OutputPath!, "Chart.yaml");
-        Directory.CreateDirectory(publisherOptions.OutputPath!);
+        var outputFile = Path.Combine(OutputPath, "Chart.yaml");
+        Directory.CreateDirectory(OutputPath);
         await File.WriteAllTextAsync(outputFile, chartYaml, cancellationToken).ConfigureAwait(false);
     }
 }
