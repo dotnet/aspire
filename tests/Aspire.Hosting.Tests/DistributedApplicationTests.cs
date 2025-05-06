@@ -343,7 +343,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -571,7 +570,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8871")]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         const string testName = "ports-flow-to-env";
@@ -953,7 +951,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresSSLCertificate]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         const string testName = "proxyless-and-proxied-endpoints";
