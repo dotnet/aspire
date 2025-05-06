@@ -285,6 +285,22 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Registers an async callback which is invoked when publishing is performed for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        // You can only ever have one publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new PublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
     /// Registers an async callback which is invoked when manifest is generated for the app model.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

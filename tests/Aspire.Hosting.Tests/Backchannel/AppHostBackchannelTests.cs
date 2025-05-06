@@ -173,6 +173,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         Assert.Collection(
             publishers,
             x => Assert.Equal("manifest", x),
+            x => Assert.Equal("default", x),
             x => Assert.Equal("dummy1", x),
             x => Assert.Equal("dummy2", x)
             );
@@ -218,6 +219,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         Assert.Collection(
             publishers,
             x => Assert.Equal("manifest", x),
+            x => Assert.Equal("default", x),
             x => Assert.Equal("dummy1", x),
             x => Assert.Equal("dummy2", x)
             );

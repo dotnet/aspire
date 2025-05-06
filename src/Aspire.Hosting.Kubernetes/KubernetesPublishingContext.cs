@@ -39,7 +39,7 @@ internal sealed class KubernetesPublishingContext(
 
     public ILogger Logger => logger;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource = null)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -58,31 +58,36 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        await WriteKubernetesOutputAsync(model).ConfigureAwait(false);
+        await WriteKubernetesOutputAsync(model, environmentResource).ConfigureAwait(false);
 
         logger.FinishGeneratingKubernetes(publisherOptions.OutputPath);
     }
 
-    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model)
+    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource? environmentResource)
     {
-        var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
+        var environment = environmentResource;
 
-        if (kubernetesEnvironments.Length > 1)
+        if (environment is null)
         {
-            throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
-        }
+            var kubernetesEnvironments = model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
 
-        var environment = kubernetesEnvironments.FirstOrDefault();
+            if (kubernetesEnvironments.Length > 1)
+            {
+                throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
+            }
 
-        if (environment == null)
-        {
-            // No Kubernetes environment found
-            throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
+            environment = kubernetesEnvironments.FirstOrDefault();
+
+            if (environment == null)
+            {
+                // No Kubernetes environment found
+                throw new InvalidOperationException($"No Kubernetes environment found. Ensure a Kubernetes environment is registered by calling {nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}.");
+            }
         }
 
         foreach (var resource in model.Resources)
         {
-            if (resource.GetDeploymentTargetAnnotation()?.DeploymentTarget is KubernetesResource serviceResource)
+            if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {

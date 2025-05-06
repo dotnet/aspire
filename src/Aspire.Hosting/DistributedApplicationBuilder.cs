@@ -371,6 +371,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
+        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
