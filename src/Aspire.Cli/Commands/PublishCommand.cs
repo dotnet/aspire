@@ -67,7 +67,9 @@ internal sealed class PublishCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var buildOutputCollector = new OutputCollector();
+        var inspectOutputCollector = new OutputCollector();
+        var publishOutputCollector = new OutputCollector();
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
 
@@ -103,15 +105,15 @@ internal sealed class PublishCommand : BaseCommand
 
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
-                StandardOutputCallback = outputCollector.AppendOutput,
-                StandardErrorCallback = outputCollector.AppendError
+                StandardOutputCallback = buildOutputCollector.AppendOutput,
+                StandardErrorCallback = buildOutputCollector.AppendError
             };
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
             if (buildExitCode != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
+                _interactionService.DisplayLines(buildOutputCollector.GetLines());
                 _interactionService.DisplayError("The project could not be built. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -129,8 +131,8 @@ internal sealed class PublishCommand : BaseCommand
 
                     var getPublishersRunOptions = new DotNetCliRunnerInvocationOptions
                     {
-                        StandardOutputCallback = outputCollector.AppendOutput,
-                        StandardErrorCallback = outputCollector.AppendError,
+                        StandardOutputCallback = inspectOutputCollector.AppendOutput,
+                        StandardErrorCallback = inspectOutputCollector.AppendError,
                     };
 
                     var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -161,7 +163,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (publishersResult.ExitCode != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
+                _interactionService.DisplayLines(inspectOutputCollector.GetLines());
                 _interactionService.DisplayError($"The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -205,15 +207,15 @@ internal sealed class PublishCommand : BaseCommand
 
                     var publishRunOptions = new DotNetCliRunnerInvocationOptions
                     {
-                        StandardOutputCallback = outputCollector.AppendOutput,
-                        StandardErrorCallback = outputCollector.AppendError,
+                        StandardOutputCallback = publishOutputCollector.AppendOutput,
+                        StandardErrorCallback = publishOutputCollector.AppendError,
                     };
 
                     var pendingRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         true,
-                        ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
+                        ["--operation", "publish", "--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
                         env,
                         backchannelCompletionSource,
                         publishRunOptions,
@@ -307,7 +309,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (exitCode != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
+                _interactionService.DisplayLines(publishOutputCollector.GetLines());
                 _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -348,6 +350,38 @@ internal sealed class PublishCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (FailedToConnectBackchannelConnection ex)
+        {
+            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+
+            // This particular error can occur both when we are in inspect mode or in publish mode
+            // depending on where the code is that is causing the apphost process to crash
+            // before the backchannel is avaialble. When we remove publisher selection from the
+            // CLI this code can be simplified again.
+            var operationArgumentIndex = ex.Process.StartInfo.ArgumentList.IndexOf("--operation");
+
+            if (operationArgumentIndex == -1)
+            {
+                _interactionService.DisplayError("The --operation argument was not found in the app host process arguments. Displaying all logs.");
+                _interactionService.DisplayLines(inspectOutputCollector.GetLines());
+                _interactionService.DisplayLines(publishOutputCollector.GetLines());
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+            else
+            {
+                var operation = ex.Process.StartInfo.ArgumentList[operationArgumentIndex + 1];
+
+                Func<IEnumerable<(string Stream, string Line)>> linesCallback = operation switch {
+                    "inspect" => inspectOutputCollector.GetLines,
+                    "publish" => publishOutputCollector.GetLines,
+                    _ => throw new InvalidOperationException($"Unknown operation: {operation}")
+                };
+
+                _interactionService.DisplayLines(linesCallback());
+            }
+
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
