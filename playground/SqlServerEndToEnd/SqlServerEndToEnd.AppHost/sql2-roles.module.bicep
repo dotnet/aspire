@@ -1,24 +1,24 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param sql1_outputs_name string
+param sql2_outputs_name string
 
 param principalName string
 
 param clientId string
 
-param sql1_outputs_sqlserveradminname string
+param sql2_outputs_sqlserveradminname string
 
-resource sql1 'Microsoft.Sql/servers@2021-11-01' existing = {
-  name: sql1_outputs_name
+resource sql2 'Microsoft.Sql/servers@2021-11-01' existing = {
+  name: sql2_outputs_name
 }
 
 resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: sql1_outputs_sqlserveradminname
+  name: sql2_outputs_sqlserveradminname
 }
 
-resource script_sql1_db1 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: take('script-${uniqueString('sql1', 'db1', resourceGroup().id)}', 24)
+resource script_sql2_db2 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: take('script-${uniqueString('sql2', 'db2', resourceGroup().id)}', 24)
   location: location
   identity: {
     type: 'UserAssigned'
@@ -34,11 +34,11 @@ resource script_sql1_db1 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     environmentVariables: [
       {
         name: 'DBNAME'
-        value: 'db1'
+        value: 'db2'
       }
       {
         name: 'DBSERVER'
-        value: sql1.properties.fullyQualifiedDomainName
+        value: sql2.properties.fullyQualifiedDomainName
       }
       {
         name: 'USERNAME'

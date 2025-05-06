@@ -2,12 +2,12 @@
 param location string = resourceGroup().location
 
 resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: take('sql1-admin-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sql2-admin-${uniqueString(resourceGroup().id)}', 63)
   location: location
 }
 
-resource sql1 'Microsoft.Sql/servers@2021-11-01' = {
-  name: take('sql1-${uniqueString(resourceGroup().id)}', 63)
+resource sql2 'Microsoft.Sql/servers@2021-11-01' = {
+  name: take('sql2-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administrators: {
@@ -22,7 +22,7 @@ resource sql1 'Microsoft.Sql/servers@2021-11-01' = {
     version: '12.0'
   }
   tags: {
-    'aspire-resource-name': 'sql1'
+    'aspire-resource-name': 'sql2'
   }
 }
 
@@ -32,20 +32,20 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
     endIpAddress: '0.0.0.0'
     startIpAddress: '0.0.0.0'
   }
-  parent: sql1
+  parent: sql2
 }
 
-resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
-  name: 'db1'
+resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
+  name: 'db2'
   location: location
   sku: {
     name: 'GP_S_Gen5_2'
   }
-  parent: sql1
+  parent: sql2
 }
 
-output sqlServerFqdn string = sql1.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sql2.properties.fullyQualifiedDomainName
 
-output name string = sql1.name
+output name string = sql2.name
 
 output sqlServerAdminName string = sqlServerAdminManagedIdentity.name
