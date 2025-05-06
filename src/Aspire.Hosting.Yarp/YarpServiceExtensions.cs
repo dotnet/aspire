@@ -12,6 +12,12 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class YarpServiceExtensions
 {
+    private const int Port = 5000;
+
+    private const string ConfigDirectory = "/etc";
+
+    private const string ConfigFileName = "yarp.config";
+
     /// <summary>
     /// Adds a YARP container to the application model.
     /// </summary>
@@ -25,7 +31,7 @@ public static class YarpServiceExtensions
         var resource = new YarpResource(name);
 
         var yarpBuilder = builder.AddResource(resource)
-                      .WithHttpEndpoint(targetPort: YarpContainerImageTags.Port)
+                      .WithHttpEndpoint(targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
@@ -38,7 +44,7 @@ public static class YarpServiceExtensions
         }
 
         // Map the configuration file
-        yarpBuilder.WithContainerFiles(YarpContainerImageTags.ConfigDirectory, async (context, ct) =>
+        yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
             string contents;
             if (yarpBuilder.Resource.ConfigFilePath != null)
@@ -53,7 +59,7 @@ public static class YarpServiceExtensions
 
             var configFile = new ContainerFile
             {
-                Name = YarpContainerImageTags.ConfigFileName,
+                Name = ConfigFileName,
                 Contents = contents
             };
 

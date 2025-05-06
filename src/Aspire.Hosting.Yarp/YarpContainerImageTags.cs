@@ -10,10 +10,4 @@ internal static class YarpContainerImageTags
     public const string Image = "dotnet/nightly/yarp";
 
     public const string Tag = "2-preview";
-
-    public const int Port = 5000;
-
-    public const string ConfigDirectory = "/etc";
-
-    public const string ConfigFileName = "yarp.config";
 }
