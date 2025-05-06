@@ -36,49 +36,16 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data.outputs.connectionString}",
-              "path": "postgres-data.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
 
         var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
-        var postgresRolesManifest = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        var (postgresRolesManifest, postgresRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
 
-            param postgres_data_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            param principalName string
-
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
-              name: postgres_data_outputs_name
-            }
-
-            resource postgres_data_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-              name: principalId
-              properties: {
-                principalName: principalName
-                principalType: principalType
-              }
-              parent: postgres_data
-            }
-            """;
-        output.WriteLine(postgresRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, postgresRolesManifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
+              .AppendContentAsFile(postgresRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]

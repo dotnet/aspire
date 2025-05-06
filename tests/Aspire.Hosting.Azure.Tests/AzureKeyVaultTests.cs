@@ -17,19 +17,11 @@ public class AzureKeyVaultTests
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
 
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -41,26 +33,15 @@ public class AzureKeyVaultTests
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(model, mykv.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{mykv.outputs.vaultUri}",
-              "path": "mykv.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.main")
-            .UseHelixAwareDirectory("Snapshots");
-
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(model, mykv.Resource);
         var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
-        var kvRolesManifest = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
-        await Verifier.Verify(kvRolesManifest.BicepText, extension: "bicep")
-            .UseFileName($"{nameof(AzureKeyVaultTests)}.{nameof(AddKeyVaultViaPublishMode)}.kvroles")
-            .UseHelixAwareDirectory("Snapshots");
+        var (kvRolesManifest, kvRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(kvRolesBicep, "bicep")
+              .AppendContentAsFile(kvRolesManifest.ToString(), "json")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -126,23 +107,10 @@ public class AzureKeyVaultTests
             });
         });
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
 
-        var expectedManifest =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "mymodule.module.bicep",
-              "params": {
-                "mykeyvault_outputs_name": "{myKeyVault.outputs.name}"
-              }
-            }
-            """;
-
-        var m = manifest.ManifestNode.ToString();
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 }

@@ -47,28 +47,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "api.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "api_containerimage": "{api.containerImage}",
-            "api_containerport": "{api.containerPort}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -88,23 +69,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "env.module.bicep",
-          "params": {
-            "userPrincipalId": ""
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -136,30 +103,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "api.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "api_containerimage": "{api.containerImage}",
-            "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
-            "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -193,28 +139,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "project2.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "project2_containerimage": "{project2.containerImage}",
-            "project2_containerport": "{project2.containerPort}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
