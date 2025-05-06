@@ -98,6 +98,14 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Build',
+					badge: {
+						text: 'Concepts',
+						variant: 'note'
+					},
+					autogenerate: { directory: 'build' },
+				},
+				{
 					label: 'Dashboard',
 					items: [
 						{ label: 'Overview', slug: '' },
@@ -134,7 +142,7 @@ export default defineConfig({
 				{
 					label: 'Deploy',
 					collapsed: true,
-					slug: '',
+					autogenerate: { directory: 'deploy' },
 				},
 				{
 					label: 'Reference',
@@ -143,7 +151,7 @@ export default defineConfig({
 						variant: 'tip'
 					},
 					collapsed: true,
-					slug: '',
+					autogenerate: { directory: 'reference' },
 				}
 			],
 			plugins: [
