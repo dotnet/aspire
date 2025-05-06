@@ -50,7 +50,8 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var buildOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector();
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
@@ -91,15 +92,15 @@ internal sealed class RunCommand : BaseCommand
             {
                 var buildOptions = new DotNetCliRunnerInvocationOptions
                 {
-                    StandardOutputCallback = outputCollector.AppendOutput,
-                    StandardErrorCallback = outputCollector.AppendError,
+                    StandardOutputCallback = buildOutputCollector.AppendOutput,
+                    StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
                 var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
-                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
@@ -114,8 +115,8 @@ internal sealed class RunCommand : BaseCommand
 
             var runOptions = new DotNetCliRunnerInvocationOptions
             {
-                StandardOutputCallback = outputCollector.AppendOutput,
-                StandardErrorCallback = outputCollector.AppendError,
+                StandardOutputCallback = runOutputCollector.AppendOutput,
+                StandardErrorCallback = runOutputCollector.AppendError,
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -234,7 +235,7 @@ internal sealed class RunCommand : BaseCommand
                 var result =  await pendingRun;
                 if (result != 0)
                 {
-                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayLines(runOutputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be run. For more information run with --debug switch.");
                     return result;
                 }
@@ -280,10 +281,16 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
             return ExitCodeConstants.FailedToTrustCertificates;
         }
+        catch (FailedToConnectBackchannelConnection ex)
+        {
+            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
         catch (Exception ex)
         {
             _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
-            _interactionService.DisplayLines(outputCollector.GetLines());
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
