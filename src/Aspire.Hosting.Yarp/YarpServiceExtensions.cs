@@ -51,7 +51,14 @@ public static class YarpServiceExtensions
             string contents;
             if (yarpBuilder.Resource.ConfigFilePath != null)
             {
-                contents = await File.ReadAllTextAsync(yarpBuilder.Resource.ConfigFilePath, ct).ConfigureAwait(false);
+                try
+                {
+                    contents = await File.ReadAllTextAsync(yarpBuilder.Resource.ConfigFilePath, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    throw new DistributedApplicationException($"Error when reading the YARP config file '{yarpBuilder.Resource.ConfigFilePath}'", ex);
+                }
             }
             else
             {
