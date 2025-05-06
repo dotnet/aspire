@@ -287,39 +287,16 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
         var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "eh-roles");
-        var ehRolesManifest = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        var (ehRolesManifest, ehRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
 
-            param eh_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            resource eh 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
-              name: eh_outputs_name
-            }
-
-            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
-                principalType: principalType
-              }
-              scope: eh
-            }
-            """;
-        testOutputHelper.WriteLine(ehRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, ehRolesManifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(ehRolesManifest.ToString(), "json")
+              .AppendContentAsFile(ehRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
