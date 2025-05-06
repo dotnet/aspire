@@ -33,7 +33,7 @@ public static partial class AspireBlobStorageExtensions
     /// <exception cref="InvalidOperationException">
     ///  Neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.
     /// </exception>
-    public static AspireBlobStorageBuilder AddAzureBlobClient(
+    public static void AddAzureBlobClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
@@ -42,9 +42,7 @@ public static partial class AspireBlobStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        var settings = new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
-
-        return new AspireBlobStorageBuilder(builder, connectionName, serviceKey: null, settings);
+        new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -67,7 +65,7 @@ public static partial class AspireBlobStorageExtensions
     /// <exception cref="InvalidOperationException">
     ///  Neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.
     /// </exception>
-    public static AspireBlobStorageBuilder AddKeyedAzureBlobClient(
+    public static void AddKeyedAzureBlobClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
@@ -76,9 +74,7 @@ public static partial class AspireBlobStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var settings = new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
-
-        return new AspireBlobStorageBuilder(builder, connectionName: name, serviceKey: name, settings);
+        new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     /// <summary>

@@ -8,9 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobClient("blobs")
-       .AddKeyedAzureBlobContainerClient(blobContainerName: "test-container-1")
-       .AddKeyedAzureBlobContainerClient(blobContainerName: "test-container-2");
+builder.AddAzureBlobClient("blobs");
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
 builder.AddAzureQueueClient("queues");
@@ -19,21 +17,7 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapGet("/", async ([FromKeyedServices("test-container-1")] BlobContainerClient keyedContainerClient1,
-                       [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient2) =>
-{
-    var blobNames = new List<string>();
-    var blobNameAndContent = Guid.NewGuid().ToString();
-
-    await keyedContainerClient1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
-    await keyedContainerClient2.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
-
-    await ReadBlobsAsync(keyedContainerClient1, blobNames);
-    await ReadBlobsAsync(keyedContainerClient2, blobNames);
-
-    return blobNames;
-});
-app.MapGet("/test", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("test-container-2")] BlobContainerClient keyedContainerClient1) =>
+app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient1) =>
 {
     var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
