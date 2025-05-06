@@ -85,6 +85,10 @@ export default defineConfig({
 			},
 			sidebar: [
 				{
+					label: 'Home',
+					link: '/'
+				},
+				{
 					label: 'Welcome',
 					items: [
 						{ label: 'Overview', slug: 'get-started/overview' },
@@ -92,6 +96,21 @@ export default defineConfig({
 						{ label: 'Installation', slug: 'get-started/installation' },
 						{ label: 'First app', slug: 'get-started/first-app' }
 					],
+				},
+				{
+					label: 'Dashboard',
+					badge: {
+						text: 'Screenshots',
+						variant: 'caution'
+					},
+					collapsed: true,
+					autogenerate: { directory: 'dahboard' },
+				},
+				{
+					label: 'Integrations',
+					badge: 'New',
+					collapsed: true,
+					autogenerate: { directory: 'integrations' },
 				}
 			],
 			plugins: [
@@ -102,11 +121,11 @@ export default defineConfig({
 				}),
 				starlightKbd({
 					types: [
-					  { id: 'mac', label: 'macOS' },
-					  { id: 'windows', label: 'Windows', default: true },
-					  { id: 'linux', label: 'Linux' },
+						{ id: 'mac', label: 'macOS' },
+						{ id: 'windows', label: 'Windows', default: true },
+						{ id: 'linux', label: 'Linux' },
 					],
-				  }),
+				}),
 			],
 		}),
 	],
