@@ -39,7 +39,9 @@ public static class YarpServiceExtensions
 
         if (builder.Environment.IsDevelopment())
         {
-            // YARP will not trust the cert used by aspire otlp endpoint when running locally
+            // YARP will not trust the cert used by Aspire otlp endpoint when running locally
+            // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
+            // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
         }
 
