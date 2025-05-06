@@ -21,18 +21,6 @@ public class DataAppConfigurationPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddAzureAppConfigurationShouldThrowWhenConfigurationManagerIsNull()
-    {
-        IConfigurationManager configurationManager = null!;
-        const string connectionName = "appConfig";
-
-        var action = () => configurationManager.AddAzureAppConfiguration(connectionName);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(configurationManager), exception.ParamName);
-    }
-
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -44,15 +32,6 @@ public class DataAppConfigurationPublicApiTests
         var action = () => builder.AddAzureAppConfiguration(connectionName);
 
         var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-
-        var configurationManager = new ConfigurationManager();
-
-        action = () => configurationManager.AddAzureAppConfiguration(connectionName);
-
-        exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);

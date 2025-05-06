@@ -37,7 +37,22 @@ public static class AspireAppConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        AzureAppConfigurationSettings settings = GetSettings(builder.Configuration, connectionName, configureSettings);
+        IConfigurationSection configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+
+        var settings = new AzureAppConfigurationSettings();
+        configSection.Bind(settings);
+
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
+        }
+
+        configureSettings?.Invoke(settings);
+
+        if (settings.Endpoint is null)
+        {
+            throw new InvalidOperationException($"Endpoint is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'Endpoint' key in the '{DefaultConfigSectionName}' configuration section.");
+        }
 
         builder.Configuration.AddAzureAppConfiguration(
             options =>
@@ -57,61 +72,5 @@ public static class AspireAppConfigurationExtensions
                 .WithTracing(traceBuilder =>
                     traceBuilder.AddSource(["Microsoft.Extensions.Configuration.AzureAppConfiguration"]));
         }
-    }
-
-    /// <summary>
-    /// Adds the Azure App Configuration to be configuration values in the <paramref name="configurationManager"/>.
-    /// </summary>
-    /// <param name="configurationManager">The <see cref="IConfigurationManager"/> to add the secrets to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAppConfigurationSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="AzureAppConfigurationOptions"/>.</param>
-    /// <param name="optional">Determines the behavior of the App Configuration provider when an exception occurs while loading data from server. If false, the exception is thrown. If true, the exception is suppressed and no settings are populated from Azure App Configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Data:AppConfiguration" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureAppConfigurationSettings.Endpoint"/> is not provided.</exception>
-    public static IConfigurationBuilder AddAzureAppConfiguration(
-        this IConfigurationManager configurationManager,
-        string connectionName,
-        Action<AzureAppConfigurationSettings>? configureSettings = null,
-        Action<AzureAppConfigurationOptions>? configureOptions = null,
-        bool optional = false)
-    {
-        ArgumentNullException.ThrowIfNull(configurationManager);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        AzureAppConfigurationSettings settings = GetSettings(configurationManager, connectionName, configureSettings);
-
-        return configurationManager.AddAzureAppConfiguration(
-            options =>
-            {
-                options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
-                configureOptions?.Invoke(options);
-            },
-            optional);
-    }
-
-    private static AzureAppConfigurationSettings GetSettings(
-        IConfiguration configuration,
-        string connectionName,
-        Action<AzureAppConfigurationSettings>? configureSettings)
-    {
-        IConfigurationSection configSection = configuration.GetSection(DefaultConfigSectionName);
-
-        var settings = new AzureAppConfigurationSettings();
-        configSection.Bind(settings);
-
-        if (configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
-        }
-
-        configureSettings?.Invoke(settings);
-
-        if (settings.Endpoint is null)
-        {
-            throw new InvalidOperationException($"Endpoint is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'Endpoint' key in the '{DefaultConfigSectionName}' configuration section.");
-        }
-
-        return settings;
     }
 }

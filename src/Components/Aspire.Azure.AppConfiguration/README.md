@@ -109,10 +109,8 @@ The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.C
 {
   "Aspire": {
     "Azure": {
-      "Data": {
-        "AppConfiguration": {
-          "DisableTracing": false
-        }
+      "AppConfiguration": {
+        "DisableTracing": false
       }
     }
   }

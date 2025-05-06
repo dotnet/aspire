@@ -93,39 +93,6 @@ public class AspireAppConfigurationExtensionsTest
         Assert.Equal("test-value-2", builder.Configuration["test-key-2"]);
     }
 
-    [Fact]
-    public void AddsAppConfigurationToConfiguration()
-    {
-        var endpoint = new Uri("https://aspiretests.azconfig.io/");
-        var mockTransport = new MockTransport(CreateResponse("""
-            {
-                "items": [
-                    {
-                        "key": "test-key-1",
-                        "value": "test-value-1"
-                    },
-                    {
-                        "key": "test-key-2",
-                        "value": "test-value-2"
-                    }
-                ]
-            }
-            """));
-
-        var configurationManager = new ConfigurationManager();
-        configurationManager.AddAzureAppConfiguration(
-            "appConfig",
-            settings =>
-            {
-                settings.Endpoint = endpoint;
-                settings.Credential = new EmptyTokenCredential();
-            },
-            options => options.ConfigureClientOptions(clientOptions => clientOptions.Transport = mockTransport));
-
-        Assert.Equal("test-value-1", configurationManager["test-key-1"]);
-        Assert.Equal("test-value-2", configurationManager["test-key-2"]);
-    }
-
     private static MockResponse CreateResponse(string content)
     {
         var buffer = Encoding.UTF8.GetBytes(content);
