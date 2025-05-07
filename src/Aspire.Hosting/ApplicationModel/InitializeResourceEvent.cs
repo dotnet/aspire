@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -11,23 +10,31 @@ namespace Aspire.Hosting.ApplicationModel;
 /// 
 /// </summary>
 /// <param name="resource"></param>
+/// <param name="distributedApplicationEventing"></param>
+/// <param name="resourceLoggerService"></param>
+/// <param name="resourceNotificationService"></param>
 /// <param name="services"></param>
-public class InitializeResourceEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
+public class InitializeResourceEvent(
+    IResource resource,
+    IDistributedApplicationEventing distributedApplicationEventing,
+    ResourceLoggerService resourceLoggerService,
+    ResourceNotificationService resourceNotificationService,
+    IServiceProvider services) : IDistributedApplicationResourceEvent
 {
     /// <summary>
     /// 
     /// </summary>
-    public IDistributedApplicationEventing Eventing { get; } = services.GetRequiredService<IDistributedApplicationEventing>();
+    public IDistributedApplicationEventing Eventing { get; } = distributedApplicationEventing;
 
     /// <summary>
     /// 
     /// </summary>
-    public ILogger Logger { get; } = services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
+    public ILogger Logger { get; } = resourceLoggerService.GetLogger(resource);
 
     /// <summary>
     /// 
     /// </summary>
-    public ResourceNotificationService Notifications { get; } = services.GetRequiredService<ResourceNotificationService>();
+    public ResourceNotificationService Notifications { get; } = resourceNotificationService;
 
     /// <summary>
     /// 

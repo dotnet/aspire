@@ -52,8 +52,8 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(PublishResourceState);
+        // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
         _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
     }
@@ -378,7 +378,7 @@ internal sealed class ApplicationOrchestrator
             var relationships = ApplicationModel.ResourceSnapshotBuilder.BuildRelationships(resource);
             var parent = resource is IResourceWithParent hasParent
                 ? hasParent.Parent
-                : resource.Annotations.OfType<ResourceRelationshipAnnotation>().FirstOrDefault(r => r.Type == KnownRelationshipTypes.Parent)?.Resource;
+                : resource.Annotations.OfType<ResourceRelationshipAnnotation>().LastOrDefault(r => r.Type == KnownRelationshipTypes.Parent)?.Resource;
 
             await _notificationService.PublishUpdateAsync(resource, s =>
             {
@@ -391,7 +391,7 @@ internal sealed class ApplicationOrchestrator
             }).ConfigureAwait(false);
 
             // Notify resources that they need to initialize themselves.
-            var initializeEvent = new InitializeResourceEvent(resource, _serviceProvider);
+            var initializeEvent = new InitializeResourceEvent(resource, _eventing, _loggerService, _notificationService, _serviceProvider);
             await _eventing.PublishAsync(initializeEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
         }
     }
