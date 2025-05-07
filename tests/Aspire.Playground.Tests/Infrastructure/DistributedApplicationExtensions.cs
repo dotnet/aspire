@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -89,7 +90,6 @@ public static partial class DistributedApplicationExtensions
         return app.ResourceNotifications.WaitForResourceAsync(resourceName, targetState, cancellationToken);
     }
 
-#pragma warning disable CS0618 // Type or member is obsolete
     /// <summary>
     /// Waits for all resources in the application to reach one of the specified states.
     /// </summary>
@@ -98,12 +98,14 @@ public static partial class DistributedApplicationExtensions
     /// </remarks>
     public static Task WaitForResources(this DistributedApplication app, IEnumerable<string>? targetStates = null, CancellationToken cancellationToken = default)
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         targetStates ??= [KnownResourceStates.Running, KnownResourceStates.Hidden];
+#pragma warning restore CS0618 // Type or member is obsolete
+
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        return Task.WhenAll(applicationModel.Resources.Select(r => app.ResourceNotifications.WaitForResourceAsync(r.Name, targetStates, cancellationToken)));
+        return Task.WhenAll(applicationModel.Resources.Select(r => app.ResourceNotifications.WaitForResourceAsync(r.Name, r => targetStates?.Contains(r.Snapshot.State?.Text, StringComparer.OrdinalIgnoreCase) is true || r.Snapshot.IsHidden, cancellationToken)));
     }
-#pragma warning restore CS0618 // Type or member is obsolete
 
     /// <summary>
     /// Gets the app host and resource logs from the application.
