@@ -210,7 +210,7 @@ internal sealed class PublishCommand : BaseCommand
                     {
                         StandardOutputCallback = publishOutputCollector.AppendOutput,
                         StandardErrorCallback = publishOutputCollector.AppendError,
-                        NoLaunchProfile = true,
+                        NoLaunchProfile = true
                     };
 
                     var pendingRun = _runner.RunAsync(
