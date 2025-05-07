@@ -9,7 +9,7 @@ namespace Aspire.Azure.Storage.Queues;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Storage Queues.
 /// </summary>
-public sealed class AzureStorageQueuesSettings : IConnectionStringSettings
+public class AzureStorageQueuesSettings : IConnectionStringSettings
 {
     /// <summary>
     /// Gets or sets the connection string used to connect to the blob service. 

@@ -4,16 +4,16 @@ using Microsoft.Extensions.Logging;
 
 namespace AzureFunctionsEndToEnd.Functions;
 
-public class MyAzureBlobTrigger(ILogger<MyAzureBlobTrigger> logger, BlobContainerClient containerClient)
+public class MyAzureBlobTrigger(BlobContainerClient containerClient, ILogger<MyAzureBlobTrigger> logger)
 {
     [Function(nameof(MyAzureBlobTrigger))]
-    [BlobOutput("test-files/{name}.txt", Connection = "blob")]
-    public async Task<string> RunAsync([BlobTrigger("blobs/{name}", Connection = "blob")] string triggerString, FunctionContext context)
+    [BlobOutput("test-files/{name}.txt", Connection = "blobs")]
+    public async Task<string> RunAsync([BlobTrigger("myblobcontainer/{name}", Connection = "blobs")] string triggerString, FunctionContext context)
     {
         var blobName = (string)context.BindingContext.BindingData["name"]!;
-        await containerClient.UploadBlobAsync(blobName, new BinaryData(triggerString));
+        _ = await containerClient.GetAccountInfoAsync();
 
-        logger.LogInformation("C# blob trigger function invoked for 'blobs/{source}' with {message}...", blobName, triggerString);
+        logger.LogInformation("C# blob trigger function invoked for 'myblobcontainer/{source}' with {message}...", blobName, triggerString);
         return triggerString.ToUpper();
     }
 }

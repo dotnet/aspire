@@ -13,6 +13,7 @@ blobs.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
 blobs.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
 var queues = storage.AddQueues("queues");
+var myqueue = queues.AddQueue("myqueue", queueName: "my-queue");
 
 var storage2 = builder.AddAzureStorage("storage2").RunAsEmulator(container =>
 {
@@ -25,7 +26,8 @@ builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs).WaitFor(blobs)
        .WithReference(blobContainer2).WaitFor(blobContainer2)
-       .WithReference(queues).WaitFor(queues);
+       .WithReference(queues).WaitFor(queues)
+       .WithReference(myqueue).WaitFor(myqueue);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

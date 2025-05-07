@@ -5,11 +5,6 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
   name: 'existingResourcename'
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
-}
-
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
 output queueEndpoint string = storage.properties.primaryEndpoints.queue

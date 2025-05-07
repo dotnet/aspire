@@ -272,6 +272,111 @@ public class AzureStorageExtensionsTests
     }
 
     [Fact]
+    public async Task AddQueues_ConnectionString_resolved_expected_RunAsEmulator()
+    {
+        const string expected = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;";
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
+        });
+
+        Assert.True(storage.Resource.IsContainer());
+
+        var queues = storage.AddQueues("queues");
+
+        Assert.Equal(expected, await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddQueues_ConnectionString_resolved_expected()
+    {
+        const string connectionString = "https://myblob";
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storagesku = builder.AddParameter("storagesku");
+        var storage = builder.AddAzureStorage("storage");
+        storage.Resource.Outputs["queueEndpoint"] = connectionString;
+
+        var queues = storage.AddQueues("queues");
+
+        Assert.Equal(connectionString, await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public void AddQueues_ConnectionString_unresolved_expected()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var queues = storage.AddQueues("queues");
+
+        Assert.Equal("{storage.outputs.queueEndpoint}", queues.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task AddQueue_ConnectionString_resolved_expected_RunAsEmulator()
+    {
+        const string queueName = "my-queue";
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
+        });
+
+        Assert.True(storage.Resource.IsContainer());
+
+        var queues = storage.AddQueues("queues");
+        var queue = queues.AddQueue(name: "myqueue", queueName);
+
+        string? blobConntionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
+        string expected = $"Endpoint=\"{blobConntionString}\";QueueName={queueName};";
+
+        Assert.Equal(expected, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddQueue_ConnectionString_resolved_expected()
+    {
+        const string queueName = "my-queue";
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storagesku = builder.AddParameter("storagesku");
+        var storage = builder.AddAzureStorage("storage");
+        storage.Resource.Outputs["queueEndpoint"] = "https://myblob";
+
+        var queues = storage.AddQueues("queues");
+        var queue = queues.AddQueue(name: "myqueue", queueName);
+
+        string? connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
+        string expected = $"Endpoint=\"{connectionString}\";QueueName={queueName};";
+
+        Assert.Equal(expected, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public void AddQueue_ConnectionString_unresolved_expected()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var queues = storage.AddQueues("queues");
+        var queue = queues.AddQueue(name: "myqueue");
+
+        Assert.Equal("Endpoint=\"{storage.outputs.queueEndpoint}\";QueueName=myqueue;", queue.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public async Task ResourceNamesBicepValid()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -280,11 +385,11 @@ public class AzureStorageExtensionsTests
         var blobs = storage.AddBlobs("myblobs");
         var blob = blobs.AddBlobContainer(name: "myContainer", blobContainerName: "my-blob-container");
         var queues = storage.AddQueues("myqueues");
+        var queue = queues.AddQueue(name: "myqueue", queueName: "my-queue");
         var tables = storage.AddTables("mytables");
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
     }
 }
