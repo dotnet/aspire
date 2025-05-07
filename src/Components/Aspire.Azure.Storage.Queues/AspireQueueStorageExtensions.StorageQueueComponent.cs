@@ -24,7 +24,7 @@ partial class AspireQueueStorageExtensions
             {
                 if (string.IsNullOrEmpty(settings.QueueName))
                 {
-                    throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the container name.");
+                    throw new InvalidOperationException($"The connection string '{connectionName}' does not exist or is missing the queue name.");
                 }
 
                 var connectionString = settings.ConnectionString;

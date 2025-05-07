@@ -12,27 +12,29 @@ builder.AddAzureBlobClient("blobs");
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
 builder.AddAzureQueueClient("queues");
+builder.AddKeyedAzureQueueClient("myqueue");
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient1) =>
+app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("foocontainer")] BlobContainerClient bcc, [FromKeyedServices("myqueue")] QueueClient qc) =>
 {
     var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
 
-    await keyedContainerClient1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
+    await bcc.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
     var directContainerClient = bsc.GetBlobContainerClient(blobContainerName: "test-container-1");
     await directContainerClient.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
     await ReadBlobsAsync(directContainerClient, blobNames);
-    await ReadBlobsAsync(keyedContainerClient1, blobNames);
+    await ReadBlobsAsync(bcc, blobNames);
 
+    // This will check the queue exists.
     var queue = qsc.GetQueueClient("myqueue");
-    await queue.CreateIfNotExistsAsync();
-    await queue.SendMessageAsync("Hello, world!");
+
+    await qc.SendMessageAsync("Hello, world!");
 
     return blobNames;
 });

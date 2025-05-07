@@ -16,7 +16,7 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     IResourceWithParent<AzureStorageResource>,
     IResourceWithAzureFunctionsConfig
 {
-    // NOTE: if ever these contants are changed, the AzureBlobStorageContainerSettings in Aspire.Azure.Storage.Blobs class should be updated as well.
+    // NOTE: if ever these contants are changed, the AzureStorageQueueSettings in Aspire.Azure.Storage.Queues class should be updated as well.
     private const string Endpoint = nameof(Endpoint);
     private const string QueueName = nameof(QueueName);
 
@@ -69,10 +69,10 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
-    /// <returns>A <see cref="global::Azure.Provisioning.Storage.BlobService"/> instance.</returns>
-    internal global::Azure.Provisioning.Storage.BlobService ToProvisioningEntity()
+    /// <returns>A <see cref="global::Azure.Provisioning.Storage.QueueService"/> instance.</returns>
+    internal global::Azure.Provisioning.Storage.QueueService ToProvisioningEntity()
     {
-        global::Azure.Provisioning.Storage.BlobService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
+        global::Azure.Provisioning.Storage.QueueService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
         return service;
     }
 }
