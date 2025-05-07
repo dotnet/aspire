@@ -9,6 +9,15 @@ Aspire.Azure.AI.OpenAI:
 - Metric names:
   - "OpenAI.*"
 
+Aspire.Azure.AI.Projects:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.AI.Projects.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Data.Tables:
 - Log categories:
   - "Azure.Core"
@@ -270,7 +279,7 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 
 Aspire.OpenAI:
 - Log categories:
-  - none  
+  - none
 - Activity source names:
   - "OpenAI.*"
 - Metric names:

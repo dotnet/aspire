@@ -28,7 +28,7 @@ public static class AzureAIProjectExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAIProjectSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AIProjectClient, AIProjectClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:AI:Project" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:AI:Projects" section.</remarks>
     public static void AddAzureAIProjectClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -55,7 +55,7 @@ public static class AzureAIProjectExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAIProjectSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AIProjectClient, AIProjectClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:AI:Project" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:AI:Projects" section.</remarks>
     public static void AddKeyedAzureAIProjectClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -116,7 +116,7 @@ public static class AzureAIProjectExtensions
             => settings.Credential;
 
         protected override bool GetMetricsEnabled(AzureAIProjectSettings settings)
-            => !settings.DisableMetrics;
+            => false;
 
         protected override bool GetTracingEnabled(AzureAIProjectSettings settings)
             => !settings.DisableTracing;

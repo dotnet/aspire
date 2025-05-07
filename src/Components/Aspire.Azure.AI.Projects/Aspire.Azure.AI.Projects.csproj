@@ -7,7 +7,7 @@
     <Description>A client for Azure AI Agent Service that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed.. -->
+    <!-- In preview until the public API is validated and the package is stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 

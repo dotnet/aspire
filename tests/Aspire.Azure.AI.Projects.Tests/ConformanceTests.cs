@@ -25,7 +25,7 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:Project";
+    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:Projects";
 
     protected override string ValidJsonConfig => """
         {
@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:AI:Project", key, "ConnectionString"), ConnectionString)
+            new(CreateConfigKey("Aspire:Azure:AI:Projects", key, "ConnectionString"), ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureAIProjectSettings>? configure = null, string? key = null)
@@ -78,7 +78,7 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
         => throw new NotImplementedException();
 
     protected override void SetMetrics(AzureAIProjectSettings options, bool enabled)
-        => options.DisableMetrics = !enabled;
+        => throw new NotSupportedException();
 
     protected override void SetTracing(AzureAIProjectSettings options, bool enabled)
         => options.DisableTracing = !enabled;
