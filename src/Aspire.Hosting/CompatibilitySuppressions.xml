@@ -5,15 +5,15 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:bool Aspire.Hosting.DistributedApplicationExecutionContext.IsInspectMode.get</Target>
-    <Left>lib/net8.0/Aspire.Hosting.Azure.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
-    <Left>lib/net8.0/Aspire.Hosting.Azure.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>
