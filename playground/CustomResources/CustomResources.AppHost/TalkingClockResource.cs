@@ -9,6 +9,8 @@ namespace CustomResources.AppHost;
 // This class is primarily a data container; Aspire behavior is added via eventing and extension methods.
 public sealed class TalkingClockResource(string name) : Resource(name);
 
+public sealed class ClockHandResource(string name) : Resource(name);
+
 // Define Aspire extension methods for adding the TalkingClockResource to the application builder.
 // This provides a fluent API for users to add the custom resource.
 public static class TalkingClockExtensions
@@ -20,6 +22,7 @@ public static class TalkingClockExtensions
     {
         // Create a new instance of the TalkingClockResource.
         var clockResource = new TalkingClockResource(name);
+        var handResource = new ClockHandResource(name + "-hand");
 
         builder.Eventing.Subscribe<InitializeResourceEvent>(clockResource, static async (@event, token) =>
         {
@@ -70,7 +73,7 @@ public static class TalkingClockExtensions
         });
 
         // Add the resource instance to the Aspire application builder and configure it using fluent APIs.
-        return builder.AddResource(clockResource)
+        var clockBuilder = builder.AddResource(clockResource)
             // Use Aspire's ExcludeFromManifest to prevent this resource from being included in deployment manifests.
             .ExcludeFromManifest()
             // Set a URL for the resource, which will be displayed in the Aspire dashboard.
@@ -89,5 +92,10 @@ public static class TalkingClockExtensions
                     new(CustomResourceKnownProperties.Source, "Talking Clock")
                 ]
             });
+
+        builder.AddResource(handResource)
+            .WithParentRelationship(clockResource); // Establish a parent-child relationship with the TalkingClockResource.
+
+        return clockBuilder;
     }
 }
