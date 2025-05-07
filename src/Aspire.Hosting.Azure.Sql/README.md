@@ -62,14 +62,27 @@ Read more about the free offer here: [Deploy Azure SQL Database for free](https:
 
 The free offer is configured so that when the maximum usage limit is reached, the database is stopped to avoid incurring in unexpected costs.
 
-If you don't want to use the free offer and instead deploy the database with the service level of your choice, specify the SKU name when adding the database resource:
+If you **don't want to use the free offer** and instead deploy the database use the default sku set by Azure, use the `WithAzureDefaultSku` method:
 
 ```csharp
 var sql = builder.AddAzureSqlServer("sql")
-                 .AddDatabase("db", "my-db-name").WithSku("HS_Gen5_2");
+                 .AddDatabase("db", "my-db-name")
+                 .WithAzureDefaultSku();
+```
 
-var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(sql);
+## Setting a specific SKU
+
+If you want to manually define what SKU must be used when deploying the Azure SQL DB resource, use the `ConfigureInfrastructure` method:
+
+```csharp
+var sqlSrv = builder.AddAzureSqlServer("sqlsrv")
+    .ConfigureInfrastructure(infra => {
+        var azureResources = infra.GetProvisionableResources();
+        var azureDb = azureResources.OfType<SqlDatabase>().Single();
+        azureDb.Sku = new SqlSku() { Name = "HS_Gen5_2" };
+    })
+    .AddDatabase("sqldb", "DatabaseName");
+    .RunAsContainer();
 ```
 
 ## Additional documentation
