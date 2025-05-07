@@ -3,6 +3,7 @@
 
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Builds;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
@@ -29,6 +30,7 @@ internal static class CliTestHelper
 
         services.AddLogging();
 
+        services.AddSingleton(options.AppHostBuilderFactory);
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractionServiceFactory);
@@ -36,7 +38,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
         services.AddSingleton(options.PublishCommandPrompterFactory);
-        services.AddTransient(options.DotNetCliRunnerFactory);
+        services.AddSingleton(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
@@ -51,6 +53,12 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
 {
+    public Func<IServiceProvider, IAppHostBuilder> AppHostBuilderFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBuilder>>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        return new AppHostBuilder(logger, runner);
+    };
+
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
