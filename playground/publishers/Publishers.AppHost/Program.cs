@@ -5,7 +5,10 @@
 #pragma warning disable ASPIREAZURE001
 #pragma warning disable ASPIREPUBLISHERS001
 
+using Microsoft.Extensions.Configuration;
+
 var builder = DistributedApplication.CreateBuilder(args);
+builder.Configuration.AddCommandLine(args, new Dictionary<string, string> { ["--target"] = "Deployment:Target" });
 
 IResourceBuilder<IComputeEnvironmentResource> environment = builder.Configuration["Deployment:Target"] switch
 {

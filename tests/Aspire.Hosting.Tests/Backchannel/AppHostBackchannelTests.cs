@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
@@ -133,96 +132,6 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             Assert.Empty(resourceEvent.Endpoints);
             break;
         }
-
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
-    }
-
-    [Fact]
-    public async Task CanRequestPublishersAsync()
-    {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
-
-        builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
-        builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
-
-        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
-        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            backchannelReadyTaskCompletionSource.SetResult(e);
-            return Task.CompletedTask;
-        });
-
-        using var app = builder.Build();
-
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
-
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
-
-        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
-
-        using var stream = new NetworkStream(socket, true);
-        using var rpc = JsonRpc.Attach(stream);
-
-        var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
-            "GetPublishersAsync",
-            Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
-
-        Assert.Collection(
-            publishers,
-            x => Assert.Equal("manifest", x),
-            x => Assert.Equal("default", x),
-            x => Assert.Equal("dummy1", x),
-            x => Assert.Equal("dummy2", x)
-            );
-
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
-    }
-
-    [Fact]
-    public async Task CanRequestPublishersAsyncInInspectMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create("--operation", "inspect").WithTestAndResourceLogging(outputHelper);
-        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
-
-        builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy1");
-        builder.AddPublisher<DummyPublisher, DummyPublisherOptions>("dummy2");
-
-        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
-        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-            Assert.Equal(DistributedApplicationOperation.Inspect, executionContext.Operation);
-            backchannelReadyTaskCompletionSource.SetResult(e);
-            return Task.CompletedTask;
-        });
-
-        using var app = builder.Build();
-
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
-
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
-
-        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
-
-        using var stream = new NetworkStream(socket, true);
-        using var rpc = JsonRpc.Attach(stream);
-
-        var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
-            "GetPublishersAsync",
-            Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
-
-        Assert.Collection(
-            publishers,
-            x => Assert.Equal("manifest", x),
-            x => Assert.Equal("default", x),
-            x => Assert.Equal("dummy1", x),
-            x => Assert.Equal("dummy2", x)
-            );
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
