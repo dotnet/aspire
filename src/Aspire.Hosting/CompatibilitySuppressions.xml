@@ -4,14 +4,14 @@
   <!-- Shipped as experimental in 9.2 but removed because we are removing inspect mode -->
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:bool Aspire.Hosting.DistributedApplicationExecutionContext.IsInspectMode.get</Target>
+    <Target>M:Aspire.Hosting.DistributedApplicationExecutionContext.get_IsInspectMode</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
+    <Target>F:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
