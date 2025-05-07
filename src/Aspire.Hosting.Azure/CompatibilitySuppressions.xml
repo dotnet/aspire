@@ -9,20 +9,4 @@
     <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
-
-  <!-- Shipped as experimental in 9.2 but removed because we are removing inspect mode -->
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.DistributedApplicationExecutionContext.IsInspectMode.get</Target>
-    <Left>lib/net8.0/Aspire.Hosting.Azure.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
-    <Left>lib/net8.0/Aspire.Hosting.Azure.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
 </Suppressions>
