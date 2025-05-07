@@ -27,7 +27,7 @@
                 "Endpoint": {
                   "type": "string",
                   "format": "uri",
-                  "description": "A 'System.Uri' to the App Config store on which the client operates. Appears as \"Endpoint\" in the Azure portal. This is likely to be similar to \"https://{store_name}.azconfig.io\"."
+                  "description": "A 'System.Uri' to the App Configuration store on which the client operates. Appears as \"Endpoint\" in the Azure portal. This is likely to be similar to \"https://{store_name}.azconfig.io\"."
                 }
               },
               "description": "Provides the client configuration settings for connecting to Azure App Configuration."

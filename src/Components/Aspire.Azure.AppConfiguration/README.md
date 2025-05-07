@@ -81,7 +81,7 @@ For information about using the Feature Management library, please go to the [do
 
 ## Configuration
 
-The .NET Aspire Azure App Configuration library provides multiple options to configure the Azure App Configuration connection based on the requirements and conventions of your project. Note that the App Config `Endpoint` is required to be supplied.
+The .NET Aspire Azure App Configuration library provides multiple options to configure the Azure App Configuration connection based on the requirements and conventions of your project. Note that the App Config endpoint is required to be supplied, either in `AzureAppConfigurationSettings.Endpoint` or using a connection string.
 
 ### Use a connection string
 
@@ -91,7 +91,7 @@ When using a connection string from the `ConnectionStrings` configuration sectio
 builder.AddAzureAppConfiguration("appConfigConnectionName");
 ```
 
-And then the App Config endpoint will be retrieved from the `ConnectionStrings` configuration section. The App Config store URI works with the `AzureAppConfigurationSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+And then the App Configuration endpoint will be retrieved from the `ConnectionStrings` configuration section. The App Configuration store URI works with the `AzureAppConfigurationSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {

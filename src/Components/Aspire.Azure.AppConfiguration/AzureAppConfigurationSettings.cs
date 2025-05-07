@@ -12,7 +12,7 @@ namespace Aspire.Azure.AppConfiguration;
 public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
 {
     /// <summary>
-    /// A <see cref="Uri"/> to the App Config store on which the client operates. Appears as "Endpoint" in the Azure portal.
+    /// A <see cref="Uri"/> to the App Configuration store on which the client operates. Appears as "Endpoint" in the Azure portal.
     /// This is likely to be similar to "https://{store_name}.azconfig.io".
     /// </summary>
     public Uri? Endpoint { get; set; }
