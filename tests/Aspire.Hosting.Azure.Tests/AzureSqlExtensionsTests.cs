@@ -340,27 +340,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
         Assert.Single(dbAnnotations);
-    }
-
-    [Fact]
-    public void VerifyDefaultAzureSku()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var sql = builder.AddAzureSqlServer("sql");
-
-        // database name same as the aspire resource name, free tier 
-        var db1 = sql.AddDatabase("db1");
-        Assert.False(db1.Resource.UseDefaultAzureSku);
-
-        // set the database name, free tier 
-        var db2 = sql.AddDatabase("db2", "db2Name");
-        Assert.False(db2.Resource.UseDefaultAzureSku);
-
-        // set the database name, do not use the free offer
-        var db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
-        Assert.True(db3.Resource.UseDefaultAzureSku);
-    }
+    }   
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {

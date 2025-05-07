@@ -40,7 +40,7 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// <summary>  
     /// Gets or Sets the database SKU name  
     /// </summary>  
-    public bool UseDefaultAzureSku { get; internal set; } // Default to false  
+    internal bool UseDefaultAzureSku { get; set; } // Default to false  
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.
