@@ -198,6 +198,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
 
         return CosmosUtils.ParseConnectionString(connectionString);
     }
+
     private static MicrosoftAzureCosmosSettings GetSettings(
         this IHostApplicationBuilder builder,
         string connectionName,

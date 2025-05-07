@@ -547,6 +547,11 @@
         <target state="translated">Zaman damgası</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Yerleştirmeyi aç/kapat</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterCapturePaused">
         <source>Capture paused</source>
         <target state="translated">Yakalama duraklatıldı</target>

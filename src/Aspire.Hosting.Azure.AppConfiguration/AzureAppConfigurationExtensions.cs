@@ -69,6 +69,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="target">The target Azure App Configuration resource.</param>
     /// <param name="roles">The built-in App Configuration roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the AppConfigurationDataReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -81,6 +82,7 @@ public static class AzureAppConfigurationExtensions
     ///   .WithReference(appStore);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureAppConfigurationResource> target,

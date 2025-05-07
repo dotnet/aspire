@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -18,25 +19,28 @@ public partial class ResourceActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.Resources> Loc { get; set; }
+    public required IStringLocalizer<Resources.Resources> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; set; }
+    public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Parameter]
-    public required Func<CommandViewModel, Task> CommandSelected { get; set; }
+    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
 
     [Parameter]
     public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
 
     [Parameter]
-    public required Func<string?, Task> OnViewDetails { get; set; }
+    public required EventCallback<string?> OnViewDetails { get; set; }
 
     [Parameter]
     public required ResourceViewModel Resource { get; set; }
@@ -70,8 +74,9 @@ public partial class ResourceActions : ComponentBase
             GetResourceName,
             ControlLoc,
             Loc,
-            OnViewDetails,
-            CommandSelected,
+            CommandsLoc,
+            OnViewDetails.InvokeAsync,
+            CommandSelected.InvokeAsync,
             IsCommandExecuting,
             showConsoleLogsItem: true,
             showUrls: false);

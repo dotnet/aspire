@@ -35,6 +35,7 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("GITHUB_JOB") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine || IsRunningOnGithubActions;
+    public static bool ShouldRunPlaywrightTests => PlaywrightProvider.HasPlaywrightSupport && !EnvironmentVariables.RunOnlyBasicBuildTemplatesTests;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(sdkDirName: "dotnet-8"));
@@ -173,8 +174,6 @@ public class BuildEnvironment
         // Avoid using the msbuild terminal logger, so the output can be read
         // in the tests
         EnvVars["_MSBUILDTLENABLED"] = "0";
-        // .. and disable new output style for vstest
-        EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");

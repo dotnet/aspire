@@ -31,7 +31,7 @@ The following changes need to be made to when adding a new component:
 * Add a new `TestResourceNames` [enum entry](../testproject/Common/TestResourceNames.cs).
 * Add ProjectReference to the new resource/component from the [TestProject.AppHost](../testproject/TestProject.AppHost/TestProject.AppHost.csproj) and [TestProject.IntegrationServiceA](../testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj) projects.
   * Add PackageVersion entries to the new packages in [Directory.Packages.Helix.props](../Shared/RepoTesting/Directory.Packages.Helix.props)
-* Add entries to the Program.cs of both the AppHost and IntegrationServiceA projects.
+* Add entries to the AppHost.cs/Program.cs of both the AppHost and IntegrationServiceA projects.
 * Add a test in [IntegrationServicesTests](../Aspire.EndToEnd.Tests/IntegrationServicesTests.cs)
   * If the component's container starts in a reasonable time, the new test can just be a new `[InlineData]` entry to the existing `VerifyComponentWorks` test.
   * If the container takes a long time to start, or is flaky, add a separate test scenario (similar to Oracle and CosmosDb).

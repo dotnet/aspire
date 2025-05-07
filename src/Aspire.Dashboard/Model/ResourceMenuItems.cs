@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -26,8 +27,9 @@ public static class ResourceMenuItems
         NavigationManager navigationManager,
         TelemetryRepository telemetryRepository,
         Func<ResourceViewModel, string> getResourceName,
-        IStringLocalizer<Resources.ControlsStrings> controlLoc,
+        IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
+        IStringLocalizer<Commands> commandsLoc,
         Func<string?, Task> onViewDetails,
         Func<CommandViewModel, Task> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
@@ -36,7 +38,7 @@ public static class ResourceMenuItems
     {
         menuItems.Add(new MenuButtonItem
         {
-            Text = controlLoc[nameof(Resources.ControlsStrings.ActionViewDetailsText)],
+            Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
             OnClick = () => onViewDetails(openingMenuButtonId)
         });
@@ -56,21 +58,26 @@ public static class ResourceMenuItems
         }
 
         // Show telemetry menu items if there is telemetry for the resource.
-        var hasTelemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name) != null;
-        if (hasTelemetryApplication)
+        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name);
+        if (telemetryApplication != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
-            menuItems.Add(new MenuButtonItem
+
+            if (!telemetryApplication.UninstrumentedPeer)
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                Icon = s_structuredLogsIcon,
-                OnClick = () =>
+                menuItems.Add(new MenuButtonItem
                 {
-                    navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
-                    return Task.CompletedTask;
-                }
-            });
+                    Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Icon = s_structuredLogsIcon,
+                    OnClick = () =>
+                    {
+                        navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
+                        return Task.CompletedTask;
+                    }
+                });
+            }
+
             menuItems.Add(new MenuButtonItem
             {
                 Text = loc[nameof(Resources.Resources.ResourceActionTracesText)],
@@ -82,17 +89,21 @@ public static class ResourceMenuItems
                     return Task.CompletedTask;
                 }
             });
-            menuItems.Add(new MenuButtonItem
+
+            if (!telemetryApplication.UninstrumentedPeer)
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                Icon = s_metricsIcon,
-                OnClick = () =>
+                menuItems.Add(new MenuButtonItem
                 {
-                    navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
-                    return Task.CompletedTask;
-                }
-            });
+                    Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Icon = s_metricsIcon,
+                    OnClick = () =>
+                    {
+                        navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
+                        return Task.CompletedTask;
+                    }
+                });
+            }
         }
 
         var menuCommands = resource.Commands
@@ -109,8 +120,8 @@ public static class ResourceMenuItems
 
                 menuItems.Add(new MenuButtonItem
                 {
-                    Text = command.DisplayName,
-                    Tooltip = command.DisplayDescription,
+                    Text = command.GetDisplayName(commandsLoc),
+                    Tooltip = command.GetDisplayDescription(commandsLoc),
                     Icon = icon,
                     OnClick = () => commandSelected(command),
                     IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)

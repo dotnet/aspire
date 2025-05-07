@@ -1,6 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Resources
 
 @if (ViewportInformation.IsDesktop)
 {
@@ -12,14 +12,14 @@
         {
             var highlightedCommand = _highlightedCommands[i];
 
-            <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, highlightedCommand))">
+            <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.GetDisplayDescription(CommandsLoc)) ? highlightedCommand.GetDisplayDescription(CommandsLoc) : highlightedCommand.GetDisplayName(CommandsLoc))" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled || IsCommandExecuting(Resource, highlightedCommand))">
                 @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && IconResolver.ResolveIconName(highlightedCommand.IconName, IconSize.Size16, highlightedCommand.IconVariant) is { } icon)
                 {
                     <FluentIcon Value="@icon" Width="16px" />
                 }
                 else
                 {
-                    @highlightedCommand.DisplayName
+                    @highlightedCommand.GetDisplayName(CommandsLoc)
                 }
             </FluentButton>
         }
@@ -29,7 +29,7 @@
         }
     }
 
-    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: ResourceViewModel.GetResourceName(Resource, ResourceByName))))">
+    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: ResourceViewModel.GetResourceName(Resource, ResourceByName))))">
         <FluentIcon Value="@s_consoleLogsIcon" />
     </FluentButton>
 
@@ -40,4 +40,4 @@
                   Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
                   Items="@_menuItems"
                   @ref="_menuButton"
-                  Title="@ControlLoc[nameof(Resources.ControlsStrings.ActionsButtonText)]" />
+                  Title="@ControlLoc[nameof(ControlsStrings.ActionsButtonText)]" />

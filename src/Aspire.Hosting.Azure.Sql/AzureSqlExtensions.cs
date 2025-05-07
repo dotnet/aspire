@@ -146,6 +146,7 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure SQL Database (server) resource that runs locally in a
     /// SQL Server container and referencing that resource in a .NET project.
@@ -161,6 +162,7 @@ public static class AzureSqlExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -35,7 +35,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) =>
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
                     return (1, false, null); // Simulate failure to retrieve app host information
                 };
@@ -65,7 +65,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) =>
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
                     return (0, false, "9.0.0"); // Simulate an incompatible app host
                 };
@@ -95,7 +95,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.BuildAsyncCallback = (projectFile, cancellationToken) =>
+                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
                     return 1; // Simulate a build failure
                 };
@@ -127,10 +127,10 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
 
                 // Simulate a successful build
-                runner.BuildAsyncCallback = (projectFile, cancellationToken) => 0;
+                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
 
                 // Simulate apphost starting but crashing before backchannel is established
-                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, cancellationToken) =>
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
                 {
                     // Simulate a delay to mimic apphost starting
                     await Task.Delay(100, cancellationToken);
@@ -153,7 +153,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
-        Assert.Equal(1, exitCode); // Ensure the command fails
+        Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
     }
 
     [Fact]
@@ -169,17 +169,19 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
 
                 // Simulate a successful build
-                runner.BuildAsyncCallback = (projectFile, cancellationToken) => 0;
+                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
                 
                 // Simulate a successful app host information retrieval
-                runner.GetAppHostInformationAsyncCallback = (projectFile, cancellationToken) =>
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
                     return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
                 };
 
                 // Simulate apphost running successfully and establishing a backchannel
-                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, cancellationToken) =>
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
                 {
+                    Assert.True(options.NoLaunchProfile);
+
                     if (args.Any(a => a == "inspect"))
                     {
                         var inspectModeCompleted = new TaskCompletionSource();

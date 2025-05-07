@@ -16,7 +16,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class TraceDetail : ComponentBase, IDisposable
+public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -60,6 +60,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     protected override void OnInitialized()
     {
         _gridColumns = [
@@ -77,26 +80,35 @@ public partial class TraceDetail : ComponentBase, IDisposable
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
-    private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
+    // Internal to be used in unit tests
+    internal ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
         var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            if (!viewModel.IsHidden && viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            if (viewModel.IsHidden || visibleViewModels.Contains(viewModel))
+            {
+                continue;
+            }
+
+            if (viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
             {
                 visibleViewModels.Add(viewModel);
-                foreach (var descendent in matchedDescendents)
+                foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))
                 {
                     visibleViewModels.Add(descendent);
                 }
             }
         }
 
-        var page = visibleViewModels.AsEnumerable();
+        var page = _spanWaterfallViewModels.Where(visibleViewModels.Contains).AsEnumerable();
+        var totalItemCount = page.Count();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -106,7 +118,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
             Items = page.ToList(),
-            TotalItemCount = visibleViewModels.Count
+            TotalItemCount = totalItemCount
         });
     }
 
@@ -182,7 +194,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         }
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
     }
 
@@ -242,6 +254,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
             _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
 
+        UpdateDetailViewData();
         await _dataGrid.SafeRefreshDataAsync();
     }
 
@@ -316,5 +329,9 @@ public partial class TraceDetail : ComponentBase, IDisposable
             subscription.Dispose();
         }
         _tracesSubscription?.Dispose();
+        TelemetryContext.Dispose();
     }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
 }

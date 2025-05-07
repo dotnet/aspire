@@ -23,6 +23,7 @@ internal sealed class ApplicationOrchestrator
     private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
+    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly CancellationTokenSource _shutdownCancellation = new();
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
@@ -32,7 +33,8 @@ internal sealed class ApplicationOrchestrator
                                    ResourceNotificationService notificationService,
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
-                                   IServiceProvider serviceProvider)
+                                   IServiceProvider serviceProvider,
+                                   DistributedApplicationExecutionContext executionContext)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -42,6 +44,7 @@ internal sealed class ApplicationOrchestrator
         _loggerService = loggerService;
         _eventing = eventing;
         _serviceProvider = serviceProvider;
+        _executionContext = executionContext;
 
         dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
@@ -101,9 +104,6 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
-        // Call the callbacks to configure resource URLs
-        await ProcessUrls(context.Resource, context.CancellationToken).ConfigureAwait(false);
-
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:
@@ -151,72 +151,6 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
     {
         await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
-    }
-
-    private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
-    {
-        if (resource is not IResourceWithEndpoints resourceWithEndpoints)
-        {
-            return;
-        }
-
-        // Project endpoints to URLS
-        var urls = new List<ResourceUrlAnnotation>();
-
-        if (resource.TryGetEndpoints(out var endpoints))
-        {
-            foreach (var endpoint in endpoints)
-            {
-                // Create a URL for each endpoint
-                if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
-                {
-                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
-                    urls.Add(url);
-                }
-            }
-        }
-
-        // Run the URL callbacks
-        if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
-        {
-            var urlsCallbackContext = new ResourceUrlsCallbackContext(new(DistributedApplicationOperation.Run), resource, urls, cancellationToken)
-            {
-                Logger = _loggerService.GetLogger(resource.Name)
-            };
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
-            }
-        }
-
-        // Clear existing URLs
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            var existing = existingUrls.ToArray();
-            for (var i = existing.Length - 1; i >= 0; i--)
-            {
-                var url = existing[i];
-                resource.Annotations.Remove(url);
-            }
-        }
-
-        // Convert relative endpoint URLs to absolute URLs
-        foreach (var url in urls)
-        {
-            if (url.Endpoint is { } endpoint)
-            {
-                if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
-                {
-                    url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
-                }
-            }
-        }
-
-        // Add URLs
-        foreach (var url in urls)
-        {
-            resource.Annotations.Add(url);
-        }
     }
 
     private Task ProcessResourcesWithoutLifetime(AfterEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
@@ -423,8 +357,7 @@ internal sealed class ApplicationOrchestrator
             // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
-                var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, _serviceProvider);
-                await _eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
             }
         }
     }

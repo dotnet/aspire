@@ -24,7 +24,7 @@ dotnet add package Aspire.Azure.Npgsql
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureNpgsqlDataSource("postgresdb");
@@ -102,7 +102,7 @@ In your AppHost project, install the `Aspire.Hosting.Azure.PostgreSQL` library w
 dotnet add package Aspire.Hosting.Azure.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Azure Database for PostgreSQL instance and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Azure Database for PostgreSQL instance and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("postgresdb");

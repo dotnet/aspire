@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +18,9 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    IDistributedApplicationEventing eventing,
     PublishingActivityProgressReporter activityReporter,
-    IHostApplicationLifetime lifetime
+    IHostApplicationLifetime lifetime,
+    DistributedApplicationOptions options
     ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
@@ -101,6 +100,24 @@ internal class AppHostRpcTarget(
 
     public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
     {
+        return GetDashboardUrlsAsync(CancellationToken.None);
+    }
+
+    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    {
+        if (!options.DashboardEnabled)
+        {
+            logger.LogError("Dashboard URL requested but dashboard is disabled.");
+            throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
+        }
+
+        // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
+        // endpoint for the resource is available and the dashboard is ready to be used. This helps
+        // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
+        await resourceNotificationService.WaitForResourceHealthyAsync(
+            KnownResourceNames.AspireDashboard,
+            cancellationToken).ConfigureAwait(false);
+
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
         if (dashboardOptions is null)
@@ -122,21 +139,12 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return Task.FromResult<(string, string?)>((baseUrlWithLoginToken, null));
+            return (baseUrlWithLoginToken, null);
         }
         else
         {
-            return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+            return (baseUrlWithLoginToken, codespacesUrlWithLoginToken);
         }
-    }
-
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
-    {
-        var e = new PublisherAdvertisementEvent();
-        await eventing.PublishAsync(e, cancellationToken).ConfigureAwait(false);
-
-        var publishers = e.Advertisements.Select(x => x.Name);
-        return [..publishers];
     }
 
 #pragma warning disable CA1822
@@ -161,7 +169,7 @@ internal class AppHostRpcTarget(
 
         _ = cancellationToken;
         return Task.FromResult(new string[] {
-            "baseline.v0"
+            "baseline.v1"
             });
     }
 #pragma warning restore CA1822

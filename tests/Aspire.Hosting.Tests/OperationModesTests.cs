@@ -3,10 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -72,7 +69,6 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8223")]
     public async Task VerifyExplicitRunModeWithPublisherInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will enter
@@ -142,65 +138,5 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
             .Create(["--operation", "publish", "--publisher", "manifest", "--output-path", "test-output-path"])
             .WithTestAndResourceLogging(outputHelper);
         Assert.Equal(DistributedApplicationOperation.Publish, builder.ExecutionContext.Operation);
-    }
-
-    [Fact]
-    public async Task VerifyExplicitInspectModeInvocation()
-    {
-        // The purpose of this test is to verify that the apphost executable will continue
-        // to enter publish mode if the --publisher argument is specified.
-
-        using var builder = TestDistributedApplicationBuilder
-            .Create(["--operation", "inspect"])
-            .WithTestAndResourceLogging(outputHelper);
-        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
-
-        var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-            tcs.SetResult(context);
-            return Task.CompletedTask;
-        });
-
-        using var app = builder.Build();
-        
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        Assert.Equal(DistributedApplicationOperation.Inspect, context.Operation);
-        Assert.True(context.IsInspectMode);
-    }
-
-    [Fact]
-    public async Task VerifyExplicitInspectModeWithPublisherSpecifiedInvocation()
-    {
-        // The purpose of this test is to verify that the apphost executable will continue
-        // to enter publish mode if the --publisher argument is specified.
-
-        using var builder = TestDistributedApplicationBuilder
-            .Create(["--operation", "inspect", "--publisher", "manifest"])
-            .WithTestAndResourceLogging(outputHelper);
-        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
-
-        var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-            tcs.SetResult(context);
-            return Task.CompletedTask;
-        });
-
-        using var app = builder.Build();
-        
-        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        var context = await tcs.Task.WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
-
-        Assert.Equal(DistributedApplicationOperation.Inspect, context.Operation);
-        Assert.True(context.IsInspectMode);
     }
 }

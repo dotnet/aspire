@@ -1,34 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using OpenTelemetry.Proto.Common.V1;
+using System.Diagnostics;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-/// <summary>
-/// The Scope of a TraceSource, maps to the name of the ActivitySource in .NET
-/// </summary>
-public class OtlpScope
+[DebuggerDisplay("Name = {Name}")]
+public sealed class OtlpScope
 {
-    public static readonly OtlpScope Empty = new OtlpScope();
+    private const string UnknownScopeName = "unknown";
 
-    public string ScopeName { get; }
+    public static readonly OtlpScope Empty = new OtlpScope(name: UnknownScopeName, version: string.Empty, attributes: []);
+
+    public string Name { get; }
     public string Version { get; }
+    public KeyValuePair<string, string>[] Attributes { get; }
 
-    public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; }
-
-    private OtlpScope()
+    public OtlpScope(string name, string version, KeyValuePair<string, string>[] attributes)
     {
-        ScopeName = string.Empty;
-        Attributes = Array.Empty<KeyValuePair<string, string>>();
-        Version = string.Empty;
-    }
-
-    public OtlpScope(InstrumentationScope scope, OtlpContext context)
-    {
-        ScopeName = scope.Name;
-
-        Attributes = scope.Attributes.ToKeyValuePairs(context);
-        Version = scope.Version;
+        Name = name is { Length: > 0 } ? name : UnknownScopeName;
+        Version = version;
+        Attributes = attributes;
     }
 }

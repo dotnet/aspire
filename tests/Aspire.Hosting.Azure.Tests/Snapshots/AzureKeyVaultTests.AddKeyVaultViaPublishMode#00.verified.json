@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{mykv.outputs.vaultUri}",
+  "path": "mykv.module.bicep"
+}

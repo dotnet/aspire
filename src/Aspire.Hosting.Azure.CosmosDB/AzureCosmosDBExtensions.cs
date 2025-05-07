@@ -309,7 +309,9 @@ public static class AzureCosmosExtensions
             .WithUrls(context =>
             {
                 var url = context.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == KnownUrls.DataExplorer.EndpointName);
+#pragma warning disable IDE0031 // Use null propagation (IDE0031)
                 if (url is not null)
+#pragma warning restore IDE0031
                 {
                     url.DisplayText = KnownUrls.DataExplorer.DisplayText;
                 }
@@ -321,6 +323,7 @@ public static class AzureCosmosExtensions
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure Cosmos DB resource that uses access key authentication.
     /// <code lang="csharp">
@@ -335,6 +338,7 @@ public static class AzureCosmosExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureCosmosDBResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

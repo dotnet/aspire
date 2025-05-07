@@ -3,14 +3,16 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +20,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspire.Hosting.Devcontainers;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -126,7 +127,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
         ConfigureAspireDashboardResource(dashboardResource);
-
         // Make the dashboard first in the list so it starts as fast as possible.
         model.Resources.Insert(0, dashboardResource);
     }
@@ -160,6 +160,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             }
         }
 
+        var showDashboardResources = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources);
+        var hideDashboard = !(showDashboardResources ?? false);
+
         var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
@@ -170,14 +173,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
-                ? null
-                : KnownResourceStates.Hidden
+            IsHidden = hideDashboard
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(ConfigureEnvironmentVariables));
+        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DasboardHealthCheck));
     }
 
     internal async Task ConfigureEnvironmentVariables(EnvironmentCallbackContext context)
@@ -273,6 +275,34 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
         // via the ILogger.
         context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
+
+        // Details for contacting AspireServer in an IDE debug session.
+        if (configuration["DEBUG_SESSION_PORT"] is { Length: > 0 } sessionPort)
+        {
+            // DEBUG_SESSION_PORT env var is in the format localhost:port.
+            // We assume the address is localhost and only want the port value.
+            if (sessionPort.Split(':') is { Length: 2 } parts &&
+                int.TryParse(parts[1], CultureInfo.InvariantCulture, out var port))
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DebugSessionPortName.EnvVarName] = port;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unexpected DEBUG_SESSION_PORT value. Expected localhost:port, got '{sessionPort}'.");
+            }
+        }
+        if (configuration["DEBUG_SESSION_TOKEN"] is { Length: > 0 } sessionToken)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DebugSessionTokenName.EnvVarName] = sessionToken;
+        }
+        if (configuration["DEBUG_SESSION_SERVER_CERTIFICATE"] is { Length: > 0 } sessionCertificate)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DebugSessionServerCertificateName.EnvVarName] = sessionCertificate;
+        }
+        if (options.TelemetryOptOut is { } optOutValue)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName] = optOutValue;
+        }
 
         if (!StringUtils.TryGetUriFromDelimitedString(options.DashboardUrl, ";", out var firstDashboardUrl))
         {

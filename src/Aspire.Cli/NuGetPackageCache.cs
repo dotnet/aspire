@@ -16,7 +16,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 {
     private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 
-    private const int SearchPageSize = 100;
+    private const int SearchPageSize = 1000;
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
@@ -48,6 +48,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
                 SearchPageSize,
                 skip,
                 source,
+                new DotNetCliRunnerInvocationOptions(),
                 cancellationToken
                 );
 

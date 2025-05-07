@@ -226,7 +226,7 @@ public class AddMySqlTests
         builder.AddMySql("mySql").WithPhpMyAdmin();
         builder.AddMySql("mySql2").WithPhpMyAdmin();
 
-        Assert.Single(builder.Resources.OfType<ContainerResource>().Where(resource => resource.Name is "mySql-phpmyadmin"));
+        Assert.Single(builder.Resources.OfType<ContainerResource>(), resource => resource.Name == "mySql-phpmyadmin");
     }
 
     [Fact]

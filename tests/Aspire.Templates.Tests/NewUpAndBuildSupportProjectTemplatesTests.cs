@@ -16,6 +16,7 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
+    [Trait("category", "basic-build")]
     public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{FixupSymbolName(templateName)}");

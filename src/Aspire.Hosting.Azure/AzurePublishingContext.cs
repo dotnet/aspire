@@ -37,6 +37,24 @@ public sealed class AzurePublishingContext(
     };
 
     /// <summary>
+    /// Gets a dictionary that maps parameter resources to provisioning parameters.
+    /// </summary>
+    /// <remarks>
+    /// The value is the <see cref="ProvisioningParameter"/> of the <see cref="MainInfrastructure"/>
+    /// that was created to be filled with the value of the Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
+    public Dictionary<ParameterResource, ProvisioningParameter> ParameterLookup { get; } = [];
+
+    /// <summary>
+    /// Gets a dictionary that maps output references to provisioning outputs.
+    /// </summary>
+    /// <remarks>
+    /// The value is the <see cref="ProvisioningOutput"/> of the <see cref="MainInfrastructure"/>
+    /// that was created with the value of the output referenced by the Aspire <see cref="BicepOutputReference"/>.
+    /// </remarks>
+    public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
+
+    /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
@@ -66,6 +84,8 @@ public sealed class AzurePublishingContext(
             outputDirectory.Create();
         }
 
+        var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
+
         var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
         MainInfrastructure.Add(environmentParam);
 
@@ -92,7 +112,7 @@ public sealed class AzurePublishingContext(
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             var file = resource.GetBicepTemplateFile();
 
@@ -112,11 +132,9 @@ public sealed class AzurePublishingContext(
             moduleMap[resource] = module;
         }
 
-        var parameterMap = new Dictionary<ParameterResource, ProvisioningParameter>();
-
         void MapParameter(object candidate)
         {
-            if (candidate is ParameterResource p && !parameterMap.ContainsKey(p))
+            if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
             {
                 var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
 
@@ -130,11 +148,11 @@ public sealed class AzurePublishingContext(
                     pp.Value = p.Value;
                 }
 
-                parameterMap[p] = pp;
+                ParameterLookup[p] = pp;
             }
         }
 
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             // Map parameters from existing resources
             if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
@@ -168,7 +186,7 @@ public sealed class AzurePublishingContext(
         object Eval(object? value) => value switch
         {
             BicepOutputReference b => GetOutputs(moduleMap[b.Resource], b.Name),
-            ParameterResource p => parameterMap[p],
+            ParameterResource p => ParameterLookup[p],
             ConnectionStringReference r => Eval(r.Resource.ConnectionStringExpression),
             IResourceWithConnectionString cs => Eval(cs.ConnectionStringExpression),
             ReferenceExpression re => EvalExpr(re),
@@ -188,12 +206,12 @@ public sealed class AzurePublishingContext(
             };
         }
 
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), parameterMap[p].Value.Compile()),
+                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterLookup[p].Value.Compile()),
                 _ => new IdentifierExpression(rg.BicepIdentifier)
             };
 
@@ -225,6 +243,16 @@ public sealed class AzurePublishingContext(
             }
         }
 
+        void CaptureBicepOutputsFromParameters(IResourceWithParameters resource)
+        {
+            foreach (var parameter in resource.Parameters)
+            {
+                Visit(parameter.Value, CaptureBicepOutputs);
+            }
+        }
+
+        // Capture any bicep outputs referenced from resources outside of the MainInfrastructure.
+        // These include DeploymentTarget resources and any other resources that have parameters that reference bicep outputs.
         foreach (var resource in model.Resources)
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
@@ -238,22 +266,23 @@ public sealed class AzurePublishingContext(
                 File.Copy(file.Path, modulePath, true);
 
                 // Capture any bicep outputs from the registry info as it may be needed
-                Visit(annotation.ContainerRegistryInfo?.Name, CaptureBicepOutputs);
-                Visit(annotation.ContainerRegistryInfo?.Endpoint, CaptureBicepOutputs);
+                Visit(annotation.ContainerRegistry?.Name, CaptureBicepOutputs);
+                Visit(annotation.ContainerRegistry?.Endpoint, CaptureBicepOutputs);
 
-                if (annotation.ContainerRegistryInfo is IAzureContainerRegistry acr)
+                if (annotation.ContainerRegistry is IAzureContainerRegistry acr)
                 {
                     Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
                 }
 
-                foreach (var parameter in br.Parameters)
-                {
-                    Visit(parameter.Value, CaptureBicepOutputs);
-                }
+                CaptureBicepOutputsFromParameters(br);
+            }
+            else if (resource is IResourceWithParameters rwp && !bicepResourcesToPublish.Contains(resource))
+            {
+                CaptureBicepOutputsFromParameters(rwp);
             }
         }
 
-        foreach (var (_, pp) in parameterMap)
+        foreach (var (_, pp) in ParameterLookup)
         {
             MainInfrastructure.Add(pp);
         }
@@ -277,6 +306,7 @@ public sealed class AzurePublishingContext(
                 Value = GetOutputs(module, output.Name)
             };
 
+            OutputLookup[output] = bicepOutput;
             MainInfrastructure.Add(bicepOutput);
         }
 

@@ -18,7 +18,7 @@ dotnet add package Aspire.Pomelo.EntityFrameworkCore.MySql
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddMySqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddMySqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddMySqlDbContext<MyDbContext>("mysqldb");
@@ -112,7 +112,7 @@ In your AppHost project, install the `Aspire.Hosting.MySql` library with [NuGet]
 dotnet add package Aspire.Hosting.MySql
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a MySQL container and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a MySQL container and consume the connection using the following methods:
 
 ```csharp
 var mysqldb = builder.AddMySql("mysql").AddDatabase("mysqldb");

@@ -16,44 +16,61 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    public async Task WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
+    public void WithHttpHealthCheckThrowsIfReferencingEndpointByNameThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddContainer("resource", "dummycontainer")
-                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                .WithHttpHealthCheck(endpointName: "nonhttp");
 
-        using var app = builder.Build();
+        var container = builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
 
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            await app.StartAsync();
-        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+            container.WithHttpHealthCheck(endpointName: "nonhttp");
+        });
 
         Assert.Equal(
-            "The endpoint 'nonhttp' on resource 'resource' was not using the 'http' scheme.",
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
             ex.Message
             );
     }
 
     [Fact]
     [RequiresDocker]
-    public async Task WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    public void WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddContainer("resource", "dummycontainer")
-                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                .WithHttpsHealthCheck(endpointName: "nonhttp");
 
-        using var app = builder.Build();
+        var container = builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
 
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            await app.StartAsync();
-        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+            container.WithHttpHealthCheck(() => container.GetEndpoint("nonhttp"));
+        });
 
         Assert.Equal(
-            "The endpoint 'nonhttp' on resource 'resource' was not using the 'https' scheme.",
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+            );
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                .WithHttpsHealthCheck(endpointName: "nonhttp");
+#pragma warning restore CS0618 // Type or member is obsolete
+        });
+
+        Assert.Equal(
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
             ex.Message
             );
     }

@@ -269,7 +269,7 @@
     <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
   </data>
   <data name="SettingsDialogDashboardLogsAndTelemetry" xml:space="preserve">
-    <value>Dashboard logs and telemetry</value>
+    <value>Resource logs and telemetry</value>
   </data>
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
@@ -288,5 +288,14 @@
   </data>
   <data name="FilterDialogEnableAll" xml:space="preserve">
     <value>Enable all</value>
+  </data>
+  <data name="SettingsDialogEnableTelemetry" xml:space="preserve">
+    <value>Enable dashboard telemetry</value>
+  </data>
+  <data name="SettingsDialogTelemetryEnabledInfo" xml:space="preserve">
+    <value>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</value>
+  </data>
+  <data name="SettingsDialogTelemetryInfoLinkText" xml:space="preserve">
+    <value>Why?</value>
   </data>
 </root>

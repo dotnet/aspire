@@ -19,16 +19,19 @@
                 <ApplicationName/>
             </FluentAnchor>
             <div class="flex-filler"></div>
-            <FluentAnchor Appearance="Appearance.Stealth"
+            <FluentAnchor Class="header-button"
+                          Appearance="Appearance.Stealth"
                           Href="https://aka.ms/dotnet/aspire/repo" Target="_blank" Rel="noreferrer noopener"
                           Title="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]">
                 <FluentIcon Value="@(new AspireIcons.Size24.GitHub())" Color="Color.Neutral"/>
             </FluentAnchor>
-            <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchHelpAsync" Target="_blank" Rel="noreferrer noopener"
+            <FluentButton Class="header-button"
+                          Appearance="Appearance.Stealth" OnClick="@LaunchHelpAsync" Target="_blank" Rel="noreferrer noopener"
                           Title="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
                 <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Neutral"/>
             </FluentButton>
-            <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchSettingsAsync"
+            <FluentButton Class="header-button"
+                          Appearance="Appearance.Stealth" OnClick="@LaunchSettingsAsync"
                           Title="@Loc[nameof(Layout.MainLayoutLaunchSettings)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchSettings)]">
                 <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral"/>
             </FluentButton>

@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddAzurePostgresFlexibleServer("pg")

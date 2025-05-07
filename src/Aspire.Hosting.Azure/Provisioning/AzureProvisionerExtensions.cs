@@ -20,6 +20,11 @@ public static class AzureProvisionerExtensions
     /// </summary>
     public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
     {
+        // Always add the Azure publisher, even if the user doesn't explicitly add it.
+#pragma warning disable ASPIREAZURE001
+        builder.AddAzurePublisher();
+#pragma warning restore ASPIREAZURE001
+
         builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
         builder.Services.TryAddLifecycleHook<AzureProvisioner>();
 

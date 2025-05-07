@@ -11,8 +11,8 @@ internal static class ServiceBusEmulatorContainerImageTags
     /// <remarks>azure-messaging/servicebus-emulator</remarks>
     public const string Image = "azure-messaging/servicebus-emulator";
 
-    /// <remarks>1.0.1</remarks>
-    public const string Tag = "1.0.1";
+    /// <remarks>1.1.2</remarks>
+    public const string Tag = "1.1.2";
 
     /// <remarks>mcr.microsoft.com</remarks>
     public const string AzureSqlEdgeRegistry = "mcr.microsoft.com";
