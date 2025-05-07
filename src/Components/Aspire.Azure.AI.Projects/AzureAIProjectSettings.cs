@@ -12,28 +12,15 @@ namespace Aspire.Azure.AI.Projects;
 /// </summary>
 public sealed class AzureAIProjectSettings : IConnectionStringSettings
 {
-    private string? _connectionString;
     private bool? _disableTracing;
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the table service account. 
+    /// Gets or sets the connection string used to connect to the AI Projects account.
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="SubscriptionId"/>, <see cref="ResourceGroupName"/>, <see cref="ProjectName"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="SubscriptionId"/>, <see cref="ResourceGroupName"/> and <see cref="ProjectName"/>.
     /// </remarks>
-    public string? ConnectionString
-    {
-        get
-        {
-            if (_connectionString is null && Endpoint is not null)
-            {
-                _connectionString = $"{Endpoint.Host};{SubscriptionId};{ResourceGroupName};{ProjectName}";
-            }
-
-            return _connectionString;
-        }
-        set => _connectionString = value;
-    }
+    public string? ConnectionString { get; set; }
 
     /// <summary>
     /// The Endpoint of the resource in Azure.

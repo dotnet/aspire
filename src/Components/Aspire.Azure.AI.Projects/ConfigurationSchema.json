@@ -120,7 +120,7 @@
                     },
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string used to connect to the table service account."
+                      "description": "Gets or sets the connection string used to connect to the AI Projects account."
                     },
                     "DisableTracing": {
                       "type": "boolean",

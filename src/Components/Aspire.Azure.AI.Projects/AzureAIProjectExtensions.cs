@@ -82,9 +82,18 @@ public static class AzureAIProjectExtensions
             return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<AIProjectClient, AIProjectClientOptions>((options, creds) =>
             {
                 var connectionString = settings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString))
+                if (string.IsNullOrEmpty(connectionString) &&
+                    settings is { Endpoint: null } or
+                    { ProjectName: null or "" } or
+                    { ResourceGroupName: null or "" } or
+                    { SubscriptionId: null or "" })
                 {
                     throw new InvalidOperationException($"An AIProjectClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' in the '{configurationSectionName}' configuration section.");
+                }
+
+                if (string.IsNullOrEmpty(connectionString) && settings.Endpoint is not null)
+                {
+                    connectionString = $"{settings.Endpoint.Host};{settings.SubscriptionId};{settings.ResourceGroupName};{settings.ProjectName}";
                 }
 
                 // AIProjectClient takes a TokenCredential instance so it either has to be a provided credential
