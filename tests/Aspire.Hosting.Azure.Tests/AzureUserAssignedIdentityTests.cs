@@ -32,8 +32,7 @@ public class AzureUserAssignedIdentityTests
         var (_, bicep) = await GetManifestWithBicep(resource);
 
         await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots")
-            .AutoVerify();
+            .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -52,8 +51,7 @@ public class AzureUserAssignedIdentityTests
         var (_, bicep) = await GetManifestWithBicep(resource);
 
         await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots")
-            .AutoVerify();
+            .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -96,7 +94,6 @@ public class AzureUserAssignedIdentityTests
             new Target("bicep", identityRoleAssignmentsBicep)
         ];
         await Verifier.Verify(targets)
-            .UseHelixAwareDirectory("Snapshots")
-            .AutoVerify();
+            .UseHelixAwareDirectory();
     }
 }
