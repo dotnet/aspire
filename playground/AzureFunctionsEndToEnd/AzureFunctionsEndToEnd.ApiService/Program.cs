@@ -14,8 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
-builder.AddAzureQueueClient("queue");
-builder.AddAzureBlobClient("blob");
+builder.AddAzureQueueClient("queues");
+builder.AddAzureBlobClient("blobs");
 builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
@@ -41,15 +41,14 @@ static string RandomString(int length)
 
 app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken cancellationToken, int length = 20) =>
 {
-    var container = client.GetBlobContainerClient("blobs");
-    await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+    var container = client.GetBlobContainerClient("myblobcontainer");
 
     var entry = new { Id = Guid.NewGuid(), Text = RandomString(length) };
     var blob = container.GetBlobClient(entry.Id.ToString());
 
     await blob.UploadAsync(new BinaryData(entry));
 
-    return Results.Ok("String uploaded to Azure Storage Blobs.");
+    return Results.Ok($"String uploaded to Azure Storage Blobs {container.Uri}.");
 });
 
 app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, CancellationToken cancellationToken, int length = 20) =>
