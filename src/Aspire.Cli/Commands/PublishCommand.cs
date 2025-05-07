@@ -59,6 +59,10 @@ internal sealed class PublishCommand : BaseCommand
         outputPath.Description = "The output path for the generated artifacts.";
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
+
+        // In the `aspire publish` and run commands we forward all unrecognized tokens
+        // through to `dotnet run` when we launch the app host.
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -142,11 +146,13 @@ internal sealed class PublishCommand : BaseCommand
                         StandardErrorCallback = publishOutputCollector.AppendError,
                     };
 
+                    var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
                     var pendingRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         true,
-                        ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath],
+                        ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens],
                         env,
                         backchannelCompletionSource,
                         publishRunOptions,

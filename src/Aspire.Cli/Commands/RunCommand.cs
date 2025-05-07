@@ -46,6 +46,8 @@ internal sealed class RunCommand : BaseCommand
         var watchOption = new Option<bool>("--watch", "-w");
         watchOption.Description = "Start project resources in watch mode.";
         Options.Add(watchOption);
+
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -121,11 +123,13 @@ internal sealed class RunCommand : BaseCommand
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
+            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
                 !watch,
-                Array.Empty<string>(),
+                unmatchedTokens,
                 env,
                 backchannelCompletitionSource,
                 runOptions,

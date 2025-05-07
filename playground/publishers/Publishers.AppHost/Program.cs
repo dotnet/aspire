@@ -7,6 +7,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+if (args.IndexOf("--target") is not -1 and var targetArgIndex && args[targetArgIndex + 1] is var targetArg)
+{
+    builder.Configuration["Deployment:Target"] = targetArg;
+}
+
 IResourceBuilder<IComputeEnvironmentResource> environment = builder.Configuration["Deployment:Target"] switch
 {
     "k8s" or "kube" => builder.AddKubernetesEnvironment("env"),
