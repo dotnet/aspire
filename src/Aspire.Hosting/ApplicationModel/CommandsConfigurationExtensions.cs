@@ -29,7 +29,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsRuntimeUnhealthy(state))
+                if (IsStarting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
