@@ -7,7 +7,11 @@ namespace CustomResources.AppHost;
 
 // Define the custom resource type. It inherits from the base Aspire 'Resource' class.
 // This class is primarily a data container; Aspire behavior is added via eventing and extension methods.
-public sealed class TalkingClockResource(string name) : Resource(name);
+public sealed class TalkingClockResource(string name, ClockHandResource tickHand, ClockHandResource tockHand) : Resource(name)
+{
+    public ClockHandResource TickHand { get; } = tickHand; // The tick hand resource instance.
+    public ClockHandResource TockHand { get; } = tockHand; // The tock hand resource instance.
+}
 
 public sealed class ClockHandResource(string name) : Resource(name);
 
@@ -21,8 +25,9 @@ public static class TalkingClockExtensions
         string name)                                 // The name for this resource instance.
     {
         // Create a new instance of the TalkingClockResource.
-        var clockResource = new TalkingClockResource(name);
-        var handResource = new ClockHandResource(name + "-hand");
+        var tickHandResource = new ClockHandResource(name + "-tick-hand");
+        var tockHandResource = new ClockHandResource(name + "-tock-hand");
+        var clockResource = new TalkingClockResource(name, tickHandResource, tockHandResource);
 
         builder.Eventing.Subscribe<InitializeResourceEvent>(clockResource, static async (@event, token) =>
         {
@@ -32,12 +37,14 @@ public static class TalkingClockExtensions
             var log = @event.Logger; // Get the logger for this resource instance.
             var eventing = @event.Eventing; // Get the eventing service for publishing events.
             var notification = @event.Notifications; // Get the notification service for state updates.
-            var resource = @event.Resource; // Get the resource instance.
+            var resource = (TalkingClockResource)@event.Resource; // Get the resource instance.
             var services = @event.Services; // Get the service provider for dependency injection.
 
             // Publish an Aspire event indicating that this resource is about to start.
             // Other components could subscribe to this event for pre-start actions.
             await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, services), token);
+            await eventing.PublishAsync(new BeforeResourceStartedEvent(resource.TickHand, services), token);
+            await eventing.PublishAsync(new BeforeResourceStartedEvent(resource.TockHand, services), token);
 
             // Log an informational message associated with the resource.
             log.LogInformation("Starting Talking Clock...");
@@ -50,6 +57,16 @@ public static class TalkingClockExtensions
                 StartTimeStamp = DateTime.UtcNow,
                 State = KnownResourceStates.Running // Use an Aspire well-known state.
             });
+            await notification.PublishUpdateAsync(resource.TickHand, s => s with
+            {
+                StartTimeStamp = DateTime.UtcNow,
+                State = "Wating on clock tick" // Custom state string for the tick hand.
+            });
+            await notification.PublishUpdateAsync(resource.TockHand, s => s with
+            {
+                StartTimeStamp = DateTime.UtcNow,
+                State = "Wating on clock tock" // Custom state string for the tockhand.
+            });
 
             // Enter the main loop that runs as long as cancellation is not requested.
             while (!token.IsCancellationRequested)
@@ -60,13 +77,21 @@ public static class TalkingClockExtensions
                 // Publish a custom state update "Tick" using Aspire's ResourceStateSnapshot.
                 // This demonstrates using custom state strings and styles in the Aspire dashboard.
                 await notification.PublishUpdateAsync(resource,
-                    s => s with { State = new ResourceStateSnapshot("Tick", KnownResourceStateStyles.Info) });
+                    s => s with { State = new ResourceStateSnapshot("Tick", KnownResourceStateStyles.Success) });
+                await notification.PublishUpdateAsync(resource.TickHand,
+                    s => s with { State = new ResourceStateSnapshot("On", KnownResourceStateStyles.Success) });
+                await notification.PublishUpdateAsync(resource.TockHand,
+                    s => s with { State = new ResourceStateSnapshot("Off", KnownResourceStateStyles.Info) });
 
                 await Task.Delay(1000, token);
 
                 // Publish another custom state update "Tock" using Aspire's ResourceStateSnapshot.
                 await notification.PublishUpdateAsync(resource,
                     s => s with { State = new ResourceStateSnapshot("Tock", KnownResourceStateStyles.Success) });
+                await notification.PublishUpdateAsync(resource.TickHand,
+                    s => s with { State = new ResourceStateSnapshot("Off", KnownResourceStateStyles.Info) });
+                await notification.PublishUpdateAsync(resource.TockHand,
+                    s => s with { State = new ResourceStateSnapshot("On", KnownResourceStateStyles.Success) });
 
                 await Task.Delay(1000, token);
             }
@@ -93,9 +118,25 @@ public static class TalkingClockExtensions
                 ]
             });
 
-        builder.AddResource(handResource)
-            .WithParentRelationship(clockResource); // Establish a parent-child relationship with the TalkingClockResource.
+        AddHandResource(tickHandResource);
+        AddHandResource(tockHandResource);
 
         return clockBuilder;
+
+        void AddHandResource(ClockHandResource clockHand)
+        {
+            builder.AddResource(clockHand)
+                .WithParentRelationship(clockBuilder) // Establish a parent-child relationship with the TalkingClockResource.
+                .WithInitialState(new()
+                {
+                    ResourceType = "ClockHand",
+                    CreationTimeStamp = DateTime.UtcNow,
+                    State = KnownResourceStates.NotStarted,
+                    Properties =
+                    [
+                        new(CustomResourceKnownProperties.Source, "Talking Clock")
+                    ]
+                });
+        }
     }
 }
