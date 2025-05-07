@@ -117,10 +117,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         var infra = roleAssignmentContext.Infrastructure;
         var sqlserver = (SqlServer)AddAsExistingResource(infra);
 
-        // The name of the user assigned identity for the container app
-        var principalName = roleAssignmentContext.PrincipalName;
-        var clientId = roleAssignmentContext.ClientId;
-
         var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
         sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
         infra.Add(sqlServerAdmin);
@@ -130,7 +126,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{database}");
             var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
             {
-                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), new StringLiteralExpression(database), BicepFunction.GetResourceGroup().Id)}"), 24),
+                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(database), BicepFunction.GetResourceGroup().Id)}"), 24),
                 Kind = "AzurePowerShell",
                 AZPowerShellVersion = "7.4"
             };
@@ -144,32 +140,34 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             // Script don't support Bicep expression, they need to be passed as ENVs
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "USERNAME", Value = principalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = clientId });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALID", Value = roleAssignmentContext.PrincipalId });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = roleAssignmentContext.ClientId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
                 $sqlDatabaseName = "$env:DBNAME"
-                $username = "$env:USERNAME"
-                $clientId = "$env:CLIENTID"
+                $principalName = "$env:PRINCIPALNAME"
+                $id = If ("$env:PRINCIPALTYPE" -eq "User") {"$env:PRINCIPALID"} Else {"$env:CLIENTID"}
 
                 # Install SqlServer module
                 Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
                 Import-Module SqlServer
 
                 $sqlCmd = @"
-                DECLARE @principal_name SYSNAME = '$username';
-                DECLARE @clientId UNIQUEIDENTIFIER = '$clientId';
+                DECLARE @name SYSNAME = '$principalName';
+                DECLARE @id UNIQUEIDENTIFIER = '$id';
                 
                 -- Convert the guid to the right type
-                DECLARE @castClientId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @clientId), 1);
+                DECLARE @castId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @id), 1);
                 
-                -- Construct command: CREATE USER [@principal_name] WITH SID = @castObjectId, TYPE = E;
-                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @principal_name + '] WITH SID = ' + @castClientId + ', TYPE = E;'
+                -- Construct command: CREATE USER [@name] WITH SID = @castId, TYPE = E;
+                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @name + '] WITH SID = ' + @castId + ', TYPE = E;'
                 EXEC (@cmd);
                 
                 -- Assign roles to the new user
-                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_owner ADD MEMBER [' + @principal_name + ']';
+                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_owner ADD MEMBER [' + @name + ']';
                 EXEC (@role1);
                 
                 "@

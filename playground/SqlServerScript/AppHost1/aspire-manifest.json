@@ -108,9 +108,10 @@
       "path": "api1-roles-mysqlserver.module.bicep",
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
+        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}",
         "principalName": "{api1-identity.outputs.principalName}",
-        "clientId": "{api1-identity.outputs.clientId}",
-        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
+        "principalId": "{api1-identity.outputs.principalId}",
+        "clientId": "{api1-identity.outputs.clientId}"
       }
     },
     "api2-identity": {
@@ -122,9 +123,10 @@
       "path": "api2-roles-mysqlserver.module.bicep",
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
+        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}",
         "principalName": "{api2-identity.outputs.principalName}",
-        "clientId": "{api2-identity.outputs.clientId}",
-        "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}"
+        "principalId": "{api2-identity.outputs.principalId}",
+        "clientId": "{api2-identity.outputs.clientId}"
       }
     }
   }
