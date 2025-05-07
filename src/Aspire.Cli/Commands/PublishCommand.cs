@@ -106,7 +106,7 @@ internal sealed class PublishCommand : BaseCommand
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = buildOutputCollector.AppendOutput,
-                StandardErrorCallback = buildOutputCollector.AppendError
+                StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
@@ -133,6 +133,7 @@ internal sealed class PublishCommand : BaseCommand
                     {
                         StandardOutputCallback = inspectOutputCollector.AppendOutput,
                         StandardErrorCallback = inspectOutputCollector.AppendError,
+                        NoLaunchProfile = true
                     };
 
                     var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -209,6 +210,7 @@ internal sealed class PublishCommand : BaseCommand
                     {
                         StandardOutputCallback = publishOutputCollector.AppendOutput,
                         StandardErrorCallback = publishOutputCollector.AppendError,
+                        NoLaunchProfile = true
                     };
 
                     var pendingRun = _runner.RunAsync(

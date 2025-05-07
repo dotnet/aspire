@@ -81,6 +81,15 @@ public static class AzureStorageExtensions
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
 
+            var azureResource = (AzureStorageResource)infrastructure.AspireResource;
+
+            foreach (var blobContainer in azureResource.BlobContainers)
+            {
+                var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                cdkBlobContainer.Parent = blobs;
+                infrastructure.Add(cdkBlobContainer);
+            }
+
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
         };
@@ -126,13 +135,31 @@ public static class AzureStorageExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
             var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
+            if (connectionString is null)
             {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+                throw new DistributedApplicationException($"BeforeResourceStartedEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
             blobServiceClient = CreateBlobServiceClient(connectionString);
+        });
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        {
+            if (blobServiceClient is null)
+            {
+                throw new DistributedApplicationException($"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
+            }
+
+            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
+
+            foreach (var blobContainer in builder.Resource.BlobContainers)
+            {
+                await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+            }
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
@@ -281,6 +308,27 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureBlobStorageContainerResource"/> which can be referenced to get the Azure Storage blob container endpoint for the storage account.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureBlobStorageResource"/>/</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="blobContainerName">The name of the blob container.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageContainerResource"/>.</returns>
+    public static IResourceBuilder<AzureBlobStorageContainerResource> AddBlobContainer(this IResourceBuilder<AzureBlobStorageResource> builder, [ResourceName] string name, string? blobContainerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        blobContainerName ??= name;
+
+        AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource);
+
+        builder.Resource.Parent.BlobContainers.Add(resource);
+
         return builder.ApplicationBuilder.AddResource(resource);
     }
 

@@ -37,7 +37,7 @@
     <!-- Issue: https://github.com/dotnet/aspire/issues/8488 -->
     <!-- xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken to allow test cancellation to be more responsive. -->
     <!-- TODO: Re-enable and remove this. -->
-    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+    <NoWarn>$(NoWarn);xUnit1051;CS0162;CS1591;CS9113;IDE0059;IDE0051;IDE2000;IDE0005</NoWarn>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->

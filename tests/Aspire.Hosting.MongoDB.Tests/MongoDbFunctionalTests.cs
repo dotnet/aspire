@@ -246,7 +246,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.

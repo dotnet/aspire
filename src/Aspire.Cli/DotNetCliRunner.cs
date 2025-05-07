@@ -32,9 +32,11 @@ internal sealed class DotNetCliRunnerInvocationOptions
 {
     public Action<string>? StandardOutputCallback { get; set; }
     public Action<string>? StandardErrorCallback { get; set; }
+
+    public bool NoLaunchProfile { get; set; }
 }
 
-internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider) : IDotNetCliRunner
 {
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(DotNetCliRunner));
 
@@ -165,7 +167,10 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
 
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
-        string[] cliArgs = [watchOrRunCommand, noBuildSwitch, "--project", projectFile.FullName, "--", ..args];
+        var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+
+        string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
+
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
@@ -343,7 +348,7 @@ internal sealed class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceP
         return socketPath;
     }
 
-    public async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Aspire.Hosting;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.TestUtilities;
@@ -76,7 +77,26 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that HTTP triggers work correctly
-        await AppHostTests.CreateHttpClientWithResilience(app, "funcapp").GetAsync("/api/injected-resources");
+        var response = await AppHostTests.CreateHttpClientWithResilience(app, "funcapp").GetAsync("/api/injected-resources");
+
+        // The output contains multiple text lines.
+        // There are some URLs which contain port number, but the port numbers may vary, so we replace those for test validation.
+        var output = await response.Content.ReadAsStringAsync();
+        output = Regex.Replace(output, pattern: @"(?<=http:\/\/127\.0\.0\.1:)\d+", replacement: "*");
+
+        _testOutput.WriteLine($"[DEBUG] Response:\r\n{output}");
+        var expectedStrings = new string[]
+        {
+            "Aspire-injected EventHubProducerClient namespace: localhost",
+            "Aspire-injected QueueServiceClient URI: http://127.0.0.1:*/devstoreaccount1",
+            "Aspire-injected BlobServiceClient URI: http://127.0.0.1:*/devstoreaccount1",
+            "Aspire-injected BlobContainerClient URI: http://127.0.0.1:*/devstoreaccount1/myblobcontainer"
+        };
+        foreach (string s in expectedStrings)
+        {
+            Assert.Contains(s, output);
+        }
+
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.injected-resources'"

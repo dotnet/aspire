@@ -12,7 +12,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureFunctionsTests(ITestOutputHelper output)
+public class AzureFunctionsTests
 {
     [Fact]
     public void AddAzureFunctionsProject_Works()
@@ -303,74 +303,9 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        var expectedRolesManifest =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "funcapp-roles-funcstorage634f8.module.bicep",
-              "params": {
-                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}",
-                "principalId": "{funcapp-identity.outputs.principalId}"
-              }
-            }
-            """;
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
-
-        var expectedRolesBicep =
-            """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param funcstorage634f8_outputs_name string
-
-            param principalId string
-
-            resource funcstorage634f8 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: funcstorage634f8_outputs_name
-            }
-
-            resource funcstorage634f8_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
-            resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-            
-            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
-            resource funcstorage634f8_StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-            """;
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        await Verify(rolesManifest.ToString(), "json")
+              .AppendContentAsFile(rolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -395,64 +330,9 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        var expectedRolesManifest =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "funcapp-roles-my-own-storage.module.bicep",
-              "params": {
-                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}",
-                "principalId": "{funcapp-identity.outputs.principalId}"
-              }
-            }
-            """;
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
-
-        var expectedRolesBicep =
-            """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param my_own_storage_outputs_name string
-
-            param principalId string
-
-            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: my_own_storage_outputs_name
-            }
-
-            resource my_own_storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(my_own_storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: 'ServicePrincipal'
-              }
-              scope: my_own_storage
-            }
-
-            resource my_own_storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(my_own_storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: 'ServicePrincipal'
-              }
-              scope: my_own_storage
-            }
-
-            resource my_own_storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(my_own_storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: 'ServicePrincipal'
-              }
-              scope: my_own_storage
-            }
-            """;
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        await Verify(rolesManifest.ToString(), "json")
+              .AppendContentAsFile(rolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -478,44 +358,9 @@ public class AzureFunctionsTests(ITestOutputHelper output)
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        var expectedRolesManifest =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "funcapp-roles-my-own-storage.module.bicep",
-              "params": {
-                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}",
-                "principalId": "{funcapp-identity.outputs.principalId}"
-              }
-            }
-            """;
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
-
-        var expectedRolesBicep =
-            """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param my_own_storage_outputs_name string
-
-            param principalId string
-
-            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: my_own_storage_outputs_name
-            }
-
-            resource my_own_storage_StorageBlobDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(my_own_storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
-                principalType: 'ServicePrincipal'
-              }
-              scope: my_own_storage
-            }
-            """;
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        await Verify(rolesManifest.ToString(), "json")
+              .AppendContentAsFile(rolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -545,113 +390,11 @@ public class AzureFunctionsTests(ITestOutputHelper output)
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
         var (rolesManifest2, rolesBicep2) = await GetManifestWithBicep(projRolesStorage2);
 
-        var expectedRolesManifest =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "funcapp-roles-my-own-storage.module.bicep",
-              "params": {
-                "my_own_storage_outputs_name": "{my-own-storage.outputs.name}",
-                "principalId": "{funcapp-identity.outputs.principalId}"
-              }
-            }
-            """;
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
-
-        var expectedRolesManifest2 =
-            """
-            {
-              "type": "azure.bicep.v0",
-              "path": "funcapp2-roles-funcstorage634f8.module.bicep",
-              "params": {
-                "funcstorage634f8_outputs_name": "{funcstorage634f8.outputs.name}",
-                "principalId": "{funcapp2-identity.outputs.principalId}"
-              }
-            }
-            """;
-        Assert.Equal(expectedRolesManifest2, rolesManifest2.ToString());
-
-        var expectedRolesBicep =
-            """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param my_own_storage_outputs_name string
-
-            param principalId string
-
-            resource my_own_storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: my_own_storage_outputs_name
-            }
-
-            resource my_own_storage_StorageBlobDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(my_own_storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
-                principalType: 'ServicePrincipal'
-              }
-              scope: my_own_storage
-            }
-            """;
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
-
-        var expectedRolesBicep2 =
-            """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param funcstorage634f8_outputs_name string
-
-            param principalId string
-
-            resource funcstorage634f8 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: funcstorage634f8_outputs_name
-            }
-
-            resource funcstorage634f8_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
-            resource funcstorage634f8_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
-            resource funcstorage634f8_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-
-            resource funcstorage634f8_StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(funcstorage634f8.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-                principalType: 'ServicePrincipal'
-              }
-              scope: funcstorage634f8
-            }
-            """;
-        output.WriteLine(rolesBicep2);
-        Assert.Equal(expectedRolesBicep2, rolesBicep2);
+        await Verify(rolesManifest.ToString(), "json")
+              .AppendContentAsFile(rolesBicep, "bicep")
+              .AppendContentAsFile(rolesManifest2.ToString(), "json")
+              .AppendContentAsFile(rolesBicep2, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

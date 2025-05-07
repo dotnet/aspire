@@ -35,7 +35,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
 
         if (configureOptions is not null)
         {
-            builder.Services.Configure("name", configureOptions);
+            builder.Services.Configure(name, configureOptions);
         }
 
         builder.Services.Configure<TPublisherOptions>(name, builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));

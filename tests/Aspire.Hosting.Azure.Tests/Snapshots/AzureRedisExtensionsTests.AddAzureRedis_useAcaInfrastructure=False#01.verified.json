@@ -1,0 +1,9 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "redis-cache-roles.module.bicep",
+  "params": {
+    "redis_cache_outputs_name": "{redis-cache.outputs.name}",
+    "principalId": "",
+    "principalName": ""
+  }
+}
