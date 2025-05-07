@@ -135,6 +135,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9139")]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
