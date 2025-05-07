@@ -62,6 +62,12 @@ public sealed class AzurePublishingContext(
     /// <returns>A task that represents the async operation.</returns>
     public async Task WriteModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        await WriteModelAsync(model, environment, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource? environment, CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
 
@@ -71,12 +77,12 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
 
         await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, CancellationToken _)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource? environment, CancellationToken _)
     {
         var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
         if (!outputDirectory.Exists)
@@ -86,10 +92,20 @@ public sealed class AzurePublishingContext(
 
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
 
-        var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
+        var environmentParam = environment?.ResourceGroupName is null
+            ? new ProvisioningParameter("environmentName", typeof(string))
+            : new ProvisioningParameter("environmentName", typeof(string))
+            {
+                Value = environment.ResourceGroupName
+            };
         MainInfrastructure.Add(environmentParam);
 
-        var locationParam = new ProvisioningParameter("location", typeof(string));
+        var locationParam = environment?.Location is null
+            ? new ProvisioningParameter("location", typeof(string))
+            : new ProvisioningParameter("location", typeof(string))
+            {
+                Value = environment.Location
+            };
         MainInfrastructure.Add(locationParam);
 
         var principalId = new ProvisioningParameter("principalId", typeof(string));
