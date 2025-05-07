@@ -66,7 +66,7 @@ internal static class CommandsConfigurationExtensions
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && context.ResourceSnapshot.State is not null)
+                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && !HasNoState(state))
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -96,7 +96,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || context.ResourceSnapshot.State is null)
+                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -119,5 +119,6 @@ internal static class CommandsConfigurationExtensions
         static bool IsStarting(string? state) => state == KnownResourceStates.Starting;
         static bool IsWaiting(string? state) => state == KnownResourceStates.Waiting;
         static bool IsRuntimeUnhealthy(string? state) => state == KnownResourceStates.RuntimeUnhealthy;
+        static bool HasNoState(string? state) => string.IsNullOrEmpty(state);
     }
 }
