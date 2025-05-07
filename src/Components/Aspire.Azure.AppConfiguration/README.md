@@ -110,7 +110,7 @@ The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.C
   "Aspire": {
     "Azure": {
       "AppConfiguration": {
-        "Endpoint": "http://YOUR_URI"
+        "Endpoint": "YOUR_APPCONFIGURATION_ENDPOINT_URI"
       }
     }
   }

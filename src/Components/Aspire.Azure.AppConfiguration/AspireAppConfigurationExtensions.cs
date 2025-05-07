@@ -63,8 +63,5 @@ public static class AspireAppConfigurationExtensions
             optional);
 
         builder.Services.AddAzureAppConfiguration(); // register IConfigurationRefresherProvider service
-
-        // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
-        // Tracing will be supported in the next 8.2.0 release
     }
 }
