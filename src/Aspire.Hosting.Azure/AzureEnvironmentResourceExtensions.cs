@@ -24,8 +24,12 @@ public static class AzureEnvironmentResourceExtensions
             // If the resource already exists, return the existing builder
             return builder.CreateResourceBuilder(existingResource);
         }
+
         var resourceName = builder.CreateDefaultAzureEnvironmentName();
-        var resource = new AzureEnvironmentResource(resourceName);
+        var locationParam = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, "azure-location-default", false);
+        var resourceGroupName = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, "azure-rg-default", false);
+
+        var resource = new AzureEnvironmentResource(resourceName, locationParam, resourceGroupName);
         if (builder.ExecutionContext.IsRunMode)
         {
             // Return a builder that isn't added to the top-level application builder
@@ -33,36 +37,13 @@ public static class AzureEnvironmentResourceExtensions
             return builder.CreateResourceBuilder(resource);
 
         }
+
+        // In publish mode, add the resource to the application model
+        // but exclude it from the manifest so that it is not treated
+        // as a publishable resource by components that process the manifest
+        // for elements.
         return builder.AddResource(resource)
             .ExcludeFromManifest();
-    }
-
-    /// <summary>
-    /// Applies additional configuration to the <see cref="AzureEnvironmentResource"/> represented
-    /// by the given <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">
-    /// The <see cref="IResourceBuilder{TResource}"/> that wraps the <see cref="AzureEnvironmentResource"/>
-    /// to configure.
-    /// </param>
-    /// <param name="configure">
-    /// A delegate that receives the underlying <see cref="AzureEnvironmentResource"/> and performs
-    /// the desired mutations, such as the location, resource group name, or tags.
-    /// </param>
-    /// <returns>
-    /// The same <paramref name="builder"/> instance so that further configuration calls can be chained.
-    /// </returns>
-    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureEnvironmentResource> WithProperties(
-        this IResourceBuilder<AzureEnvironmentResource> builder,
-        Action<AzureEnvironmentResource> configure)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configure);
-
-        configure(builder.Resource);
-
-        return builder;
     }
 
     /// <summary>
@@ -78,12 +59,12 @@ public static class AzureEnvironmentResourceExtensions
     [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureEnvironmentResource> WithLocation(
         this IResourceBuilder<AzureEnvironmentResource> builder,
-        object? location)
+        IResourceBuilder<ParameterResource> location)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(location);
 
-        builder.Resource.Location = location;
+        builder.Resource.Location = location.Resource;
 
         return builder;
     }
@@ -101,19 +82,19 @@ public static class AzureEnvironmentResourceExtensions
     [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureEnvironmentResource> WithResourceGroup(
         this IResourceBuilder<AzureEnvironmentResource> builder,
-        object? resourceGroup)
+        IResourceBuilder<ParameterResource> resourceGroup)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(resourceGroup);
 
-        builder.Resource.ResourceGroupName = resourceGroup;
+        builder.Resource.ResourceGroupName = resourceGroup.Resource;
 
         return builder;
     }
 
     private static string CreateDefaultAzureEnvironmentName(this IDistributedApplicationBuilder builder)
     {
-        var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
+        var applicationHash = builder.Configuration["AppHost:Sha256"]?[..5].ToLowerInvariant();
         return $"azure{applicationHash}";
     }
 }
