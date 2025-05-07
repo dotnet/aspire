@@ -78,7 +78,7 @@ public class ConformanceTests : ConformanceTests<AIProjectClient, AzureAIProject
         => throw new NotImplementedException();
 
     protected override void SetMetrics(AzureAIProjectSettings options, bool enabled)
-        => throw new NotSupportedException();
+        => throw new NotImplementedException();
 
     protected override void SetTracing(AzureAIProjectSettings options, bool enabled)
         => options.DisableTracing = !enabled;
