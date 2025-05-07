@@ -105,7 +105,7 @@ internal sealed class PublishCommand : BaseCommand
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = buildOutputCollector.AppendOutput,
-                StandardErrorCallback = buildOutputCollector.AppendError
+                StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
@@ -121,7 +121,7 @@ internal sealed class PublishCommand : BaseCommand
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
             _interactionService.DisplayMessage($"hammer_and_wrench", $"Generating artifacts...");
-
+            
             var exitCode = await AnsiConsole.Progress()
                 .AutoRefresh(true)
                 .Columns(
@@ -144,6 +144,7 @@ internal sealed class PublishCommand : BaseCommand
                     {
                         StandardOutputCallback = publishOutputCollector.AppendOutput,
                         StandardErrorCallback = publishOutputCollector.AppendError,
+                        NoLaunchProfile = true
                     };
 
                     var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();

@@ -28,6 +28,11 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     public string? DefaultNetworkName { get; set; }
 
+    /// <summary>
+    /// Determines whether to build container images for the resources in this environment.
+    /// </summary>
+    public bool BuildContainerImages { get; set; } = true;
+
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
     /// <summary>
@@ -48,13 +53,12 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 #pragma warning restore ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-        var publishOptions = new DockerComposePublisherOptions
-        {
-            OutputPath = context.OutputPath
-        };
-
-        var dockerComposePublishingContext = new DockerComposePublishingContext(context.ExecutionContext,
-            publishOptions, imageBuilder, context.Logger, context.CancellationToken);
+        var dockerComposePublishingContext = new DockerComposePublishingContext(
+            context.ExecutionContext,
+            imageBuilder,
+            context.OutputPath,
+            context.Logger,
+            context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);
     }

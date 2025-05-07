@@ -3,16 +3,14 @@
 
 using Aspire.Azure.Common;
 using Aspire.Azure.Security.KeyVault;
-using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
+using Azure.Security.KeyVault.Certificates;
+using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Secrets;
-using HealthChecks.Azure.KeyVault.Secrets;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -42,7 +40,8 @@ public static class AspireKeyVaultExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        new KeyVaultComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        new AzureKeyVaultSecretsComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -64,7 +63,96 @@ public static class AspireKeyVaultExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        new KeyVaultComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new AzureKeyVaultSecretsComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <summary>
+    /// Registers <see cref="CertificateClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Security:KeyVault:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
+    public static void AddAzureKeyVaultCertificateClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<CertificateClient, CertificateClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new AzureKeyVaultCertificatesComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="CertificateClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection information from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Security:KeyVault:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
+    public static void AddKeyedAzureKeyVaultCertificateClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<CertificateClient, CertificateClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new AzureKeyVaultCertificatesComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <summary>
+    /// Registers <see cref="KeyClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Security:KeyVault:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
+    public static void AddAzureKeyVaultKeyClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<KeyClient, KeyClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new AzureKeyVaultKeysComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="KeyClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection information from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Security:KeyVault:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
+    public static void AddKeyedAzureKeyVaultKeyClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<KeyClient, KeyClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new AzureKeyVaultKeysComponent()
+            .AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     /// <summary>
@@ -117,50 +205,5 @@ public static class AspireKeyVaultExtensions
         }
 
         return new SecretClient(settings.VaultUri, settings.Credential ?? new DefaultAzureCredential(), clientOptions);
-    }
-
-    private sealed class KeyVaultComponent : AzureComponent<AzureSecurityKeyVaultSettings, SecretClient, SecretClientOptions>
-    {
-        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient(
-            AzureClientFactoryBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings,
-            string connectionName, string configurationSectionName)
-        {
-            return azureFactoryBuilder.AddClient<SecretClient, SecretClientOptions>((options, cred, _) =>
-            {
-                if (settings.VaultUri is null)
-                {
-                    throw new InvalidOperationException($"VaultUri is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'VaultUri' key in the '{configurationSectionName}' configuration section.");
-                }
-
-                return new SecretClient(settings.VaultUri, cred, options);
-            });
-        }
-
-        protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
-            => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretsHealthCheckOptions());
-
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
-        {
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
-            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
-#pragma warning restore IDE0200
-        }
-
-        protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
-        {
-            configuration.Bind(settings);
-        }
-
-        protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
-            => !settings.DisableHealthChecks;
-
-        protected override TokenCredential? GetTokenCredential(AzureSecurityKeyVaultSettings settings)
-            => settings.Credential;
-
-        protected override bool GetMetricsEnabled(AzureSecurityKeyVaultSettings settings)
-            => false;
-
-        protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
-            => !settings.DisableTracing;
     }
 }

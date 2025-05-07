@@ -22,15 +22,15 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    DockerComposePublisherOptions publisherOptions,
     IResourceContainerImageBuilder imageBuilder,
+    string outputPath,
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
-    public readonly DockerComposePublisherOptions PublisherOptions = publisherOptions;
+    public readonly string OutputPath = outputPath;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource = null)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -41,7 +41,7 @@ internal sealed class DockerComposePublishingContext(
         logger.StartGeneratingDockerCompose();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -49,33 +49,13 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        await WriteDockerComposeOutputAsync(model, environmentResource).ConfigureAwait(false);
+        await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
 
-        logger.FinishGeneratingDockerCompose(PublisherOptions.OutputPath);
+        logger.FinishGeneratingDockerCompose(OutputPath);
     }
 
-    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource? environmentResource)
+    private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
-        var environment = environmentResource;
-
-        if (environment is null)
-        {
-            var dockerComposeEnvironments = model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
-
-            if (dockerComposeEnvironments.Length > 1)
-            {
-                throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
-            }
-
-            environment = dockerComposeEnvironments.FirstOrDefault();
-
-            if (environment == null)
-            {
-                // No Docker Compose environment found
-                throw new InvalidOperationException($"No Docker Compose environment found. Ensure a Docker Compose environment is registered by calling {nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}.");
-            }
-        }
-
         var defaultNetwork = new Network
         {
             Name = environment.DefaultNetworkName ?? "aspire",
@@ -89,7 +69,7 @@ internal sealed class DockerComposePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                if (PublisherOptions.BuildImages)
+                if (environment.BuildContainerImages)
                 {
                     await ImageBuilder.BuildImageAsync(serviceResource.TargetResource, cancellationToken).ConfigureAwait(false);
                 }
@@ -119,8 +99,8 @@ internal sealed class DockerComposePublishingContext(
         environment.ConfigureComposeFile?.Invoke(composeFile);
 
         var composeOutput = composeFile.ToYaml();
-        var outputFile = Path.Combine(PublisherOptions.OutputPath!, "docker-compose.yaml");
-        Directory.CreateDirectory(PublisherOptions.OutputPath!);
+        var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");
+        Directory.CreateDirectory(OutputPath);
         await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
 
         if (environment.CapturedEnvironmentVariables.Count == 0)
@@ -131,7 +111,7 @@ internal sealed class DockerComposePublishingContext(
 
         // Write a .env file with the environment variable names
         // that are used in the compose file
-        var envFile = Path.Combine(PublisherOptions.OutputPath!, ".env");
+        var envFile = Path.Combine(OutputPath, ".env");
         using var envWriter = new StreamWriter(envFile);
 
         foreach (var entry in environment.CapturedEnvironmentVariables ?? [])

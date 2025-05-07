@@ -3,12 +3,11 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
 {
     [Fact]
-    public void PublishingDockerComposeEnviromentPublishesFile()
+    public async Task PublishingDockerComposeEnviromentPublishesFile()
     {
         var tempDir = Directory.CreateTempSubdirectory(".k8s-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -25,9 +24,11 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
         var chartYaml = Path.Combine(tempDir.FullName, "Chart.yaml");
         var valuesYaml = Path.Combine(tempDir.FullName, "values.yaml");
         var deploymentYaml = Path.Combine(tempDir.FullName, "templates", "service", "deployment.yaml");
-        Assert.True(File.Exists(chartYaml), "Chart.yaml file was not created.");
-        Assert.True(File.Exists(valuesYaml), "values.yaml file was not created.");
-        Assert.True(File.Exists(deploymentYaml), "Deployment.yaml file was not created.");
+
+        await Verify(File.ReadAllText(chartYaml), "yaml")
+            .AppendContentAsFile(File.ReadAllText(valuesYaml), "yaml")
+            .AppendContentAsFile(File.ReadAllText(deploymentYaml), "yaml")
+            .UseHelixAwareDirectory();
 
         tempDir.Delete(recursive: true);
     }
