@@ -32,12 +32,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
         {
           "Aspire": {
             "Azure": {
-              "Data": {
-                "AppConfiguration": {
-                  "Endpoint": "http://YOUR_URI",
-                  "DisableHealthChecks": true,
-                  "DisableTracing": false
-                }
+              "AppConfiguration": {
+                "Endpoint": "http://YOUR_URI"
               }
             }
           }
@@ -81,8 +77,7 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\"")
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)
@@ -98,10 +93,9 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(IConfigurationRefresherProvider service)
-    {
-        Thread.Sleep(1000);
-        service.Refreshers.First().RefreshAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-    }
+        // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
+        // Will be supported in the next 8.2.0 release
+        => throw new NotImplementedException();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
