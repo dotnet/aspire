@@ -26,8 +26,8 @@ var app = builder.Build();
 
 app.MapGet("/publish/asq", async (QueueServiceClient client, CancellationToken cancellationToken) =>
 {
-    var queue = client.GetQueueClient("queue");
-    await queue.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+    var queue = client.GetQueueClient("myqueue");
+
     var data = Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!"));
     await queue.SendMessageAsync(data, cancellationToken: cancellationToken);
     return Results.Ok("Message sent to Azure Storage Queue.");

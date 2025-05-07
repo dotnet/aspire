@@ -1,7 +1,10 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+
 var queues = storage.AddQueues("queues");
+var myQueue = queues.AddQueue("myqueue");
+
 var blobs = storage.AddBlobs("blobs");
 var myBlobContainer = blobs.AddBlobContainer("myblobcontainer");
 
@@ -28,7 +31,8 @@ var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_F
 #endif
     .WithReference(blobs)
     .WithReference(myBlobContainer).WaitFor(myBlobContainer)
-    .WithReference(queues);
+    .WithReference(queues)
+    .WithReference(myQueue).WaitFor(myQueue);
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(eventHub).WaitFor(eventHub)
