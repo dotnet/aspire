@@ -7,13 +7,17 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// 
+/// This event is raised by orchestrators to signal to resources that they should initialize themselves.
 /// </summary>
-/// <param name="resource"></param>
-/// <param name="distributedApplicationEventing"></param>
-/// <param name="resourceLoggerService"></param>
-/// <param name="resourceNotificationService"></param>
-/// <param name="services"></param>
+/// <param name="resource">The resource that is being created.</param>
+/// <param name="distributedApplicationEventing">The <see cref="IDistributedApplicationEventing"/> service for the app host.</param>
+/// <param name="resourceLoggerService">The <see cref="ResourceLoggerService"/> for the app host.</param>
+/// <param name="resourceNotificationService">The <see cref="ResourceNotificationService"/> for the app host.</param>
+/// <param name="services">The <see cref="IServiceProvider"/> for the app host.</param>
+/// <remarks>
+/// Custom resources can subscribe to this event to perform initialization tasks, including starting background tasks
+/// that manage the resource's lifecycle.
+/// </remarks>
 public class InitializeResourceEvent(
     IResource resource,
     IDistributedApplicationEventing distributedApplicationEventing,
@@ -21,28 +25,26 @@ public class InitializeResourceEvent(
     ResourceNotificationService resourceNotificationService,
     IServiceProvider services) : IDistributedApplicationResourceEvent
 {
+    /// <inheritdoc />
+    public IResource Resource { get; } = resource;
+
     /// <summary>
-    /// 
+    /// The <see cref="IDistributedApplicationEventing"/> service for the app host.
     /// </summary>
     public IDistributedApplicationEventing Eventing { get; } = distributedApplicationEventing;
 
     /// <summary>
-    /// 
+    /// An instance of <see cref="ILogger"/> that can be used to log messages for the resource.
     /// </summary>
     public ILogger Logger { get; } = resourceLoggerService.GetLogger(resource);
 
     /// <summary>
-    /// 
+    /// The <see cref="ResourceNotificationService"/> for the app host.
     /// </summary>
     public ResourceNotificationService Notifications { get; } = resourceNotificationService;
 
     /// <summary>
-    /// 
-    /// </summary>
-    public IResource Resource { get; } = resource;
-
-    /// <summary>
-    /// 
+    /// The <see cref="IServiceProvider"/> for the app host.
     /// </summary>
     public IServiceProvider Services { get; } = services;
 }
